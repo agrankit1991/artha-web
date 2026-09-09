@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+#
+# The full gate before code leaves the machine: static checks, coverage
+# thresholds, and the dependency audit. Same as CI.
+
+set -euo pipefail
+
+echo "pre-push: running full verification..."
+
+if ! npm run --silent verify; then
+  echo "" >&2
+  echo "pre-push: verification failed. CI would fail on this too." >&2
+  exit 1
+fi

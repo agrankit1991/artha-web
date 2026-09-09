@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Lint, types, tests
+    name: Format, lint, types, coverage, audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,14 +25,25 @@ jobs:
       # developer's tree by silently resolving a newer dependency.
       - run: npm ci
 
+      # Each check is a separate step so a failure names itself in the UI,
+      # but every one is a script a developer runs locally.
+      - name: Format
+        run: npm run format:check
+
       - name: Lint
         run: npm run lint
 
       - name: Types
         run: npm run typecheck
 
-      - name: Tests
-        run: npm test
+      - name: Coverage thresholds
+        run: npm run coverage
+
+      - name: Dependency audit
+        # High and critical only. Moderate advisories in the test toolchain
+        # never reach the browser, and blocking on them trains people to
+        # ignore the audit.
+        run: npm run audit
 
   build:
     name: Build image
@@ -42,6 +53,6 @@ jobs:
       - uses: actions/checkout@v4
 
       # The Dockerfile runs typecheck as part of `npm run build`, so this also
-      # proves the shipped artifact compiles rather than only the source tree.
+      # proves the shipped artifact compiles, not only the source tree.
       - name: Build image
         run: docker build -t artha-web:${{ github.sha }} .

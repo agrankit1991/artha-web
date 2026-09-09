@@ -12,15 +12,46 @@ Platform-level decisions and their reasoning are in `../PLATFORM-DECISIONS.md`.
 
 ## Commands
 
+`npm run verify` is the gate. It is what the pre-push hook runs and what CI
+runs, so a green local run means a green pipeline.
+
 ```bash
 npm install
-npm run dev        # needs the artha-platform compose stack running on :80
-npm run lint
-npm run typecheck
-npm test
-npm run build
-docker build -t artha-web:local .
+npm run verify       # check + coverage thresholds + dependency audit
+npm run check        # format, lint, types (pre-commit runs this)
+npm run format       # apply Prettier
+npm run coverage     # tests with thresholds enforced
+npm run dev          # needs the artha-platform compose stack on :80
 ```
+
+Install the hooks once per clone: `git config core.hooksPath .githooks`.
+
+**Run `npm run verify` before every commit.** The hooks enforce it, but do
+not rely on them alone — `--no-verify` exists and CI is a slow way to find
+out.
+
+## Quality gate
+
+| Check        | Tool                                                                                    |
+| ------------ | --------------------------------------------------------------------------------------- |
+| Formatting   | Prettier (ESLint defers via `eslint-config-prettier`)                                   |
+| Lint         | ESLint with `strictTypeChecked` + react-hooks                                           |
+| Types        | `tsc --noEmit`, strict plus `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess` |
+| Coverage     | Vitest v8 provider, lines/branches/functions/statements                                 |
+| Dependencies | `npm audit --audit-level=high`                                                          |
+
+**Audit level is `high`, deliberately.** Dev dependencies never reach the
+browser in a static bundle, and blocking on every moderate advisory in the
+test toolchain trains people to ignore the audit. High and critical block.
+
+### Coverage ratchet
+
+Currently **60%** on lines, branches, functions and statements, configured in
+`vite.config.ts`. Actual coverage is 100% lines / 92% branches.
+
+**The bar only ever goes up.** Raise it to just under the current figure in
+the same commit that adds the tests. Never lower it to make a build pass.
+Target once real views exist: 80%.
 
 ## Rules
 

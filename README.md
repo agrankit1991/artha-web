@@ -22,11 +22,27 @@ fails.
 
 ```bash
 npm run dev        # dev server with API proxy
+npm run verify     # the full gate: format, lint, types, coverage, audit
+npm run check      # static checks only
+npm run format     # apply Prettier
 npm run build      # typecheck, then production bundle into dist/
-npm run lint       # eslint, type-aware rules
-npm run typecheck  # tsc --noEmit
-npm test           # vitest
 ```
+
+Install the git hooks once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+`pre-commit` runs the static checks; `pre-push` runs the full gate, which is
+what CI runs too.
+
+### Quality gate
+
+Prettier, ESLint with type-aware strict rules, `tsc --noEmit`, Vitest with
+line and branch coverage thresholds, and `npm audit`. Coverage is floored at
+**60%** and currently sits at 100% lines / 92% branches. The floor only moves
+up — see `CLAUDE.md`.
 
 ## Deployment
 

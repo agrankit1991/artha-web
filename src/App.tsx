@@ -11,9 +11,7 @@ import { useEffect, useState } from "react";
 import { type Hello, fetchHello } from "./api/client";
 
 type Status =
-  | { kind: "loading" }
-  | { kind: "ready"; hello: Hello }
-  | { kind: "failed"; reason: string };
+  { kind: "loading" } | { kind: "ready"; hello: Hello } | { kind: "failed"; reason: string };
 
 export function App(): React.JSX.Element {
   const [status, setStatus] = useState<Status>({ kind: "loading" });

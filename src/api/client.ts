@@ -42,7 +42,10 @@ async function getJson<T>(path: string): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new ApiError(response.status, `GET ${path} failed with status ${String(response.status)}`);
+    throw new ApiError(
+      response.status,
+      `GET ${path} failed with status ${String(response.status)}`,
+    );
   }
 
   return (await response.json()) as T;

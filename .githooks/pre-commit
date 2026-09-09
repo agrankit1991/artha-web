@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+#
+# Static checks before every commit: formatting, lint, types.
+#
+# Coverage and the dependency audit are deliberately NOT here -- the audit
+# needs network access, and a hook that fails because you are offline trains
+# you to pass --no-verify, which is worse than having no hook. They run on
+# pre-push and in CI.
+
+set -euo pipefail
+
+echo "pre-commit: running static checks..."
+
+if ! npm run --silent check; then
+  cat >&2 <<'MSG'
+
+pre-commit: checks failed. Run `npm run format` for the mechanical ones.
+Bypass with --no-verify only if you know why.
+MSG
+  exit 1
+fi
+
+echo "pre-commit: passed."
