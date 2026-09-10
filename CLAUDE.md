@@ -46,12 +46,12 @@ test toolchain trains people to ignore the audit. High and critical block.
 
 ### Coverage ratchet
 
-Currently **60%** on lines, branches, functions and statements, configured in
-`vite.config.ts`. Actual coverage is 100% lines / 92% branches.
+Currently **95%** on lines, branches, functions and statements, configured in
+`vite.config.ts`. Actual coverage is 100% on every measure.
 
 **The bar only ever goes up.** Raise it to just under the current figure in
 the same commit that adds the tests. Never lower it to make a build pass.
-Target once real views exist: 80%.
+It stays at 95% as real views are added.
 
 ## Rules
 

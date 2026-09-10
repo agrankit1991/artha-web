@@ -41,4 +41,14 @@ describe("App", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/503/);
   });
+
+  it("still reports a failure when the rejection is not an Error", async () => {
+    // fetch can reject with anything; a thrown string must not crash the
+    // shell or leave it stuck on the loading message.
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue("network unreachable"));
+
+    render(<App />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/unknown error/);
+  });
 });

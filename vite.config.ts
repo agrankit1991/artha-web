@@ -31,16 +31,14 @@ export default defineConfig({
       include: ["src/**/*.{ts,tsx}"],
       exclude: ["src/main.tsx", "src/test-setup.ts", "src/**/*.test.{ts,tsx}"],
 
-      // Thresholds start low enough not to block scaffolding, high enough to
-      // fail if a module lands with no tests at all. The bar only ever goes
-      // up: raise it to just under the current figure in the same commit that
-      // adds the tests. Lowering it to make a build pass turns the gate into
-      // decoration. Target once real views exist: 80%.
+      // Thresholds sit at 95%: every module ships with tests that exercise its
+      // failure paths, not just the happy one. The bar only ever goes up; lowering
+      // it to make a build pass turns the gate into decoration.
       thresholds: {
-        lines: 60,
-        branches: 60,
-        functions: 60,
-        statements: 60,
+        lines: 95,
+        branches: 95,
+        functions: 95,
+        statements: 95,
       },
     },
   },

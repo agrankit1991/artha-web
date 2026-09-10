@@ -41,7 +41,7 @@ what CI runs too.
 
 Prettier, ESLint with type-aware strict rules, `tsc --noEmit`, Vitest with
 line and branch coverage thresholds, and `npm audit`. Coverage is floored at
-**60%** and currently sits at 100% lines / 92% branches. The floor only moves
+**95%** and currently sits at 100% on every measure. The floor only moves
 up — see `CLAUDE.md`.
 
 ## Deployment
