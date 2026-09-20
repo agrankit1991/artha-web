@@ -202,26 +202,27 @@ describe("Overview", () => {
     expect(chosen).toHaveBeenCalledWith(expect.objectContaining({ symbol: "RELIANCE" }));
   });
 
-  it("draws the benchmark's own sessions, with this platform's averages", async () => {
+  it("opens on the comparison against gold", async () => {
+    // What the index has done against gold is the question somebody opens
+    // this page with; its own price is on the card above already.
+    stubEverything();
+
+    renderOverview();
+
+    expect(await screen.findByText("+10.00%")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /vs Gold/ })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("draws the benchmark's own sessions when that tab is chosen", async () => {
     // The chart shows the values a rule would fire on rather than ones it
     // worked out for itself in the browser.
     stubEverything();
-
     renderOverview();
+    await screen.findByText("+10.00%");
+
+    await userEvent.click(screen.getByRole("tab", { name: "Nifty 50" }));
 
     expect(await screen.findByText("SMA 200")).toBeInTheDocument();
-  });
-
-  it("compares the benchmark against gold when asked to", async () => {
-    // Different orders of magnitude on one price axis is one line and a
-    // floor, so both are rebased to the session they share.
-    stubEverything();
-    renderOverview();
-    await screen.findByText("SMA 200");
-
-    await userEvent.click(screen.getByRole("button", { name: "vs Gold" }));
-
-    expect(await screen.findByText("+10.00%")).toBeInTheDocument();
   });
 
   it("embeds only what this platform has no data of its own for", async () => {
@@ -231,7 +232,7 @@ describe("Overview", () => {
 
     renderOverview();
 
-    expect(await screen.findByRole("region", { name: "World markets" })).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: "Global markets" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Sector heatmap" })).toBeInTheDocument();
   });
 
@@ -263,7 +264,7 @@ describe("Overview", () => {
   it("opens on a year and asks for whatever span is chosen", async () => {
     const fetchMock = stubEverything();
     renderOverview();
-    await screen.findByText("SMA 200");
+    await screen.findByText("+10.00%");
     expect(
       fetchMock.mock.calls
         .map((call) => String(call[0]))
@@ -284,17 +285,16 @@ describe("Overview", () => {
     });
   });
 
-  it("keeps the span when the chart is switched", async () => {
-    // Switching views to find the range reset is what makes one chart
-    // feel like two.
+  it("asks for the span chosen, whichever chart is showing", async () => {
+    // The range is shared: switching views to find it reset is what makes
+    // one chart feel like two.
     const fetchMock = stubEverything();
     renderOverview();
-    await screen.findByText("SMA 200");
+    await screen.findByText("+10.00%");
+
     await userEvent.click(
       within(screen.getByRole("group", { name: "History" })).getByRole("button", { name: "5Y" }),
     );
-
-    await userEvent.click(screen.getByRole("button", { name: "vs Gold" }));
 
     await waitFor(() => {
       const asked = fetchMock.mock.calls.map((call) => String(call[0]));

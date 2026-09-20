@@ -45,6 +45,18 @@ function afterRedraw(): void {
   vi.clearAllMocks();
 }
 
+/** Choose a shape from the style menu. */
+async function chooseShape(name: string): Promise<void> {
+  await userEvent.click(screen.getByRole("button", { name: "Chart style" }));
+  await userEvent.click(screen.getByRole("menuitem", { name: new RegExp(`^${name}\\b`) }));
+}
+
+/** Turn an indicator on or off from the indicator menu. */
+async function toggleIndicator(name: string): Promise<void> {
+  await userEvent.click(screen.getByRole("button", { name: "Indicators" }));
+  await userEvent.click(screen.getByRole("menuitem", { name: new RegExp(`^${name}\\b`) }));
+}
+
 describe("PriceChart", () => {
   it("opens on candles, with the long averages and what traded", () => {
     draw();
@@ -68,7 +80,7 @@ describe("PriceChart", () => {
     draw();
     afterRedraw();
 
-    await userEvent.click(screen.getByRole("button", { name: "Line" }));
+    await chooseShape("Line");
 
     expect(seriesKinds()).not.toContain("candlestick");
     expect(dataFor("line")).toEqual(
@@ -80,7 +92,7 @@ describe("PriceChart", () => {
     draw();
     afterRedraw();
 
-    await userEvent.click(screen.getByRole("button", { name: "Area" }));
+    await chooseShape("Area");
 
     expect(seriesKinds()).toContain("area");
   });
@@ -102,7 +114,7 @@ describe("PriceChart", () => {
     draw();
     expect(within(legend()).queryByText("SMA 20")).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "SMA 20" }));
+    await toggleIndicator("SMA 20");
 
     expect(within(legend()).getByText("SMA 20")).toBeInTheDocument();
   });
@@ -110,7 +122,7 @@ describe("PriceChart", () => {
   it("takes one away again", async () => {
     draw();
 
-    await userEvent.click(screen.getByRole("button", { name: "SMA 200" }));
+    await toggleIndicator("SMA 200");
 
     expect(within(legend()).queryByText("SMA 200")).not.toBeInTheDocument();
   });
@@ -121,7 +133,7 @@ describe("PriceChart", () => {
     draw();
     afterRedraw();
 
-    await userEvent.click(screen.getByRole("button", { name: "RSI" }));
+    await toggleIndicator("RSI");
 
     expect(seriesPanes()).toContain(1);
     expect(chartCalls.setHeight).toHaveBeenCalled();
@@ -132,7 +144,7 @@ describe("PriceChart", () => {
     draw();
     afterRedraw();
 
-    await userEvent.click(screen.getByRole("button", { name: "RSI" }));
+    await toggleIndicator("RSI");
 
     expect(chartCalls.createPriceLine).toHaveBeenCalledWith(expect.objectContaining({ price: 70 }));
     expect(chartCalls.createPriceLine).toHaveBeenCalledWith(expect.objectContaining({ price: 30 }));
@@ -144,10 +156,11 @@ describe("PriceChart", () => {
     draw();
     afterRedraw();
 
-    await userEvent.click(screen.getByRole("button", { name: "Clean" }));
+    await userEvent.click(screen.getByRole("button", { name: "Indicators" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Clear all" }));
 
     expect(seriesKinds()).toEqual(["candlestick"]);
-    expect(screen.queryByRole("button", { name: "Clean" })).not.toBeInTheDocument();
+    expect(within(legend()).queryByText("SMA 200")).not.toBeInTheDocument();
   });
 
   it("leaves out the sessions an average does not exist for yet", () => {

@@ -79,11 +79,24 @@ export function TradingViewWidget({
 
   return (
     <div
-      ref={holder}
       role="region"
       aria-label={label}
       className={cn("overflow-hidden rounded-lg border bg-card", className)}
-      style={{ height }}
-    />
+    >
+      <div ref={holder} style={{ height }} />
+      {/* TradingView ask for attribution wherever a widget is embedded,
+          and it is theirs to ask: the data in these two is theirs, not
+          this platform's. */}
+      <div className="border-t px-3 py-1.5 text-right text-xs text-muted-foreground">
+        <a
+          href="https://www.tradingview.com/"
+          target="_blank"
+          rel="noopener nofollow"
+          className="hover:underline"
+        >
+          Track all markets on TradingView
+        </a>
+      </div>
+    </div>
   );
 }

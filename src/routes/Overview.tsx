@@ -7,7 +7,15 @@
  * arrives whole rather than in pieces.
  */
 
-import { Activity, ChevronRight, Globe, LineChart, Newspaper, TrendingUp } from "lucide-react";
+import {
+  Activity,
+  ChevronRight,
+  Globe,
+  LineChart,
+  Newspaper,
+  PieChart,
+  TrendingUp,
+} from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import type { MoverRow } from "@/api/client";
@@ -25,6 +33,7 @@ import { BreadthPanel } from "@/components/BreadthPanel";
 import { type ChartLine, ComparisonChart } from "@/components/ComparisonChart";
 import { PriceChart } from "@/components/PriceChart";
 import { PRICE_RANGES, RangeSelector } from "@/components/RangeSelector";
+import { Tabs } from "@/components/Tabs";
 import { TradingViewWidget } from "@/components/TradingViewWidget";
 import { IndexCard } from "@/components/IndexCard";
 import { MoverPanelCard } from "@/components/MoverPanel";
@@ -55,10 +64,16 @@ const HEADLINES = 6;
 /** How much history the chart opens on -- a year. */
 const DEFAULT_RANGE = 250;
 
-/** What the chart section can show. */
+/**
+ * What the chart section can show.
+ *
+ * The comparison first and by default: what the index has done against
+ * gold is the question somebody opens this page with, and its own price
+ * is already on the card above.
+ */
 const VIEWS = [
-  { key: "price" as const, label: "Price" },
-  { key: "gold" as const, label: "vs Gold" },
+  { key: "gold", label: `${BENCHMARK.name} vs Gold` },
+  { key: "price", label: BENCHMARK.name },
 ];
 
 /** The two lines of the comparison, and the colours they are drawn in. */
@@ -79,7 +94,7 @@ export function Overview({
   onOpenNews,
 }: OverviewProps): React.JSX.Element {
   const [scope, setScope] = useState<Scope>({ kind: "companies", key: null });
-  const [view, setView] = useState<"price" | "gold">("price");
+  const [view, setView] = useState<"price" | "gold">("gold");
   // One range for both views. Switching between them to find the span
   // reset is the kind of thing that makes a chart feel like two charts.
   const [sessions, setSessions] = useState(DEFAULT_RANGE);
@@ -137,61 +152,115 @@ export function Overview({
         </div>
       </section>
 
+      <section className="space-y-3" aria-labelledby="world-heading">
+        <h2 id="world-heading" className="flex items-center gap-2 text-lg font-semibold">
+          <Globe className="h-5 w-5 text-primary" />
+          Global market overview
+        </h2>
+        <TradingViewWidget
+          widget="market-overview"
+          label="Global markets"
+          height={450}
+          settings={{
+            dateRange: "1D",
+            showChart: true,
+            locale: "en",
+            showSymbolLogo: true,
+            showFloatingTooltip: false,
+            // The symbols the previous project settled on. Which markets a
+            // free widget will actually draw is not documented anywhere,
+            // and this set is the one already known to work.
+            tabs: [
+              {
+                title: "Indices",
+                symbols: [
+                  { s: "FOREXCOM:SPXUSD", d: "S&P 500" },
+                  { s: "NASDAQ:NDX", d: "Nasdaq" },
+                  { s: "INDEX:N100", d: "Euronext 100 (Europe)" },
+                  { s: "SPREADEX:FTSE", d: "FTSE 100 (UK)" },
+                  { s: "XETR:DAX", d: "DAX (Germany)" },
+                  { s: "BLACKBULL:JPN225", d: "JPN225 (Japan)" },
+                  { s: "SSE:000001", d: "SSE Composite (China)" },
+                  { s: "HSI:HSI", d: "HSI (Hong Kong)" },
+                ],
+              },
+            ],
+          }}
+        />
+      </section>
+
+      <section className="space-y-3" aria-labelledby="heatmap-heading">
+        <h2 id="heatmap-heading" className="flex items-center gap-2 text-lg font-semibold">
+          <PieChart className="h-5 w-5 text-primary" />
+          Market heatmap
+        </h2>
+        <TradingViewWidget
+          widget="stock-heatmap"
+          label="Sector heatmap"
+          height={400}
+          settings={{
+            exchanges: ["BSE"],
+            dataSource: "SENSEX",
+            grouping: "sector",
+            blockSize: "market_cap_basic",
+            blockColor: "change",
+            locale: "en",
+            hasTopBar: false,
+            isDataSetEnabled: false,
+            isZoomEnabled: false,
+            hasSymbolTooltip: true,
+            isMonoSize: false,
+          }}
+        />
+      </section>
+
       <section className="space-y-3" aria-labelledby="comparison-heading">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 id="comparison-heading" className="flex items-center gap-2 text-lg font-semibold">
               <LineChart className="h-5 w-5 text-primary" />
-              {BENCHMARK.name}
+              Charts
             </h2>
             <p className="text-sm text-muted-foreground">
               {view === "price"
                 ? "Sessions as candles, with this platform's own moving averages over them."
-                : "Against gold, both rebased to the first session they share."}
+                : "Both rebased to the first session they share, so two different scales compare."}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <RangeSelector
-              ranges={PRICE_RANGES}
-              sessions={sessions}
-              onChange={setSessions}
-              label="History"
-            />
-            <div className="flex gap-1" role="group" aria-label="Chart">
-              {VIEWS.map((option) => (
-                <Button
-                  key={option.key}
-                  size="sm"
-                  variant={option.key === view ? "secondary" : "ghost"}
-                  aria-pressed={option.key === view}
-                  onClick={() => {
-                    setView(option.key);
-                  }}
-                >
-                  {option.label}
-                </Button>
-              ))}
-            </div>
-          </div>
+          <RangeSelector
+            ranges={PRICE_RANGES}
+            sessions={sessions}
+            onChange={setSessions}
+            label="History"
+          />
         </div>
-        {view === "price" ? (
-          <PriceChart
-            points={chart.data?.points ?? null}
-            loading={chart.loading}
-            instrument={{
-              label: BENCHMARK.name,
-              symbol: symbols.data?.[BENCHMARK.key]?.symbol,
-              derived: symbols.data?.[BENCHMARK.key]?.derived,
-            }}
-          />
-        ) : (
-          <ComparisonChart
-            series={comparison.data}
-            lines={COMPARISON}
-            symbols={symbols.data ?? {}}
-            loading={comparison.loading}
-          />
-        )}
+        <Tabs
+          tabs={VIEWS}
+          active={view}
+          onChange={(key) => {
+            setView(key === "price" ? "price" : "gold");
+          }}
+          label="Chart"
+        >
+          {view === "price" ? (
+            <PriceChart
+              points={chart.data?.points ?? null}
+              loading={chart.loading}
+              instrument={{
+                label: BENCHMARK.name,
+                symbol: symbols.data?.[BENCHMARK.key]?.symbol,
+                derived: symbols.data?.[BENCHMARK.key]?.derived,
+              }}
+            />
+          ) : (
+            <ComparisonChart
+              series={comparison.data}
+              lines={COMPARISON}
+              symbols={symbols.data ?? {}}
+              loading={comparison.loading}
+            />
+          )}
+        </Tabs>
       </section>
 
       <section className="space-y-4" aria-labelledby="movers-heading">
@@ -232,76 +301,6 @@ export function Overview({
             ))}
           </div>
         )}
-      </section>
-
-      <section className="space-y-3" aria-labelledby="world-heading">
-        <div>
-          <h2 id="world-heading" className="flex items-center gap-2 text-lg font-semibold">
-            <Globe className="h-5 w-5 text-primary" />
-            Beyond this platform
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            World markets and a live sector heatmap, from TradingView — the two things this platform
-            holds no data for.
-          </p>
-        </div>
-        <div className="grid gap-4 xl:grid-cols-2">
-          <TradingViewWidget
-            widget="market-overview"
-            label="World markets"
-            settings={{
-              showChart: true,
-              locale: "en",
-              isTransparent: true,
-              showSymbolLogo: true,
-              tabs: [
-                {
-                  title: "Indices",
-                  symbols: [
-                    { s: "BSE:SENSEX", d: "Sensex" },
-                    { s: "NSE:NIFTY", d: "Nifty 50" },
-                    { s: "FOREXCOM:SPXUSD", d: "S&P 500" },
-                    { s: "FOREXCOM:NSXUSD", d: "Nasdaq 100" },
-                    { s: "INDEX:NKY", d: "Nikkei 225" },
-                    { s: "INDEX:HSI", d: "Hang Seng" },
-                  ],
-                },
-                {
-                  title: "Commodities",
-                  symbols: [
-                    { s: "MCX:GOLD1!", d: "Gold" },
-                    { s: "MCX:SILVER1!", d: "Silver" },
-                    { s: "MCX:CRUDEOIL1!", d: "Crude" },
-                  ],
-                },
-                {
-                  title: "Currencies",
-                  symbols: [
-                    { s: "FX_IDC:USDINR", d: "USD / INR" },
-                    { s: "FX_IDC:EURINR", d: "EUR / INR" },
-                  ],
-                },
-              ],
-            }}
-          />
-          <TradingViewWidget
-            widget="stock-heatmap"
-            label="Sector heatmap"
-            settings={{
-              exchanges: ["NSE"],
-              dataSource: "NIFTY500",
-              grouping: "sector",
-              blockSize: "market_cap_basic",
-              blockColor: "change",
-              locale: "en",
-              hasTopBar: false,
-              isDataSetEnabled: false,
-              isZoomEnabled: true,
-              hasSymbolTooltip: true,
-              isTransparent: true,
-            }}
-          />
-        </div>
       </section>
 
       <section className="space-y-3" aria-labelledby="news-heading">

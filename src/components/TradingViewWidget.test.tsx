@@ -70,4 +70,15 @@ describe("TradingViewWidget", () => {
 
     expect(holder.querySelector("script")).toBeNull();
   });
+
+  it("credits TradingView, whose data it is", () => {
+    // They ask for attribution wherever a widget is embedded, and it is
+    // theirs to ask: the data here is theirs, not this platform's.
+    mount();
+
+    expect(screen.getByRole("link", { name: /Track all markets on TradingView/ })).toHaveAttribute(
+      "href",
+      "https://www.tradingview.com/",
+    );
+  });
 });

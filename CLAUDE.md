@@ -101,9 +101,19 @@ It rose from 95% with the first real views.
   are also in `daily_bar`: an embed draws TradingView's numbers with
   TradingView's indicator maths, and a chart disagreeing with the signal
   beside it sends somebody debugging a rule that is working correctly.
-  `TradingViewWidget` is the one wrapper; it follows the app's theme and
-  clears itself up, because the embed replaces its own script with an
-  iframe and leaves it behind otherwise.
+  `TradingViewWidget` is the one wrapper; it follows the app's theme,
+  credits TradingView as their terms ask, and clears itself up, because
+  the embed replaces its own script with an iframe and leaves it behind
+  otherwise.
+
+  **Take the symbols from the previous project, not from guesswork.**
+  Which markets a free widget will actually draw is documented nowhere,
+  and the set in `Overview.tsx` -- `FOREXCOM:SPXUSD`, `NASDAQ:NDX`,
+  `INDEX:N100`, `SPREADEX:FTSE`, `XETR:DAX`, `BLACKBULL:JPN225`,
+  `SSE:000001`, `HSI:HSI`, and a BSE/SENSEX heatmap -- is the one already
+  known to work. An invented symbol fails by drawing nothing, which looks
+  like a broken widget rather than a wrong ticker.
+
 - TypeScript is strict, including `exactOptionalPropertyTypes` and
   `noUncheckedIndexedAccess`. ESLint runs type-aware rules.
 
@@ -242,8 +252,8 @@ call site.
   `MoverPanel`, `IndexCard`, `MiniCandlestick`, `ScopeSelector`,
   `ScopePicker`, `ThemeToggle`, `Meter`, `Sparkline`, `Statistic`,
   `BreadthPanel`, `BreadthGridPanel`, `RegimeBanner`, `NewsFeed`,
-  `LoadMore`, `RangeSelector`, `Chart`, `ChartControls`, `ComparisonChart`,
-  `PriceChart`,
+  `LoadMore`, `RangeSelector`, `Tabs`, `Chart`, `ChartControls`,
+  `ComparisonChart`, `PriceChart`,
   `TradingViewWidget`, `TradingViewLink`, `Menu`, `Tooltip`, `ThemeMenu`,
   `UserMenu`, `AppShell`.
 - **Links out to TradingView** come from `/api/external-symbols`, which
