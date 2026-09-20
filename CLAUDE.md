@@ -47,8 +47,8 @@ test toolchain trains people to ignore the audit. High and critical block.
 ### Coverage ratchet
 
 Currently **97%** on lines, branches, functions and statements, configured in
-`vite.config.ts`. Actual coverage is 99.7% of statements and lines, 100% of
-functions, 97.9% of branches.
+`vite.config.ts`. Actual coverage is 99.6% of statements and lines, 100% of
+functions, 97.6% of branches.
 
 `src/components/ui/**` is excluded: those are shadcn's components, copied in
 rather than written here, and a test of a thin wrapper over a Radix
@@ -69,6 +69,10 @@ It rose from 95% with the first real views.
   never call `fetch` themselves. When the API grows, generate that layer from
   the platform's OpenAPI schema so the contract is a build artifact rather
   than something two repositories agree on by hand.
+- **Sparklines are inline SVG; real charts are not.** A line with no axes is
+  one path and a baseline, and a charting library for that would also bring
+  interaction, legends and a theme of its own to argue with. When a chart
+  needs axes, crosshairs and zooming, reach for the library.
 - **Charts plot server-computed series.** TradingView Lightweight Charts, not
   Advanced Charts — the latter carries its own indicator engine, which would
   duplicate the rule engine and quietly disagree with it on warm-up periods,
@@ -133,8 +137,16 @@ call site.
 - **The overview** (`src/routes/Overview.tsx`) -- index cards, then every
   mover list for whichever population is chosen. One request brings all
   seven lists, so the page arrives whole.
+- **Market breadth** (`src/components/BreadthPanel.tsx`) — how many took
+  part rather than how far the index moved, for whichever population is
+  chosen. One proportional bar for the split, three meters for the moving
+  averages, two sparklines, and a plain-language reading of the McClellan
+  oscillator: "+42" says nothing to most readers and "more stocks joining"
+  does. Colour never carries a meaning on its own; every figure is printed
+  and every shape is labelled for a screen reader.
 - **Shared components** in `src/components`: `DataTable`, `Delta`,
-  `MoverPanel`, `IndexCard`, `ScopeSelector`, `ThemeToggle`.
+  `MoverPanel`, `IndexCard`, `ScopeSelector`, `ThemeToggle`, `Meter`,
+  `Sparkline`, `BreadthPanel`.
 - **Theme** in `src/lib/theme.tsx`: light, dark, or following the system,
   remembered across visits and working when storage is blocked.
 

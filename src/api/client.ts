@@ -79,6 +79,39 @@ export interface ScopeOptions {
   indices: ScopeOption[];
 }
 
+/** One session's breadth counts, and the shares taken from them. */
+export interface BreadthSession {
+  as_of: string;
+  instruments: number;
+  advancing: number;
+  declining: number;
+  unchanged: number;
+  advancing_volume: number;
+  declining_volume: number;
+  new_highs: number;
+  new_lows: number;
+  above_sma_20: string | null;
+  above_sma_50: string | null;
+  above_sma_200: string | null;
+  advance_decline_ratio: string | null;
+  arms_index: string | null;
+  advance_decline_line: string;
+  mcclellan_oscillator: string | null;
+}
+
+/** One population's breadth: its latest session, its run, and its measures. */
+export interface BreadthResponse {
+  scope_kind: ScopeKind;
+  scope_key: string | null;
+  latest: BreadthSession | null;
+  sessions: BreadthSession[];
+  advance_decline_line: string | null;
+  mcclellan_oscillator: string | null;
+  mcclellan_summation: string | null;
+  breadth_thrust: string | null;
+  high_low_index: string | null;
+}
+
 /** The latest session, for one instrument. */
 export interface DaySnapshot {
   open: string;
@@ -334,6 +367,24 @@ export function fetchMoverList(
   limit = 100,
 ): Promise<MoverPanel> {
   return request<MoverPanel>(`/api/movers/${name}?${scopeQuery(kind, key)}&limit=${String(limit)}`);
+}
+
+/**
+ * Fetch one population's breadth, with the measures taken over it.
+ *
+ * @param kind - Which population to count.
+ * @param key - Which sector or index, for the kinds that name one.
+ * @param sessions - How many sessions of history to carry.
+ * @returns The run and its measures.
+ */
+export function fetchBreadth(
+  kind: ScopeKind,
+  key: string | null,
+  sessions = 250,
+): Promise<BreadthResponse> {
+  return request<BreadthResponse>(
+    `/api/breadth?${scopeQuery(kind, key)}&sessions=${String(sessions)}`,
+  );
 }
 
 /**

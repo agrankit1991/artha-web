@@ -9,7 +9,8 @@
 import { useCallback, useMemo, useState } from "react";
 
 import type { MoverRow } from "@/api/client";
-import { fetchMovers, fetchOverviews, fetchScopes } from "@/api/client";
+import { fetchBreadth, fetchMovers, fetchOverviews, fetchScopes } from "@/api/client";
+import { BreadthPanel } from "@/components/BreadthPanel";
 import { IndexCard } from "@/components/IndexCard";
 import { MoverPanelCard } from "@/components/MoverPanel";
 import { type Scope, ScopeSelector } from "@/components/ScopeSelector";
@@ -44,10 +45,12 @@ export function Overview({ onSelect }: { onSelect?: (row: MoverRow) => void }): 
     [],
   );
   const loadMovers = useCallback(() => fetchMovers(scope.kind, scope.key), [scope]);
+  const loadBreadth = useCallback(() => fetchBreadth(scope.kind, scope.key), [scope]);
 
   const scopes = useResource(loadScopes);
   const indices = useResource(loadIndices);
   const movers = useResource(loadMovers);
+  const breadth = useResource(loadBreadth);
 
   const bySymbol = useMemo(() => {
     const found = new Map(indices.data?.map((overview) => [overview.instrument_key, overview]));
@@ -67,6 +70,8 @@ export function Overview({ onSelect }: { onSelect?: (row: MoverRow) => void }): 
           <h2 className="text-lg font-semibold">Market movers</h2>
           <ScopeSelector scope={scope} options={scopes.data} onChange={setScope} />
         </div>
+
+        <BreadthPanel breadth={breadth.data} loading={breadth.loading} />
 
         {movers.error !== null ? (
           <p role="alert" className="text-sm text-destructive">

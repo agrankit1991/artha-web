@@ -10,6 +10,8 @@ import { vi } from "vitest";
 
 import type {
   Account,
+  BreadthResponse,
+  BreadthSession,
   InstrumentOverview,
   MoverPanel,
   MoverRow,
@@ -158,6 +160,52 @@ export function overview(overrides: Partial<InstrumentOverview> = {}): Instrumen
       macd_signal: "38.000000",
       macd_histogram: "4.000000",
     },
+    ...overrides,
+  };
+}
+
+/** Build one session's breadth counts. */
+export function breadthSession(overrides: Partial<BreadthSession> = {}): BreadthSession {
+  return {
+    as_of: "2026-09-18",
+    instruments: 100,
+    advancing: 60,
+    declining: 35,
+    unchanged: 5,
+    advancing_volume: 600,
+    declining_volume: 400,
+    new_highs: 12,
+    new_lows: 3,
+    above_sma_20: "58.000000",
+    above_sma_50: "54.000000",
+    above_sma_200: "62.000000",
+    advance_decline_ratio: "1.714286",
+    arms_index: "0.857143",
+    advance_decline_line: "1250",
+    mcclellan_oscillator: "42.500000",
+    ...overrides,
+  };
+}
+
+/** Build a breadth reading with a run behind it. */
+export function breadth(overrides: Partial<BreadthResponse> = {}): BreadthResponse {
+  const sessions = Array.from({ length: 40 }, (_unused, index) =>
+    breadthSession({
+      as_of: `2026-08-${String(index + 1).padStart(2, "0")}`,
+      advance_decline_line: String(1000 + index * 10),
+      mcclellan_oscillator: index < 38 ? null : String(index),
+    }),
+  );
+  return {
+    scope_kind: "companies",
+    scope_key: null,
+    latest: sessions[sessions.length - 1] ?? null,
+    sessions,
+    advance_decline_line: "1390",
+    mcclellan_oscillator: "39",
+    mcclellan_summation: "500",
+    breadth_thrust: "0.62",
+    high_low_index: "80",
     ...overrides,
   };
 }

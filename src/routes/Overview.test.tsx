@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Overview } from "./Overview";
 import {
+  breadth,
   moverRow,
   moversResponse,
   overview,
@@ -28,6 +29,7 @@ function stubEverything(): ReturnType<typeof stubPlatform> {
       ]),
     },
     "/api/overviews": { body: [overview()] },
+    "/api/breadth": { body: breadth() },
   });
 }
 
@@ -67,6 +69,17 @@ describe("Overview", () => {
     });
   });
 
+  it("shows breadth beside the lists, for the same population", async () => {
+    // An index rising on five companies while four hundred fall is exactly
+    // what the lists alone cannot show.
+    stubEverything();
+
+    render(<Overview />);
+
+    expect(await screen.findByText("Market breadth")).toBeInTheDocument();
+    expect(screen.getByText("60 advancing")).toBeInTheDocument();
+  });
+
   it("reports a failure rather than showing an empty page", async () => {
     // An empty overview and a broken one look identical otherwise, and the
     // second is the one worth knowing about.
@@ -74,6 +87,7 @@ describe("Overview", () => {
       "/api/movers/scopes": { body: scopeOptions() },
       "/api/movers": { status: 500, body: { detail: "the lists are being rebuilt" } },
       "/api/overviews": { body: [] },
+      "/api/breadth": { body: breadth() },
     });
 
     render(<Overview />);

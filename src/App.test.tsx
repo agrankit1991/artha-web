@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "./App";
-import { ACCOUNT, moversResponse, scopeOptions, stubPlatform } from "@/test/support";
+import { ACCOUNT, breadth, moversResponse, scopeOptions, stubPlatform } from "@/test/support";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -16,6 +16,7 @@ const DATA = {
   "/api/movers/scopes": { body: scopeOptions() },
   "/api/movers": { body: moversResponse() },
   "/api/overviews": { body: [] },
+  "/api/breadth": { body: breadth() },
 };
 
 describe("App", () => {
