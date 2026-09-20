@@ -15,6 +15,8 @@ interface MeterProps {
   percent: number | null;
   /** A value above which the bar reads as healthy rather than neutral. */
   healthyAbove?: number;
+  /** A phrase placing the reading in context, shown under the bar. */
+  caption?: string;
   className?: string;
 }
 
@@ -28,6 +30,7 @@ export function Meter({
   label,
   percent,
   healthyAbove = 50,
+  caption,
   className,
 }: MeterProps): React.JSX.Element {
   const clamped = percent === null ? 0 : Math.max(0, Math.min(100, percent));
@@ -55,6 +58,7 @@ export function Meter({
           style={{ width: `${String(clamped)}%` }}
         />
       </div>
+      {caption !== undefined && <p className="text-xs text-muted-foreground">{caption}</p>}
     </div>
   );
 }

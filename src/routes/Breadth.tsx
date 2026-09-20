@@ -11,14 +11,16 @@
 import { useCallback, useMemo, useState } from "react";
 
 import type { BreadthSession } from "@/api/client";
-import { fetchBreadth, fetchScopes } from "@/api/client";
+import { fetchBreadth, fetchBreadthGrid, fetchScopes } from "@/api/client";
+import { BreadthGridPanel } from "@/components/BreadthGridPanel";
 import { BreadthPanel } from "@/components/BreadthPanel";
 import { type Column, DataTable } from "@/components/DataTable";
+import { RegimeBanner } from "@/components/RegimeBanner";
 import { ScopePicker } from "@/components/ScopePicker";
 import type { Scope } from "@/components/ScopeSelector";
 import { Statistic } from "@/components/Statistic";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useResource } from "@/hooks/useResource";
 import { readings } from "@/lib/breadthReadings";
 import { ABSENT, formatDay, formatVolume, toNumber } from "@/lib/format";
@@ -34,6 +36,12 @@ const WINDOWS: { label: string; sessions: number }[] = [
 
 const DEFAULT_WINDOW = 250;
 
+/** The kinds of population the grid can lay out, and what to call them. */
+const GRIDS: { kind: "sector" | "indices" | "index"; label: string }[] = [
+  { kind: "sector", label: "Sectors" },
+  { kind: "index", label: "Indices" },
+];
+
 /**
  * Render the breadth page.
  *
@@ -42,6 +50,7 @@ const DEFAULT_WINDOW = 250;
 export function Breadth(): React.JSX.Element {
   const [scope, setScope] = useState<Scope>({ kind: "companies", key: null });
   const [sessions, setSessions] = useState(DEFAULT_WINDOW);
+  const [gridKind, setGridKind] = useState<"sector" | "index">("sector");
 
   const loadScopes = useCallback(() => fetchScopes(), []);
   const loadBreadth = useCallback(
@@ -49,8 +58,11 @@ export function Breadth(): React.JSX.Element {
     [scope, sessions],
   );
 
+  const loadGrid = useCallback(() => fetchBreadthGrid(gridKind), [gridKind]);
+
   const scopes = useResource(loadScopes);
   const breadth = useResource(loadBreadth);
+  const grid = useResource(loadGrid);
 
   const measures = useMemo(() => readings(breadth.data), [breadth.data]);
   // Newest first: a table is read from the top, and the top of this one is
@@ -92,6 +104,14 @@ export function Breadth(): React.JSX.Element {
         </p>
       ) : (
         <>
+          <RegimeBanner
+            regime={breadth.data?.regime}
+            share={toNumber(breadth.data?.latest?.above_sma_200)}
+            rank={toNumber(breadth.data?.percentiles?.above_sma_200)}
+            sessions={breadth.data?.percentiles?.sessions}
+            loading={breadth.loading}
+          />
+
           <section
             className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
             aria-label="Headline measures"
@@ -111,9 +131,47 @@ export function Breadth(): React.JSX.Element {
 
           <Card>
             <CardHeader>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base">Where the market is working</CardTitle>
+                  <CardDescription>
+                    Every population of one kind, strongest participation first.
+                  </CardDescription>
+                </div>
+                <div className="flex gap-1" role="group" aria-label="Grid population">
+                  {GRIDS.map((option) => (
+                    <Button
+                      key={option.kind}
+                      size="sm"
+                      variant={option.kind === gridKind ? "secondary" : "ghost"}
+                      aria-pressed={option.kind === gridKind}
+                      onClick={() => {
+                        setGridKind(option.kind === "sector" ? "sector" : "index");
+                      }}
+                    >
+                      {option.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent role="region" aria-label="Population grid">
+              <BreadthGridPanel
+                scopes={grid.data?.scopes ?? []}
+                comparedWith={grid.data?.compared_with}
+                loading={grid.loading}
+                onSelect={(scopeKey) => {
+                  setScope({ kind: gridKind, key: scopeKey });
+                }}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle className="text-base">Session by session</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent role="region" aria-label="Session history">
               <SessionTable sessions={history} loading={breadth.loading} />
             </CardContent>
           </Card>

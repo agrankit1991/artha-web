@@ -8,7 +8,7 @@
  * pairing is decided in one place rather than per screen.
  */
 
-import type { BreadthResponse } from "@/api/client";
+import type { BreadthRegime, BreadthResponse } from "@/api/client";
 import { ABSENT, formatVolume, toNumber } from "@/lib/format";
 import type { Tone } from "@/components/Statistic";
 
@@ -25,6 +25,9 @@ const TREND_WINDOW = 20;
 
 /** Sessions the high-low index averages over, as the platform computes it. */
 const HIGH_LOW_SESSIONS = 10;
+
+/** Below this, a reading is better described by what it is under. */
+const LOW_RANK = 10;
 
 /** Zweig's thresholds: a rise from below the first to above the second. */
 const THRUST_LOW = 0.4;
@@ -174,4 +177,67 @@ export function readings(breadth: BreadthResponse | null): Reading[] {
       tone: arms === null ? "neutral" : arms < 1 ? "good" : "bad",
     },
   ];
+}
+
+/** What a regime is called, and what the band actually means. */
+export interface RegimeReading {
+  label: string;
+  hint: string;
+  tone: Tone;
+}
+
+const REGIMES: Record<BreadthRegime, RegimeReading> = {
+  "deep-risk-off": {
+    label: "Deep risk-off",
+    hint: "Under a fifth are above their 200-day. Broad downtrend.",
+    tone: "bad",
+  },
+  "risk-off": {
+    label: "Risk-off",
+    hint: "Most are below their 200-day. Defensive conditions.",
+    tone: "bad",
+  },
+  mixed: {
+    label: "Mixed",
+    hint: "A two-sided market, with no strong direction either way.",
+    tone: "neutral",
+  },
+  "risk-on": {
+    label: "Risk-on",
+    hint: "Most are above their 200-day. Broad uptrend.",
+    tone: "good",
+  },
+  "over-extended": {
+    label: "Over-extended",
+    hint: "Nearly all are above their 200-day — historically where money rotates out of risk.",
+    tone: "warn",
+  },
+};
+
+/**
+ * Say what a regime means, in words a reader can act on.
+ *
+ * @param regime - The band, or null when nothing has been counted.
+ * @returns The reading, or null.
+ */
+export function describeRegime(regime: BreadthRegime | null | undefined): RegimeReading | null {
+  return regime === null || regime === undefined ? null : REGIMES[regime];
+}
+
+/**
+ * Say what a percentile rank means, since the number alone does not.
+ *
+ * @param rank - The rank, as a percentage.
+ * @returns A short phrase placing the reading in its own history.
+ */
+export function describeRank(rank: number | null): string {
+  if (rank === null) {
+    return "No history to rank against";
+  }
+  // Phrased as a comparison rather than an ordinal: "71st percentile"
+  // needs suffix rules that read badly when generated, and "higher than
+  // 71% of its own history" is the same fact in plainer words.
+  return rank <= LOW_RANK
+    ? `Lower than ${(100 - rank).toFixed(0)}% of its own history`
+    : `Higher than ${rank.toFixed(0)}% of its own history`;
 }

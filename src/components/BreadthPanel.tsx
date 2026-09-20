@@ -11,7 +11,7 @@ import type { BreadthResponse, BreadthSession } from "@/api/client";
 import { Meter } from "@/components/Meter";
 import { Sparkline } from "@/components/Sparkline";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { describeOscillator } from "@/lib/breadthReadings";
+import { describeOscillator, describeRank } from "@/lib/breadthReadings";
 import { ABSENT, formatDay, toNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -44,9 +44,25 @@ export function BreadthPanel({ breadth, loading = false }: BreadthPanelProps): R
       <CardContent className="space-y-5">
         <Participation latest={latest} />
         <div className="grid gap-4 sm:grid-cols-3">
-          <Meter label="Above 20-day" percent={toNumber(latest?.above_sma_20)} />
-          <Meter label="Above 50-day" percent={toNumber(latest?.above_sma_50)} />
-          <Meter label="Above 200-day" percent={toNumber(latest?.above_sma_200)} />
+          {/* Each share is printed with where it stands in this
+              population's own history: a reading of 43% is weak or
+              ordinary depending entirely on the population, and the
+              number alone cannot say which. */}
+          <Meter
+            label="Above 20-day"
+            percent={toNumber(latest?.above_sma_20)}
+            caption={describeRank(toNumber(breadth?.percentiles?.above_sma_20))}
+          />
+          <Meter
+            label="Above 50-day"
+            percent={toNumber(latest?.above_sma_50)}
+            caption={describeRank(toNumber(breadth?.percentiles?.above_sma_50))}
+          />
+          <Meter
+            label="Above 200-day"
+            percent={toNumber(latest?.above_sma_200)}
+            caption={describeRank(toNumber(breadth?.percentiles?.above_sma_200))}
+          />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <Trend

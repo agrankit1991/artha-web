@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Breadth } from "./Breadth";
-import { breadth, breadthSession, scopeOptions, stubPlatform } from "@/test/support";
+import { breadth, breadthGrid, breadthSession, scopeOptions, stubPlatform } from "@/test/support";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -14,6 +14,7 @@ afterEach(() => {
 function stubEverything(): ReturnType<typeof stubPlatform> {
   return stubPlatform({
     "/api/movers/scopes": { body: scopeOptions() },
+    "/api/breadth/grid": { body: breadthGrid() },
     "/api/breadth": { body: breadth() },
   });
 }
@@ -38,7 +39,8 @@ describe("Breadth", () => {
     render(<Breadth />);
 
     await screen.findByText("Session by session");
-    const [, firstRow] = screen.getAllByRole("row");
+    const history = screen.getByRole("region", { name: "Session history" });
+    const [, firstRow] = within(history).getAllByRole("row");
     expect(within(firstRow as HTMLElement).getByText(/^18 Sept? 2026$/)).toBeInTheDocument();
   });
 
@@ -84,6 +86,7 @@ describe("Breadth", () => {
   it("reports a failure rather than showing an empty page", async () => {
     stubPlatform({
       "/api/movers/scopes": { body: scopeOptions() },
+      "/api/breadth/grid": { body: breadthGrid() },
       "/api/breadth": { status: 500, body: { detail: "the counts are being rebuilt" } },
     });
 
@@ -95,6 +98,7 @@ describe("Breadth", () => {
   it("says a population has no sessions rather than showing a blank table", async () => {
     stubPlatform({
       "/api/movers/scopes": { body: scopeOptions() },
+      "/api/breadth/grid": { body: breadthGrid() },
       "/api/breadth": { body: breadth({ sessions: [], latest: null }) },
     });
 
@@ -109,6 +113,7 @@ describe("Breadth", () => {
     // every column here is sortable rather than decorative.
     stubPlatform({
       "/api/movers/scopes": { body: scopeOptions() },
+      "/api/breadth/grid": { body: breadthGrid() },
       "/api/breadth": {
         body: breadth({
           sessions: [
@@ -120,7 +125,9 @@ describe("Breadth", () => {
     });
     render(<Breadth />);
     await screen.findByText("Session by session");
-    const table = screen.getByRole("table");
+    const table = within(screen.getByRole("region", { name: "Session history" })).getByRole(
+      "table",
+    );
     const headers = within(table).getAllByRole("button");
 
     for (const header of headers) {
@@ -140,6 +147,7 @@ describe("Breadth", () => {
     // such a column must still order the sessions that do have one.
     stubPlatform({
       "/api/movers/scopes": { body: scopeOptions() },
+      "/api/breadth/grid": { body: breadthGrid() },
       "/api/breadth": {
         body: breadth({
           sessions: [
@@ -157,7 +165,9 @@ describe("Breadth", () => {
 
     render(<Breadth />);
     await screen.findByText("Session by session");
-    const table = screen.getByRole("table");
+    const table = within(screen.getByRole("region", { name: "Session history" })).getByRole(
+      "table",
+    );
 
     for (const header of within(table).getAllByRole("button")) {
       await userEvent.click(header);
@@ -166,5 +176,74 @@ describe("Breadth", () => {
     // The session with no ratio, no TRIN and no share above the 200-day
     // shows three dashes wherever the sort has put it.
     expect(within(table).getAllByText("—")).toHaveLength(3);
+  });
+
+  it("names the regime rather than leaving a share to be interpreted", async () => {
+    stubEverything();
+
+    render(<Breadth />);
+
+    expect(await screen.findByText("Risk-on")).toBeInTheDocument();
+  });
+
+  it("places each share in the population's own history", async () => {
+    // 62% above the 200-day is weak or ordinary depending on the
+    // population, and the figure alone cannot say which.
+    stubEverything();
+
+    render(<Breadth />);
+
+    // Printed twice on purpose: once as the headline regime and once
+    // under the meter the share belongs to.
+    expect(await screen.findAllByText(/Higher than 71% of its own history/)).toHaveLength(2);
+  });
+
+  it("lays every sector out, strongest first", async () => {
+    stubEverything();
+
+    render(<Breadth />);
+
+    expect(await screen.findByText("Where the market is working")).toBeInTheDocument();
+    expect(screen.getByText("IT - Software")).toBeInTheDocument();
+    expect(screen.getByText("Pharmaceuticals")).toBeInTheDocument();
+  });
+
+  it("lays the indices out on the same question", async () => {
+    const fetchMock = stubEverything();
+    render(<Breadth />);
+    await screen.findByText("Where the market is working");
+
+    // "Indices" names both a whole population to count and a kind to lay
+    // out, so the query has to say which control it means.
+    const chooser = screen.getByRole("group", { name: "Grid population" });
+    await userEvent.click(within(chooser).getByRole("button", { name: "Indices" }));
+
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      expect(
+        asked.some(
+          (path) => path.includes("/api/breadth/grid") && path.includes("scope_kind=index"),
+        ),
+      ).toBe(true);
+    });
+  });
+
+  it("counts a population chosen from the grid", async () => {
+    // The grid says which sector is working; the next question is always
+    // that sector's own breadth.
+    const fetchMock = stubEverything();
+    render(<Breadth />);
+    await screen.findByText("Where the market is working");
+
+    await userEvent.click(screen.getByText("Pharmaceuticals"));
+
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      expect(
+        asked.some(
+          (path) => path.includes("/api/breadth?") && path.includes("scope_key=Pharmaceuticals"),
+        ),
+      ).toBe(true);
+    });
   });
 });

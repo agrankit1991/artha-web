@@ -10,6 +10,7 @@ import { vi } from "vitest";
 
 import type {
   Account,
+  BreadthGrid,
   BreadthResponse,
   BreadthSession,
   InstrumentOverview,
@@ -18,6 +19,7 @@ import type {
   MoversResponse,
   NewsItem,
   PriceSeries,
+  ScopeBreadth,
   ScopeOptions,
 } from "@/api/client";
 
@@ -216,6 +218,51 @@ export function breadth(overrides: Partial<BreadthResponse> = {}): BreadthRespon
     mcclellan_summation: "500",
     breadth_thrust: "0.62",
     high_low_index: "80",
+    regime: "risk-on",
+    percentiles: {
+      sessions: 6621,
+      above_sma_20: "64.00",
+      above_sma_50: "58.00",
+      above_sma_200: "71.00",
+    },
+    ...overrides,
+  };
+}
+
+/** Build one population's place in a grid. */
+export function scopeBreadth(overrides: Partial<ScopeBreadth> = {}): ScopeBreadth {
+  return {
+    scope_key: "IT - Software",
+    instruments: 42,
+    advancing: 30,
+    declining: 12,
+    above_sma_200: "76.190000",
+    above_sma_50: "61.900000",
+    regime: "over-extended",
+    rotation: "4.500000",
+    ...overrides,
+  };
+}
+
+/** Build a grid of populations. */
+export function breadthGrid(overrides: Partial<BreadthGrid> = {}): BreadthGrid {
+  return {
+    scope_kind: "sector",
+    as_of: "2026-09-18",
+    compared_with: "2026-09-11",
+    scopes: [
+      scopeBreadth(),
+      scopeBreadth({
+        scope_key: "Pharmaceuticals",
+        instruments: 61,
+        advancing: 20,
+        declining: 38,
+        above_sma_200: "31.100000",
+        above_sma_50: "24.500000",
+        regime: "risk-off",
+        rotation: "-8.200000",
+      }),
+    ],
     ...overrides,
   };
 }

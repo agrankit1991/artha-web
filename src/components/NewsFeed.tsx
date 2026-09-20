@@ -6,6 +6,8 @@
  * something different depending on whose price it moves.
  */
 
+import { useState } from "react";
+
 import type { NewsItem } from "@/api/client";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -63,8 +65,9 @@ function Article({ item, tagLimit }: { item: NewsItem; tagLimit: number }): Reac
   const hidden = item.mentions.length - shown.length;
 
   return (
-    <Card className="h-full transition-colors hover:bg-muted/50">
-      <CardContent className="flex h-full flex-col gap-2">
+    <Card className="h-full gap-0 overflow-hidden pt-0 transition-colors hover:bg-muted/50">
+      <Thumbnail url={item.thumbnail_url} />
+      <CardContent className="flex h-full flex-col gap-2 pt-4">
         <a
           href={item.url}
           target="_blank"
@@ -91,5 +94,44 @@ function Article({ item, tagLimit }: { item: NewsItem; tagLimit: number }): Reac
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * An article's picture, where the publisher gave one.
+ *
+ * A fixed aspect box rather than the image's own shape, so a row of cards
+ * does not step up and down with whatever the publisher happened to crop
+ * to. The referrer is withheld: fetching the picture should not tell the
+ * publisher which page of this application somebody is reading.
+ *
+ * @param props - The link to the picture.
+ * @returns The picture, or nothing at all when there is none to show.
+ */
+function Thumbnail({ url }: { url: string | null }): React.JSX.Element | null {
+  const [broken, setBroken] = useState(false);
+
+  if (url === null || broken) {
+    // Nothing rather than a placeholder: a card with no picture reads as a
+    // card with no picture, while a grey box reads as one still loading.
+    return null;
+  }
+
+  return (
+    <div className="aspect-[16/9] w-full overflow-hidden bg-muted">
+      <img
+        src={url}
+        // The headline is right beside it and says the same thing, so
+        // announcing the picture as well would read it twice.
+        alt=""
+        aria-hidden="true"
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        className="h-full w-full object-cover"
+        onError={() => {
+          setBroken(true);
+        }}
+      />
+    </div>
   );
 }

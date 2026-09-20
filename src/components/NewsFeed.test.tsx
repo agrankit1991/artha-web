@@ -1,6 +1,6 @@
 /** Tests for the news feed. */
 
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { NewsFeed } from "./NewsFeed";
@@ -65,5 +65,48 @@ describe("NewsFeed", () => {
 
     expect(screen.queryByText("No news stored yet")).not.toBeInTheDocument();
     expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+  });
+
+  it("shows the publisher's picture", () => {
+    render(<NewsFeed items={[newsItem({ thumbnail_url: "https://example.test/oil.webp" })]} />);
+
+    const [picture] = document.querySelectorAll("img");
+    expect(picture).toHaveAttribute("src", "https://example.test/oil.webp");
+  });
+
+  it("does not tell the publisher which page is being read", () => {
+    // Fetching a picture should not carry a referrer back to whoever
+    // published it.
+    render(<NewsFeed items={[newsItem({ thumbnail_url: "https://example.test/oil.webp" })]} />);
+
+    const [picture] = document.querySelectorAll("img");
+    expect(picture).toHaveAttribute("referrerpolicy", "no-referrer");
+    expect(picture).toHaveAttribute("loading", "lazy");
+  });
+
+  it("leaves the picture out of the reading order", () => {
+    // The headline beside it says the same thing, so announcing both reads
+    // the article twice.
+    render(<NewsFeed items={[newsItem({ thumbnail_url: "https://example.test/oil.webp" })]} />);
+
+    const [picture] = document.querySelectorAll("img");
+    expect(picture).toHaveAttribute("alt", "");
+    expect(picture).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("shows no picture at all where the publisher gave none", () => {
+    // Nothing rather than a grey box, which would read as one still loading.
+    render(<NewsFeed items={[newsItem({ thumbnail_url: null })]} />);
+
+    expect(document.querySelectorAll("img")).toHaveLength(0);
+  });
+
+  it("drops a picture that fails to load rather than showing a broken one", () => {
+    render(<NewsFeed items={[newsItem({ thumbnail_url: "https://example.test/gone.webp" })]} />);
+    const [picture] = document.querySelectorAll("img");
+
+    fireEvent.error(picture as HTMLImageElement);
+
+    expect(document.querySelectorAll("img")).toHaveLength(0);
   });
 });

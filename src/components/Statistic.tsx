@@ -9,8 +9,15 @@
 
 import { cn } from "@/lib/utils";
 
-/** Whether a reading is good news, bad news, or neither. */
-export type Tone = "good" | "bad" | "neutral";
+/**
+ * Whether a reading is good news, bad news, a caution, or none of those.
+ *
+ * `warn` exists for the readings that are neither: a market where nearly
+ * every company is above its long average is not bad news and is not
+ * simply more good news either, and painting it green would say the
+ * opposite of what it has historically meant.
+ */
+export type Tone = "good" | "bad" | "warn" | "neutral";
 
 interface StatisticProps {
   label: string;
@@ -25,6 +32,7 @@ interface StatisticProps {
 const TONES: Record<Tone, string> = {
   good: "text-gain",
   bad: "text-loss",
+  warn: "text-amber-600 dark:text-amber-500",
   neutral: "text-foreground",
 };
 

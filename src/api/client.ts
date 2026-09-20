@@ -99,6 +99,37 @@ export interface BreadthSession {
   mcclellan_oscillator: string | null;
 }
 
+/** What the share above the long average implies. */
+export type BreadthRegime = "deep-risk-off" | "risk-off" | "mixed" | "risk-on" | "over-extended";
+
+/** Where a session's shares stand in its population's own history. */
+export interface BreadthPercentiles {
+  sessions: number;
+  above_sma_20: string | null;
+  above_sma_50: string | null;
+  above_sma_200: string | null;
+}
+
+/** One population's latest session, for a grid of many. */
+export interface ScopeBreadth {
+  scope_key: string;
+  instruments: number;
+  advancing: number;
+  declining: number;
+  above_sma_200: string | null;
+  above_sma_50: string | null;
+  regime: BreadthRegime | null;
+  rotation: string | null;
+}
+
+/** Every population of one kind, on one session. */
+export interface BreadthGrid {
+  scope_kind: ScopeKind;
+  as_of: string | null;
+  compared_with: string | null;
+  scopes: ScopeBreadth[];
+}
+
 /** One population's breadth: its latest session, its run, and its measures. */
 export interface BreadthResponse {
   scope_kind: ScopeKind;
@@ -110,6 +141,8 @@ export interface BreadthResponse {
   mcclellan_summation: string | null;
   breadth_thrust: string | null;
   high_low_index: string | null;
+  regime: BreadthRegime | null;
+  percentiles: BreadthPercentiles | null;
 }
 
 /** The latest session, for one instrument. */
@@ -464,4 +497,20 @@ export function fetchSeries(keys: string[], sessions = 180): Promise<PriceSeries
     parameters.append("keys", key);
   }
   return request<PriceSeries[]>(`/api/series?${parameters.toString()}`);
+}
+
+/**
+ * Fetch every population of one kind, side by side.
+ *
+ * One request rather than one per sector: there are a hundred and
+ * fifty-eight of them.
+ *
+ * @param kind - Which kind of population to lay out.
+ * @param rotationSessions - How many sessions back to measure the turn from.
+ * @returns The populations, broadest participation first.
+ */
+export function fetchBreadthGrid(kind: ScopeKind, rotationSessions = 5): Promise<BreadthGrid> {
+  return request<BreadthGrid>(
+    `/api/breadth/grid?scope_kind=${kind}&rotation_sessions=${String(rotationSessions)}`,
+  );
 }

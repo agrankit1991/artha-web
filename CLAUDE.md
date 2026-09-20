@@ -164,9 +164,14 @@ call site.
   whichever population is chosen, and the news feed. One request brings all
   seven lists, so that section arrives whole.
 - **Market breadth** (`src/routes/Breadth.tsx`) -- the same counts at
-  length: any population over any of five windows, six headline measures
-  each printed with the sentence that says what the reading means, and
-  every counted session in the one table, sortable by any column.
+  length: any population over any of five windows; the regime the
+  population is in, named; six headline measures each printed with the
+  sentence that says what the reading means; a grid of every sector or
+  every index, strongest first, with each one's turn over the past week;
+  and every counted session in the one table, sortable by any column.
+  Each share carries where it stands in that population's _own_ history,
+  because 43% above the 200-day is weak or ordinary depending entirely on
+  the population.
 - **The breadth glance** (`src/components/BreadthPanel.tsx`) — how many
   took part rather than how far the index moved, used by both screens. One proportional bar for the split, three meters for the moving
   averages, two sparklines, and a plain-language reading of the McClellan
@@ -176,7 +181,14 @@ call site.
 - **Shared components** in `src/components`: `DataTable`, `Delta`,
   `MoverPanel`, `IndexCard`, `MiniCandlestick`, `ScopeSelector`,
   `ScopePicker`, `ThemeToggle`, `Meter`, `Sparkline`, `Statistic`,
-  `BreadthPanel`, `NewsFeed`, `ComparisonChart`.
+  `BreadthPanel`, `BreadthGridPanel`, `RegimeBanner`, `NewsFeed`,
+  `ComparisonChart`.
+- **Breadth wording** in `src/lib/breadthReadings.ts`: every phrase that
+  turns a breadth figure into something readable lives here, so two screens
+  cannot describe the same reading differently. Note the `warn` tone --
+  a market with nearly everything above its long average is neither good
+  news nor bad, and painting it green says the opposite of what it has
+  historically meant.
 - **The featured indices** in `src/lib/indices.ts`: which indices the
   overview draws and the breadth page pins, in a settled order, in one
   place. India VIX is among them as a card and is filtered out as a
