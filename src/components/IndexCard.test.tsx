@@ -12,8 +12,18 @@ describe("IndexCard", () => {
     render(<IndexCard name="Nifty 50" overview={overview()} />);
 
     expect(screen.getByText("Nifty 50")).toBeInTheDocument();
-    expect(screen.getByText("24,812.40")).toBeInTheDocument();
+    expect(screen.getAllByText("24,812.40").length).toBeGreaterThan(0);
     expect(screen.getByText(/\+0.62%/)).toBeInTheDocument();
+  });
+
+  it("names the close among the prices, as well as printing it large", () => {
+    // The headline figure says where the session ended; the grid says it
+    // again beside the three prices it means nothing without.
+    render(<IndexCard name="Nifty 50" overview={overview()} />);
+
+    expect(screen.getByText("Close")).toBeInTheDocument();
+    // Once as the headline figure, once in the grid.
+    expect(screen.getAllByText("24,812.40")).toHaveLength(2);
   });
 
   it("shows the whole session, not only where it ended", () => {
@@ -22,6 +32,8 @@ describe("IndexCard", () => {
     render(<IndexCard name="Nifty 50" overview={overview()} />);
 
     expect(screen.getByText("Open")).toBeInTheDocument();
+    expect(screen.getByText("High")).toBeInTheDocument();
+    expect(screen.getByText("Low")).toBeInTheDocument();
     expect(screen.getByText("24,700.00")).toBeInTheDocument();
     expect(screen.getByText("24,850.00")).toBeInTheDocument();
     expect(screen.getByText("24,690.00")).toBeInTheDocument();

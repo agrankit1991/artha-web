@@ -1,10 +1,11 @@
 /**
  * One index, as a card: where it closed, how it moved, and how it got there.
  *
- * The four prices are all shown rather than just the close, because the
- * close alone cannot distinguish a session that rose all day from one that
- * gave back everything it made. The candle says that at a glance and the
- * grid says it exactly.
+ * All four prices are shown rather than just the close, because the close
+ * alone cannot distinguish a session that rose all day from one that gave
+ * back everything it made. The candle says that at a glance and the grid
+ * says it exactly -- with the close repeated among the three it has to be
+ * read against, which is how the previous incarnation of this card had it.
  */
 
 import type { InstrumentOverview } from "@/api/client";
@@ -37,7 +38,7 @@ export function IndexCard({ name, overview, onSelect }: IndexCardProps): React.J
             {name}
           </div>
           <Skeleton className="h-8 w-28" />
-          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-14 w-full" />
         </CardContent>
       </Card>
     );
@@ -89,20 +90,31 @@ export function IndexCard({ name, overview, onSelect }: IndexCardProps): React.J
           <MiniCandlestick open={day.open} high={day.high} low={day.low} close={day.close} />
         </div>
 
-        <dl className="grid grid-cols-3 gap-2 border-t pt-3 text-xs">
+        {/* The large figure above says where the session ended. This says
+            it again beside the three prices it means nothing without. */}
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 border-t pt-3 text-sm">
           <Price label="Open" value={day.open} />
-          <Price label="High" value={day.high} />
+          <Price label="High" value={day.high} align="right" />
           <Price label="Low" value={day.low} />
+          <Price label="Close" value={day.close} align="right" />
         </dl>
       </CardContent>
     </Card>
   );
 }
 
-/** One of the session's prices, labelled. */
-function Price({ label, value }: { label: string; value: string | null }): React.JSX.Element {
+/** One of the session's prices, labelled beside its figure. */
+function Price({
+  label,
+  value,
+  align = "left",
+}: {
+  label: string;
+  value: string | null;
+  align?: "left" | "right";
+}): React.JSX.Element {
   return (
-    <div className="min-w-0">
+    <div className={cn("flex min-w-0 items-baseline gap-1.5", align === "right" && "justify-end")}>
       <dt className="text-muted-foreground">{label}</dt>
       <dd className="truncate tabular font-medium">{formatPrice(value)}</dd>
     </div>
