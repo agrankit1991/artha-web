@@ -46,12 +46,19 @@ test toolchain trains people to ignore the audit. High and critical block.
 
 ### Coverage ratchet
 
-Currently **95%** on lines, branches, functions and statements, configured in
-`vite.config.ts`. Actual coverage is 100% on every measure.
+Currently **97%** on lines, branches, functions and statements, configured in
+`vite.config.ts`. Actual coverage is 99.7% of statements and lines, 100% of
+functions, 97.9% of branches.
+
+`src/components/ui/**` is excluded: those are shadcn's components, copied in
+rather than written here, and a test of a thin wrapper over a Radix
+primitive measures the library. Everything built _on_ them is covered
+normally. `src/test/**` is excluded for the same reason in reverse -- it is
+fixtures, not code that ships.
 
 **The bar only ever goes up.** Raise it to just under the current figure in
 the same commit that adds the tests. Never lower it to make a build pass.
-It stays at 95% as real views are added.
+It rose from 95% with the first real views.
 
 ## Rules
 
@@ -79,13 +86,60 @@ It stays at 95% as real views are added.
   key is rejected as an unknown property.
 - `npm install` warns that esbuild's postinstall was skipped. Benign —
   esbuild ships prebuilt binaries through optional dependencies.
+- **TanStack Table is pinned to v8, deliberately.** v9 is the current stable
+  release, but its types thread the feature set through every column
+  definition, and under `exactOptionalPropertyTypes` a generic wrapper around
+  it — which is exactly what `DataTable` is — cannot be made to typecheck
+  without casting away the row type. A shared table that needs a cast at its
+  own boundary is worse than an older major. Revisit when v9's generics
+  settle; the call sites would not change.
+- **Radix popovers that open on pointer events cannot be driven in jsdom.**
+  `select` works with the polyfills in `src/test-setup.ts`; `dropdown-menu`
+  does not — its content never renders, by pointer or by keyboard. The theme
+  control is a visible group of three buttons partly for that reason and
+  partly because it is the better control. Before reaching for a menu,
+  budget for testing it in a real browser.
 - `index.html` must be served `no-cache` while hashed assets are immutable,
   or a deploy stays invisible until browser caches expire. That is configured
   in `Caddyfile`.
 
+## One component per job, used everywhere
+
+**shadcn/ui on Tailwind, with a single `DataTable`.** Every list in this app
+-- movers, index constituents, the company list, a comparison -- is the same
+component with different columns and data. Sorting, filtering, empty and
+loading states, density, keyboard behaviour and the look of a numeric cell
+are decided once, so a table learned in one place is already understood in
+the next.
+
+The same rule holds past tables. A card, a badge, a value that is up or
+down, a page header, a scope selector: one implementation each, in
+`src/components/`, used by every view. A second, nearly-identical component
+is a bug in this codebase, not a shortcut -- it is how two screens start
+disagreeing about what a falling price looks like.
+
+shadcn components are copied into the repository rather than installed, so
+they are ours to edit; edit the shared one rather than forking it at the
+call site.
+
+## What exists
+
+- **The shell** (`src/App.tsx`) asks the platform who is signed in rather
+  than guessing: the session cookie is HttpOnly, so this side cannot read it
+  and should not try to infer it. It waits for that answer before choosing
+  between the application and the sign-in page, because flashing the
+  sign-in form at someone who is signed in is the most common way an
+  application like this feels broken.
+- **The overview** (`src/routes/Overview.tsx`) -- index cards, then every
+  mover list for whichever population is chosen. One request brings all
+  seven lists, so the page arrives whole.
+- **Shared components** in `src/components`: `DataTable`, `Delta`,
+  `MoverPanel`, `IndexCard`, `ScopeSelector`, `ThemeToggle`.
+- **Theme** in `src/lib/theme.tsx`: light, dark, or following the system,
+  remembered across visits and working when storage is blocked.
+
 ## Not yet built
 
-Everything past the placeholder shell: routing, the instrument and signal
-views, Lightweight Charts integration, TanStack Table. `src/App.tsx` exists
-only to prove the deployed frontend reaches the API through the same proxy
-that serves it.
+Routing (there is one screen, so there is nothing yet to route between), the
+instrument and comparison views, Lightweight Charts, registration by
+invitation, and localisation.
