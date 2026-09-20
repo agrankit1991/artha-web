@@ -103,6 +103,14 @@ interface ChartProps {
 
 const DEFAULT_HEIGHT = 360;
 
+/**
+ * How many bars of empty space to leave at each end.
+ *
+ * Enough to be clearly a margin rather than a rounding error, and few
+ * enough that a short series is still mostly series.
+ */
+const EDGE_BARS = 6;
+
 /** How tall a pane past the first is drawn. */
 const DEFAULT_PANE_HEIGHT = 110;
 
@@ -155,7 +163,16 @@ export function Chart({
         // Room at the bottom only when something is pinned there.
         scaleMargins: { top: 0.08, bottom: hasBars ? 0.26 : 0.08 },
       },
-      timeScale: { borderVisible: false, fixLeftEdge: true, fixRightEdge: true },
+      timeScale: {
+        borderVisible: false,
+        // Both edges deliberately unpinned. Pinned, the chart stops dead
+        // at the first and last session, which makes the newest bar sit
+        // flush against the price scale with nowhere to put a crosshair
+        // reading, and gives a reader no room to drag the series clear of
+        // either end to look at it.
+        fixLeftEdge: false,
+        fixRightEdge: false,
+      },
       crosshair: { mode: CrosshairMode.Normal },
       autoSize: true,
     });
@@ -182,7 +199,11 @@ export function Chart({
         borderVisible: false,
       });
     }
-    created.timeScale().fitContent();
+    // Framed with a margin at both ends rather than flush to the data, so
+    // there is somewhere to drag to and the first and last sessions are
+    // not pressed against the edges of the frame.
+    const longest = Math.max(...drawable.map((one) => one.points.length));
+    created.timeScale().setVisibleLogicalRange({ from: -EDGE_BARS, to: longest - 1 + EDGE_BARS });
 
     return () => {
       created.remove();

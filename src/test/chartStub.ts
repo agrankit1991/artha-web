@@ -17,6 +17,7 @@ export const chartCalls = {
   createPriceLine: vi.fn(),
   remove: vi.fn(),
   fitContent: vi.fn(),
+  setVisibleLogicalRange: vi.fn(),
   applyOptions: vi.fn(),
   setHeight: vi.fn(),
 };
@@ -50,7 +51,10 @@ export function chartModule(): Record<string, unknown> {
         createPriceLine: chartCalls.createPriceLine,
       })),
       remove: chartCalls.remove,
-      timeScale: () => ({ fitContent: chartCalls.fitContent }),
+      timeScale: () => ({
+        fitContent: chartCalls.fitContent,
+        setVisibleLogicalRange: chartCalls.setVisibleLogicalRange,
+      }),
       priceScale: () => ({ applyOptions: chartCalls.applyOptions }),
       // Two panes, so a test of a series in a band of its own has one to
       // be put in.

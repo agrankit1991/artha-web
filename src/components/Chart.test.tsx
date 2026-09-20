@@ -157,4 +157,44 @@ describe("Chart", () => {
 
     expect(chartCalls.remove).toHaveBeenCalled();
   });
+
+  it("lets a reader drag past both ends of the data", () => {
+    // Pinned edges stop the chart dead at the first and last session,
+    // which leaves the newest bar flush against the price scale and no
+    // room to pull the series clear of either end to look at it.
+    draw([LINE]);
+
+    const options = chartCalls.createChart.mock.calls[0]?.[1] as {
+      timeScale: { fixLeftEdge: boolean; fixRightEdge: boolean };
+    };
+    expect(options.timeScale.fixLeftEdge).toBe(false);
+    expect(options.timeScale.fixRightEdge).toBe(false);
+  });
+
+  it("frames the series with a margin at each end rather than flush to it", () => {
+    draw([LINE]);
+
+    // Two points, so the data occupies logical 0 and 1.
+    expect(chartCalls.setVisibleLogicalRange).toHaveBeenCalledWith({ from: -6, to: 7 });
+  });
+
+  it("frames to the longest series when they differ in length", () => {
+    // One instrument listed later than another is ordinary; the frame has
+    // to hold whichever of them has more sessions.
+    draw([
+      LINE,
+      {
+        ...LINE,
+        label: "Gold",
+        points: [
+          { time: "2026-09-01", value: 0 },
+          { time: "2026-09-02", value: 1 },
+          { time: "2026-09-03", value: 2 },
+          { time: "2026-09-04", value: 3 },
+        ],
+      },
+    ]);
+
+    expect(chartCalls.setVisibleLogicalRange).toHaveBeenCalledWith({ from: -6, to: 9 });
+  });
 });
