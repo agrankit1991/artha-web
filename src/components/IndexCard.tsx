@@ -12,7 +12,7 @@ import { Delta } from "@/components/Delta";
 import { MiniCandlestick } from "@/components/MiniCandlestick";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatPrice } from "@/lib/format";
+import { formatDay, formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 interface IndexCardProps {
@@ -67,9 +67,15 @@ export function IndexCard({ name, overview, onSelect }: IndexCardProps): React.J
     >
       <CardContent className="space-y-3">
         <div className="flex items-start justify-between gap-2">
-          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {name}
-          </span>
+          <div className="min-w-0">
+            <div className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {name}
+            </div>
+            {/* Indices do not all publish on the same schedule, so two
+                cards can show different sessions. Unlabelled, they read as
+                the same day. */}
+            <div className="text-xs text-muted-foreground/70">{formatDay(overview.as_of)}</div>
+          </div>
           <Delta value={day.change_percent} arrow className="text-xs font-medium" />
         </div>
 

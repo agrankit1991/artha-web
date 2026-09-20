@@ -126,4 +126,14 @@ describe("readings", () => {
   it("has nothing to say about volume when no session was counted", () => {
     expect(labelled("Arms index (TRIN)", breadth({ latest: null })).hint).toBe("No volume counted");
   });
+
+  it("distinguishes too little history from nothing to measure", () => {
+    // The indices counted against each other never reach a 52-week high or
+    // low, so their high-low index is absent however long they are counted.
+    const young = breadth({ high_low_index: null, sessions: [breadthSession()] });
+    const empty = breadth({ high_low_index: null });
+
+    expect(labelled("High–low index", young).hint).toBe("Needs 10 sessions");
+    expect(labelled("High–low index", empty).hint).toBe("No new highs or lows");
+  });
 });

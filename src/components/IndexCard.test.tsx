@@ -65,4 +65,12 @@ describe("IndexCard", () => {
 
     expect(chosen).toHaveBeenCalledTimes(2);
   });
+
+  it("names the session it is showing", async () => {
+    // Indices do not all publish on the same schedule: two cards side by
+    // side can be a day apart, and unlabelled they read as the same day.
+    render(<IndexCard name="Nifty 50" overview={overview()} />);
+
+    expect(await screen.findByText(/18 Sept? 2026/)).toBeInTheDocument();
+  });
 });

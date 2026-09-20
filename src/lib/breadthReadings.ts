@@ -23,6 +23,9 @@ export interface Reading {
 /** Sessions of the advance-decline line compared, to call its direction. */
 const TREND_WINDOW = 20;
 
+/** Sessions the high-low index averages over, as the platform computes it. */
+const HIGH_LOW_SESSIONS = 10;
+
 /** Zweig's thresholds: a rise from below the first to above the second. */
 const THRUST_LOW = 0.4;
 const THRUST_HIGH = 0.615;
@@ -144,7 +147,14 @@ export function readings(breadth: BreadthResponse | null): Reading[] {
       value: reading(breadth.high_low_index, (parsed) => `${parsed.toFixed(0)}%`),
       hint:
         highLow === null
-          ? "Needs 10 sessions"
+          ? // Absent for two different reasons, and saying the wrong one is
+            // worse than saying nothing: a population where nothing reached
+            // a yearly high or low has no ratio to average, however long it
+            // has been counted. The indices, counted against each other,
+            // are exactly that population.
+            breadth.sessions.length < HIGH_LOW_SESSIONS
+            ? `Needs ${String(HIGH_LOW_SESSIONS)} sessions`
+            : "No new highs or lows"
           : highLow > 50
             ? "More new highs than lows"
             : "More new lows than highs",
