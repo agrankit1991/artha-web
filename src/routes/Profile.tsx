@@ -27,7 +27,6 @@ const ACCENT_NAMES: Record<Accent, string> = {
   blue: "Blue",
   green: "Green",
   orange: "Orange",
-  violet: "Violet",
 };
 
 const SWATCHES: Record<Accent, string> = {
@@ -35,7 +34,6 @@ const SWATCHES: Record<Accent, string> = {
   blue: "oklch(0.55 0.21 258)",
   green: "oklch(0.55 0.15 155)",
   orange: "oklch(0.63 0.2 42)",
-  violet: "oklch(0.55 0.24 295)",
 };
 
 const MODES: { choice: ThemeChoice; label: string; icon: typeof Sun }[] = [

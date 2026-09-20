@@ -23,6 +23,20 @@ async function openMenu(): Promise<void> {
 }
 
 describe("ThemeMenu", () => {
+  it("offers exactly the four accents and no more", async () => {
+    // Every one is a theme somebody might actually want; a longer list is
+    // a paint chart rather than a setting.
+    await openMenu();
+
+    const menu = screen.getByRole("menu");
+    const accents = ["Neutral", "Blue", "Green", "Orange"];
+    for (const name of accents) {
+      expect(screen.getByRole("menuitem", { name: new RegExp(name) })).toBeInTheDocument();
+    }
+    // Four accents plus the three light-and-dark choices.
+    expect(menu.querySelectorAll('[role="menuitem"]')).toHaveLength(accents.length + 3);
+  });
+
   it("offers both axes, because they are one decision to a reader", async () => {
     await openMenu();
 
@@ -35,7 +49,7 @@ describe("ThemeMenu", () => {
     // them apart.
     await openMenu();
 
-    for (const name of ["Neutral", "Blue", "Green", "Orange", "Violet"]) {
+    for (const name of ["Neutral", "Blue", "Green", "Orange"]) {
       expect(screen.getByRole("menuitem", { name: new RegExp(name) })).toBeInTheDocument();
     }
   });
@@ -43,16 +57,16 @@ describe("ThemeMenu", () => {
   it("paints the application in the accent chosen", async () => {
     await openMenu();
 
-    await userEvent.click(screen.getByRole("menuitem", { name: /Violet/ }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /Orange/ }));
 
-    expect(document.documentElement).toHaveAttribute("data-accent", "violet");
+    expect(document.documentElement).toHaveAttribute("data-accent", "orange");
   });
 
   it("marks the neutral accent by the absence of an attribute", async () => {
     // It is the stylesheet's own defaults; a rule saying so would restate
     // what is already true.
     await openMenu();
-    await userEvent.click(screen.getByRole("menuitem", { name: /Violet/ }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /Orange/ }));
     await userEvent.click(screen.getByRole("button", { name: "Theme" }));
 
     await userEvent.click(screen.getByRole("menuitem", { name: /Neutral/ }));

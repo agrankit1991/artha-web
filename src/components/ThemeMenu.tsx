@@ -22,7 +22,6 @@ const ACCENT_NAMES: Record<Accent, string> = {
   blue: "Blue",
   green: "Green",
   orange: "Orange",
-  violet: "Violet",
 };
 
 /** The swatch colours, which are the accents themselves at a fixed shade. */
@@ -31,7 +30,6 @@ const SWATCHES: Record<Accent, string> = {
   blue: "oklch(0.55 0.21 258)",
   green: "oklch(0.55 0.15 155)",
   orange: "oklch(0.63 0.2 42)",
-  violet: "oklch(0.55 0.24 295)",
 };
 
 /** The three light-and-dark choices, with the icon each is recognised by. */

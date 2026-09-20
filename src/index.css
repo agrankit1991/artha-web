@@ -11,56 +11,72 @@
  */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+ * Two variables drive the whole palette: which hue the interface leans on,
+ * and how much of it to use. Every surface, border and muted tone below is
+ * that hue at a lightness, so choosing an accent tints the entire page
+ * rather than recolouring four icons and leaving the rest grey.
+ *
+ * `--tint` at nought gives the neutral theme: chroma falls out of every
+ * expression and what is left is the greys this application started with.
+ */
 :root {
   --radius: 0.5rem;
+  --hue: 286;
+  --tint: 0;
 
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.21 0.006 285.885);
+  --background: oklch(1 calc(var(--tint) * 0.006) var(--hue));
+  --foreground: oklch(0.141 calc(0.005 + var(--tint) * 0.02) var(--hue));
+  --card: oklch(1 calc(var(--tint) * 0.004) var(--hue));
+  --card-foreground: oklch(0.141 calc(0.005 + var(--tint) * 0.02) var(--hue));
+  --popover: oklch(1 calc(var(--tint) * 0.004) var(--hue));
+  --popover-foreground: oklch(0.141 calc(0.005 + var(--tint) * 0.02) var(--hue));
+
+  /* The neutral theme's primary is near-black, as shadcn's is. An accent
+     replaces it outright rather than tinting it, because a "blue theme"
+     whose buttons are still charcoal is not a blue theme. */
+  --primary: oklch(0.21 calc(0.006 + var(--tint) * 0.02) var(--hue));
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
+  --secondary: oklch(0.967 calc(0.001 + var(--tint) * 0.03) var(--hue));
+  --secondary-foreground: oklch(0.21 calc(0.006 + var(--tint) * 0.04) var(--hue));
+  --muted: oklch(0.967 calc(0.001 + var(--tint) * 0.025) var(--hue));
+  --muted-foreground: oklch(0.552 calc(0.016 + var(--tint) * 0.03) var(--hue));
+  --accent: oklch(0.955 calc(0.001 + var(--tint) * 0.045) var(--hue));
+  --accent-foreground: oklch(0.21 calc(0.006 + var(--tint) * 0.05) var(--hue));
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.705 0.015 286.067);
+  --border: oklch(0.92 calc(0.004 + var(--tint) * 0.03) var(--hue));
+  --input: oklch(0.92 calc(0.004 + var(--tint) * 0.03) var(--hue));
+  --ring: oklch(0.705 calc(0.015 + var(--tint) * 0.05) var(--hue));
 
   /* Indian market convention, and the one most readers here expect: green
      for a rise. Chosen at a chroma that stays distinguishable for the most
-     common form of colour blindness, which red and green alone do not. */
+     common form of colour blindness, which red and green alone do not.
+     Never tinted by the accent: green has to mean "up" on every theme. */
   --gain: oklch(0.58 0.15 149);
   --loss: oklch(0.577 0.245 27.325);
 }
 
 .dark {
-  --background: oklch(0.141 0.005 285.823);
+  --background: oklch(0.141 calc(0.005 + var(--tint) * 0.02) var(--hue));
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.21 0.006 285.885);
+  --card: oklch(0.21 calc(0.006 + var(--tint) * 0.025) var(--hue));
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.21 0.006 285.885);
+  --popover: oklch(0.21 calc(0.006 + var(--tint) * 0.025) var(--hue));
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.92 0.004 286.32);
-  --primary-foreground: oklch(0.21 0.006 285.885);
-  --secondary: oklch(0.274 0.006 286.033);
+  --primary: oklch(0.92 calc(0.004 + var(--tint) * 0.02) var(--hue));
+  --primary-foreground: oklch(0.21 calc(0.006 + var(--tint) * 0.02) var(--hue));
+  --secondary: oklch(0.274 calc(0.006 + var(--tint) * 0.03) var(--hue));
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
+  --muted: oklch(0.274 calc(0.006 + var(--tint) * 0.03) var(--hue));
+  --muted-foreground: oklch(0.705 calc(0.015 + var(--tint) * 0.04) var(--hue));
+  --accent: oklch(0.305 calc(0.006 + var(--tint) * 0.05) var(--hue));
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.552 0.016 285.938);
+  --ring: oklch(0.552 calc(0.016 + var(--tint) * 0.06) var(--hue));
 
   /* Lifted for a dark surface: the light-mode green reads nearly black
      against it, which is the usual reason a dashboard's dark theme is
@@ -70,63 +86,45 @@
 }
 
 /*
- * The accent, as a second axis of the theme.
- *
- * Light and dark decide the surfaces; the accent decides what the
- * application points at things with -- the selected navigation item, a
- * primary button, a focus ring. Kept to those tokens deliberately: an
- * accent that also repainted surfaces would be four themes to check rather
- * than one theme with four accents, and `--gain` and `--loss` are never
- * touched by it, because green must mean "up" whatever colour the
- * interface is.
+ * The accents. Each names its hue, turns the tint on, and states its own
+ * primary -- the one token a tint cannot produce, because the neutral
+ * theme's primary is near-black rather than a pale version of anything.
  */
 [data-accent="blue"] {
+  --hue: 258;
+  --tint: 1;
   --primary: oklch(0.55 0.21 258);
   --primary-foreground: oklch(0.985 0 0);
-  --ring: oklch(0.55 0.21 258);
 }
 
 [data-accent="green"] {
-  --primary: oklch(0.55 0.15 155);
+  --hue: 155;
+  --tint: 1;
+  --primary: oklch(0.52 0.14 155);
   --primary-foreground: oklch(0.985 0 0);
-  --ring: oklch(0.55 0.15 155);
 }
 
 [data-accent="orange"] {
+  --hue: 42;
+  --tint: 1;
   --primary: oklch(0.63 0.2 42);
   --primary-foreground: oklch(0.985 0 0);
-  --ring: oklch(0.63 0.2 42);
-}
-
-[data-accent="violet"] {
-  --primary: oklch(0.55 0.24 295);
-  --primary-foreground: oklch(0.985 0 0);
-  --ring: oklch(0.55 0.24 295);
 }
 
 /* Lifted against a dark surface, where the light-mode accents read muddy. */
 .dark[data-accent="blue"] {
-  --primary: oklch(0.68 0.19 258);
-  --primary-foreground: oklch(0.141 0.005 285.823);
-  --ring: oklch(0.68 0.19 258);
+  --primary: oklch(0.7 0.18 258);
+  --primary-foreground: oklch(0.141 0.02 258);
 }
 
 .dark[data-accent="green"] {
-  --primary: oklch(0.72 0.17 155);
-  --primary-foreground: oklch(0.141 0.005 285.823);
-  --ring: oklch(0.72 0.17 155);
+  --primary: oklch(0.75 0.16 155);
+  --primary-foreground: oklch(0.141 0.02 155);
 }
 
 .dark[data-accent="orange"] {
-  --primary: oklch(0.75 0.17 55);
-  --primary-foreground: oklch(0.141 0.005 285.823);
-  --ring: oklch(0.75 0.17 55);
-}
-
-.dark[data-accent="violet"] {
-  --primary: oklch(0.7 0.19 295);
-  --primary-foreground: oklch(0.141 0.005 285.823);
-  --ring: oklch(0.7 0.19 295);
+  --primary: oklch(0.77 0.16 55);
+  --primary-foreground: oklch(0.141 0.02 55);
 }
 
 @theme inline {

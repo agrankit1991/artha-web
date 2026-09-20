@@ -30,16 +30,17 @@ interface NewsFeedProps {
  * screen high on a wide display and the text under it is pushed out of
  * sight. A height keeps every card the same size whatever the column count.
  */
-const PICTURE = "h-36";
+const PICTURE = "h-44";
 
 /**
  * How the cards are laid out.
  *
- * Four columns where there is room: these are short cards, and three of
- * them across a wide display leaves each one wider than its own content
- * needs.
+ * Three across at most, and never four. Every count this application asks
+ * for is a multiple of three -- six on the overview, twelve to a batch on
+ * the news page -- so a grid of three always ends flush, and a grid of
+ * four would leave two thirds of a row empty at the bottom of both.
  */
-const GRID = "grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4";
+const GRID = "grid gap-4 sm:grid-cols-2 lg:grid-cols-3";
 
 /**
  * Render the feed.
@@ -58,9 +59,10 @@ export function NewsFeed({
         {[0, 1, 2].map((slot) => (
           <Card key={slot} className="gap-0 overflow-hidden py-0">
             <Skeleton className={cn(PICTURE, "w-full rounded-none")} />
-            <CardContent className="space-y-2 p-3">
+            <CardContent className="space-y-2 p-4">
               <Skeleton className="h-4 w-3/4" />
               <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-2/3" />
             </CardContent>
           </Card>
         ))}
@@ -87,19 +89,19 @@ function Article({ item, tagLimit }: { item: NewsItem; tagLimit: number }): Reac
   return (
     <Card className="h-full gap-0 overflow-hidden py-0 transition-colors hover:bg-muted/50">
       <Thumbnail url={item.thumbnail_url} />
-      <CardContent className="flex h-full flex-col gap-1.5 p-3">
+      <CardContent className="flex h-full flex-col gap-2 p-4">
         <a
           href={item.url}
           target="_blank"
           // Without noreferrer the opened page can reach back through
           // `window.opener`; noopener alone still leaks the referrer.
           rel="noopener noreferrer"
-          className="line-clamp-2 text-sm font-medium leading-snug hover:underline"
+          className="line-clamp-2 font-medium leading-snug hover:underline"
         >
           {item.headline}
         </a>
         {item.summary !== "" && (
-          <p className="line-clamp-2 text-xs leading-snug text-muted-foreground">{item.summary}</p>
+          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">{item.summary}</p>
         )}
         <div className="mt-auto flex flex-wrap items-center gap-1 pt-0.5">
           {shown.map((mention) => (

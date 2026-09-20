@@ -209,6 +209,11 @@ call site.
   `BreadthPanel`, `BreadthGridPanel`, `RegimeBanner`, `NewsFeed`,
   `LoadMore`, `ComparisonChart`, `Menu`, `ThemeMenu`, `UserMenu`,
   `AppShell`.
+- **Card grids are three across, never four.** Every count asked for is a
+  multiple of three -- six headlines on the overview, twelve to a news
+  batch -- so the last row is always full. The news page asks for
+  thirteen first, because the lead article is shown above the grid rather
+  than in it.
 - **Breadth wording** in `src/lib/breadthReadings.ts`: every phrase that
   turns a breadth figure into something readable lives here, so two screens
   cannot describe the same reading differently. Note the `warn` tone --
@@ -229,13 +234,21 @@ call site.
   on every keystroke races its own answers, and the reply for "rel" can
   arrive after the reply for "relian" and leave the wrong results up.
 - **Theme** in `src/lib/theme.tsx`, on two axes. Light, dark or following
-  the system decides the surfaces; the accent (neutral, blue, green,
-  orange, violet) decides what the application points at things with.
-  Stored apart, because changing one must never reset the other. The
-  accent touches `--primary` and `--ring` only -- never `--gain` or
-  `--loss`, because green must mean "up" whatever colour the interface is.
-  Both work when storage is blocked; they are just forgotten between
-  visits.
+  the system decides the lightness; the accent (neutral, blue, green,
+  orange -- the four the previous project had) decides the hue. Stored
+  apart, because changing one must never reset the other, and both work
+  when storage is blocked; they are just forgotten between visits.
+
+  **An accent is a hue, not a highlight colour.** `src/index.css` derives
+  every surface, border and muted tone from `--hue` and `--tint`, so
+  choosing one tints the whole page. The first attempt moved `--primary`
+  and `--ring` alone, which in this interface is a few icons and the
+  sidebar highlight: applying it changed almost nothing visible and read
+  as a switch that did not work. `--gain` and `--loss` are never derived
+  from the hue -- green has to mean "up" on every theme.
+  `src/lib/accents.test.ts` pins both invariants against the stylesheet,
+  because nothing else in the build notices when the accent list and the
+  CSS disagree.
 
 ## Not yet built
 

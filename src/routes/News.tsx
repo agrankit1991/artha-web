@@ -23,8 +23,21 @@ import { useDebounced } from "@/hooks/useDebounced";
 import { useResource } from "@/hooks/useResource";
 import { formatSince } from "@/lib/format";
 
-/** Articles fetched at a time, and added by each press of "Load more". */
+/**
+ * Articles the grid gains with each press of "Load more".
+ *
+ * A multiple of three, because the grid is three across: anything else
+ * leaves the last row part-empty every single time.
+ */
 const BATCH = 12;
+
+/**
+ * The newest article, which is shown above the grid rather than in it.
+ *
+ * The first request therefore asks for one more than a batch, so that what
+ * lands in the grid is still a whole number of rows.
+ */
+const LEAD = 1;
 
 /** The windows a reader switches between. */
 const WINDOWS: { label: string; days: number | null }[] = [
@@ -60,7 +73,7 @@ export function News(): React.JSX.Element {
         text,
         days,
         instrumentKey: company?.instrument_key ?? null,
-        limit: BATCH,
+        limit: offset === 0 ? BATCH + LEAD : BATCH,
         offset,
       }),
     [text, days, company, offset],

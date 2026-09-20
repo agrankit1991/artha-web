@@ -43,10 +43,10 @@ function Probe(): React.JSX.Element {
       <button
         type="button"
         onClick={() => {
-          setAccent("violet");
+          setAccent("orange");
         }}
       >
-        go violet
+        go orange
       </button>
     </div>
   );
@@ -143,10 +143,10 @@ describe("theme", () => {
       </ThemeProvider>,
     );
     await userEvent.click(screen.getByRole("button", { name: "go dark" }));
-    await userEvent.click(screen.getByRole("button", { name: "go violet" }));
+    await userEvent.click(screen.getByRole("button", { name: "go orange" }));
 
     expect(screen.getByTestId("state")).toHaveTextContent("dark/dark");
-    expect(screen.getByTestId("accent")).toHaveTextContent("violet");
+    expect(screen.getByTestId("accent")).toHaveTextContent("orange");
   });
 
   it("remembers the accent apart from the light and dark choice", async () => {
@@ -159,12 +159,12 @@ describe("theme", () => {
       </ThemeProvider>,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "go violet" }));
+    await userEvent.click(screen.getByRole("button", { name: "go orange" }));
     await userEvent.click(screen.getByRole("button", { name: "go dark" }));
 
-    expect(window.localStorage.getItem("artha-accent")).toBe("violet");
+    expect(window.localStorage.getItem("artha-accent")).toBe("orange");
     expect(window.localStorage.getItem("artha-theme")).toBe("dark");
-    expect(screen.getByTestId("accent")).toHaveTextContent("violet");
+    expect(screen.getByTestId("accent")).toHaveTextContent("orange");
   });
 
   it("starts from the accent a previous visit chose", () => {

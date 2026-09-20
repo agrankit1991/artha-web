@@ -23,10 +23,10 @@ export type ThemeChoice = "light" | "dark" | "system";
 export type Appearance = "light" | "dark";
 
 /** The colour the application points at things with. */
-export type Accent = "slate" | "blue" | "green" | "orange" | "violet";
+export type Accent = "slate" | "blue" | "green" | "orange";
 
 /** Every accent, in the order they are offered. */
-export const ACCENTS: readonly Accent[] = ["slate", "blue", "green", "orange", "violet"];
+export const ACCENTS: readonly Accent[] = ["slate", "blue", "green", "orange"];
 
 const STORAGE_KEY = "artha-theme";
 const ACCENT_KEY = "artha-accent";
