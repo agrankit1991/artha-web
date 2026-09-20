@@ -232,8 +232,7 @@ describe("Overview", () => {
 
     renderOverview();
 
-    expect(await screen.findByRole("region", { name: "Global markets" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Sector heatmap" })).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: "Sector heatmap" })).toBeInTheDocument();
   });
 
   it("offers the way through to the whole feed, under it as the old page did", async () => {

@@ -7,15 +7,7 @@
  * arrives whole rather than in pieces.
  */
 
-import {
-  Activity,
-  ChevronRight,
-  Globe,
-  LineChart,
-  Newspaper,
-  PieChart,
-  TrendingUp,
-} from "lucide-react";
+import { Activity, ChevronRight, LineChart, Newspaper, PieChart, TrendingUp } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import type { MoverRow } from "@/api/client";
@@ -150,43 +142,6 @@ export function Overview({
             />
           ))}
         </div>
-      </section>
-
-      <section className="space-y-3" aria-labelledby="world-heading">
-        <h2 id="world-heading" className="flex items-center gap-2 text-lg font-semibold">
-          <Globe className="h-5 w-5 text-primary" />
-          Global market overview
-        </h2>
-        <TradingViewWidget
-          widget="market-overview"
-          label="Global markets"
-          height={450}
-          settings={{
-            dateRange: "1D",
-            showChart: true,
-            locale: "en",
-            showSymbolLogo: true,
-            showFloatingTooltip: false,
-            // The symbols the previous project settled on. Which markets a
-            // free widget will actually draw is not documented anywhere,
-            // and this set is the one already known to work.
-            tabs: [
-              {
-                title: "Indices",
-                symbols: [
-                  { s: "FOREXCOM:SPXUSD", d: "S&P 500" },
-                  { s: "NASDAQ:NDX", d: "Nasdaq" },
-                  { s: "INDEX:N100", d: "Euronext 100 (Europe)" },
-                  { s: "SPREADEX:FTSE", d: "FTSE 100 (UK)" },
-                  { s: "XETR:DAX", d: "DAX (Germany)" },
-                  { s: "BLACKBULL:JPN225", d: "JPN225 (Japan)" },
-                  { s: "SSE:000001", d: "SSE Composite (China)" },
-                  { s: "HSI:HSI", d: "HSI (Hong Kong)" },
-                ],
-              },
-            ],
-          }}
-        />
       </section>
 
       <section className="space-y-3" aria-labelledby="heatmap-heading">
