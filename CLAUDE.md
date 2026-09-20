@@ -239,6 +239,58 @@ call site.
   apart, because changing one must never reset the other, and both work
   when storage is blocked; they are just forgotten between visits.
 
+  **An accent is a whole palette, not a highlight colour.** The four
+  palettes in `src/index.css` are carried over from the previous
+  incarnation of this project rather than invented again, and the
+  relationship between their three surfaces is the point: the page is a
+  tinted off-white, a card is pure white on top of it, and the chrome --
+  sidebar, header, footer, through the `--layout` tokens -- is a third
+  shade deeper than both. Two earlier attempts failed here. The first
+  moved `--primary` and `--ring` alone, which is a few icons and the
+  sidebar highlight, so applying an accent changed nothing visible. The
+  second derived every token from a hue and a tint, which tinted the page
+  but left it and the cards the same near-white, so the interface had no
+  depth. `--gain` and `--loss` are never part of an accent: green has to
+  mean "up" on every theme.
+
+  `src/lib/accents.test.ts` pins all of that against the stylesheet --
+  that every accent restates every surface in both light and dark, that
+  the page, the card and the chrome are three different values, and that
+  the menu's swatch is the palette's own `--primary` rather than something
+  close to it. Nothing else in the build notices when the accent list and
+  the CSS disagree, which is exactly how the first attempt shipped looking
+  like it worked.
+
+- **Card grids are three across, never four.** Every count asked for is a
+  multiple of three -- six headlines on the overview, twelve to a news
+  batch -- so the last row is always full. The news page asks for
+  thirteen first, because the lead article is shown above the grid rather
+  than in it.
+- **Breadth wording** in `src/lib/breadthReadings.ts`: every phrase that
+  turns a breadth figure into something readable lives here, so two screens
+  cannot describe the same reading differently. Note the `warn` tone --
+  a market with nearly everything above its long average is neither good
+  news nor bad, and painting it green says the opposite of what it has
+  historically meant.
+- **The featured indices** in `src/lib/indices.ts`: which indices the
+  overview draws and the breadth page pins, in a settled order, in one
+  place. India VIX is among them as a card and is filtered out as a
+  population -- it has no constituents to count or rank, and the platform
+  reports as much, so the filter follows the platform rather than a second
+  hardcoded list.
+- **Gold** is the exchange-traded fund, not an MCX contract. A contract
+  expires: the longest single gold contract stored is 226 sessions, and
+  stitching several needs a declared roll rule that does not exist. The
+  reasoning is in `indices.ts` beside the key.
+- **Debouncing** in `src/hooks/useDebounced.ts`: a search box that requests
+  on every keystroke races its own answers, and the reply for "rel" can
+  arrive after the reply for "relian" and leave the wrong results up.
+- **Theme** in `src/lib/theme.tsx`, on two axes. Light, dark or following
+  the system decides the lightness; the accent (neutral, blue, green,
+  orange -- the four the previous project had) decides the hue. Stored
+  apart, because changing one must never reset the other, and both work
+  when storage is blocked; they are just forgotten between visits.
+
   **An accent is a hue, not a highlight colour.** `src/index.css` derives
   every surface, border and muted tone from `--hue` and `--tint`, so
   choosing one tints the whole page. The first attempt moved `--primary`

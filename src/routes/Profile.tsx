@@ -13,28 +13,13 @@ import type { Account } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { initialsOf } from "@/components/UserMenu";
-import { type Accent, ACCENTS, type ThemeChoice, useTheme } from "@/lib/theme";
+import { ACCENT_NAMES, ACCENT_SWATCHES, ACCENTS, type ThemeChoice, useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 interface ProfileProps {
   account: Account;
   onSignOut: () => void;
 }
-
-/** What each accent is called, and the colour that stands for it. */
-const ACCENT_NAMES: Record<Accent, string> = {
-  slate: "Neutral",
-  blue: "Blue",
-  green: "Green",
-  orange: "Orange",
-};
-
-const SWATCHES: Record<Accent, string> = {
-  slate: "oklch(0.44 0.017 285.8)",
-  blue: "oklch(0.55 0.21 258)",
-  green: "oklch(0.55 0.15 155)",
-  orange: "oklch(0.63 0.2 42)",
-};
 
 const MODES: { choice: ThemeChoice; label: string; icon: typeof Sun }[] = [
   { choice: "light", label: "Light", icon: Sun },
@@ -114,7 +99,7 @@ export function Profile({ account, onSignOut }: ProfileProps): React.JSX.Element
                   <span
                     aria-hidden="true"
                     className="h-4 w-4 rounded-full border border-border"
-                    style={{ backgroundColor: SWATCHES[option] }}
+                    style={{ backgroundColor: ACCENT_SWATCHES[option] }}
                   />
                   {ACCENT_NAMES[option]}
                   {option === accent && <Check className="h-3.5 w-3.5" />}

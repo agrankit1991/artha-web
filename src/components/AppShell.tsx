@@ -76,11 +76,11 @@ export function AppShell({
       )}
 
       <div className="flex min-h-svh flex-col lg:pl-60">
-        <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur">
+        <header className="sticky top-0 z-20 border-b border-layout-border bg-layout/95 text-layout-foreground backdrop-blur">
           <div className="flex h-14 items-center gap-3 px-4">
             <button
               type="button"
-              className="rounded-md p-2 hover:bg-accent lg:hidden"
+              className="rounded-md p-2 hover:bg-layout-accent lg:hidden"
               aria-label={open ? "Close navigation" : "Open navigation"}
               aria-expanded={open}
               onClick={() => {
@@ -98,8 +98,8 @@ export function AppShell({
 
         <main className="mx-auto w-full max-w-[1600px] flex-1 p-4">{children}</main>
 
-        <footer className="border-t">
-          <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-muted-foreground">
+        <footer className="border-t border-layout-border bg-layout text-layout-foreground">
+          <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs opacity-70">
             <span>Artha Science · end-of-day data for Indian markets</span>
             <span className="tabular">
               {build === null || build === undefined
@@ -126,11 +126,11 @@ function Sidebar({
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-40 w-60 border-r bg-card transition-transform lg:translate-x-0",
+        "fixed inset-y-0 left-0 z-40 w-60 border-r border-layout-border bg-layout text-layout-foreground transition-transform lg:translate-x-0",
         open ? "translate-x-0" : "-translate-x-full",
       )}
     >
-      <div className="flex h-14 items-center gap-2 border-b px-4">
+      <div className="flex h-14 items-center gap-2 border-b border-layout-border px-4">
         <span
           aria-hidden="true"
           className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground"
@@ -150,8 +150,8 @@ function Sidebar({
               cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
                 isActive
-                  ? "bg-primary/10 font-medium text-primary"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                  ? "bg-primary text-primary-foreground font-medium shadow-sm"
+                  : "opacity-70 hover:bg-layout-accent hover:opacity-100",
               )
             }
           >

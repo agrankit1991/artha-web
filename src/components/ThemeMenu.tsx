@@ -13,24 +13,8 @@
 import { Check, Monitor, Moon, Palette, Sun } from "lucide-react";
 
 import { Menu, MenuItem, MenuLabel, MenuSeparator } from "@/components/Menu";
-import { type Accent, ACCENTS, type ThemeChoice, useTheme } from "@/lib/theme";
+import { ACCENT_NAMES, ACCENT_SWATCHES, ACCENTS, type ThemeChoice, useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
-
-/** What each accent is called, and the swatch that stands for it. */
-const ACCENT_NAMES: Record<Accent, string> = {
-  slate: "Neutral",
-  blue: "Blue",
-  green: "Green",
-  orange: "Orange",
-};
-
-/** The swatch colours, which are the accents themselves at a fixed shade. */
-const SWATCHES: Record<Accent, string> = {
-  slate: "oklch(0.44 0.017 285.8)",
-  blue: "oklch(0.55 0.21 258)",
-  green: "oklch(0.55 0.15 155)",
-  orange: "oklch(0.63 0.2 42)",
-};
 
 /** The three light-and-dark choices, with the icon each is recognised by. */
 const MODES: { choice: ThemeChoice; label: string; icon: typeof Sun }[] = [
@@ -58,7 +42,7 @@ export function ThemeMenu(): React.JSX.Element {
           <span
             aria-hidden="true"
             className="h-3 w-3 rounded-full border border-border"
-            style={{ backgroundColor: SWATCHES[accent] }}
+            style={{ backgroundColor: ACCENT_SWATCHES[accent] }}
           />
         </>
       }
@@ -78,7 +62,7 @@ export function ThemeMenu(): React.JSX.Element {
               <span
                 aria-hidden="true"
                 className="h-4 w-4 shrink-0 rounded-full border border-border"
-                style={{ backgroundColor: SWATCHES[option] }}
+                style={{ backgroundColor: ACCENT_SWATCHES[option] }}
               />
               <span className="flex-1">{ACCENT_NAMES[option]}</span>
               <Check className={cn("h-4 w-4", option === accent ? "opacity-100" : "opacity-0")} />

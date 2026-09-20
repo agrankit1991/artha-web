@@ -12,71 +12,83 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * Two variables drive the whole palette: which hue the interface leans on,
- * and how much of it to use. Every surface, border and muted tone below is
- * that hue at a lightness, so choosing an accent tints the entire page
- * rather than recolouring four icons and leaving the rest grey.
+ * The palettes, carried over from the previous incarnation of this project
+ * rather than invented again.
  *
- * `--tint` at nought gives the neutral theme: chroma falls out of every
- * expression and what is left is the greys this application started with.
+ * Three surfaces, and the relationship between them is the point: the page
+ * is a tinted off-white, a card is pure white sitting on top of it, and the
+ * chrome -- sidebar and header -- is a third shade, deeper than both. A
+ * palette where the page and the card are the same white has no depth to
+ * it, which is what the first attempt at this produced.
+ *
+ * An accent is therefore a whole palette rather than a highlight colour.
+ * Every token below moves with it, in one hue family, so the page, the
+ * cards, the borders and the chrome all belong together.
+ *
+ * `--gain` and `--loss` are this application's own addition and are never
+ * part of an accent: green has to mean "up" on every theme.
  */
+
 :root {
   --radius: 0.5rem;
-  --hue: 286;
-  --tint: 0;
 
-  --background: oklch(1 calc(var(--tint) * 0.006) var(--hue));
-  --foreground: oklch(0.141 calc(0.005 + var(--tint) * 0.02) var(--hue));
-  --card: oklch(1 calc(var(--tint) * 0.004) var(--hue));
-  --card-foreground: oklch(0.141 calc(0.005 + var(--tint) * 0.02) var(--hue));
-  --popover: oklch(1 calc(var(--tint) * 0.004) var(--hue));
-  --popover-foreground: oklch(0.141 calc(0.005 + var(--tint) * 0.02) var(--hue));
-
-  /* The neutral theme's primary is near-black, as shadcn's is. An accent
-     replaces it outright rather than tinting it, because a "blue theme"
-     whose buttons are still charcoal is not a blue theme. */
-  --primary: oklch(0.21 calc(0.006 + var(--tint) * 0.02) var(--hue));
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.25 0.05 240);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 calc(0.001 + var(--tint) * 0.03) var(--hue));
-  --secondary-foreground: oklch(0.21 calc(0.006 + var(--tint) * 0.04) var(--hue));
-  --muted: oklch(0.967 calc(0.001 + var(--tint) * 0.025) var(--hue));
-  --muted-foreground: oklch(0.552 calc(0.016 + var(--tint) * 0.03) var(--hue));
-  --accent: oklch(0.955 calc(0.001 + var(--tint) * 0.045) var(--hue));
-  --accent-foreground: oklch(0.21 calc(0.006 + var(--tint) * 0.05) var(--hue));
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.92 calc(0.004 + var(--tint) * 0.03) var(--hue));
-  --input: oklch(0.92 calc(0.004 + var(--tint) * 0.03) var(--hue));
-  --ring: oklch(0.705 calc(0.015 + var(--tint) * 0.05) var(--hue));
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+
+  --layout: hsl(210 40% 96%);
+  --layout-foreground: hsl(222.2 84% 4.9%);
+  --layout-accent: hsl(210 40% 92%);
+  --layout-border: hsl(214.3 31.8% 86%);
 
   /* Indian market convention, and the one most readers here expect: green
      for a rise. Chosen at a chroma that stays distinguishable for the most
-     common form of colour blindness, which red and green alone do not.
-     Never tinted by the accent: green has to mean "up" on every theme. */
+     common form of colour blindness, which red and green alone do not. */
   --gain: oklch(0.58 0.15 149);
   --loss: oklch(0.577 0.245 27.325);
 }
 
 .dark {
-  --background: oklch(0.141 calc(0.005 + var(--tint) * 0.02) var(--hue));
+  --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.21 calc(0.006 + var(--tint) * 0.025) var(--hue));
+  --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.21 calc(0.006 + var(--tint) * 0.025) var(--hue));
+  --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.92 calc(0.004 + var(--tint) * 0.02) var(--hue));
-  --primary-foreground: oklch(0.21 calc(0.006 + var(--tint) * 0.02) var(--hue));
-  --secondary: oklch(0.274 calc(0.006 + var(--tint) * 0.03) var(--hue));
+  --primary: oklch(0.7 0.1 240);
+  --primary-foreground: oklch(0.145 0 0);
+  --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.274 calc(0.006 + var(--tint) * 0.03) var(--hue));
-  --muted-foreground: oklch(0.705 calc(0.015 + var(--tint) * 0.04) var(--hue));
-  --accent: oklch(0.305 calc(0.006 + var(--tint) * 0.05) var(--hue));
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.552 calc(0.016 + var(--tint) * 0.06) var(--hue));
+  --ring: oklch(0.556 0 0);
+
+  --layout: oklch(0.205 0 0);
+  --layout-foreground: oklch(0.985 0 0);
+  --layout-accent: oklch(0.269 0 0);
+  --layout-border: oklch(1 0 0 / 10%);
 
   /* Lifted for a dark surface: the light-mode green reads nearly black
      against it, which is the usual reason a dashboard's dark theme is
@@ -85,46 +97,154 @@
   --loss: oklch(0.704 0.191 22.216);
 }
 
-/*
- * The accents. Each names its hue, turns the tint on, and states its own
- * primary -- the one token a tint cannot produce, because the neutral
- * theme's primary is near-black rather than a pale version of anything.
- */
 [data-accent="blue"] {
-  --hue: 258;
-  --tint: 1;
-  --primary: oklch(0.55 0.21 258);
-  --primary-foreground: oklch(0.985 0 0);
+  --background: hsl(210 40% 98%);
+  --foreground: hsl(222.2 84% 4.9%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(222.2 84% 4.9%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(222.2 84% 4.9%);
+  --primary: hsl(221.2 83.2% 53.3%);
+  --primary-foreground: hsl(210 40% 98%);
+  --secondary: hsl(210 40% 96.1%);
+  --secondary-foreground: hsl(222.2 47.4% 11.2%);
+  --muted: hsl(210 40% 96.1%);
+  --muted-foreground: hsl(215.4 16.3% 46.9%);
+  --accent: hsl(210 40% 94%);
+  --accent-foreground: hsl(222.2 47.4% 11.2%);
+  --border: hsl(214.3 31.8% 91.4%);
+  --input: hsl(214.3 31.8% 91.4%);
+  --ring: hsl(221.2 83.2% 53.3%);
+
+  --layout: hsl(210 45% 94%);
+  --layout-foreground: hsl(222.2 84% 4.9%);
+  --layout-accent: hsl(210 40% 90%);
+  --layout-border: hsl(214.3 31.8% 86%);
+}
+
+.dark[data-accent="blue"] {
+  --background: hsl(222.2 84% 4.9%);
+  --foreground: hsl(210 40% 98%);
+  --card: hsl(217.2 32.6% 12%);
+  --card-foreground: hsl(210 40% 98%);
+  --popover: hsl(217.2 32.6% 12%);
+  --popover-foreground: hsl(210 40% 98%);
+  --primary: hsl(217.2 91.2% 59.8%);
+  --primary-foreground: hsl(222.2 47.4% 11.2%);
+  --secondary: hsl(217.2 32.6% 17.5%);
+  --secondary-foreground: hsl(210 40% 98%);
+  --muted: hsl(217.2 32.6% 17.5%);
+  --muted-foreground: hsl(215 20.2% 65.1%);
+  --accent: hsl(217.2 32.6% 20%);
+  --accent-foreground: hsl(210 40% 98%);
+  --border: hsl(217.2 32.6% 17.5%);
+  --input: hsl(217.2 32.6% 17.5%);
+  --ring: hsl(224.3 76.3% 48%);
+
+  --layout: hsl(217.2 32.6% 10%);
+  --layout-foreground: hsl(210 40% 98%);
+  --layout-accent: hsl(217.2 32.6% 17.5%);
+  --layout-border: hsl(217.2 32.6% 17.5%);
 }
 
 [data-accent="green"] {
-  --hue: 155;
-  --tint: 1;
-  --primary: oklch(0.52 0.14 155);
-  --primary-foreground: oklch(0.985 0 0);
-}
+  --background: hsl(150 40% 98%);
+  --foreground: hsl(160 10% 5%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(160 10% 5%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(160 10% 5%);
+  --primary: hsl(142.1 76.2% 36.3%);
+  --primary-foreground: hsl(355.7 100% 97.3%);
+  --secondary: hsl(140 30% 94%);
+  --secondary-foreground: hsl(140 5.9% 10%);
+  --muted: hsl(140 30% 94%);
+  --muted-foreground: hsl(140 3.8% 46.1%);
+  --accent: hsl(140 30% 92%);
+  --accent-foreground: hsl(140 5.9% 10%);
+  --border: hsl(140 5.9% 90%);
+  --input: hsl(140 5.9% 90%);
+  --ring: hsl(142.1 76.2% 36.3%);
 
-[data-accent="orange"] {
-  --hue: 42;
-  --tint: 1;
-  --primary: oklch(0.63 0.2 42);
-  --primary-foreground: oklch(0.985 0 0);
-}
-
-/* Lifted against a dark surface, where the light-mode accents read muddy. */
-.dark[data-accent="blue"] {
-  --primary: oklch(0.7 0.18 258);
-  --primary-foreground: oklch(0.141 0.02 258);
+  --layout: hsl(150 45% 94%);
+  --layout-foreground: hsl(160 10% 5%);
+  --layout-accent: hsl(150 35% 90%);
+  --layout-border: hsl(140 5.9% 85%);
 }
 
 .dark[data-accent="green"] {
-  --primary: oklch(0.75 0.16 155);
-  --primary-foreground: oklch(0.141 0.02 155);
+  --background: hsl(160 15% 8%);
+  --foreground: hsl(0 0% 95%);
+  --card: hsl(155 15% 12%);
+  --card-foreground: hsl(0 0% 95%);
+  --popover: hsl(155 15% 12%);
+  --popover-foreground: hsl(0 0% 95%);
+  --primary: hsl(142.1 70.6% 45.3%);
+  --primary-foreground: hsl(144.9 80.4% 10%);
+  --secondary: hsl(140 10% 20%);
+  --secondary-foreground: hsl(0 0% 98%);
+  --muted: hsl(140 10% 20%);
+  --muted-foreground: hsl(140 5% 64.9%);
+  --accent: hsl(140 10% 23%);
+  --accent-foreground: hsl(0 0% 98%);
+  --border: hsl(140 10% 20%);
+  --input: hsl(140 10% 20%);
+  --ring: hsl(142.4 71.8% 29.2%);
+
+  --layout: hsl(160 15% 10%);
+  --layout-foreground: hsl(0 0% 95%);
+  --layout-accent: hsl(140 10% 20%);
+  --layout-border: hsl(140 10% 20%);
+}
+
+[data-accent="orange"] {
+  --background: hsl(30 40% 98%);
+  --foreground: hsl(24 10% 5%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(24 10% 5%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(24 10% 5%);
+  --primary: hsl(24.6 95% 53.1%);
+  --primary-foreground: hsl(60 9.1% 97.8%);
+  --secondary: hsl(30 30% 94%);
+  --secondary-foreground: hsl(24 9.8% 10%);
+  --muted: hsl(30 30% 94%);
+  --muted-foreground: hsl(25 5.3% 44.7%);
+  --accent: hsl(30 30% 92%);
+  --accent-foreground: hsl(24 9.8% 10%);
+  --border: hsl(20 5.9% 90%);
+  --input: hsl(20 5.9% 90%);
+  --ring: hsl(24.6 95% 53.1%);
+
+  --layout: hsl(30 45% 94%);
+  --layout-foreground: hsl(24 10% 5%);
+  --layout-accent: hsl(30 35% 90%);
+  --layout-border: hsl(20 5.9% 85%);
 }
 
 .dark[data-accent="orange"] {
-  --primary: oklch(0.77 0.16 55);
-  --primary-foreground: oklch(0.141 0.02 55);
+  --background: hsl(20 14.3% 4.1%);
+  --foreground: hsl(60 9.1% 97.8%);
+  --card: hsl(15 15% 12%);
+  --card-foreground: hsl(60 9.1% 97.8%);
+  --popover: hsl(15 15% 12%);
+  --popover-foreground: hsl(60 9.1% 97.8%);
+  --primary: hsl(20.5 90.2% 48.2%);
+  --primary-foreground: hsl(60 9.1% 97.8%);
+  --secondary: hsl(12 6.5% 15.1%);
+  --secondary-foreground: hsl(60 9.1% 97.8%);
+  --muted: hsl(12 6.5% 15.1%);
+  --muted-foreground: hsl(24 5.4% 63.9%);
+  --accent: hsl(12 6.5% 18%);
+  --accent-foreground: hsl(60 9.1% 97.8%);
+  --border: hsl(12 6.5% 15.1%);
+  --input: hsl(12 6.5% 15.1%);
+  --ring: hsl(20.5 90.2% 48.2%);
+
+  --layout: hsl(15 15% 9%);
+  --layout-foreground: hsl(60 9.1% 97.8%);
+  --layout-accent: hsl(12 6.5% 15.1%);
+  --layout-border: hsl(12 6.5% 15.1%);
 }
 
 @theme inline {
@@ -149,6 +269,10 @@
   --color-ring: var(--ring);
   --color-gain: var(--gain);
   --color-loss: var(--loss);
+  --color-layout: var(--layout);
+  --color-layout-foreground: var(--layout-foreground);
+  --color-layout-accent: var(--layout-accent);
+  --color-layout-border: var(--layout-border);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

@@ -28,6 +28,29 @@ export type Accent = "slate" | "blue" | "green" | "orange";
 /** Every accent, in the order they are offered. */
 export const ACCENTS: readonly Accent[] = ["slate", "blue", "green", "orange"];
 
+/** What each accent is called. */
+export const ACCENT_NAMES: Record<Accent, string> = {
+  slate: "Neutral",
+  blue: "Blue",
+  green: "Green",
+  orange: "Orange",
+};
+
+/**
+ * The colour each accent is recognised by.
+ *
+ * These are the palettes' own `--primary` values, written out rather than
+ * read from the stylesheet: a swatch that is merely close to the theme it
+ * stands for is a swatch that lies about what pressing it will do, and
+ * CSS variables cannot be read before the theme they belong to is applied.
+ */
+export const ACCENT_SWATCHES: Record<Accent, string> = {
+  slate: "oklch(0.25 0.05 240)",
+  blue: "hsl(221.2 83.2% 53.3%)",
+  green: "hsl(142.1 76.2% 36.3%)",
+  orange: "hsl(24.6 95% 53.1%)",
+};
+
 const STORAGE_KEY = "artha-theme";
 const ACCENT_KEY = "artha-accent";
 
