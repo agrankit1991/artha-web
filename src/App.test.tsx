@@ -160,7 +160,7 @@ describe("App", () => {
     render(<App />);
     await screen.findByText("Market news");
 
-    await userEvent.click(screen.getByRole("button", { name: /All news/ }));
+    await userEvent.click(screen.getByRole("button", { name: /View all news/ }));
 
     expect(await screen.findByLabelText("Search news")).toBeInTheDocument();
   });

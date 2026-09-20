@@ -198,13 +198,13 @@ describe("Overview", () => {
     expect(await screen.findByText("+10.00%")).toBeInTheDocument();
   });
 
-  it("offers the way through to the whole feed, with how much there is", async () => {
+  it("offers the way through to the whole feed, under it as the old page did", async () => {
     stubEverything();
     const open = vi.fn();
     renderOverview({ onOpenNews: open });
     await screen.findByText("Refiners lead the index higher");
 
-    await userEvent.click(screen.getByRole("button", { name: /All news/ }));
+    await userEvent.click(screen.getByRole("button", { name: /View all news/ }));
 
     expect(open).toHaveBeenCalled();
   });

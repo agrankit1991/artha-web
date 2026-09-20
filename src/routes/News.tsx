@@ -14,7 +14,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { MentionedInstrument, NewsItem } from "@/api/client";
 import { fetchNews, fetchNewsMentions } from "@/api/client";
 import { NewsFeed } from "@/components/NewsFeed";
-import { Pagination } from "@/components/Pagination";
+import { LoadMore } from "@/components/LoadMore";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,8 +23,8 @@ import { useDebounced } from "@/hooks/useDebounced";
 import { useResource } from "@/hooks/useResource";
 import { formatSince } from "@/lib/format";
 
-/** Articles a page carries. */
-const PER_PAGE = 12;
+/** Articles fetched at a time, and added by each press of "Load more". */
+const BATCH = 12;
 
 /** The windows a reader switches between. */
 const WINDOWS: { label: string; days: number | null }[] = [
@@ -44,11 +44,12 @@ export function News(): React.JSX.Element {
   const [days, setDays] = useState<number | null>(null);
   const [company, setCompany] = useState<MentionedInstrument | null>(null);
   const [offset, setOffset] = useState(0);
+  const [shown, setShown] = useState<NewsItem[]>([]);
   const text = useDebounced(typed);
 
-  // Any change to what is being asked for starts again at the first page:
-  // staying on page four of a result that now has two is how a reader ends
-  // up looking at an empty page and concluding there is nothing.
+  // Any change to what is being asked for starts again at the beginning.
+  // Keeping the articles already on screen would leave a reader looking at
+  // a list that answers two different questions at once.
   useEffect(() => {
     setOffset(0);
   }, [text, days, company]);
@@ -59,7 +60,7 @@ export function News(): React.JSX.Element {
         text,
         days,
         instrumentKey: company?.instrument_key ?? null,
-        limit: PER_PAGE,
+        limit: BATCH,
         offset,
       }),
     [text, days, company, offset],
@@ -68,8 +69,18 @@ export function News(): React.JSX.Element {
 
   const news = useResource(loadNews);
   const mentions = useResource(loadMentions);
-
   const page = news.data;
+
+  // A batch from the beginning replaces what is on screen; any other batch
+  // is added under it. Merged by link rather than appended blindly, so a
+  // batch that arrives twice -- which React's strict mode makes happen in
+  // development -- does not show every article twice.
+  useEffect(() => {
+    if (page === null) {
+      return;
+    }
+    setShown((held) => (page.offset === 0 ? page.items : merge(held, page.items)));
+  }, [page]);
 
   return (
     <div className="space-y-6">
@@ -120,19 +131,19 @@ export function News(): React.JSX.Element {
         </p>
       ) : (
         <>
-          {page !== null && page.offset === 0 && page.items.length > 0 && (
-            <Lead item={page.items[0] as NewsItem} />
-          )}
+          {shown.length > 0 && <Lead item={shown[0] as NewsItem} />}
           <NewsFeed
-            items={page === null ? null : rest(page.items, page.offset)}
-            loading={news.loading}
+            items={page === null && shown.length === 0 ? null : shown.slice(1)}
+            loading={news.loading && shown.length === 0}
           />
           {page !== null && (
-            <Pagination
-              offset={page.offset}
-              limit={page.limit}
+            <LoadMore
+              shown={shown.length}
               total={page.total}
-              onChange={setOffset}
+              loading={news.loading}
+              onMore={() => {
+                setOffset(shown.length);
+              }}
             />
           )}
         </>
@@ -142,16 +153,15 @@ export function News(): React.JSX.Element {
 }
 
 /**
- * The articles the grid shows, once the lead has taken one.
+ * Add a batch to what is already on screen, without repeating anything.
  *
- * @param items - The page's articles.
- * @param offset - How many were skipped to reach the page.
- * @returns The articles to lay out in the grid.
+ * @param held - The articles already shown.
+ * @param arriving - The batch that has just come back.
+ * @returns The two together, in order, each article once.
  */
-function rest(items: NewsItem[], offset: number): NewsItem[] {
-  // Only the first page has a lead. A "featured" article on page five is
-  // whatever happened to sort there, which is not a feature.
-  return offset === 0 ? items.slice(1) : items;
+function merge(held: NewsItem[], arriving: NewsItem[]): NewsItem[] {
+  const known = new Set(held.map((item) => item.url));
+  return [...held, ...arriving.filter((item) => !known.has(item.url))];
 }
 
 /** The newest article, given the room its picture deserves. */

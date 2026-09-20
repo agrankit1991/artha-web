@@ -102,25 +102,46 @@ describe("News", () => {
     expect(await screen.findByRole("group", { name: "Companies in the news" })).toBeInTheDocument();
   });
 
-  it("pages through the feed", async () => {
+  it("asks for the next batch rather than replacing what is on screen", async () => {
+    // A feed is read downwards. Replacing the batch a reader is part-way
+    // through loses their place every time they ask for more.
     const fetchMock = stubEverything();
     render(<News />);
     await screen.findByText("Headline 0");
 
-    await userEvent.click(screen.getByRole("button", { name: "Page 2" }));
+    await userEvent.click(screen.getByRole("button", { name: /Load more/ }));
 
     await waitFor(() => {
       expect(asked(fetchMock).some((path) => path.includes("offset=12"))).toBe(true);
     });
   });
 
-  it("returns to the first page when the question changes", async () => {
-    // Staying on page four of a result that now has two is how a reader
-    // concludes there is nothing.
+  it("keeps the articles already read when more arrive", async () => {
+    const user = userEvent.setup();
+    stubPlatform({
+      "/api/news/mentions": { body: [mentionedInstrument()] },
+      "/api/news": { body: newsPage({ total: 24, items: newsItems(12) }) },
+    });
+    render(<News />);
+    await screen.findByText("Headline 11");
+
+    await user.click(screen.getByRole("button", { name: /Load more/ }));
+
+    // The stub answers every batch with the same twelve; merging by link
+    // means they are shown once, not twice.
+    await waitFor(() => {
+      expect(screen.getAllByText("Headline 11")).toHaveLength(1);
+    });
+    expect(screen.getByText("Headline 0")).toBeInTheDocument();
+  });
+
+  it("starts again from the beginning when the question changes", async () => {
+    // Articles answering the old question left under ones answering the
+    // new is a list that means two things at once.
     const fetchMock = stubEverything();
     render(<News />);
     await screen.findByText("Headline 0");
-    await userEvent.click(screen.getByRole("button", { name: "Page 2" }));
+    await userEvent.click(screen.getByRole("button", { name: /Load more/ }));
     await waitFor(() => {
       expect(asked(fetchMock).some((path) => path.includes("offset=12"))).toBe(true);
     });
@@ -134,16 +155,13 @@ describe("News", () => {
     });
   });
 
-  it("keeps the lead to the first page", async () => {
-    // A "featured" article on page five is whatever happened to sort
-    // there, which is not a feature.
-    stubEverything(newsPage({ total: 40, offset: 12, items: newsItems(12) }));
+  it("stops offering more once the whole feed is on screen", async () => {
+    stubEverything(newsPage({ total: 12, items: newsItems(12) }));
 
     render(<News />);
 
-    await screen.findByText("Headline 0");
-    expect(screen.queryByText("Showing news about")).not.toBeInTheDocument();
-    expect(screen.getAllByText("Headline 0")).toHaveLength(1);
+    expect(await screen.findByText("All 12 articles shown")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Load more/ })).not.toBeInTheDocument();
   });
 
   it("gives the lead article its picture", async () => {

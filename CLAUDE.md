@@ -165,7 +165,9 @@ call site.
   whichever population is chosen, and the news feed. One request brings all
   seven lists, so that section arrives whole.
 - **News** (`src/routes/News.tsx`) -- the whole feed, paged, with three
-  filters that compose: words, one company, a window. All applied by the
+  filters that compose: words, one company, a window. Read downwards and
+  grown by "Load more" rather than paged -- replacing the batch a reader is
+  part-way through loses their place every time. All applied by the
   platform, so a page of twelve is twelve of the matches rather than
   twelve of the latest filtered afterwards. The companies offered as
   filters are the ones actually written about, because a reader wanting
@@ -189,7 +191,7 @@ call site.
   `MoverPanel`, `IndexCard`, `MiniCandlestick`, `ScopeSelector`,
   `ScopePicker`, `ThemeToggle`, `Meter`, `Sparkline`, `Statistic`,
   `BreadthPanel`, `BreadthGridPanel`, `RegimeBanner`, `NewsFeed`,
-  `Pagination`, `ComparisonChart`.
+  `LoadMore`, `ComparisonChart`.
 - **Breadth wording** in `src/lib/breadthReadings.ts`: every phrase that
   turns a breadth figure into something readable lives here, so two screens
   cannot describe the same reading differently. Note the `warn` tone --

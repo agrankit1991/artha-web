@@ -7,7 +7,7 @@
  * arrives whole rather than in pieces.
  */
 
-import { ArrowRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import type { MoverRow } from "@/api/client";
@@ -159,21 +159,21 @@ export function Overview({
       </section>
 
       <section className="space-y-3" aria-labelledby="news-heading">
-        <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <h2 id="news-heading" className="text-lg font-semibold">
-            Market news
-          </h2>
-          {onOpenNews && (
-            <Button variant="ghost" size="sm" onClick={onOpenNews}>
-              All news
-              {news.data !== null && (
-                <span className="ml-1 text-muted-foreground">({news.data.total})</span>
-              )}
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
+        <h2 id="news-heading" className="text-lg font-semibold">
+          Market news
+        </h2>
         <NewsFeed items={news.data?.items ?? null} loading={news.loading} />
+        {onOpenNews && (
+          <div className="flex justify-center pt-2">
+            <Button variant="outline" onClick={onOpenNews}>
+              View all news
+              {news.data !== null && (
+                <span className="text-muted-foreground">({news.data.total})</span>
+              )}
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </section>
     </div>
   );
