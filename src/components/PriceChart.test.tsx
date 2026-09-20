@@ -181,6 +181,30 @@ describe("PriceChart", () => {
     expect(average?.[0]).toHaveLength(2);
   });
 
+  it("leaves out a session whose prices will not parse", async () => {
+    // Drawn at nought it would be a candle crashing to zero in the middle
+    // of the series, which looks like a real event.
+    const points = chartPoints(3).map((point, index) =>
+      index === 1 ? { ...point, high: "" } : point,
+    );
+    draw({ points, initialOverlays: [] });
+    afterRedraw();
+
+    await chooseShape("Candles");
+
+    expect(dataFor("candlestick")).toHaveLength(2);
+  });
+
+  it("draws the line from the closes it can read", () => {
+    const points = chartPoints(3).map((point, index) =>
+      index === 1 ? { ...point, close: "" } : point,
+    );
+
+    draw({ points, initialOverlays: [] });
+
+    expect(dataFor("line")).toHaveLength(2);
+  });
+
   it("offers the way out to the instrument it drew", () => {
     draw({ instrument: { label: "Nifty 50", symbol: "NSE:NIFTY" } });
 

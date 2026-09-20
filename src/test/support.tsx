@@ -12,6 +12,10 @@ import type {
   Account,
   BreadthGrid,
   ChartPoint,
+  Comparison,
+  Member,
+  Performance,
+  Population,
   BreadthResponse,
   BreadthSession,
   InstrumentOverview,
@@ -24,6 +28,7 @@ import type {
   PriceSeries,
   ScopeBreadth,
   ScopeOptions,
+  TrailingReturns,
 } from "@/api/client";
 
 /** A reply the stubbed platform should give to a path. */
@@ -323,6 +328,70 @@ export function mentionedInstrument(
     symbol: "TCS",
     name: "Tata Consultancy Services",
     articles: 12,
+    ...overrides,
+  };
+}
+
+/** Build a set of trailing returns. */
+function trailing(scale = 1): TrailingReturns {
+  return {
+    one_week: String(1 * scale),
+    one_month: String(2 * scale),
+    three_months: String(3 * scale),
+    six_months: String(4 * scale),
+    one_year: String(5 * scale),
+    year_to_date: String(6 * scale),
+  };
+}
+
+/** Build one company in a population. */
+export function member(overrides: Partial<Member> = {}): Member {
+  return {
+    instrument_key: "NSE_EQ|INE002A01018",
+    symbol: "RELIANCE",
+    name: "Reliance Industries",
+    close: "1294.900000",
+    change_percent: "2.500000",
+    volume: 9799528,
+    from_high_percent: "-8.200000",
+    as_of: "2026-09-18",
+    ...overrides,
+  };
+}
+
+/** Build a comparison against one benchmark. */
+export function comparison(overrides: Partial<Comparison> = {}): Comparison {
+  return {
+    instrument_key: "NSE_INDEX|Nifty 500",
+    label: "Nifty 500",
+    role: "Whole market",
+    returns: trailing(),
+    relative: trailing(2),
+    ...overrides,
+  };
+}
+
+/** Build a population's performance. */
+export function performance(overrides: Partial<Performance> = {}): Performance {
+  return {
+    basis: "index",
+    returns: trailing(3),
+    against: [comparison()],
+    ...overrides,
+  };
+}
+
+/** Build one index or sector. */
+export function population(overrides: Partial<Population> = {}): Population {
+  return {
+    scope_kind: "index",
+    scope_key: "NSE_INDEX|Nifty Bank",
+    name: "Nifty Bank",
+    category: "SECTORAL",
+    description: "The most liquid and large capitalised Indian banking stocks.",
+    instrument_key: "NSE_INDEX|Nifty Bank",
+    performance: performance(),
+    members: [member(), member({ instrument_key: "NSE_EQ|INE467B01029", symbol: "TCS" })],
     ...overrides,
   };
 }

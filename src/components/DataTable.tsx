@@ -56,6 +56,11 @@ interface DataTableProps<Row extends RowData> {
   onSelect?: (row: Row) => void;
   /** Rows to leave room for while loading, so the page does not jump. */
   placeholderRows?: number;
+  /**
+   * What the table lists, for a reader who cannot see the heading above
+   * it. Worth giving wherever a screen carries more than one table.
+   */
+  label?: string;
 }
 
 /**
@@ -71,6 +76,7 @@ export function DataTable<Row extends RowData>({
   loading = false,
   onSelect,
   placeholderRows = 5,
+  label,
 }: DataTableProps<Row>): React.JSX.Element {
   const [sorting, setSorting] = useState<SortingState>([]);
   const table = useReactTable({
@@ -83,7 +89,7 @@ export function DataTable<Row extends RowData>({
   });
 
   return (
-    <Table>
+    <Table aria-label={label}>
       <TableHeader>
         {table.getHeaderGroups().map((group) => (
           <TableRow key={group.id}>

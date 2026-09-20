@@ -190,6 +190,14 @@ bottom. `PriceChart` carries its own controls (shape, and what is laid
 over the price) rather than taking them as props, so it drops into an
 instrument page with its settings intact.
 
+**The heatmap is ours, not an embed.** Drawn from stored figures, so it
+agrees with the table beside it and works for any population -- including
+the hundred and fifty-eight sectors no outside widget has heard of. Every
+tile is the same size on purpose: a real heatmap sizes by market
+capitalisation, which this platform derives rather than stores, and equal
+tiles are an honest "every company counts once" that matches the breadth
+counts rather than contradicting them.
+
 **shadcn/ui on Tailwind, with a single `DataTable`.** Every list in this app
 -- movers, index constituents, the company list, a comparison -- is the same
 component with different columns and data. Sorting, filtering, empty and
@@ -233,6 +241,13 @@ call site.
   twelve of the latest filtered afterwards. The companies offered as
   filters are the ones actually written about, because a reader wanting
   one company's news should not have to spell its symbol.
+- **A population** (`src/routes/Population.tsx`) at `/index/:key` and
+  `/sector/:key` -- one page for both, because an index and a sector are
+  the same question asked of a different set of companies. What it is,
+  how it is doing against the market and the size bands, its own price and
+  chart where it has one, its breadth, a heatmap of its companies and the
+  list of them. A sector has no instrument of its own, so it gets no price
+  chart and its performance stands on the median of its members.
 - **Market breadth** (`src/routes/Breadth.tsx`) -- the same counts at
   length: any population over any of five windows; the regime the
   population is in, named; six headline measures each printed with the
@@ -261,7 +276,8 @@ call site.
   `MoverPanel`, `IndexCard`, `MiniCandlestick`, `ScopeSelector`,
   `ScopePicker`, `ThemeToggle`, `Meter`, `Sparkline`, `Statistic`,
   `BreadthPanel`, `BreadthGridPanel`, `RegimeBanner`, `NewsFeed`,
-  `LoadMore`, `RangeSelector`, `Tabs`, `Chart`, `ChartControls`,
+  `LoadMore`, `RangeSelector`, `Tabs`, `RelativeStrength`, `Heatmap`,
+  `Chart`, `ChartControls`,
   `ComparisonChart`, `PriceChart`,
   `TradingViewWidget`, `TradingViewLink`, `Menu`, `Tooltip`, `ThemeMenu`,
   `UserMenu`, `AppShell`.

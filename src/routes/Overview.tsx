@@ -39,6 +39,8 @@ import { BENCHMARK, FEATURED_INDICES, GOLD } from "@/lib/indices";
 interface OverviewProps {
   /** What to do when an instrument is chosen from a list. */
   onSelect?: (row: MoverRow) => void;
+  /** Where to send a reader who chooses one of the index cards. */
+  onOpenIndex?: (instrumentKey: string) => void;
   /** Where to send a reader who wants breadth in full. */
   onOpenBreadth?: () => void;
   /** Where to send a reader who wants the whole news feed. */
@@ -82,6 +84,7 @@ const COMPARISON: ChartLine[] = [
  */
 export function Overview({
   onSelect,
+  onOpenIndex,
   onOpenBreadth,
   onOpenNews,
 }: OverviewProps): React.JSX.Element {
@@ -139,6 +142,7 @@ export function Overview({
               name={index.name}
               overview={index.overview}
               symbol={symbols.data?.[index.key]}
+              {...(onOpenIndex ? { onSelect: onOpenIndex } : {})}
             />
           ))}
         </div>

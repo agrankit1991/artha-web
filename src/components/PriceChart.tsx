@@ -165,16 +165,21 @@ function priceOf(sessions: ChartPoint[], style: ChartStyle): Series {
     return {
       kind: "candles",
       label: "Price",
-      points: sessions.map((point) => ({
-        time: point.day,
-        open: toNumber(point.open) ?? 0,
-        high: toNumber(point.high) ?? 0,
-        low: toNumber(point.low) ?? 0,
-        close: toNumber(point.close) ?? 0,
-      })),
+      // A session whose prices will not parse is left out rather than
+      // drawn at nought, which would put a candle crashing to zero in the
+      // middle of the series and look like a real event.
+      points: sessions.flatMap((point) => {
+        const open = toNumber(point.open);
+        const high = toNumber(point.high);
+        const low = toNumber(point.low);
+        const close = toNumber(point.close);
+        return open === null || high === null || low === null || close === null
+          ? []
+          : [{ time: point.day, open, high, low, close }];
+      }),
     };
   }
-  const closes = sessions.map((point) => ({ time: point.day, value: toNumber(point.close) ?? 0 }));
+  const closes = valuesOf(sessions, (point) => point.close);
   return style === "area"
     ? { kind: "area", label: "Price", colour: PRICE_LINE, points: closes }
     : { kind: "line", label: "Price", colour: PRICE_LINE, width: PRICE_WIDTH, points: closes };

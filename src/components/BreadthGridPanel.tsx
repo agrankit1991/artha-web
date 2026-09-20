@@ -28,6 +28,8 @@ interface BreadthGridPanelProps {
   loading?: boolean;
   /** Called when a population is chosen, making rows clickable when given. */
   onSelect?: (scopeKey: string) => void;
+  /** Called to open a population's own page, offered as a link per row. */
+  onOpen?: (scopeKey: string) => void;
 }
 
 /** How each band is painted as a chip. */
@@ -49,6 +51,7 @@ export function BreadthGridPanel({
   comparedWith,
   loading = false,
   onSelect,
+  onOpen,
 }: BreadthGridPanelProps): React.JSX.Element {
   const columns = useMemo<Column<ScopeBreadth>[]>(
     () => [
@@ -56,7 +59,23 @@ export function BreadthGridPanel({
         id: "scope_key",
         header: "Population",
         accessorFn: (row) => row.scope_key,
-        cell: ({ row }) => <span className="font-medium">{label(row.original.scope_key)}</span>,
+        cell: ({ row }) =>
+          onOpen ? (
+            <button
+              type="button"
+              className="font-medium hover:underline"
+              onClick={(event) => {
+                // Counting a population and opening its page are separate
+                // intentions, and the row already does the first.
+                event.stopPropagation();
+                onOpen(row.original.scope_key);
+              }}
+            >
+              {label(row.original.scope_key)}
+            </button>
+          ) : (
+            <span className="font-medium">{label(row.original.scope_key)}</span>
+          ),
       },
       {
         id: "regime",
@@ -114,7 +133,7 @@ export function BreadthGridPanel({
         meta: { align: "right" },
       },
     ],
-    [comparedWith],
+    [comparedWith, onOpen],
   );
 
   return (

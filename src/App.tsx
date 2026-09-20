@@ -14,7 +14,7 @@
 
 import { Activity, LayoutDashboard, Newspaper, User } from "lucide-react";
 import { useCallback, useState } from "react";
-import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useNavigate, useParams } from "react-router-dom";
 
 import type { Account } from "@/api/client";
 import { fetchAccount, fetchHello, signOut } from "@/api/client";
@@ -24,6 +24,7 @@ import { ThemeProvider } from "@/lib/theme";
 import { Breadth } from "@/routes/Breadth";
 import { News } from "@/routes/News";
 import { Overview } from "@/routes/Overview";
+import { Population } from "@/routes/Population";
 import { Profile } from "@/routes/Profile";
 import { SignIn } from "@/routes/SignIn";
 
@@ -34,6 +35,20 @@ export const PATHS = {
   news: "/news",
   profile: "/profile",
 } as const;
+
+/**
+ * Where a population's own page lives.
+ *
+ * The key carries a bar and spaces -- `NSE_INDEX|Nifty 50` -- so it is
+ * encoded into the path rather than laid into it raw.
+ *
+ * @param kind - Whether it is an index or a sector.
+ * @param key - Which one.
+ * @returns The path.
+ */
+export function populationPath(kind: "index" | "sector", key: string): string {
+  return `/${kind}/${encodeURIComponent(key)}`;
+}
 
 /** The navigation, in the order the screens are meant to be read. */
 const SCREENS: Screen[] = [
@@ -133,6 +148,9 @@ function SignedIn({
           path={PATHS.overview}
           element={
             <Overview
+              onOpenIndex={(key) => {
+                onNavigate(populationPath("index", key));
+              }}
               onOpenBreadth={() => {
                 onNavigate(PATHS.breadth);
               }}
@@ -142,12 +160,34 @@ function SignedIn({
             />
           }
         />
-        <Route path={PATHS.breadth} element={<Breadth />} />
+        <Route
+          path={PATHS.breadth}
+          element={
+            <Breadth
+              onOpenPopulation={(kind, key) => {
+                onNavigate(populationPath(kind, key));
+              }}
+            />
+          }
+        />
         <Route path={PATHS.news} element={<News />} />
+        <Route path="/index/:key" element={<PopulationRoute kind="index" />} />
+        <Route path="/sector/:key" element={<PopulationRoute kind="sector" />} />
         <Route path={PATHS.profile} element={<Profile account={account} onSignOut={onSignOut} />} />
       </Routes>
     </AppShell>
   );
+}
+
+/**
+ * Read the population key out of the path and show its page.
+ *
+ * @param props - Which kind of population the route is for.
+ * @returns The page.
+ */
+function PopulationRoute({ kind }: { kind: "index" | "sector" }): React.JSX.Element {
+  const { key } = useParams();
+  return <Population kind={kind} scopeKey={key ?? ""} />;
 }
 
 /** What shows while the platform is being asked who is signed in. */

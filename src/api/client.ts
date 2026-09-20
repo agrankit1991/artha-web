@@ -280,6 +280,48 @@ export interface PricePoint {
   close: string;
 }
 
+/** One company in a population, as a list of them shows it. */
+export interface Member {
+  instrument_key: string;
+  symbol: string;
+  name: string;
+  close: string | null;
+  change_percent: string | null;
+  volume: number | null;
+  from_high_percent: string | null;
+  as_of: string | null;
+}
+
+/** How a population did against one benchmark. */
+export interface Comparison {
+  instrument_key: string;
+  label: string;
+  role: string;
+  returns: TrailingReturns;
+  /** How far ahead the population was, in percentage points. */
+  relative: TrailingReturns;
+}
+
+/** What a population returned, and how that reads against the market. */
+export interface Performance {
+  /** `index` is the index's own price; `members` the median of its companies. */
+  basis: string;
+  returns: TrailingReturns;
+  against: Comparison[];
+}
+
+/** One index or sector, and what it holds. */
+export interface Population {
+  scope_kind: ScopeKind;
+  scope_key: string;
+  name: string;
+  category: string | null;
+  description: string | null;
+  instrument_key: string | null;
+  performance: Performance | null;
+  members: Member[];
+}
+
 /** One instrument, as an outside service knows it. */
 export interface KnownSymbol {
   instrument_key: string;
@@ -642,4 +684,19 @@ export async function fetchExternalSymbols(
   }
   const found = await request<KnownSymbol[]>(`/api/external-symbols?${parameters.toString()}`);
   return Object.fromEntries(found.map((one) => [one.instrument_key, one]));
+}
+
+/**
+ * Fetch one index or sector, and the companies it holds.
+ *
+ * One request for the whole of a page: what it is, the instrument it
+ * trades as if it has one, how it is doing against the market, and every
+ * company in it.
+ *
+ * @param kind - Whether it is an index or a sector.
+ * @param key - Which one.
+ * @returns The population.
+ */
+export function fetchPopulation(kind: "index" | "sector", key: string): Promise<Population> {
+  return request<Population>(`/api/populations/${kind}/${encodeURIComponent(key)}`);
 }

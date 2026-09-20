@@ -116,4 +116,17 @@ describe("BreadthGridPanel", () => {
 
     expect(screen.getByText("Nothing counted for this kind of population")).toBeInTheDocument();
   });
+
+  it("opens a population's own page without also counting it", async () => {
+    // Counting a population and opening its page are separate intentions,
+    // and the row already does the first.
+    const counted = vi.fn();
+    const opened = vi.fn();
+    render(<BreadthGridPanel scopes={breadthGrid().scopes} onSelect={counted} onOpen={opened} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "IT - Software" }));
+
+    expect(opened).toHaveBeenCalledWith("IT - Software");
+    expect(counted).not.toHaveBeenCalled();
+  });
 });

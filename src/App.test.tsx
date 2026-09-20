@@ -1,6 +1,6 @@
 /** Tests for the shell, and the choice it makes on load. */
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -8,6 +8,8 @@ import { App } from "./App";
 import {
   ACCOUNT,
   breadth,
+  breadthGrid as grid,
+  overview,
   moversResponse,
   newsPage,
   scopeOptions,
@@ -30,6 +32,19 @@ const DATA = {
   "/api/news": { body: newsPage({ total: 0, items: [] }) },
   "/api/news/mentions": { body: [] },
   "/api/series": { body: [] },
+  "/api/populations": {
+    body: {
+      scope_kind: "index",
+      scope_key: "NSE_INDEX|Nifty 50",
+      name: "Nifty 50",
+      category: null,
+      description: null,
+      instrument_key: "NSE_INDEX|Nifty 50",
+      performance: null,
+      members: [],
+    },
+  },
+  "/api/figures": { body: { instrument_key: "NSE_INDEX|Nifty 50", points: [] } },
 };
 
 describe("App", () => {
@@ -226,5 +241,38 @@ describe("App", () => {
     await userEvent.click(screen.getByRole("button", { name: /View all news/ }));
 
     expect(await screen.findByLabelText("Search news")).toBeInTheDocument();
+  });
+
+  it("opens an index's own page from its card", async () => {
+    stubPlatform({
+      "/api/me": { body: ACCOUNT },
+      ...DATA,
+      "/api/overviews": { body: [overview()] },
+    });
+    render(<App />);
+    // Waiting for the card itself: a card only becomes clickable once its
+    // figures have arrived.
+    await screen.findAllByText("24,812.40");
+
+    // Scoped to the cards: "Nifty 50" also names a chip in the scope
+    // picker further down, which chooses a population rather than opening
+    // one.
+    const cards = screen.getByRole("region", { name: "Market indices" });
+    const [card] = within(cards).getAllByRole("button");
+    await userEvent.click(card as HTMLElement);
+
+    expect(await screen.findByText("Relative strength")).toBeInTheDocument();
+  });
+
+  it("opens a population's own page from the breadth grid", async () => {
+    stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA, "/api/breadth/grid": { body: grid() } });
+    render(<App />);
+    await screen.findByText("Market movers");
+    await userEvent.click(screen.getByRole("link", { name: "Breadth" }));
+    await screen.findByText("Where the market is working");
+
+    await userEvent.click(screen.getByRole("button", { name: "IT - Software" }));
+
+    expect(await screen.findByText("Relative strength")).toBeInTheDocument();
   });
 });
