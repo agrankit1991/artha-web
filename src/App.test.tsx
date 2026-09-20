@@ -10,6 +10,7 @@ import { ACCOUNT, breadth, moversResponse, scopeOptions, stubPlatform } from "@/
 afterEach(() => {
   vi.unstubAllGlobals();
   window.localStorage.clear();
+  window.history.pushState({}, "", "/");
 });
 
 const DATA = {
@@ -17,6 +18,7 @@ const DATA = {
   "/api/movers": { body: moversResponse() },
   "/api/overviews": { body: [] },
   "/api/breadth": { body: breadth() },
+  "/api/news": { body: [] },
 };
 
 describe("App", () => {
@@ -91,5 +93,44 @@ describe("App", () => {
     await waitFor(() => {
       expect(screen.getByRole("group", { name: "Theme" })).toBeInTheDocument();
     });
+  });
+
+  it("opens on the overview", async () => {
+    stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
+
+    render(<App />);
+
+    expect(await screen.findByText("Market movers")).toBeInTheDocument();
+  });
+
+  it("moves between screens without reloading the application", async () => {
+    // These are places a reader navigates to and bookmarks, which is what
+    // makes them routes rather than a piece of component state.
+    stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
+    render(<App />);
+    await screen.findByText("Market movers");
+
+    await userEvent.click(screen.getByRole("link", { name: "Breadth" }));
+
+    expect(await screen.findByText("Session by session")).toBeInTheDocument();
+  });
+
+  it("opens straight onto whichever screen the address names", async () => {
+    window.history.pushState({}, "", "/breadth");
+    stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
+
+    render(<App />);
+
+    expect(await screen.findByText("Session by session")).toBeInTheDocument();
+  });
+
+  it("takes the overview's own way through to breadth", async () => {
+    stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
+    render(<App />);
+    await screen.findByText("Market movers");
+
+    await userEvent.click(screen.getByRole("button", { name: /See breadth in full/ }));
+
+    expect(await screen.findByText("Session by session")).toBeInTheDocument();
   });
 });

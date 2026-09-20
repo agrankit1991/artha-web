@@ -8,8 +8,10 @@ import {
   fetchHello,
   fetchMoverList,
   fetchMovers,
+  fetchNews,
   fetchOverviews,
   fetchScopes,
+  fetchSeries,
   signIn,
   signOut,
 } from "./client";
@@ -69,19 +71,35 @@ describe("requests", () => {
       "/api/login": { body: ACCOUNT },
       "/api/movers/scopes": { body: scopeOptions() },
       "/api/movers/top-gainers": { body: panel() },
+      "/api/news": { body: [] },
     });
 
     await fetchHello();
     await signIn("tester@example.com", "a long enough passphrase");
     await fetchScopes();
     await fetchMoverList("top-gainers", "companies", null);
+    await fetchNews();
 
     expect(fetchMock.mock.calls.map((call) => String(call[0]).split("?")[0])).toEqual([
       "/api/hello",
       "/api/login",
       "/api/movers/scopes",
       "/api/movers/top-gainers",
+      "/api/news",
     ]);
+  });
+
+  it("asks for every series in one request, over one window", async () => {
+    // Two requests could return windows ending on different sessions, and
+    // the two lines would then be compared as though they matched.
+    const fetchMock = stubPlatform({ "/api/series": { body: [] } });
+
+    await fetchSeries(["NSE_INDEX|Nifty 50", "NSE_EQ|INF204KB17I5"], 90);
+
+    const path = String(fetchMock.mock.calls[0]?.[0]);
+    expect(path).toContain("sessions=90");
+    expect(path).toContain("keys=NSE_INDEX%7CNifty+50");
+    expect(path).toContain("keys=NSE_EQ%7CINF204KB17I5");
   });
 });
 

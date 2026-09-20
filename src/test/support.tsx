@@ -16,6 +16,8 @@ import type {
   MoverPanel,
   MoverRow,
   MoversResponse,
+  NewsItem,
+  PriceSeries,
   ScopeOptions,
 } from "@/api/client";
 
@@ -187,13 +189,21 @@ export function breadthSession(overrides: Partial<BreadthSession> = {}): Breadth
   };
 }
 
+/** The date a given number of days before the latest counted session. */
+function sessionDay(daysBefore: number): string {
+  const day = new Date("2026-09-18T00:00:00Z");
+  day.setUTCDate(day.getUTCDate() - daysBefore);
+  return day.toISOString().slice(0, 10);
+}
+
 /** Build a breadth reading with a run behind it. */
 export function breadth(overrides: Partial<BreadthResponse> = {}): BreadthResponse {
-  const sessions = Array.from({ length: 40 }, (_unused, index) =>
+  const length = 40;
+  const sessions = Array.from({ length }, (_unused, index) =>
     breadthSession({
-      as_of: `2026-08-${String(index + 1).padStart(2, "0")}`,
+      as_of: sessionDay(length - 1 - index),
       advance_decline_line: String(1000 + index * 10),
-      mcclellan_oscillator: index < 38 ? null : String(index),
+      mcclellan_oscillator: index < length - 2 ? null : String(index),
     }),
   );
   return {
@@ -207,5 +217,35 @@ export function breadth(overrides: Partial<BreadthResponse> = {}): BreadthRespon
     breadth_thrust: "0.62",
     high_low_index: "80",
     ...overrides,
+  };
+}
+
+/** Build a news article. */
+export function newsItem(overrides: Partial<NewsItem> = {}): NewsItem {
+  return {
+    url: "https://upstox.com/news/oil",
+    headline: "Refiners lead the index higher",
+    summary: "Crude eased overnight and the refiners opened strongly.",
+    thumbnail_url: null,
+    published_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+    mentions: [{ instrument_key: "NSE_EQ|INE002A01018", symbol: "RELIANCE" }],
+    ...overrides,
+  };
+}
+
+/** Build a closing-price series of a given length. */
+export function priceSeries(
+  instrumentKey: string,
+  closes: number[],
+  start = "2026-03-02",
+): PriceSeries {
+  const first = new Date(`${start}T00:00:00`);
+  return {
+    instrument_key: instrumentKey,
+    points: closes.map((close, index) => {
+      const day = new Date(first);
+      day.setDate(first.getDate() + index);
+      return { day: day.toISOString().slice(0, 10), close: close.toFixed(6) };
+    }),
   };
 }

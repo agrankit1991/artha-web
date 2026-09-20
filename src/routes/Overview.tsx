@@ -1,77 +1,94 @@
 /**
  * The overview: what the market did, at a glance.
  *
- * Index cards across the top, then every mover list for whichever
- * population is chosen. One request brings all seven lists, so the page
+ * In the order a reader asks: where the headline indices closed, how many
+ * instruments took part, which of them moved most, and what was published
+ * about them. One request brings all seven mover lists, so that section
  * arrives whole rather than in pieces.
  */
 
 import { useCallback, useMemo, useState } from "react";
 
 import type { MoverRow } from "@/api/client";
-import { fetchBreadth, fetchMovers, fetchOverviews, fetchScopes } from "@/api/client";
+import { fetchBreadth, fetchMovers, fetchNews, fetchOverviews, fetchScopes } from "@/api/client";
 import { BreadthPanel } from "@/components/BreadthPanel";
 import { IndexCard } from "@/components/IndexCard";
 import { MoverPanelCard } from "@/components/MoverPanel";
-import { type Scope, ScopeSelector } from "@/components/ScopeSelector";
+import { NewsFeed } from "@/components/NewsFeed";
+import { ScopePicker } from "@/components/ScopePicker";
+import type { Scope } from "@/components/ScopeSelector";
 import { useResource } from "@/hooks/useResource";
+import { FEATURED_INDICES } from "@/lib/indices";
 
-/**
- * The indices shown as cards.
- *
- * A display choice rather than data: which three a person wants at the top
- * of their own dashboard is up to them, and this is the obvious starting
- * set for an Indian market. It moves into a saved preference once accounts
- * carry preferences.
- */
-const HEADLINE_INDICES: { key: string; name: string }[] = [
-  { key: "NSE_INDEX|Nifty 50", name: "Nifty 50" },
-  { key: "BSE_INDEX|SENSEX", name: "Sensex" },
-  { key: "NSE_INDEX|Nifty Bank", name: "Bank Nifty" },
-];
+interface OverviewProps {
+  /** What to do when an instrument is chosen from a list. */
+  onSelect?: (row: MoverRow) => void;
+  /** Where to send a reader who wants breadth in full. */
+  onOpenBreadth?: () => void;
+}
 
 /**
  * Render the overview.
  *
- * @param props - What to do when an instrument is chosen.
+ * @param props - What to do when something is chosen.
  * @returns The page.
  */
-export function Overview({ onSelect }: { onSelect?: (row: MoverRow) => void }): React.JSX.Element {
+export function Overview({ onSelect, onOpenBreadth }: OverviewProps): React.JSX.Element {
   const [scope, setScope] = useState<Scope>({ kind: "companies", key: null });
 
   const loadScopes = useCallback(() => fetchScopes(), []);
   const loadIndices = useCallback(
-    () => fetchOverviews(HEADLINE_INDICES.map((index) => index.key)),
+    () => fetchOverviews(FEATURED_INDICES.map((index) => index.key)),
     [],
   );
   const loadMovers = useCallback(() => fetchMovers(scope.kind, scope.key), [scope]);
   const loadBreadth = useCallback(() => fetchBreadth(scope.kind, scope.key), [scope]);
+  const loadNews = useCallback(() => fetchNews(), []);
 
   const scopes = useResource(loadScopes);
   const indices = useResource(loadIndices);
   const movers = useResource(loadMovers);
   const breadth = useResource(loadBreadth);
+  const news = useResource(loadNews);
 
-  const bySymbol = useMemo(() => {
+  const cards = useMemo(() => {
     const found = new Map(indices.data?.map((overview) => [overview.instrument_key, overview]));
-    return HEADLINE_INDICES.map((index) => ({ ...index, overview: found.get(index.key) }));
+    return FEATURED_INDICES.map((index) => ({ ...index, overview: found.get(index.key) }));
   }, [indices.data]);
 
   return (
-    <div className="space-y-6">
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {bySymbol.map((index) => (
-          <IndexCard key={index.key} name={index.name} overview={index.overview} />
-        ))}
+    <div className="space-y-8">
+      <section className="space-y-3" aria-labelledby="indices-heading">
+        <h2 id="indices-heading" className="text-lg font-semibold">
+          Market indices
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {cards.map((index) => (
+            <IndexCard key={index.key} name={index.name} overview={index.overview} />
+          ))}
+        </div>
       </section>
 
-      <section className="space-y-4">
+      <section className="space-y-4" aria-labelledby="movers-heading">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold">Market movers</h2>
-          <ScopeSelector scope={scope} options={scopes.data} onChange={setScope} />
+          <h2 id="movers-heading" className="text-lg font-semibold">
+            Market movers
+          </h2>
+          <ScopePicker scope={scope} options={scopes.data} onChange={setScope} />
         </div>
 
-        <BreadthPanel breadth={breadth.data} loading={breadth.loading} />
+        <div className="space-y-2">
+          <BreadthPanel breadth={breadth.data} loading={breadth.loading} />
+          {onOpenBreadth && (
+            <button
+              type="button"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+              onClick={onOpenBreadth}
+            >
+              See breadth in full →
+            </button>
+          )}
+        </div>
 
         {movers.error !== null ? (
           <p role="alert" className="text-sm text-destructive">
@@ -89,6 +106,13 @@ export function Overview({ onSelect }: { onSelect?: (row: MoverRow) => void }): 
             ))}
           </div>
         )}
+      </section>
+
+      <section className="space-y-3" aria-labelledby="news-heading">
+        <h2 id="news-heading" className="text-lg font-semibold">
+          Market news
+        </h2>
+        <NewsFeed items={news.data} loading={news.loading} />
       </section>
     </div>
   );

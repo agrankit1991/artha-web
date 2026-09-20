@@ -147,3 +147,39 @@ export function direction(value: string | number | null | undefined): "up" | "do
   }
   return parsed > 0 ? "up" : "down";
 }
+
+/**
+ * Render how long ago something happened.
+ *
+ * Relative rather than absolute, because on a news item "3h ago" is the
+ * question a reader is actually asking and a timestamp makes them subtract.
+ *
+ * @param value - An ISO timestamp, or null.
+ * @param now - The moment to measure from; injected so a test is not
+ *   dependent on when it runs.
+ * @returns Something like `3h ago`, or a dash.
+ */
+export function formatSince(value: string | null | undefined, now: Date = new Date()): string {
+  if (value === null || value === undefined) {
+    return ABSENT;
+  }
+  const moment = new Date(value);
+  if (Number.isNaN(moment.getTime())) {
+    return ABSENT;
+  }
+  const minutes = Math.round((now.getTime() - moment.getTime()) / 60_000);
+  if (minutes < 1) {
+    return "just now";
+  }
+  if (minutes < 60) {
+    return `${String(minutes)}m ago`;
+  }
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${String(hours)}h ago`;
+  }
+  const days = Math.floor(hours / 24);
+  return days < 7
+    ? `${String(days)}d ago`
+    : moment.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+}

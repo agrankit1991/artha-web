@@ -1,7 +1,8 @@
 /** Tests for one index, as a card. */
 
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 
 import { IndexCard } from "./IndexCard";
 import { overview } from "@/test/support";
@@ -15,11 +16,53 @@ describe("IndexCard", () => {
     expect(screen.getByText(/\+0.62%/)).toBeInTheDocument();
   });
 
+  it("shows the whole session, not only where it ended", () => {
+    // A close and a percentage cannot tell a session that rose all day from
+    // one that gave back everything it made.
+    render(<IndexCard name="Nifty 50" overview={overview()} />);
+
+    expect(screen.getByText("Open")).toBeInTheDocument();
+    expect(screen.getByText("24,700.00")).toBeInTheDocument();
+    expect(screen.getByText("24,850.00")).toBeInTheDocument();
+    expect(screen.getByText("24,690.00")).toBeInTheDocument();
+    expect(screen.getByText(/Previous close 24,659.00/)).toBeInTheDocument();
+    expect(screen.getByRole("img")).toHaveAccessibleName(/Session closed/);
+  });
+
   it("holds its shape while the figures are on their way", () => {
     // Cards that appear one by one make the whole page jump as it loads.
     render(<IndexCard name="Sensex" overview={undefined} />);
 
     expect(screen.getByText("Sensex")).toBeInTheDocument();
     expect(screen.queryByText(/%/)).not.toBeInTheDocument();
+  });
+
+  it("is only clickable when choosing it means something", () => {
+    const { rerender } = render(<IndexCard name="Nifty 50" overview={overview()} />);
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+
+    rerender(<IndexCard name="Nifty 50" overview={overview()} onSelect={vi.fn()} />);
+    expect(screen.getByRole("button")).toBeInTheDocument();
+  });
+
+  it("passes on the index that was chosen", async () => {
+    const chosen = vi.fn();
+    render(<IndexCard name="Nifty 50" overview={overview()} onSelect={chosen} />);
+
+    await userEvent.click(screen.getByRole("button"));
+
+    expect(chosen).toHaveBeenCalledWith("NSE_INDEX|Nifty 50");
+  });
+
+  it("can be chosen from the keyboard as well as the pointer", async () => {
+    // A card made clickable with a div is unreachable without this.
+    const chosen = vi.fn();
+    render(<IndexCard name="Nifty 50" overview={overview()} onSelect={chosen} />);
+
+    screen.getByRole("button").focus();
+    await userEvent.keyboard("{Enter}");
+    await userEvent.keyboard(" ");
+
+    expect(chosen).toHaveBeenCalledTimes(2);
   });
 });

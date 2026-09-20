@@ -197,6 +197,34 @@ export interface InstrumentOverview {
   momentum: MomentumSnapshot;
 }
 
+/** One instrument an article was published for. */
+export interface NewsMention {
+  instrument_key: string;
+  symbol: string;
+}
+
+/** One news article, with the instruments it concerns. */
+export interface NewsItem {
+  url: string;
+  headline: string;
+  summary: string;
+  thumbnail_url: string | null;
+  published_at: string;
+  mentions: NewsMention[];
+}
+
+/** One session's close. */
+export interface PricePoint {
+  day: string;
+  close: string;
+}
+
+/** One instrument's closes over a window. */
+export interface PriceSeries {
+  instrument_key: string;
+  points: PricePoint[];
+}
+
 /** Raised when the API responds with a non-2xx status. */
 export class ApiError extends Error {
   constructor(
@@ -408,4 +436,32 @@ export function fetchOverviews(keys: string[]): Promise<InstrumentOverview[]> {
     parameters.append("keys", key);
   }
   return request<InstrumentOverview[]>(`/api/overviews?${parameters.toString()}`);
+}
+
+/**
+ * Fetch the latest market news.
+ *
+ * @param limit - Maximum articles returned.
+ * @returns Articles newest first.
+ */
+export function fetchNews(limit = 12): Promise<NewsItem[]> {
+  return request<NewsItem[]>(`/api/news?limit=${String(limit)}`);
+}
+
+/**
+ * Fetch closing prices for one instrument or several.
+ *
+ * Every series ends on the same session, so two lines drawn from one
+ * response cover the same window.
+ *
+ * @param keys - The instrument keys.
+ * @param sessions - How many sessions to carry.
+ * @returns One series per key, in the order asked for.
+ */
+export function fetchSeries(keys: string[], sessions = 180): Promise<PriceSeries[]> {
+  const parameters = new URLSearchParams({ sessions: String(sessions) });
+  for (const key of keys) {
+    parameters.append("keys", key);
+  }
+  return request<PriceSeries[]>(`/api/series?${parameters.toString()}`);
 }

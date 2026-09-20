@@ -11,6 +11,7 @@ import type { BreadthResponse, BreadthSession } from "@/api/client";
 import { Meter } from "@/components/Meter";
 import { Sparkline } from "@/components/Sparkline";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { describeOscillator } from "@/lib/breadthReadings";
 import { ABSENT, formatDay, toNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -161,26 +162,4 @@ function Extremes({
       </span>
     </div>
   );
-}
-
-/**
- * Say what an oscillator reading means, since the number alone does not.
- *
- * @param reading - The oscillator, or null.
- * @returns A short phrase.
- */
-function describeOscillator(reading: number | null): string {
-  if (reading === null) {
-    return "Needs 39 sessions";
-  }
-  if (reading > 100) {
-    return "Broadening sharply";
-  }
-  if (reading > 0) {
-    return "More stocks joining";
-  }
-  if (reading < -100) {
-    return "Narrowing sharply";
-  }
-  return "Fewer stocks joining";
 }

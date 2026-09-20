@@ -10,6 +10,7 @@ import {
   formatMultiple,
   formatPercent,
   formatPrice,
+  formatSince,
   formatStreak,
   formatVolume,
   toNumber,
@@ -89,5 +90,28 @@ describe("direction", () => {
     // had dropped.
     expect(direction(null)).toBe("flat");
     expect(direction(undefined)).toBe("flat");
+  });
+});
+
+describe("formatSince", () => {
+  const now = new Date("2026-09-20T18:00:00+05:30");
+
+  it.each([
+    ["2026-09-20T17:59:40+05:30", "just now"],
+    ["2026-09-20T17:25:00+05:30", "35m ago"],
+    ["2026-09-20T15:00:00+05:30", "3h ago"],
+    ["2026-09-18T18:00:00+05:30", "2d ago"],
+  ])("renders %s as %s", (moment, expected) => {
+    expect(formatSince(moment, now)).toBe(expected);
+  });
+
+  it("falls back to a date once the relative form stops helping", () => {
+    // "23d ago" is not something anybody converts into a date in their head.
+    expect(formatSince("2026-08-20T18:00:00+05:30", now)).toMatch(/20 Aug/);
+  });
+
+  it("shows a dash rather than inventing a time", () => {
+    expect(formatSince(null, now)).toBe(ABSENT);
+    expect(formatSince("not a time", now)).toBe(ABSENT);
   });
 });
