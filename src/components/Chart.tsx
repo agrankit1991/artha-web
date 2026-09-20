@@ -15,6 +15,7 @@
  */
 
 import {
+  AreaSeries,
   CandlestickSeries,
   ColorType,
   CrosshairMode,
@@ -46,11 +47,32 @@ export interface Point {
   color?: string;
 }
 
+/** A horizontal rule on a series, such as an oscillator's thresholds. */
+export interface Threshold {
+  value: number;
+  label?: string;
+}
+
+/** What every series carries, whatever its shape. */
+interface Common {
+  label: string;
+  /**
+   * Which pane to draw in. Nought is the main one; anything else gets a
+   * band of its own underneath, which is what an oscillator on a nought
+   * to a hundred scale needs -- drawn over a price it would be a flat
+   * line along the bottom.
+   */
+  pane?: number;
+  /** Rules to draw across the series, such as 30 and 70 on an RSI. */
+  thresholds?: Threshold[];
+}
+
 /** Something to draw, and what to call it. */
 export type Series =
-  | { kind: "candles"; label: string; points: Candle[] }
-  | { kind: "line"; label: string; colour: string; points: Point[]; width?: number }
-  | { kind: "bars"; label: string; points: Point[] };
+  | (Common & { kind: "candles"; points: Candle[] })
+  | (Common & { kind: "line"; colour: string; points: Point[]; width?: number })
+  | (Common & { kind: "area"; colour: string; points: Point[] })
+  | (Common & { kind: "bars"; points: Point[] });
 
 /** An instrument a chart draws, and how to leave for it. */
 export interface ChartInstrument {
@@ -72,11 +94,16 @@ interface ChartProps {
   empty?: string;
   /** Show percentages rather than prices on the axis. */
   asPercent?: boolean;
+  /** How tall each pane past the first is drawn. */
+  paneHeight?: number;
   height?: number;
   className?: string;
 }
 
 const DEFAULT_HEIGHT = 360;
+
+/** How tall a pane past the first is drawn. */
+const DEFAULT_PANE_HEIGHT = 110;
 
 /** The scale volume and other bar series are pinned to. */
 const BAR_SCALE = "bars";
@@ -94,6 +121,7 @@ export function Chart({
   loading = false,
   empty = "Nothing to draw",
   asPercent = false,
+  paneHeight = DEFAULT_PANE_HEIGHT,
   height = DEFAULT_HEIGHT,
   className,
 }: ChartProps): React.JSX.Element {
@@ -135,6 +163,15 @@ export function Chart({
     for (const one of drawable) {
       draw(created, one, asPercent);
     }
+
+    // Panes past the first are given a fixed band rather than an equal
+    // share: an oscillator is read for its shape against its thresholds,
+    // and half the chart is far more room than that needs.
+    const panes = created.panes();
+    for (const pane of panes.slice(1)) {
+      pane.setHeight(paneHeight);
+    }
+
     if (hasBars) {
       created.priceScale(BAR_SCALE).applyOptions({
         // Its own scale, pinned to the bottom quarter: on one scale with
@@ -153,7 +190,7 @@ export function Chart({
     // `drawable` is rebuilt on every render; `series` is what a caller
     // actually changes, and is what this should redraw for.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [series, height, appearance, asPercent, hasBars]);
+  }, [series, height, appearance, asPercent, hasBars, paneHeight]);
 
   if (drawable.length === 0) {
     return (
@@ -175,7 +212,7 @@ export function Chart({
   return (
     <div className={cn("space-y-2", className)}>
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-        <ul className="flex flex-wrap gap-x-5 gap-y-1 text-xs">
+        <ul className="flex flex-wrap gap-x-5 gap-y-1 text-xs" aria-label="Series drawn">
           {drawable
             .filter((one) => one.kind !== "bars")
             .map((one) => (
@@ -183,7 +220,10 @@ export function Chart({
                 <span
                   aria-hidden="true"
                   className="h-0.5 w-3 rounded"
-                  style={{ backgroundColor: one.kind === "line" ? one.colour : "#71717a" }}
+                  style={{
+                    backgroundColor:
+                      one.kind === "line" || one.kind === "area" ? one.colour : "#71717a",
+                  }}
                 />
                 <span className="text-muted-foreground">{one.label}</span>
                 {readings
@@ -229,33 +269,88 @@ export function Chart({
  * @param asPercent - Whether the axis shows percentages.
  */
 function draw(chart: IChartApi, series: Series, asPercent: boolean): void {
-  if (series.kind === "candles") {
-    const candles = chart.addSeries(CandlestickSeries, {
-      upColor: "#16a34a",
-      downColor: "#dc2626",
-      borderVisible: false,
-      wickUpColor: "#16a34a",
-      wickDownColor: "#dc2626",
+  const pane = series.pane ?? 0;
+  const drawn = add(chart, series, asPercent, pane);
+  for (const threshold of series.thresholds ?? []) {
+    drawn.createPriceLine({
+      price: threshold.value,
+      color: "#a1a1aa",
+      lineWidth: 1,
+      lineStyle: 2,
+      axisLabelVisible: true,
+      title: threshold.label ?? "",
     });
+  }
+}
+
+/**
+ * Add one series and hand back what was added.
+ *
+ * @param chart - The chart to add it to.
+ * @param series - What to draw.
+ * @param asPercent - Whether the axis shows percentages.
+ * @param pane - Which pane to draw in.
+ * @returns The series, so rules can be drawn across it.
+ */
+function add(
+  chart: IChartApi,
+  series: Series,
+  asPercent: boolean,
+  pane: number,
+): ReturnType<IChartApi["addSeries"]> {
+  if (series.kind === "candles") {
+    const candles = chart.addSeries(
+      CandlestickSeries,
+      {
+        upColor: "#16a34a",
+        downColor: "#dc2626",
+        borderVisible: false,
+        wickUpColor: "#16a34a",
+        wickDownColor: "#dc2626",
+      },
+      pane,
+    );
     candles.setData(series.points);
-    return;
+    return candles;
   }
 
   if (series.kind === "bars") {
-    const bars = chart.addSeries(HistogramSeries, {
-      priceFormat: { type: "volume" },
-      priceScaleId: BAR_SCALE,
-    });
+    const bars = chart.addSeries(
+      HistogramSeries,
+      { priceFormat: { type: "volume" }, priceScaleId: BAR_SCALE },
+      pane,
+    );
     bars.setData(series.points);
-    return;
+    return bars;
   }
 
-  const line = chart.addSeries(LineSeries, {
-    color: series.colour,
-    lineWidth: series.width === 2 ? 2 : 1,
-    lastValueVisible: false,
-    priceLineVisible: false,
-    ...(asPercent ? { priceFormat: { type: "percent" as const } } : {}),
-  });
+  if (series.kind === "area") {
+    const area = chart.addSeries(
+      AreaSeries,
+      {
+        lineColor: series.colour,
+        topColor: `${series.colour}55`,
+        bottomColor: `${series.colour}05`,
+        lineWidth: 2,
+        ...(asPercent ? { priceFormat: { type: "percent" as const } } : {}),
+      },
+      pane,
+    );
+    area.setData(series.points);
+    return area;
+  }
+
+  const line = chart.addSeries(
+    LineSeries,
+    {
+      color: series.colour,
+      lineWidth: series.width === 2 ? 2 : 1,
+      lastValueVisible: false,
+      priceLineVisible: false,
+      ...(asPercent ? { priceFormat: { type: "percent" as const } } : {}),
+    },
+    pane,
+  );
   line.setData(series.points);
+  return line;
 }

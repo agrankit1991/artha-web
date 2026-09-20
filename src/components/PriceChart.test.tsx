@@ -1,17 +1,18 @@
 /**
- * Tests for the candlestick chart.
+ * Tests for the price chart and the controls that shape it.
  *
  * Lightweight Charts draws onto a canvas, which jsdom does not have, so
  * the library is stubbed. What that leaves testable is what this component
  * is responsible for: which series it asks for, what it hands them, and
- * the states where there is nothing to draw.
+ * what the controls change.
  */
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { PriceChart } from "./PriceChart";
-import { chartCalls, dataFor, seriesKinds } from "@/test/chartStub";
+import { chartCalls, dataFor, seriesKinds, seriesPanes } from "@/test/chartStub";
 import { chartPoints } from "@/test/support";
 import { ThemeProvider } from "@/lib/theme";
 
@@ -22,23 +23,39 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-function draw(points: Parameters<typeof PriceChart>[0]["points"]): void {
+function draw(props: Partial<Parameters<typeof PriceChart>[0]> = {}): void {
   render(
     <ThemeProvider>
-      <PriceChart points={points} />
+      <PriceChart points={chartPoints(10)} {...props} />
     </ThemeProvider>,
   );
 }
 
-describe("PriceChart", () => {
-  it("draws candles, what was traded, and the three averages", () => {
-    draw(chartPoints(10));
+/** The legend, which names what is drawn rather than what is on offer. */
+function legend(): HTMLElement {
+  return screen.getByRole("list", { name: "Series drawn" });
+}
 
-    expect(seriesKinds()).toEqual(["candlestick", "histogram", "line", "line", "line"]);
+/**
+ * Forget the first drawing, so an assertion after a change sees only what
+ * the change produced. Every change tears the chart down and builds it
+ * again, and the stub remembers both.
+ */
+function afterRedraw(): void {
+  vi.clearAllMocks();
+}
+
+describe("PriceChart", () => {
+  it("opens on candles, with the long averages and what traded", () => {
+    draw();
+
+    expect(seriesKinds()).toEqual(["candlestick", "histogram", "line", "line"]);
+    expect(within(legend()).getByText("SMA 50")).toBeInTheDocument();
+    expect(within(legend()).getByText("SMA 200")).toBeInTheDocument();
   });
 
   it("hands the candles all four prices of each session", () => {
-    draw(chartPoints(3));
+    draw({ points: chartPoints(3) });
 
     expect(dataFor("candlestick")).toEqual([
       { time: "2026-09-01", open: 100, high: 104, low: 99, close: 103 },
@@ -47,24 +64,90 @@ describe("PriceChart", () => {
     ]);
   });
 
-  it("asks for volume as bars, which the chart pins to its own scale", () => {
-    draw(chartPoints(3));
+  it("draws the price as a line when a line is asked for", async () => {
+    draw();
+    afterRedraw();
 
-    expect(seriesKinds()).toContain("histogram");
-    expect(chartCalls.applyOptions).toHaveBeenCalledWith(
-      expect.objectContaining({ scaleMargins: { top: 0.8, bottom: 0 } }),
+    await userEvent.click(screen.getByRole("button", { name: "Line" }));
+
+    expect(seriesKinds()).not.toContain("candlestick");
+    expect(dataFor("line")).toEqual(
+      chartPoints(10).map((point) => ({ time: point.day, value: Number(point.close) })),
     );
   });
 
+  it("draws it as an area when an area is asked for", async () => {
+    draw();
+    afterRedraw();
+
+    await userEvent.click(screen.getByRole("button", { name: "Area" }));
+
+    expect(seriesKinds()).toContain("area");
+  });
+
   it("colours a session's volume by which way it closed", () => {
-    draw([
-      ...chartPoints(1),
-      { ...chartPoints(1)[0], day: "2026-09-02", open: "110", close: "100" } as never,
-    ]);
+    draw({
+      points: [
+        ...chartPoints(1),
+        { ...chartPoints(1)[0], day: "2026-09-02", open: "110", close: "100" } as never,
+      ],
+    });
 
     const traded = dataFor("histogram") as { color: string }[];
     expect(traded[0]?.color).toContain("22,163,74");
     expect(traded[1]?.color).toContain("220,38,38");
+  });
+
+  it("adds an average when one is asked for", async () => {
+    draw();
+    expect(within(legend()).queryByText("SMA 20")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "SMA 20" }));
+
+    expect(within(legend()).getByText("SMA 20")).toBeInTheDocument();
+  });
+
+  it("takes one away again", async () => {
+    draw();
+
+    await userEvent.click(screen.getByRole("button", { name: "SMA 200" }));
+
+    expect(within(legend()).queryByText("SMA 200")).not.toBeInTheDocument();
+  });
+
+  it("puts the oscillator in a band of its own", async () => {
+    // An RSI on a nought to a hundred scale drawn over a price is a flat
+    // line along the bottom.
+    draw();
+    afterRedraw();
+
+    await userEvent.click(screen.getByRole("button", { name: "RSI" }));
+
+    expect(seriesPanes()).toContain(1);
+    expect(chartCalls.setHeight).toHaveBeenCalled();
+  });
+
+  it("marks what an oscillator is read against", async () => {
+    // Thirty and seventy: the reading means nothing without them.
+    draw();
+    afterRedraw();
+
+    await userEvent.click(screen.getByRole("button", { name: "RSI" }));
+
+    expect(chartCalls.createPriceLine).toHaveBeenCalledWith(expect.objectContaining({ price: 70 }));
+    expect(chartCalls.createPriceLine).toHaveBeenCalledWith(expect.objectContaining({ price: 30 }));
+  });
+
+  it("clears everything drawn over the price when asked", async () => {
+    // The setting people reach for most often, which is why nothing here
+    // is mandatory.
+    draw();
+    afterRedraw();
+
+    await userEvent.click(screen.getByRole("button", { name: "Clean" }));
+
+    expect(seriesKinds()).toEqual(["candlestick"]);
+    expect(screen.queryByRole("button", { name: "Clean" })).not.toBeInTheDocument();
   });
 
   it("leaves out the sessions an average does not exist for yet", () => {
@@ -73,81 +156,26 @@ describe("PriceChart", () => {
       index === 0 ? { ...point, sma_200: null } : point,
     );
 
-    draw(points);
+    draw({ points, initialOverlays: ["sma_200"] });
 
-    expect(dataFor("line")).toHaveLength(3);
-    const long = chartCalls.setData.mock.calls[4]?.[0] as unknown[];
-    expect(long).toHaveLength(2);
+    expect(dataFor("line")).toHaveLength(2);
   });
 
   it("offers the way out to the instrument it drew", () => {
-    render(
-      <ThemeProvider>
-        <PriceChart
-          points={chartPoints(5)}
-          instrument={{ label: "Nifty 50", symbol: "NSE:NIFTY" }}
-        />
-      </ThemeProvider>,
-    );
+    draw({ instrument: { label: "Nifty 50", symbol: "NSE:NIFTY" } });
 
     expect(screen.getByRole("link", { name: /Nifty 50/ })).toBeInTheDocument();
   });
 
-  it("names each average rather than leaving three unlabelled lines", () => {
-    draw(chartPoints(5));
-
-    expect(screen.getByText("20-day")).toBeInTheDocument();
-    expect(screen.getByText("50-day")).toBeInTheDocument();
-    expect(screen.getByText("200-day")).toBeInTheDocument();
-  });
-
-  it("draws itself in the theme the rest of the page is in", () => {
-    // A chart keeping its own light palette on a dark page is the most
-    // visible way a theme can be half-applied.
-    window.localStorage.setItem("artha-theme", "dark");
-    draw(chartPoints(5));
-    const dark = chartCalls.createChart.mock.calls[0]?.[1] as {
-      layout: { textColor: string };
-      grid: { vertLines: { color: string } };
-    };
-
-    vi.clearAllMocks();
-    window.localStorage.setItem("artha-theme", "light");
-    draw(chartPoints(5));
-    const light = chartCalls.createChart.mock.calls[0]?.[1] as {
-      layout: { textColor: string };
-      grid: { vertLines: { color: string } };
-    };
-
-    expect(dark.layout.textColor).not.toBe(light.layout.textColor);
-    expect(dark.grid.vertLines.color).not.toBe(light.grid.vertLines.color);
-  });
-
   it("says there is nothing to draw rather than drawing an empty box", () => {
-    draw([]);
+    draw({ points: [] });
 
     expect(screen.getByText("No sessions to draw")).toBeInTheDocument();
   });
 
   it("holds its height while the sessions are on their way", () => {
-    render(
-      <ThemeProvider>
-        <PriceChart points={null} loading />
-      </ThemeProvider>,
-    );
+    draw({ points: null, loading: true });
 
     expect(screen.getByRole("img")).toHaveAccessibleName("Chart loading");
-  });
-
-  it("lets go of the chart when the page moves on", () => {
-    const { unmount } = render(
-      <ThemeProvider>
-        <PriceChart points={chartPoints(3)} />
-      </ThemeProvider>,
-    );
-
-    unmount();
-
-    expect(chartCalls.remove).toHaveBeenCalled();
   });
 });

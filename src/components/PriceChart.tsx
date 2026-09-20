@@ -1,68 +1,81 @@
 /**
- * One instrument's sessions as candles, with what it traded and the
- * averages it is read against.
+ * One instrument's sessions, drawn however a reader wants them.
  *
- * A description of what to draw, handed to the one chart. The averages are
- * the platform's own, fetched alongside the bars rather than computed
- * here: a chart working them out in the browser would use a different
- * warm-up period and a different handling of gaps from the rule engine,
- * and the two would disagree about where a crossover happened -- the one
- * thing a chart on a backtesting platform must not do.
+ * A description of what to draw, handed to the one chart. The averages and
+ * the oscillator are the platform's own, fetched alongside the bars rather
+ * than computed here: a chart working them out in the browser would use a
+ * different warm-up period and a different handling of gaps from the rule
+ * engine, and the two would disagree about where a crossover happened --
+ * the one thing a chart on a backtesting platform must not do.
+ *
+ * The controls live here rather than on the page, so this drops into an
+ * instrument page or a comparison with its settings intact.
  */
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import type { ChartPoint } from "@/api/client";
 import { Chart, type ChartInstrument, type Series } from "@/components/Chart";
+import { type ChartStyle, ChartControls, type Overlay } from "@/components/ChartControls";
 import { toNumber } from "@/lib/format";
 
 interface PriceChartProps {
   points: ChartPoint[] | null;
   /** The instrument drawn, offered as a link out. */
   instrument?: ChartInstrument;
+  /** What is drawn over the price to begin with. */
+  initialOverlays?: Overlay[];
   loading?: boolean;
 }
 
-/** The averages drawn over the candles, and the colour each is drawn in. */
-const AVERAGES: { of: (point: ChartPoint) => string | null; label: string; colour: string }[] = [
-  { of: (point) => point.sma_20, label: "20-day", colour: "#f59e0b" },
-  { of: (point) => point.sma_50, label: "50-day", colour: "#3b82f6" },
-  { of: (point) => point.sma_200, label: "200-day", colour: "#a855f7" },
-];
+/** The averages, and the colour each is drawn in. */
+const AVERAGES: Record<
+  "sma_20" | "sma_50" | "sma_200",
+  { of: (point: ChartPoint) => string | null; label: string; colour: string }
+> = {
+  sma_20: { of: (point) => point.sma_20, label: "SMA 20", colour: "#f59e0b" },
+  sma_50: { of: (point) => point.sma_50, label: "SMA 50", colour: "#3b82f6" },
+  sma_200: { of: (point) => point.sma_200, label: "SMA 200", colour: "#a855f7" },
+};
 
+const PRICE_COLOUR = "#2563eb";
 const RISING = "rgba(22,163,74,0.35)";
 const FALLING = "rgba(220,38,38,0.35)";
 
+/** What an RSI is read against: oversold below thirty, overbought above seventy. */
+const RSI_THRESHOLDS = [
+  { value: 70, label: "70" },
+  { value: 30, label: "30" },
+];
+
+/** What is drawn over the price unless a caller says otherwise. */
+const DEFAULT_OVERLAYS: Overlay[] = ["sma_50", "sma_200", "volume"];
+
 /**
- * Draw the candles.
+ * Draw the sessions.
  *
  * @param props - The sessions, and the instrument they belong to.
- * @returns The chart.
+ * @returns The chart and the controls that shape it.
  */
 export function PriceChart({
   points,
   instrument,
+  initialOverlays = DEFAULT_OVERLAYS,
   loading = false,
 }: PriceChartProps): React.JSX.Element {
+  const [style, setStyle] = useState<ChartStyle>("candles");
+  const [overlays, setOverlays] = useState<Overlay[]>(initialOverlays);
   const sessions = useMemo(() => points ?? [], [points]);
 
   const series = useMemo<Series[]>(() => {
     if (sessions.length === 0) {
       return [];
     }
-    return [
-      {
-        kind: "candles",
-        label: "Price",
-        points: sessions.map((point) => ({
-          time: point.day,
-          open: toNumber(point.open) ?? 0,
-          high: toNumber(point.high) ?? 0,
-          low: toNumber(point.low) ?? 0,
-          close: toNumber(point.close) ?? 0,
-        })),
-      },
-      {
+    const showing = new Set(overlays);
+    const drawn: Series[] = [priceOf(sessions, style)];
+
+    if (showing.has("volume")) {
+      drawn.push({
         kind: "bars",
         label: "Volume",
         points: sessions.map((point) => ({
@@ -70,26 +83,95 @@ export function PriceChart({
           value: point.volume,
           color: (toNumber(point.close) ?? 0) >= (toNumber(point.open) ?? 0) ? RISING : FALLING,
         })),
-      },
-      ...AVERAGES.map<Series>((average) => ({
+      });
+    }
+
+    for (const key of ["sma_20", "sma_50", "sma_200"] as const) {
+      if (showing.has(key)) {
+        drawn.push({
+          kind: "line",
+          label: AVERAGES[key].label,
+          colour: AVERAGES[key].colour,
+          points: valuesOf(sessions, AVERAGES[key].of),
+        });
+      }
+    }
+
+    if (showing.has("rsi")) {
+      drawn.push({
         kind: "line",
-        label: average.label,
-        colour: average.colour,
-        // Sessions with no average yet are left out rather than drawn as
-        // nought, which would put a cliff at the start of every line.
-        points: sessions
-          .map((point) => ({ time: point.day, value: toNumber(average.of(point)) }))
-          .filter((entry): entry is { time: string; value: number } => entry.value !== null),
-      })),
-    ];
-  }, [sessions]);
+        label: "RSI",
+        colour: "#0ea5e9",
+        // A band of its own: an oscillator on a nought to a hundred scale
+        // drawn over a price is a flat line along the bottom.
+        pane: 1,
+        thresholds: RSI_THRESHOLDS,
+        points: valuesOf(sessions, (point) => point.rsi),
+      });
+    }
+
+    return drawn;
+  }, [sessions, style, overlays]);
 
   return (
-    <Chart
-      series={series}
-      instruments={instrument ? [instrument] : []}
-      loading={loading}
-      empty="No sessions to draw"
-    />
+    <div className="space-y-3">
+      <ChartControls
+        style={style}
+        overlays={overlays}
+        onStyle={setStyle}
+        onOverlays={setOverlays}
+      />
+      <Chart
+        series={series}
+        instruments={instrument ? [instrument] : []}
+        loading={loading}
+        empty="No sessions to draw"
+      />
+    </div>
   );
+}
+
+/**
+ * Build the price itself, in whichever shape was asked for.
+ *
+ * @param sessions - The sessions.
+ * @param style - The shape.
+ * @returns The series.
+ */
+function priceOf(sessions: ChartPoint[], style: ChartStyle): Series {
+  if (style === "candles") {
+    return {
+      kind: "candles",
+      label: "Price",
+      points: sessions.map((point) => ({
+        time: point.day,
+        open: toNumber(point.open) ?? 0,
+        high: toNumber(point.high) ?? 0,
+        low: toNumber(point.low) ?? 0,
+        close: toNumber(point.close) ?? 0,
+      })),
+    };
+  }
+  const closes = sessions.map((point) => ({ time: point.day, value: toNumber(point.close) ?? 0 }));
+  return style === "area"
+    ? { kind: "area", label: "Price", colour: PRICE_COLOUR, points: closes }
+    : { kind: "line", label: "Price", colour: PRICE_COLOUR, width: 2, points: closes };
+}
+
+/**
+ * Take one figure from every session it exists for.
+ *
+ * @param sessions - The sessions.
+ * @param of - Which figure.
+ * @returns The points. Sessions the figure does not exist for yet are left
+ *   out rather than drawn as nought, which would put a cliff at the start
+ *   of every line.
+ */
+function valuesOf(
+  sessions: ChartPoint[],
+  of: (point: ChartPoint) => string | null,
+): { time: string; value: number }[] {
+  return sessions
+    .map((point) => ({ time: point.day, value: toNumber(of(point)) }))
+    .filter((entry): entry is { time: string; value: number } => entry.value !== null);
 }

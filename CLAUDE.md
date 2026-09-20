@@ -164,6 +164,13 @@ Callers describe _what_ to draw -- candles, lines, bars -- never how.
 domain data into series and own the one thing that is theirs, the moving
 averages and the rebasing respectively.
 
+A series says which pane it belongs in. Nought is the price; anything else
+gets a band of its own underneath, which is what an oscillator on a nought
+to a hundred scale needs -- drawn over a price it is a flat line along the
+bottom. `PriceChart` carries its own controls (shape, and what is laid
+over the price) rather than taking them as props, so it drops into an
+instrument page with its settings intact.
+
 **shadcn/ui on Tailwind, with a single `DataTable`.** Every list in this app
 -- movers, index constituents, the company list, a comparison -- is the same
 component with different columns and data. Sorting, filtering, empty and
@@ -235,7 +242,8 @@ call site.
   `MoverPanel`, `IndexCard`, `MiniCandlestick`, `ScopeSelector`,
   `ScopePicker`, `ThemeToggle`, `Meter`, `Sparkline`, `Statistic`,
   `BreadthPanel`, `BreadthGridPanel`, `RegimeBanner`, `NewsFeed`,
-  `LoadMore`, `RangeSelector`, `Chart`, `ComparisonChart`, `PriceChart`,
+  `LoadMore`, `RangeSelector`, `Chart`, `ChartControls`, `ComparisonChart`,
+  `PriceChart`,
   `TradingViewWidget`, `TradingViewLink`, `Menu`, `Tooltip`, `ThemeMenu`,
   `UserMenu`, `AppShell`.
 - **Links out to TradingView** come from `/api/external-symbols`, which

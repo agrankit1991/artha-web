@@ -209,7 +209,7 @@ describe("Overview", () => {
 
     renderOverview();
 
-    expect(await screen.findByText("200-day")).toBeInTheDocument();
+    expect(await screen.findByText("SMA 200")).toBeInTheDocument();
   });
 
   it("compares the benchmark against gold when asked to", async () => {
@@ -217,7 +217,7 @@ describe("Overview", () => {
     // floor, so both are rebased to the session they share.
     stubEverything();
     renderOverview();
-    await screen.findByText("200-day");
+    await screen.findByText("SMA 200");
 
     await userEvent.click(screen.getByRole("button", { name: "vs Gold" }));
 
@@ -263,7 +263,7 @@ describe("Overview", () => {
   it("opens on a year and asks for whatever span is chosen", async () => {
     const fetchMock = stubEverything();
     renderOverview();
-    await screen.findByText("200-day");
+    await screen.findByText("SMA 200");
     expect(
       fetchMock.mock.calls
         .map((call) => String(call[0]))
@@ -289,7 +289,7 @@ describe("Overview", () => {
     // feel like two.
     const fetchMock = stubEverything();
     renderOverview();
-    await screen.findByText("200-day");
+    await screen.findByText("SMA 200");
     await userEvent.click(
       within(screen.getByRole("group", { name: "History" })).getByRole("button", { name: "5Y" }),
     );
