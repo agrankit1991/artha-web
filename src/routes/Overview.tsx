@@ -10,15 +10,23 @@
 import { useCallback, useMemo, useState } from "react";
 
 import type { MoverRow } from "@/api/client";
-import { fetchBreadth, fetchMovers, fetchNews, fetchOverviews, fetchScopes } from "@/api/client";
+import {
+  fetchBreadth,
+  fetchMovers,
+  fetchNews,
+  fetchOverviews,
+  fetchScopes,
+  fetchSeries,
+} from "@/api/client";
 import { BreadthPanel } from "@/components/BreadthPanel";
+import { type ChartLine, ComparisonChart } from "@/components/ComparisonChart";
 import { IndexCard } from "@/components/IndexCard";
 import { MoverPanelCard } from "@/components/MoverPanel";
 import { NewsFeed } from "@/components/NewsFeed";
 import { ScopePicker } from "@/components/ScopePicker";
 import type { Scope } from "@/components/ScopeSelector";
 import { useResource } from "@/hooks/useResource";
-import { FEATURED_INDICES } from "@/lib/indices";
+import { BENCHMARK, FEATURED_INDICES, GOLD } from "@/lib/indices";
 
 interface OverviewProps {
   /** What to do when an instrument is chosen from a list. */
@@ -26,6 +34,15 @@ interface OverviewProps {
   /** Where to send a reader who wants breadth in full. */
   onOpenBreadth?: () => void;
 }
+
+/** Sessions of the gold comparison -- about six months. */
+const COMPARISON_SESSIONS = 125;
+
+/** The two lines of the comparison, and the colours they are drawn in. */
+const COMPARISON: ChartLine[] = [
+  { instrumentKey: BENCHMARK.key, label: BENCHMARK.name, colour: "#2563eb" },
+  { instrumentKey: GOLD.key, label: GOLD.name, colour: "#d97706" },
+];
 
 /**
  * Render the overview.
@@ -44,12 +61,17 @@ export function Overview({ onSelect, onOpenBreadth }: OverviewProps): React.JSX.
   const loadMovers = useCallback(() => fetchMovers(scope.kind, scope.key), [scope]);
   const loadBreadth = useCallback(() => fetchBreadth(scope.kind, scope.key), [scope]);
   const loadNews = useCallback(() => fetchNews(), []);
+  const loadComparison = useCallback(
+    () => fetchSeries([BENCHMARK.key, GOLD.key], COMPARISON_SESSIONS),
+    [],
+  );
 
   const scopes = useResource(loadScopes);
   const indices = useResource(loadIndices);
   const movers = useResource(loadMovers);
   const breadth = useResource(loadBreadth);
   const news = useResource(loadNews);
+  const comparison = useResource(loadComparison);
 
   const cards = useMemo(() => {
     const found = new Map(indices.data?.map((overview) => [overview.instrument_key, overview]));
@@ -67,6 +89,18 @@ export function Overview({ onSelect, onOpenBreadth }: OverviewProps): React.JSX.
             <IndexCard key={index.key} name={index.name} overview={index.overview} />
           ))}
         </div>
+      </section>
+
+      <section className="space-y-3" aria-labelledby="comparison-heading">
+        <div>
+          <h2 id="comparison-heading" className="text-lg font-semibold">
+            {BENCHMARK.name} against gold
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Six months, both rebased to their first shared session.
+          </p>
+        </div>
+        <ComparisonChart series={comparison.data} lines={COMPARISON} loading={comparison.loading} />
       </section>
 
       <section className="space-y-4" aria-labelledby="movers-heading">

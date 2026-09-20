@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Overview } from "./Overview";
+import { ThemeProvider } from "@/lib/theme";
 import {
   breadth,
   moverRow,
@@ -12,13 +13,25 @@ import {
   newsItem,
   overview,
   panel,
+  priceSeries,
   scopeOptions,
   stubPlatform,
 } from "@/test/support";
 
+vi.mock("lightweight-charts", async () => (await import("@/test/chartStub")).chartModule());
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
+
+/** Render the overview as the shell does: inside the theme it lives in. */
+function renderOverview(props: Parameters<typeof Overview>[0] = {}): void {
+  render(
+    <ThemeProvider>
+      <Overview {...props} />
+    </ThemeProvider>,
+  );
+}
 
 function stubEverything(): ReturnType<typeof stubPlatform> {
   return stubPlatform({
@@ -34,6 +47,12 @@ function stubEverything(): ReturnType<typeof stubPlatform> {
     },
     "/api/breadth": { body: breadth() },
     "/api/news": { body: [newsItem()] },
+    "/api/series": {
+      body: [
+        priceSeries("NSE_INDEX|Nifty 50", [100, 110]),
+        priceSeries("NSE_EQ|INF204KB17I5", [200, 190]),
+      ],
+    },
   });
 }
 
@@ -41,7 +60,7 @@ describe("Overview", () => {
   it("shows the headline indices as cards, in their settled order", async () => {
     stubEverything();
 
-    render(<Overview />);
+    renderOverview();
 
     await screen.findAllByText("24,812.40");
     const cards = screen.getByRole("region", { name: "Market indices" });
@@ -57,7 +76,7 @@ describe("Overview", () => {
     // to arrive in pieces.
     const fetchMock = stubEverything();
 
-    render(<Overview />);
+    renderOverview();
 
     await waitFor(() => {
       const asked = fetchMock.mock.calls
@@ -73,7 +92,7 @@ describe("Overview", () => {
     // than panel by panel.
     stubEverything();
 
-    render(<Overview />);
+    renderOverview();
 
     expect(await screen.findByText("Top gainers")).toBeInTheDocument();
     expect(screen.getByText("Unusual volume")).toBeInTheDocument();
@@ -81,7 +100,7 @@ describe("Overview", () => {
 
   it("re-ranks when the scope changes, and says which scope it asked for", async () => {
     const fetchMock = stubEverything();
-    render(<Overview />);
+    renderOverview();
     await screen.findByText("Top gainers");
 
     await userEvent.click(screen.getByRole("combobox"));
@@ -95,7 +114,7 @@ describe("Overview", () => {
 
   it("ranks the indices against each other, not only the companies", async () => {
     const fetchMock = stubEverything();
-    render(<Overview />);
+    renderOverview();
     await screen.findByText("Top gainers");
 
     await userEvent.click(screen.getByRole("button", { name: "Indices" }));
@@ -113,7 +132,7 @@ describe("Overview", () => {
     // what the lists alone cannot show.
     stubEverything();
 
-    render(<Overview />);
+    renderOverview();
 
     expect(await screen.findByText("Market breadth")).toBeInTheDocument();
     expect(screen.getByText("60 advancing")).toBeInTheDocument();
@@ -122,7 +141,7 @@ describe("Overview", () => {
   it("offers the way through to breadth in full", async () => {
     stubEverything();
     const open = vi.fn();
-    render(<Overview onOpenBreadth={open} />);
+    renderOverview({ onOpenBreadth: open });
     await screen.findByText("Market breadth");
 
     await userEvent.click(screen.getByRole("button", { name: /See breadth in full/ }));
@@ -133,7 +152,7 @@ describe("Overview", () => {
   it("shows what was published about the market", async () => {
     stubEverything();
 
-    render(<Overview />);
+    renderOverview();
 
     expect(await screen.findByText("Refiners lead the index higher")).toBeInTheDocument();
   });
@@ -147,9 +166,10 @@ describe("Overview", () => {
       "/api/overviews": { body: [] },
       "/api/breadth": { body: breadth() },
       "/api/news": { body: [] },
+      "/api/series": { body: [] },
     });
 
-    render(<Overview />);
+    renderOverview();
 
     expect(await screen.findByRole("alert")).toHaveTextContent("the lists are being rebuilt");
   });
@@ -157,7 +177,7 @@ describe("Overview", () => {
   it("passes a chosen instrument on to whoever asked for it", async () => {
     stubEverything();
     const chosen = vi.fn();
-    render(<Overview onSelect={chosen} />);
+    renderOverview({ onSelect: chosen });
     await screen.findByText("Top gainers");
 
     const [firstPanel] = screen.getAllByRole("table");
@@ -165,5 +185,16 @@ describe("Overview", () => {
     await userEvent.click(firstRow as HTMLElement);
 
     expect(chosen).toHaveBeenCalledWith(expect.objectContaining({ symbol: "RELIANCE" }));
+  });
+
+  it("compares the benchmark against gold over six months", async () => {
+    // Different orders of magnitude on one price axis is one line and a
+    // floor, so both are rebased to the session they share.
+    stubEverything();
+
+    renderOverview();
+
+    expect(await screen.findByText(/against gold/)).toBeInTheDocument();
+    expect(await screen.findByText("+10.00%")).toBeInTheDocument();
   });
 });

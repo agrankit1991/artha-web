@@ -7,6 +7,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 import { ACCOUNT, breadth, moversResponse, scopeOptions, stubPlatform } from "@/test/support";
 
+vi.mock("lightweight-charts", async () => (await import("@/test/chartStub")).chartModule());
+
 afterEach(() => {
   vi.unstubAllGlobals();
   window.localStorage.clear();
@@ -19,6 +21,7 @@ const DATA = {
   "/api/overviews": { body: [] },
   "/api/breadth": { body: breadth() },
   "/api/news": { body: [] },
+  "/api/series": { body: [] },
 };
 
 describe("App", () => {

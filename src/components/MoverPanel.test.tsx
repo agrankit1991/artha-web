@@ -133,4 +133,25 @@ describe("MoverPanelCard", () => {
     expect(titleOf("top-losers")).toBe("Top losers");
     expect(titleOf("near-52wk-low")).toBe("Near 52-week low");
   });
+
+  it("sorts a list where an instrument has no snapshot yet", async () => {
+    // An entry whose snapshot has not been rebuilt since its bars arrived
+    // has no price. Sorting on that column must still order the rest,
+    // rather than throwing or scattering them.
+    render(
+      <MoverPanelCard
+        panel={panel({
+          rows: [
+            moverRow({ symbol: "NOSNAP", close: null }),
+            moverRow({ symbol: "TCS", close: "4100.00" }),
+          ],
+        })}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Price/ }));
+
+    const [, firstRow] = screen.getAllByRole("row");
+    expect(firstRow?.textContent).toContain("TCS");
+  });
 });

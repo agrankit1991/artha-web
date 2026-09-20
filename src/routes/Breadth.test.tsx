@@ -134,28 +134,37 @@ describe("Breadth", () => {
     expect(headers.length).toBeGreaterThan(5);
   });
 
-  it("shows a dash where a session's figure could not be taken", async () => {
+  it("sorts a column where some sessions have no figure at all", async () => {
     // A session where nothing traded has no ratio and no TRIN, and a
-    // nought there would read as a real observation of nought.
+    // nought there would read as a real observation of nought. Sorting on
+    // such a column must still order the sessions that do have one.
     stubPlatform({
       "/api/movers/scopes": { body: scopeOptions() },
       "/api/breadth": {
         body: breadth({
           sessions: [
             breadthSession({
+              as_of: "2026-09-16",
               advance_decline_ratio: null,
               arms_index: null,
               above_sma_200: null,
             }),
+            breadthSession({ as_of: "2026-09-17" }),
           ],
         }),
       },
     });
 
     render(<Breadth />);
-
     await screen.findByText("Session by session");
-    const [, firstRow] = within(screen.getByRole("table")).getAllByRole("row");
-    expect(within(firstRow as HTMLElement).getAllByText("—")).toHaveLength(3);
+    const table = screen.getByRole("table");
+
+    for (const header of within(table).getAllByRole("button")) {
+      await userEvent.click(header);
+    }
+
+    // The session with no ratio, no TRIN and no share above the 200-day
+    // shows three dashes wherever the sort has put it.
+    expect(within(table).getAllByText("—")).toHaveLength(3);
   });
 });

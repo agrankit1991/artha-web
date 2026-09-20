@@ -239,12 +239,15 @@ export function priceSeries(
   closes: number[],
   start = "2026-03-02",
 ): PriceSeries {
-  const first = new Date(`${start}T00:00:00`);
+  // Built in UTC throughout: local midnight serialised through
+  // toISOString() lands on the previous day everywhere east of Greenwich,
+  // which is where this application runs.
+  const first = new Date(`${start}T00:00:00Z`);
   return {
     instrument_key: instrumentKey,
     points: closes.map((close, index) => {
       const day = new Date(first);
-      day.setDate(first.getDate() + index);
+      day.setUTCDate(first.getUTCDate() + index);
       return { day: day.toISOString().slice(0, 10), close: close.toFixed(6) };
     }),
   };
