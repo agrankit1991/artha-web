@@ -82,7 +82,7 @@ describe("ComparisonChart", () => {
       </ThemeProvider>,
     );
 
-    expect(screen.getByRole("img")).toHaveAccessibleName("Comparison loading");
+    expect(screen.getByRole("img")).toHaveAccessibleName("Chart loading");
   });
 
   it("lets go of the chart when the page moves on", () => {
@@ -127,5 +127,37 @@ describe("ComparisonChart", () => {
     );
 
     expect(screen.getByText("NSE_EQ|UNNAMED")).toBeInTheDocument();
+  });
+
+  it("offers a way out for each instrument it compares", () => {
+    // A comparison of two is two links.
+    render(
+      <ThemeProvider>
+        <ComparisonChart
+          series={[priceSeries(NIFTY, [100, 110]), priceSeries(GOLD, [200, 190])]}
+          lines={LINES}
+          symbols={{
+            [NIFTY]: { instrument_key: NIFTY, symbol: "NSE:NIFTY", derived: false },
+            [GOLD]: { instrument_key: GOLD, symbol: "NSE:GOLDBEES", derived: false },
+          }}
+        />
+      </ThemeProvider>,
+    );
+
+    expect(screen.getAllByRole("link")).toHaveLength(2);
+  });
+
+  it("offers no link for an instrument nothing is known about", () => {
+    render(
+      <ThemeProvider>
+        <ComparisonChart
+          series={[priceSeries(NIFTY, [100, 110]), priceSeries(GOLD, [200, 190])]}
+          lines={LINES}
+          symbols={{ [NIFTY]: { instrument_key: NIFTY, symbol: "NSE:NIFTY", derived: false } }}
+        />
+      </ThemeProvider>,
+    );
+
+    expect(screen.getAllByRole("link")).toHaveLength(1);
   });
 });

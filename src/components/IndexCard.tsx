@@ -8,9 +8,10 @@
  * read against, which is how the previous incarnation of this card had it.
  */
 
-import type { InstrumentOverview } from "@/api/client";
+import type { InstrumentOverview, KnownSymbol } from "@/api/client";
 import { Delta } from "@/components/Delta";
 import { MiniCandlestick } from "@/components/MiniCandlestick";
+import { TradingViewLink } from "@/components/TradingViewLink";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDay, formatPrice } from "@/lib/format";
@@ -19,6 +20,8 @@ import { cn } from "@/lib/utils";
 interface IndexCardProps {
   name: string;
   overview: InstrumentOverview | undefined;
+  /** What TradingView calls it, when this platform knows. */
+  symbol?: KnownSymbol | undefined;
   /** What to do when the card is chosen, if anything. */
   onSelect?: (instrumentKey: string) => void;
 }
@@ -29,7 +32,7 @@ interface IndexCardProps {
  * @param props - What to call it, what it did, and what choosing it means.
  * @returns The card.
  */
-export function IndexCard({ name, overview, onSelect }: IndexCardProps): React.JSX.Element {
+export function IndexCard({ name, overview, symbol, onSelect }: IndexCardProps): React.JSX.Element {
   if (overview === undefined) {
     return (
       <Card>
@@ -98,6 +101,23 @@ export function IndexCard({ name, overview, onSelect }: IndexCardProps): React.J
           <Price label="Low" value={day.low} />
           <Price label="Close" value={day.close} align="right" />
         </dl>
+
+        {symbol !== undefined && (
+          // Stopping the click from reaching the card: choosing the card
+          // and leaving for TradingView are different intentions.
+          <div
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+            role="presentation"
+          >
+            <TradingViewLink
+              label="View on TradingView"
+              symbol={symbol.symbol}
+              derived={symbol.derived}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

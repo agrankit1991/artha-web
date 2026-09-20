@@ -48,6 +48,12 @@ function stubEverything(): ReturnType<typeof stubPlatform> {
     },
     "/api/breadth": { body: breadth() },
     "/api/news": { body: newsPage() },
+    "/api/external-symbols": {
+      body: [
+        { instrument_key: "NSE_INDEX|Nifty 50", symbol: "NSE:NIFTY", derived: false },
+        { instrument_key: "NSE_EQ|INF204KB17I5", symbol: "NSE:GOLDBEES", derived: false },
+      ],
+    },
     "/api/figures": { body: { instrument_key: "NSE_INDEX|Nifty 50", points: chartPoints(30) } },
     "/api/series": {
       body: [
@@ -168,6 +174,12 @@ describe("Overview", () => {
       "/api/overviews": { body: [] },
       "/api/breadth": { body: breadth() },
       "/api/news": { body: newsPage({ total: 0, items: [] }) },
+      "/api/external-symbols": {
+        body: [
+          { instrument_key: "NSE_INDEX|Nifty 50", symbol: "NSE:NIFTY", derived: false },
+          { instrument_key: "NSE_EQ|INF204KB17I5", symbol: "NSE:GOLDBEES", derived: false },
+        ],
+      },
       "/api/figures": { body: { instrument_key: "NSE_INDEX|Nifty 50", points: chartPoints(30) } },
       "/api/series": { body: [] },
     });
@@ -289,6 +301,33 @@ describe("Overview", () => {
       expect(
         asked.some((path) => path.startsWith("/api/series") && path.includes("sessions=1250")),
       ).toBe(true);
+    });
+  });
+
+  it("offers a way out to TradingView for what it draws", async () => {
+    // This platform holds nothing intraday, so "what is it doing right
+    // now" is a question it cannot answer and TradingView can.
+    stubEverything();
+
+    renderOverview();
+
+    expect(
+      await screen.findByRole("link", { name: /Nifty 50 on TradingView/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("asks about every instrument on the page in one request", async () => {
+    // Eight cards and two chart lines is ten round trips otherwise.
+    const fetchMock = stubEverything();
+
+    renderOverview();
+
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls
+        .map((call) => String(call[0]))
+        .find((path) => path.startsWith("/api/external-symbols"));
+      expect(asked).toBeDefined();
+      expect(asked?.match(/keys=/g)).toHaveLength(9);
     });
   });
 });

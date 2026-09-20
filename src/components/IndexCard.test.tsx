@@ -85,4 +85,43 @@ describe("IndexCard", () => {
 
     expect(await screen.findByText(/18 Sept? 2026/)).toBeInTheDocument();
   });
+
+  it("offers the way out to TradingView when the symbol is known", () => {
+    render(
+      <IndexCard
+        name="Nifty 50"
+        overview={overview()}
+        symbol={{ instrument_key: "NSE_INDEX|Nifty 50", symbol: "NSE:NIFTY", derived: false }}
+      />,
+    );
+
+    expect(screen.getByRole("link")).toHaveAttribute(
+      "href",
+      "https://www.tradingview.com/chart/?symbol=NSE%3ANIFTY",
+    );
+  });
+
+  it("offers no link when nothing is known about the symbol", () => {
+    render(<IndexCard name="Nifty 50" overview={overview()} />);
+
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("does not choose the card when the link is followed", async () => {
+    // Leaving for TradingView and choosing the card are different
+    // intentions, and the link sits inside the card.
+    const chosen = vi.fn();
+    render(
+      <IndexCard
+        name="Nifty 50"
+        overview={overview()}
+        symbol={{ instrument_key: "NSE_INDEX|Nifty 50", symbol: "NSE:NIFTY", derived: false }}
+        onSelect={chosen}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("link"));
+
+    expect(chosen).not.toHaveBeenCalled();
+  });
 });

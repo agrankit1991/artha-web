@@ -13,6 +13,7 @@ import { useCallback, useMemo, useState } from "react";
 import type { MoverRow } from "@/api/client";
 import {
   fetchBreadth,
+  fetchExternalSymbols,
   fetchFigures,
   fetchMovers,
   fetchNews,
@@ -91,6 +92,12 @@ export function Overview({
   const loadMovers = useCallback(() => fetchMovers(scope.kind, scope.key), [scope]);
   const loadBreadth = useCallback(() => fetchBreadth(scope.kind, scope.key), [scope]);
   const loadNews = useCallback(() => fetchNews({ limit: HEADLINES }), []);
+  // Every instrument this page draws, asked about once: eight cards and
+  // two chart lines is ten round trips otherwise, to render ten links.
+  const loadSymbols = useCallback(
+    () => fetchExternalSymbols([...FEATURED_INDICES.map((index) => index.key), GOLD.key]),
+    [],
+  );
   const loadComparison = useCallback(
     () => fetchSeries([BENCHMARK.key, GOLD.key], sessions),
     [sessions],
@@ -104,6 +111,7 @@ export function Overview({
   const news = useResource(loadNews);
   const comparison = useResource(loadComparison);
   const chart = useResource(loadChart);
+  const symbols = useResource(loadSymbols);
 
   const cards = useMemo(() => {
     const found = new Map(indices.data?.map((overview) => [overview.instrument_key, overview]));
@@ -119,7 +127,12 @@ export function Overview({
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {cards.map((index) => (
-            <IndexCard key={index.key} name={index.name} overview={index.overview} />
+            <IndexCard
+              key={index.key}
+              name={index.name}
+              overview={index.overview}
+              symbol={symbols.data?.[index.key]}
+            />
           ))}
         </div>
       </section>
@@ -162,11 +175,20 @@ export function Overview({
           </div>
         </div>
         {view === "price" ? (
-          <PriceChart points={chart.data?.points ?? null} loading={chart.loading} />
+          <PriceChart
+            points={chart.data?.points ?? null}
+            loading={chart.loading}
+            instrument={{
+              label: BENCHMARK.name,
+              symbol: symbols.data?.[BENCHMARK.key]?.symbol,
+              derived: symbols.data?.[BENCHMARK.key]?.derived,
+            }}
+          />
         ) : (
           <ComparisonChart
             series={comparison.data}
             lines={COMPARISON}
+            symbols={symbols.data ?? {}}
             loading={comparison.loading}
           />
         )}

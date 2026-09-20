@@ -47,13 +47,10 @@ describe("PriceChart", () => {
     ]);
   });
 
-  it("keeps volume off the price scale", () => {
-    // On one scale with the price, volume is either invisible or it
-    // flattens the candles into a line.
+  it("asks for volume as bars, which the chart pins to its own scale", () => {
     draw(chartPoints(3));
 
-    const [, volume] = chartCalls.addSeries.mock.calls;
-    expect(volume?.[1]).toMatchObject({ priceScaleId: "volume" });
+    expect(seriesKinds()).toContain("histogram");
     expect(chartCalls.applyOptions).toHaveBeenCalledWith(
       expect.objectContaining({ scaleMargins: { top: 0.8, bottom: 0 } }),
     );
@@ -81,6 +78,19 @@ describe("PriceChart", () => {
     expect(dataFor("line")).toHaveLength(3);
     const long = chartCalls.setData.mock.calls[4]?.[0] as unknown[];
     expect(long).toHaveLength(2);
+  });
+
+  it("offers the way out to the instrument it drew", () => {
+    render(
+      <ThemeProvider>
+        <PriceChart
+          points={chartPoints(5)}
+          instrument={{ label: "Nifty 50", symbol: "NSE:NIFTY" }}
+        />
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByRole("link", { name: /Nifty 50/ })).toBeInTheDocument();
   });
 
   it("names each average rather than leaving three unlabelled lines", () => {
@@ -126,7 +136,7 @@ describe("PriceChart", () => {
       </ThemeProvider>,
     );
 
-    expect(screen.getByRole("img")).toHaveAccessibleName("Price chart loading");
+    expect(screen.getByRole("img")).toHaveAccessibleName("Chart loading");
   });
 
   it("lets go of the chart when the page moves on", () => {

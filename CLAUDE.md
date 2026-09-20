@@ -154,6 +154,16 @@ It rose from 95% with the first real views.
 
 ## One component per job, used everywhere
 
+**One `Chart`, as there is one `DataTable`.** Every chart is
+`src/components/Chart.tsx` with different series: a price history, a
+comparison, an indicator over time, a backtest's equity curve later.
+Creating the chart, theming it, tearing it down, the legend, the empty and
+loading states and the way out to TradingView are decided there once.
+Callers describe _what_ to draw -- candles, lines, bars -- never how.
+`PriceChart` and `ComparisonChart` are thin adapters over it: they turn
+domain data into series and own the one thing that is theirs, the moving
+averages and the rebasing respectively.
+
 **shadcn/ui on Tailwind, with a single `DataTable`.** Every list in this app
 -- movers, index constituents, the company list, a comparison -- is the same
 component with different columns and data. Sorting, filtering, empty and
@@ -225,9 +235,16 @@ call site.
   `MoverPanel`, `IndexCard`, `MiniCandlestick`, `ScopeSelector`,
   `ScopePicker`, `ThemeToggle`, `Meter`, `Sparkline`, `Statistic`,
   `BreadthPanel`, `BreadthGridPanel`, `RegimeBanner`, `NewsFeed`,
-  `LoadMore`, `RangeSelector`, `ComparisonChart`, `PriceChart`,
-  `TradingViewWidget`, `Menu`, `Tooltip`, `ThemeMenu`, `UserMenu`,
-  `AppShell`.
+  `LoadMore`, `RangeSelector`, `Chart`, `ComparisonChart`, `PriceChart`,
+  `TradingViewWidget`, `TradingViewLink`, `Menu`, `Tooltip`, `ThemeMenu`,
+  `UserMenu`, `AppShell`.
+- **Links out to TradingView** come from `/api/external-symbols`, which
+  serves what the weekly job recorded that each outside service calls our
+  instruments. A page asks about everything it draws in one request. An
+  instrument the service does not know gets no link at all rather than a
+  guessed one: a link to the wrong instrument's chart is worse than none,
+  because nothing about it looks wrong. A symbol flagged `derived` was
+  worked out from the ticker and says so.
 - **Card grids are three across, never four.** Every count asked for is a
   multiple of three -- six headlines on the overview, twelve to a news
   batch -- so the last row is always full. The news page asks for

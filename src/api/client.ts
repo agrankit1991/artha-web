@@ -280,6 +280,14 @@ export interface PricePoint {
   close: string;
 }
 
+/** One instrument, as an outside service knows it. */
+export interface KnownSymbol {
+  instrument_key: string;
+  symbol: string;
+  /** True when the symbol was worked out from the ticker, not confirmed. */
+  derived: boolean;
+}
+
 /** One session of an instrument, with the averages drawn over it. */
 export interface ChartPoint {
   day: string;
@@ -611,4 +619,27 @@ export function fetchBreadthGrid(kind: ScopeKind, rotationSessions = 5): Promise
 export function fetchFigures(key: string, sessions = 250): Promise<ChartSeries> {
   const parameters = new URLSearchParams({ key, sessions: String(sessions) });
   return request<ChartSeries>(`/api/figures?${parameters.toString()}`);
+}
+
+/**
+ * Fetch what an outside service calls these instruments.
+ *
+ * One request for a screen's worth of links: an instrument the service
+ * does not know is absent, which is what tells a screen not to offer a
+ * link that would go nowhere.
+ *
+ * @param keys - The instruments.
+ * @param provider - The outside service.
+ * @returns The symbols that exist, by instrument key.
+ */
+export async function fetchExternalSymbols(
+  keys: string[],
+  provider = "tradingview",
+): Promise<Record<string, KnownSymbol>> {
+  const parameters = new URLSearchParams({ provider });
+  for (const key of keys) {
+    parameters.append("keys", key);
+  }
+  const found = await request<KnownSymbol[]>(`/api/external-symbols?${parameters.toString()}`);
+  return Object.fromEntries(found.map((one) => [one.instrument_key, one]));
 }
