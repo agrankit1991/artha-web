@@ -11,7 +11,7 @@
 import { Newspaper, Search, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
-import type { MentionedInstrument, NewsItem } from "@/api/client";
+import type { MentionedInstrument, NewsItem, NewsMention } from "@/api/client";
 import { fetchNews, fetchNewsMentions } from "@/api/client";
 import { NewsFeed } from "@/components/NewsFeed";
 import { LoadMore } from "@/components/LoadMore";
@@ -55,7 +55,7 @@ const WINDOWS: { label: string; days: number | null }[] = [
 export function News(): React.JSX.Element {
   const [typed, setTyped] = useState("");
   const [days, setDays] = useState<number | null>(null);
-  const [company, setCompany] = useState<MentionedInstrument | null>(null);
+  const [company, setCompany] = useState<NewsMention | null>(null);
   const [offset, setOffset] = useState(0);
   const [shown, setShown] = useState<NewsItem[]>([]);
   const text = useDebounced(typed);
@@ -147,10 +147,11 @@ export function News(): React.JSX.Element {
         </p>
       ) : (
         <>
-          {shown.length > 0 && <Lead item={shown[0] as NewsItem} />}
+          {shown.length > 0 && <Lead item={shown[0] as NewsItem} onSelectMention={setCompany} />}
           <NewsFeed
             items={page === null && shown.length === 0 ? null : shown.slice(1)}
             loading={news.loading && shown.length === 0}
+            onSelectMention={setCompany}
           />
           {page !== null && (
             <LoadMore
@@ -181,7 +182,13 @@ function merge(held: NewsItem[], arriving: NewsItem[]): NewsItem[] {
 }
 
 /** The newest article, given the room its picture deserves. */
-function Lead({ item }: { item: NewsItem }): React.JSX.Element {
+function Lead({
+  item,
+  onSelectMention,
+}: {
+  item: NewsItem;
+  onSelectMention: (mention: NewsMention) => void;
+}): React.JSX.Element {
   return (
     <Card className="overflow-hidden pt-0">
       <div className="grid md:grid-cols-2">
@@ -208,9 +215,21 @@ function Lead({ item }: { item: NewsItem }): React.JSX.Element {
           <p className="text-sm text-muted-foreground">{item.summary}</p>
           <div className="mt-auto flex flex-wrap items-center gap-1">
             {item.mentions.map((mention) => (
-              <Badge key={mention.instrument_key} variant="secondary" className="text-xs">
-                {mention.symbol}
-              </Badge>
+              <button
+                key={mention.instrument_key}
+                type="button"
+                title={`Show only news about ${mention.symbol}`}
+                onClick={() => {
+                  onSelectMention(mention);
+                }}
+              >
+                <Badge
+                  variant="secondary"
+                  className="cursor-pointer text-xs hover:bg-primary hover:text-primary-foreground"
+                >
+                  {mention.symbol}
+                </Badge>
+              </button>
             ))}
             <span className="ml-auto text-xs text-muted-foreground">
               {formatSince(item.published_at)}
@@ -228,9 +247,9 @@ function CompanyFilter({
   offered,
   onChoose,
 }: {
-  company: MentionedInstrument | null;
+  company: NewsMention | null;
   offered: MentionedInstrument[];
-  onChoose: (company: MentionedInstrument | null) => void;
+  onChoose: (company: NewsMention | null) => void;
 }): React.JSX.Element | null {
   if (company !== null) {
     return (

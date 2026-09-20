@@ -113,7 +113,7 @@ It rose from 95% with the first real views.
   click-outside, and every choice a real button with `role="menuitem"`.
   It carries sign-out and the theme, which are exactly the things worth
   having tests for. Do not swap it for the Radix one without a browser
-  test runner.
+  test runner. `src/components/Tooltip.tsx` exists for the same reason.
 - **A stub that ignores the query hides what depends on it.** `stubPlatform`
   takes `bodyFor(path)` as well as a fixed `body`; a paged endpoint stubbed
   with a fixed first page will pass a test of "load more" that the real
@@ -207,8 +207,8 @@ call site.
   `MoverPanel`, `IndexCard`, `MiniCandlestick`, `ScopeSelector`,
   `ScopePicker`, `ThemeToggle`, `Meter`, `Sparkline`, `Statistic`,
   `BreadthPanel`, `BreadthGridPanel`, `RegimeBanner`, `NewsFeed`,
-  `LoadMore`, `ComparisonChart`, `Menu`, `ThemeMenu`, `UserMenu`,
-  `AppShell`.
+  `LoadMore`, `ComparisonChart`, `Menu`, `Tooltip`, `ThemeMenu`,
+  `UserMenu`, `AppShell`.
 - **Card grids are three across, never four.** Every count asked for is a
   multiple of three -- six headlines on the overview, twelve to a news
   batch -- so the last row is always full. The news page asks for

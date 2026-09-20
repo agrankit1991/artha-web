@@ -236,4 +236,36 @@ describe("News", () => {
     expect(await screen.findByText("Refiners lead the index higher")).toBeInTheDocument();
     expect(document.querySelectorAll("img")).toHaveLength(0);
   });
+
+  it("filters to a company when its tag is chosen from a card", async () => {
+    // The tags are the fastest way in: a reader sees a symbol on an
+    // article and wants the rest of that company's news.
+    const fetchMock = stubEverything();
+    render(<News />);
+    await screen.findByText("Headline 0");
+
+    const [tag] = screen.getAllByRole("button", { name: /RELIANCE/ });
+    await userEvent.click(tag as HTMLElement);
+
+    await waitFor(() => {
+      expect(
+        asked(fetchMock).some((path) => path.includes("instrument_key=NSE_EQ%7CINE002A01018")),
+      ).toBe(true);
+    });
+    expect(screen.getByText("Showing news about")).toBeInTheDocument();
+  });
+
+  it("filters from the lead article's tags too", async () => {
+    const fetchMock = stubEverything(newsPage({ total: 1, items: [newsItem()] }));
+    render(<News />);
+    await screen.findByText("Refiners lead the index higher");
+
+    await userEvent.click(screen.getByRole("button", { name: /RELIANCE/ }));
+
+    await waitFor(() => {
+      expect(
+        asked(fetchMock).some((path) => path.includes("instrument_key=NSE_EQ%7CINE002A01018")),
+      ).toBe(true);
+    });
+  });
 });

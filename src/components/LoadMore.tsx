@@ -51,8 +51,11 @@ export function LoadMore({
           : `All ${String(total)} ${noun} shown`}
       </p>
       {remaining > 0 && (
+        // The count stays on the line above rather than in the label: a
+        // button whose text changes on every press is a button a reader
+        // has to re-read before every press.
         <Button variant="outline" disabled={loading} onClick={onMore}>
-          {loading ? "Loading…" : `Load more (${String(remaining)} left)`}
+          {loading ? "Loading…" : "Load more"}
         </Button>
       )}
     </div>

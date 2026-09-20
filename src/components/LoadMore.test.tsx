@@ -13,12 +13,13 @@ describe("LoadMore", () => {
     expect(screen.getByText("Showing 12 of 92 articles")).toBeInTheDocument();
   });
 
-  it("says how many more a press would bring", () => {
-    // "Load more" alone gives no sense of whether that is five or five
-    // hundred.
+  it("keeps the counting off the button", () => {
+    // A button whose words change on every press is one a reader has to
+    // re-read before every press. The count is on the line above it.
     render(<LoadMore shown={12} total={92} onMore={vi.fn()} />);
 
-    expect(screen.getByRole("button", { name: "Load more (80 left)" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Load more" })).toBeInTheDocument();
+    expect(screen.queryByText(/80/)).not.toBeInTheDocument();
   });
 
   it("asks for more when pressed", async () => {

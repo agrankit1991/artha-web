@@ -1,7 +1,8 @@
 /** Tests for the news feed. */
 
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 
 import { NewsFeed } from "./NewsFeed";
 import { newsItem } from "@/test/support";
@@ -108,5 +109,44 @@ describe("NewsFeed", () => {
     fireEvent.error(picture as HTMLImageElement);
 
     expect(document.querySelectorAll("img")).toHaveLength(0);
+  });
+
+  it("shows the whole summary on hover, without the card growing", async () => {
+    // Clamped to two lines so every card is the same height; the rest is
+    // read by hovering rather than by the card shoving the grid around.
+    render(<NewsFeed items={[newsItem()]} />);
+
+    await userEvent.hover(screen.getByText(/Crude eased overnight/));
+
+    const bubble = screen.getByRole("tooltip");
+    expect(bubble).toHaveTextContent("Crude eased overnight");
+    expect(bubble).toHaveClass("absolute");
+  });
+
+  it("leaves the tags as labels when choosing one would do nothing", () => {
+    // A tag that looks pressable and is not is worse than one that does
+    // not look pressable.
+    render(<NewsFeed items={[newsItem()]} />);
+
+    expect(screen.queryByRole("button", { name: /RELIANCE/ })).not.toBeInTheDocument();
+    expect(screen.getByText("RELIANCE")).toBeInTheDocument();
+  });
+
+  it("reports the company whose tag was chosen", async () => {
+    const chosen = vi.fn();
+    render(<NewsFeed items={[newsItem()]} onSelectMention={chosen} />);
+
+    await userEvent.click(screen.getByRole("button", { name: /RELIANCE/ }));
+
+    expect(chosen).toHaveBeenCalledWith(expect.objectContaining({ symbol: "RELIANCE" }));
+  });
+
+  it("says what pressing a tag will do", () => {
+    render(<NewsFeed items={[newsItem()]} onSelectMention={vi.fn()} />);
+
+    expect(screen.getByRole("button", { name: /RELIANCE/ })).toHaveAttribute(
+      "title",
+      "Show only news about RELIANCE",
+    );
   });
 });
