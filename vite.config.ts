@@ -50,14 +50,19 @@ export default defineConfig({
         "src/components/ui/**",
       ],
 
-      // Thresholds sit at 95%: every module ships with tests that exercise its
-      // failure paths, not just the happy one. The bar only ever goes up; lowering
-      // it to make a build pass turns the gate into decoration.
+      // Every module ships with tests that exercise its failure paths, not
+      // just the happy one. The bar only ever goes up; lowering it to make
+      // a build pass turns the gate into decoration.
+      //
+      // Branches sit lower than the rest deliberately. Under
+      // `noUncheckedIndexedAccess` an index read is `T | undefined` even
+      // where an invariant has already ruled the absence out, so a handful
+      // of fallbacks exist that no test can reach.
       thresholds: {
-        lines: 97,
+        lines: 99,
         branches: 97,
-        functions: 97,
-        statements: 97,
+        functions: 99,
+        statements: 99,
       },
     },
   },

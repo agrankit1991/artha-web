@@ -46,9 +46,17 @@ test toolchain trains people to ignore the audit. High and critical block.
 
 ### Coverage ratchet
 
-Currently **97%** on lines, branches, functions and statements, configured in
-`vite.config.ts`. Actual coverage is 99.6% of statements and lines, 100% of
-functions, 97.6% of branches.
+Currently **99%** on lines, functions and statements and **97%** on branches,
+configured in `vite.config.ts`. Actual coverage is 99.9% of statements and
+lines, 100% of functions, 97.8% of branches.
+
+Branches sit lower than the rest on purpose. Under
+`noUncheckedIndexedAccess` every array index read is `T | undefined`, so
+code that has already established an invariant still has to write a
+fallback for a case that cannot happen -- and those fallbacks are branches
+no test can reach. Where the invariant can be carried in the data instead,
+carry it; where it cannot, the fallback stays and is commented as
+unreachable. Do not write a test that fakes reaching one.
 
 `src/components/ui/**` is excluded: those are shadcn's components, copied in
 rather than written here, and a test of a thin wrapper over a Radix
@@ -103,6 +111,18 @@ It rose from 95% with the first real views.
   control is a visible group of three buttons partly for that reason and
   partly because it is the better control. Before reaching for a menu,
   budget for testing it in a real browser.
+- **Lightweight Charts needs a canvas, and jsdom has none.** Every test that
+  renders a chart replaces the library through `src/test/chartStub.ts` --
+  one stub, because two stubs of one library drift apart and then a test
+  passes against a shape the library never had. Keep chart components thin
+  for the same reason: the arithmetic behind a line belongs in `src/lib`
+  where it can be tested as arithmetic.
+- **Build dates in UTC in fixtures.** A date built at local midnight and
+  serialised through `toISOString()` lands on the previous day everywhere
+  east of Greenwich, which is where this application runs. Two fixtures had
+  this bug; one of them also generated `2026-08-32`.
+- **Node's `en-IN` renders September as "Sept", not "Sep".** A test
+  asserting on a formatted date should allow both.
 - `index.html` must be served `no-cache` while hashed assets are immutable,
   or a deploy stays invisible until browser caches expire. That is configured
   in `Caddyfile`.
@@ -134,24 +154,43 @@ call site.
   between the application and the sign-in page, because flashing the
   sign-in form at someone who is signed in is the most common way an
   application like this feels broken.
-- **The overview** (`src/routes/Overview.tsx`) -- index cards, then every
-  mover list for whichever population is chosen. One request brings all
-  seven lists, so the page arrives whole.
-- **Market breadth** (`src/components/BreadthPanel.tsx`) — how many took
-  part rather than how far the index moved, for whichever population is
-  chosen. One proportional bar for the split, three meters for the moving
+- **Routing** (`src/App.tsx`): the overview at `/` and market breadth at
+  `/breadth`, with `PATHS` as the one place a path is spelled. These are
+  places a reader bookmarks and presses Back out of, which is what makes
+  them routes rather than component state. Caddy already serves the SPA
+  fallback, so a deep link works.
+- **The overview** (`src/routes/Overview.tsx`) -- the eight headline
+  indices as cards, the benchmark against gold, every mover list for
+  whichever population is chosen, and the news feed. One request brings all
+  seven lists, so that section arrives whole.
+- **Market breadth** (`src/routes/Breadth.tsx`) -- the same counts at
+  length: any population over any of five windows, six headline measures
+  each printed with the sentence that says what the reading means, and
+  every counted session in the one table, sortable by any column.
+- **The breadth glance** (`src/components/BreadthPanel.tsx`) — how many
+  took part rather than how far the index moved, used by both screens. One proportional bar for the split, three meters for the moving
   averages, two sparklines, and a plain-language reading of the McClellan
   oscillator: "+42" says nothing to most readers and "more stocks joining"
   does. Colour never carries a meaning on its own; every figure is printed
   and every shape is labelled for a screen reader.
 - **Shared components** in `src/components`: `DataTable`, `Delta`,
-  `MoverPanel`, `IndexCard`, `ScopeSelector`, `ThemeToggle`, `Meter`,
-  `Sparkline`, `BreadthPanel`.
+  `MoverPanel`, `IndexCard`, `MiniCandlestick`, `ScopeSelector`,
+  `ScopePicker`, `ThemeToggle`, `Meter`, `Sparkline`, `Statistic`,
+  `BreadthPanel`, `NewsFeed`, `ComparisonChart`.
+- **The featured indices** in `src/lib/indices.ts`: which indices the
+  overview draws and the breadth page pins, in a settled order, in one
+  place. India VIX is among them as a card and is filtered out as a
+  population -- it has no constituents to count or rank, and the platform
+  reports as much, so the filter follows the platform rather than a second
+  hardcoded list.
+- **Gold** is the exchange-traded fund, not an MCX contract. A contract
+  expires: the longest single gold contract stored is 226 sessions, and
+  stitching several needs a declared roll rule that does not exist. The
+  reasoning is in `indices.ts` beside the key.
 - **Theme** in `src/lib/theme.tsx`: light, dark, or following the system,
   remembered across visits and working when storage is blocked.
 
 ## Not yet built
 
-Routing (there is one screen, so there is nothing yet to route between), the
-instrument and comparison views, Lightweight Charts, registration by
-invitation, and localisation.
+The instrument and comparison views, candlestick and indicator charts on
+the instrument page, registration by invitation, and localisation.
