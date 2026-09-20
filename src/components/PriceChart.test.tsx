@@ -13,6 +13,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { PriceChart } from "./PriceChart";
 import { chartCalls, dataFor, seriesKinds, seriesPanes } from "@/test/chartStub";
+import { AVERAGE_COLOURS, PRICE_LINE } from "@/lib/chartPalette";
 import { chartPoints } from "@/test/support";
 import { ThemeProvider } from "@/lib/theme";
 
@@ -58,34 +59,37 @@ async function toggleIndicator(name: string): Promise<void> {
 }
 
 describe("PriceChart", () => {
-  it("opens on candles, with the long averages and what traded", () => {
+  it("opens as a line, with the long averages and what traded", () => {
+    // A chart somebody has just opened is being read as a shape rather
+    // than a session at a time; the candles are one choice away.
     draw();
 
-    expect(seriesKinds()).toEqual(["candlestick", "histogram", "line", "line"]);
+    expect(seriesKinds()).toEqual(["line", "histogram", "line", "line"]);
     expect(within(legend()).getByText("SMA 50")).toBeInTheDocument();
     expect(within(legend()).getByText("SMA 200")).toBeInTheDocument();
   });
 
-  it("hands the candles all four prices of each session", () => {
+  it("draws the price from the closes when it is a line", () => {
     draw({ points: chartPoints(3) });
+
+    expect(dataFor("line")).toEqual([
+      { time: "2026-09-01", value: 103 },
+      { time: "2026-09-02", value: 104 },
+      { time: "2026-09-03", value: 105 },
+    ]);
+  });
+
+  it("hands the candles all four prices of each session", async () => {
+    draw({ points: chartPoints(3) });
+    afterRedraw();
+
+    await chooseShape("Candles");
 
     expect(dataFor("candlestick")).toEqual([
       { time: "2026-09-01", open: 100, high: 104, low: 99, close: 103 },
       { time: "2026-09-02", open: 101, high: 105, low: 100, close: 104 },
       { time: "2026-09-03", open: 102, high: 106, low: 101, close: 105 },
     ]);
-  });
-
-  it("draws the price as a line when a line is asked for", async () => {
-    draw();
-    afterRedraw();
-
-    await chooseShape("Line");
-
-    expect(seriesKinds()).not.toContain("candlestick");
-    expect(dataFor("line")).toEqual(
-      chartPoints(10).map((point) => ({ time: point.day, value: Number(point.close) })),
-    );
   });
 
   it("draws it as an area when an area is asked for", async () => {
@@ -159,7 +163,7 @@ describe("PriceChart", () => {
     await userEvent.click(screen.getByRole("button", { name: "Indicators" }));
     await userEvent.click(screen.getByRole("menuitem", { name: "Clear all" }));
 
-    expect(seriesKinds()).toEqual(["candlestick"]);
+    expect(seriesKinds()).toEqual(["line"]);
     expect(within(legend()).queryByText("SMA 200")).not.toBeInTheDocument();
   });
 
@@ -171,7 +175,9 @@ describe("PriceChart", () => {
 
     draw({ points, initialOverlays: ["sma_200"] });
 
-    expect(dataFor("line")).toHaveLength(2);
+    // The price is a line too, so the average is the second series drawn.
+    const [, average] = chartCalls.setData.mock.calls;
+    expect(average?.[0]).toHaveLength(2);
   });
 
   it("offers the way out to the instrument it drew", () => {
@@ -190,5 +196,23 @@ describe("PriceChart", () => {
     draw({ points: null, loading: true });
 
     expect(screen.getByRole("img")).toHaveAccessibleName("Chart loading");
+  });
+
+  it("draws each average thin, and in its own colour", () => {
+    // Light to heavy as the average lengthens, so the weight of the
+    // colour matches the weight a reader should give it. Three of them at
+    // two pixels each would be a chart of averages with a price behind it.
+    draw({ initialOverlays: ["sma_20", "sma_50", "sma_200"] });
+
+    const drawn = chartCalls.addSeries.mock.calls
+      .map((call) => (call as unknown[])[1] as { color?: string; lineWidth?: number })
+      .filter((options) => options.color !== undefined && options.color !== PRICE_LINE);
+
+    expect(drawn.map((options) => options.color)).toEqual([
+      AVERAGE_COLOURS.sma_20,
+      AVERAGE_COLOURS.sma_50,
+      AVERAGE_COLOURS.sma_200,
+    ]);
+    expect(drawn.every((options) => options.lineWidth === 1)).toBe(true);
   });
 });

@@ -174,6 +174,15 @@ Callers describe _what_ to draw -- candles, lines, bars -- never how.
 domain data into series and own the one thing that is theirs, the moving
 averages and the rebasing respectively.
 
+Every colour a chart draws with is in `src/lib/chartPalette.ts`, not in
+the component that happens to draw it: a reader who has learnt that the
+red line is the two-hundred-session average on one screen should not have
+to learn it again on the next. Those colours are deliberately apart from
+the theme's accent, because a chart's own series must stay recognisable
+whichever accent is chosen. The averages run light to heavy as they
+lengthen, and are drawn thin -- three of them at two pixels each is a
+chart of moving averages with a price somewhere behind it.
+
 A series says which pane it belongs in. Nought is the price; anything else
 gets a band of its own underneath, which is what an oscillator on a nought
 to a hundred scale needs -- drawn over a price it is a flat line along the

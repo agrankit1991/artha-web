@@ -17,6 +17,14 @@ import { useMemo, useState } from "react";
 import type { ChartPoint } from "@/api/client";
 import { Chart, type ChartInstrument, type Series } from "@/components/Chart";
 import { type ChartStyle, ChartControls, type Overlay } from "@/components/ChartControls";
+import {
+  AVERAGE_COLOURS,
+  OSCILLATOR,
+  PRICE_LINE,
+  PRICE_WIDTH,
+  VOLUME_DOWN,
+  VOLUME_UP,
+} from "@/lib/chartPalette";
 import { toNumber } from "@/lib/format";
 
 interface PriceChartProps {
@@ -28,19 +36,15 @@ interface PriceChartProps {
   loading?: boolean;
 }
 
-/** The averages, and the colour each is drawn in. */
+/** The averages, and which figure each reads. */
 const AVERAGES: Record<
   "sma_20" | "sma_50" | "sma_200",
   { of: (point: ChartPoint) => string | null; label: string; colour: string }
 > = {
-  sma_20: { of: (point) => point.sma_20, label: "SMA 20", colour: "#f59e0b" },
-  sma_50: { of: (point) => point.sma_50, label: "SMA 50", colour: "#3b82f6" },
-  sma_200: { of: (point) => point.sma_200, label: "SMA 200", colour: "#a855f7" },
+  sma_20: { of: (point) => point.sma_20, label: "SMA 20", colour: AVERAGE_COLOURS.sma_20 },
+  sma_50: { of: (point) => point.sma_50, label: "SMA 50", colour: AVERAGE_COLOURS.sma_50 },
+  sma_200: { of: (point) => point.sma_200, label: "SMA 200", colour: AVERAGE_COLOURS.sma_200 },
 };
-
-const PRICE_COLOUR = "#2563eb";
-const RISING = "rgba(22,163,74,0.35)";
-const FALLING = "rgba(220,38,38,0.35)";
 
 /** What an RSI is read against: oversold below thirty, overbought above seventy. */
 const RSI_THRESHOLDS = [
@@ -50,6 +54,16 @@ const RSI_THRESHOLDS = [
 
 /** What is drawn over the price unless a caller says otherwise. */
 const DEFAULT_OVERLAYS: Overlay[] = ["sma_50", "sma_200", "volume"];
+
+/**
+ * The shape a chart opens in.
+ *
+ * A line rather than candles. Candles are read a session at a time and a
+ * line is read as a shape, and a chart somebody has just opened is being
+ * read as a shape -- the candles are one choice away for whoever wants
+ * them.
+ */
+const DEFAULT_STYLE: ChartStyle = "line";
 
 /**
  * Draw the sessions.
@@ -63,7 +77,7 @@ export function PriceChart({
   initialOverlays = DEFAULT_OVERLAYS,
   loading = false,
 }: PriceChartProps): React.JSX.Element {
-  const [style, setStyle] = useState<ChartStyle>("candles");
+  const [style, setStyle] = useState<ChartStyle>(DEFAULT_STYLE);
   const [overlays, setOverlays] = useState<Overlay[]>(initialOverlays);
   const sessions = useMemo(() => points ?? [], [points]);
 
@@ -81,7 +95,8 @@ export function PriceChart({
         points: sessions.map((point) => ({
           time: point.day,
           value: point.volume,
-          color: (toNumber(point.close) ?? 0) >= (toNumber(point.open) ?? 0) ? RISING : FALLING,
+          color:
+            (toNumber(point.close) ?? 0) >= (toNumber(point.open) ?? 0) ? VOLUME_UP : VOLUME_DOWN,
         })),
       });
     }
@@ -101,7 +116,7 @@ export function PriceChart({
       drawn.push({
         kind: "line",
         label: "RSI",
-        colour: "#0ea5e9",
+        colour: OSCILLATOR,
         // A band of its own: an oscillator on a nought to a hundred scale
         // drawn over a price is a flat line along the bottom.
         pane: 1,
@@ -154,8 +169,8 @@ function priceOf(sessions: ChartPoint[], style: ChartStyle): Series {
   }
   const closes = sessions.map((point) => ({ time: point.day, value: toNumber(point.close) ?? 0 }));
   return style === "area"
-    ? { kind: "area", label: "Price", colour: PRICE_COLOUR, points: closes }
-    : { kind: "line", label: "Price", colour: PRICE_COLOUR, width: 2, points: closes };
+    ? { kind: "area", label: "Price", colour: PRICE_LINE, points: closes }
+    : { kind: "line", label: "Price", colour: PRICE_LINE, width: PRICE_WIDTH, points: closes };
 }
 
 /**

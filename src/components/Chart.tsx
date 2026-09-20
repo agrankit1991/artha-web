@@ -27,6 +27,7 @@ import {
 import { useEffect, useRef } from "react";
 
 import { TradingViewLink } from "@/components/TradingViewLink";
+import { AVERAGE_WIDTH, CANDLE_DOWN, CANDLE_UP, PRICE_WIDTH, THRESHOLD } from "@/lib/chartPalette";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -274,8 +275,8 @@ function draw(chart: IChartApi, series: Series, asPercent: boolean): void {
   for (const threshold of series.thresholds ?? []) {
     drawn.createPriceLine({
       price: threshold.value,
-      color: "#a1a1aa",
-      lineWidth: 1,
+      color: THRESHOLD,
+      lineWidth: AVERAGE_WIDTH,
       lineStyle: 2,
       axisLabelVisible: true,
       title: threshold.label ?? "",
@@ -302,11 +303,11 @@ function add(
     const candles = chart.addSeries(
       CandlestickSeries,
       {
-        upColor: "#16a34a",
-        downColor: "#dc2626",
+        upColor: CANDLE_UP,
+        downColor: CANDLE_DOWN,
         borderVisible: false,
-        wickUpColor: "#16a34a",
-        wickDownColor: "#dc2626",
+        wickUpColor: CANDLE_UP,
+        wickDownColor: CANDLE_DOWN,
       },
       pane,
     );
@@ -331,7 +332,7 @@ function add(
         lineColor: series.colour,
         topColor: `${series.colour}55`,
         bottomColor: `${series.colour}05`,
-        lineWidth: 2,
+        lineWidth: PRICE_WIDTH,
         ...(asPercent ? { priceFormat: { type: "percent" as const } } : {}),
       },
       pane,
@@ -344,7 +345,7 @@ function add(
     LineSeries,
     {
       color: series.colour,
-      lineWidth: series.width === 2 ? 2 : 1,
+      lineWidth: series.width === PRICE_WIDTH ? PRICE_WIDTH : AVERAGE_WIDTH,
       lastValueVisible: false,
       priceLineVisible: false,
       ...(asPercent ? { priceFormat: { type: "percent" as const } } : {}),
