@@ -247,4 +247,48 @@ describe("Overview", () => {
       expect(asked).toContain("limit=6");
     });
   });
+
+  it("opens on a year and asks for whatever span is chosen", async () => {
+    const fetchMock = stubEverything();
+    renderOverview();
+    await screen.findByText("200-day");
+    expect(
+      fetchMock.mock.calls
+        .map((call) => String(call[0]))
+        .some((path) => path.startsWith("/api/figures") && path.includes("sessions=250")),
+    ).toBe(true);
+
+    await userEvent.click(
+      within(screen.getByRole("group", { name: "History" })).getByRole("button", {
+        name: "Max",
+      }),
+    );
+
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      expect(
+        asked.some((path) => path.startsWith("/api/figures") && path.includes("sessions=12500")),
+      ).toBe(true);
+    });
+  });
+
+  it("keeps the span when the chart is switched", async () => {
+    // Switching views to find the range reset is what makes one chart
+    // feel like two.
+    const fetchMock = stubEverything();
+    renderOverview();
+    await screen.findByText("200-day");
+    await userEvent.click(
+      within(screen.getByRole("group", { name: "History" })).getByRole("button", { name: "5Y" }),
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "vs Gold" }));
+
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      expect(
+        asked.some((path) => path.startsWith("/api/series") && path.includes("sessions=1250")),
+      ).toBe(true);
+    });
+  });
 });

@@ -225,8 +225,9 @@ call site.
   `MoverPanel`, `IndexCard`, `MiniCandlestick`, `ScopeSelector`,
   `ScopePicker`, `ThemeToggle`, `Meter`, `Sparkline`, `Statistic`,
   `BreadthPanel`, `BreadthGridPanel`, `RegimeBanner`, `NewsFeed`,
-  `LoadMore`, `ComparisonChart`, `PriceChart`, `TradingViewWidget`,
-  `Menu`, `Tooltip`, `ThemeMenu`, `UserMenu`, `AppShell`.
+  `LoadMore`, `RangeSelector`, `ComparisonChart`, `PriceChart`,
+  `TradingViewWidget`, `Menu`, `Tooltip`, `ThemeMenu`, `UserMenu`,
+  `AppShell`.
 - **Card grids are three across, never four.** Every count asked for is a
   multiple of three -- six headlines on the overview, twelve to a news
   batch -- so the last row is always full. The news page asks for

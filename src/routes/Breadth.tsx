@@ -17,6 +17,7 @@ import { BreadthGridPanel } from "@/components/BreadthGridPanel";
 import { BreadthPanel } from "@/components/BreadthPanel";
 import { type Column, DataTable } from "@/components/DataTable";
 import { RegimeBanner } from "@/components/RegimeBanner";
+import { BREADTH_RANGES, RangeSelector } from "@/components/RangeSelector";
 import { ScopePicker } from "@/components/ScopePicker";
 import type { Scope } from "@/components/ScopeSelector";
 import { Statistic } from "@/components/Statistic";
@@ -25,15 +26,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useResource } from "@/hooks/useResource";
 import { readings } from "@/lib/breadthReadings";
 import { ABSENT, formatDay, formatVolume, toNumber } from "@/lib/format";
-
-/** The windows a reader switches between, in sessions. */
-const WINDOWS: { label: string; sessions: number }[] = [
-  { label: "3M", sessions: 65 },
-  { label: "6M", sessions: 125 },
-  { label: "1Y", sessions: 250 },
-  { label: "2Y", sessions: 500 },
-  { label: "5Y", sessions: 1250 },
-];
 
 const DEFAULT_WINDOW = 250;
 
@@ -84,21 +76,12 @@ export function Breadth(): React.JSX.Element {
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <ScopePicker scope={scope} options={scopes.data} onChange={setScope} />
-          <div className="flex gap-1" role="group" aria-label="Window">
-            {WINDOWS.map((window) => (
-              <Button
-                key={window.label}
-                size="sm"
-                variant={window.sessions === sessions ? "secondary" : "ghost"}
-                aria-pressed={window.sessions === sessions}
-                onClick={() => {
-                  setSessions(window.sessions);
-                }}
-              >
-                {window.label}
-              </Button>
-            ))}
-          </div>
+          <RangeSelector
+            ranges={BREADTH_RANGES}
+            sessions={sessions}
+            onChange={setSessions}
+            label="Window"
+          />
         </div>
       </header>
 

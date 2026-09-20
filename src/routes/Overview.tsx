@@ -23,6 +23,7 @@ import {
 import { BreadthPanel } from "@/components/BreadthPanel";
 import { type ChartLine, ComparisonChart } from "@/components/ComparisonChart";
 import { PriceChart } from "@/components/PriceChart";
+import { PRICE_RANGES, RangeSelector } from "@/components/RangeSelector";
 import { TradingViewWidget } from "@/components/TradingViewWidget";
 import { IndexCard } from "@/components/IndexCard";
 import { MoverPanelCard } from "@/components/MoverPanel";
@@ -50,11 +51,8 @@ interface OverviewProps {
  */
 const HEADLINES = 6;
 
-/** Sessions of the gold comparison -- about six months. */
-const COMPARISON_SESSIONS = 125;
-
-/** Sessions of the benchmark's own chart -- about a year. */
-const CHART_SESSIONS = 250;
+/** How much history the chart opens on -- a year. */
+const DEFAULT_RANGE = 250;
 
 /** What the chart section can show. */
 const VIEWS = [
@@ -81,6 +79,9 @@ export function Overview({
 }: OverviewProps): React.JSX.Element {
   const [scope, setScope] = useState<Scope>({ kind: "companies", key: null });
   const [view, setView] = useState<"price" | "gold">("price");
+  // One range for both views. Switching between them to find the span
+  // reset is the kind of thing that makes a chart feel like two charts.
+  const [sessions, setSessions] = useState(DEFAULT_RANGE);
 
   const loadScopes = useCallback(() => fetchScopes(), []);
   const loadIndices = useCallback(
@@ -91,10 +92,10 @@ export function Overview({
   const loadBreadth = useCallback(() => fetchBreadth(scope.kind, scope.key), [scope]);
   const loadNews = useCallback(() => fetchNews({ limit: HEADLINES }), []);
   const loadComparison = useCallback(
-    () => fetchSeries([BENCHMARK.key, GOLD.key], COMPARISON_SESSIONS),
-    [],
+    () => fetchSeries([BENCHMARK.key, GOLD.key], sessions),
+    [sessions],
   );
-  const loadChart = useCallback(() => fetchFigures(BENCHMARK.key, CHART_SESSIONS), []);
+  const loadChart = useCallback(() => fetchFigures(BENCHMARK.key, sessions), [sessions]);
 
   const scopes = useResource(loadScopes);
   const indices = useResource(loadIndices);
@@ -132,24 +133,32 @@ export function Overview({
             </h2>
             <p className="text-sm text-muted-foreground">
               {view === "price"
-                ? "A year of sessions, with this platform's own moving averages over them."
-                : "Six months against gold, both rebased to their first shared session."}
+                ? "Sessions as candles, with this platform's own moving averages over them."
+                : "Against gold, both rebased to the first session they share."}
             </p>
           </div>
-          <div className="flex gap-1" role="group" aria-label="Chart">
-            {VIEWS.map((option) => (
-              <Button
-                key={option.key}
-                size="sm"
-                variant={option.key === view ? "secondary" : "ghost"}
-                aria-pressed={option.key === view}
-                onClick={() => {
-                  setView(option.key);
-                }}
-              >
-                {option.label}
-              </Button>
-            ))}
+          <div className="flex flex-wrap items-center gap-3">
+            <RangeSelector
+              ranges={PRICE_RANGES}
+              sessions={sessions}
+              onChange={setSessions}
+              label="History"
+            />
+            <div className="flex gap-1" role="group" aria-label="Chart">
+              {VIEWS.map((option) => (
+                <Button
+                  key={option.key}
+                  size="sm"
+                  variant={option.key === view ? "secondary" : "ghost"}
+                  aria-pressed={option.key === view}
+                  onClick={() => {
+                    setView(option.key);
+                  }}
+                >
+                  {option.label}
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
         {view === "price" ? (
