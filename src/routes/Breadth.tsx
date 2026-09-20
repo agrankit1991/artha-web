@@ -8,6 +8,7 @@
  * index and its participants is visible over months and invisible in a day.
  */
 
+import { Activity, LayoutGrid, Table as TableIcon } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import type { BreadthSession } from "@/api/client";
@@ -73,7 +74,10 @@ export function Breadth(): React.JSX.Element {
     <div className="space-y-6">
       <header className="space-y-3">
         <div>
-          <h1 className="text-xl font-semibold">Market breadth</h1>
+          <h1 className="flex items-center gap-2 text-xl font-semibold">
+            <Activity className="h-5 w-5 text-primary" />
+            Market breadth
+          </h1>
           <p className="text-sm text-muted-foreground">
             How many instruments took part, rather than how far the index moved.
           </p>
@@ -133,7 +137,10 @@ export function Breadth(): React.JSX.Element {
             <CardHeader>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <CardTitle className="text-base">Where the market is working</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <LayoutGrid className="h-4 w-4 text-muted-foreground" />
+                    Where the market is working
+                  </CardTitle>
                   <CardDescription>
                     Every population of one kind, strongest participation first.
                   </CardDescription>
@@ -169,7 +176,10 @@ export function Breadth(): React.JSX.Element {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Session by session</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <TableIcon className="h-4 w-4 text-muted-foreground" />
+                Session by session
+              </CardTitle>
             </CardHeader>
             <CardContent role="region" aria-label="Session history">
               <SessionTable sessions={history} loading={breadth.loading} />

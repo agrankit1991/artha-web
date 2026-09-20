@@ -7,7 +7,7 @@
  * arrives whole rather than in pieces.
  */
 
-import { ChevronRight } from "lucide-react";
+import { Activity, ChevronRight, LineChart, Newspaper, TrendingUp } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import type { MoverRow } from "@/api/client";
@@ -97,7 +97,8 @@ export function Overview({
   return (
     <div className="space-y-8">
       <section className="space-y-3" aria-labelledby="indices-heading">
-        <h2 id="indices-heading" className="text-lg font-semibold">
+        <h2 id="indices-heading" className="flex items-center gap-2 text-lg font-semibold">
+          <TrendingUp className="h-5 w-5 text-primary" />
           Market indices
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -109,7 +110,8 @@ export function Overview({
 
       <section className="space-y-3" aria-labelledby="comparison-heading">
         <div>
-          <h2 id="comparison-heading" className="text-lg font-semibold">
+          <h2 id="comparison-heading" className="flex items-center gap-2 text-lg font-semibold">
+            <LineChart className="h-5 w-5 text-primary" />
             {BENCHMARK.name} against gold
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -121,7 +123,8 @@ export function Overview({
 
       <section className="space-y-4" aria-labelledby="movers-heading">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 id="movers-heading" className="text-lg font-semibold">
+          <h2 id="movers-heading" className="flex items-center gap-2 text-lg font-semibold">
+            <Activity className="h-5 w-5 text-primary" />
             Market movers
           </h2>
           <ScopePicker scope={scope} options={scopes.data} onChange={setScope} />
@@ -159,7 +162,8 @@ export function Overview({
       </section>
 
       <section className="space-y-3" aria-labelledby="news-heading">
-        <h2 id="news-heading" className="text-lg font-semibold">
+        <h2 id="news-heading" className="flex items-center gap-2 text-lg font-semibold">
+          <Newspaper className="h-5 w-5 text-primary" />
           Market news
         </h2>
         <NewsFeed items={news.data?.items ?? null} loading={news.loading} />

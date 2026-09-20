@@ -28,7 +28,15 @@ import type {
 /** A reply the stubbed platform should give to a path. */
 export interface Reply {
   status?: number;
+  /** A fixed body, whatever was asked for. */
   body?: unknown;
+  /**
+   * A body worked out from the path, for an endpoint whose answer depends
+   * on the query. A stub that always returns the first page answers a
+   * different question from the platform and hides whatever depended on
+   * the difference.
+   */
+  bodyFor?: (path: string) => unknown;
 }
 
 /**
@@ -46,10 +54,11 @@ export function stubPlatform(replies: Record<string, Reply>): ReturnType<typeof 
       .find((prefix) => path.startsWith(prefix));
     const reply: Reply = match === undefined ? { status: 404 } : (replies[match] ?? {});
     const status = reply.status ?? 200;
+    const body = reply.bodyFor === undefined ? reply.body : reply.bodyFor(path);
     return Promise.resolve({
       ok: status >= 200 && status < 300,
       status,
-      json: () => Promise.resolve(reply.body ?? {}),
+      json: () => Promise.resolve(body ?? {}),
     } as Response);
   });
   vi.stubGlobal("fetch", mock);

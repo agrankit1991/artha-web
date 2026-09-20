@@ -27,10 +27,11 @@ function stubSystem(dark: boolean): void {
 }
 
 function Probe(): React.JSX.Element {
-  const { choice, appearance, setChoice } = useTheme();
+  const { choice, appearance, accent, setChoice, setAccent } = useTheme();
   return (
     <div>
       <span data-testid="state">{`${choice}/${appearance}`}</span>
+      <span data-testid="accent">{accent}</span>
       <button
         type="button"
         onClick={() => {
@@ -38,6 +39,14 @@ function Probe(): React.JSX.Element {
         }}
       >
         go dark
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          setAccent("violet");
+        }}
+      >
+        go violet
       </button>
     </div>
   );
@@ -134,8 +143,55 @@ describe("theme", () => {
       </ThemeProvider>,
     );
     await userEvent.click(screen.getByRole("button", { name: "go dark" }));
+    await userEvent.click(screen.getByRole("button", { name: "go violet" }));
 
     expect(screen.getByTestId("state")).toHaveTextContent("dark/dark");
+    expect(screen.getByTestId("accent")).toHaveTextContent("violet");
+  });
+
+  it("remembers the accent apart from the light and dark choice", async () => {
+    // They answer different questions, so changing one must not reset the
+    // other, and neither may overwrite the other's stored value.
+    stubSystem(false);
+    render(
+      <ThemeProvider>
+        <Probe />
+      </ThemeProvider>,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "go violet" }));
+    await userEvent.click(screen.getByRole("button", { name: "go dark" }));
+
+    expect(window.localStorage.getItem("artha-accent")).toBe("violet");
+    expect(window.localStorage.getItem("artha-theme")).toBe("dark");
+    expect(screen.getByTestId("accent")).toHaveTextContent("violet");
+  });
+
+  it("starts from the accent a previous visit chose", () => {
+    window.localStorage.setItem("artha-accent", "green");
+    stubSystem(false);
+
+    render(
+      <ThemeProvider>
+        <Probe />
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByTestId("accent")).toHaveTextContent("green");
+    expect(document.documentElement).toHaveAttribute("data-accent", "green");
+  });
+
+  it("ignores a stored accent that is not one", () => {
+    window.localStorage.setItem("artha-accent", "chartreuse");
+    stubSystem(false);
+
+    render(
+      <ThemeProvider>
+        <Probe />
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByTestId("accent")).toHaveTextContent("slate");
   });
 
   it("ignores a stored value that is not a choice", () => {

@@ -120,6 +120,38 @@ describe("News", () => {
     const user = userEvent.setup();
     stubPlatform({
       "/api/news/mentions": { body: [mentionedInstrument()] },
+      // Answers the batch it was asked for, as the platform does. A stub
+      // that always returns the first batch would hide the very thing
+      // this test is about.
+      "/api/news": {
+        bodyFor: (path: string) => {
+          const offset = Number(new URL(path, "http://test").searchParams.get("offset") ?? "0");
+          return newsPage({
+            total: 24,
+            offset,
+            items: newsItems(24).slice(offset, offset + 12),
+          });
+        },
+      },
+    });
+    render(<News />);
+    await screen.findByText("Headline 11");
+
+    await user.click(screen.getByRole("button", { name: /Load more/ }));
+
+    // The second batch is added under the first rather than replacing it.
+    expect(await screen.findByText("Headline 23")).toBeInTheDocument();
+    expect(screen.getByText("Headline 0")).toBeInTheDocument();
+    expect(screen.getAllByText("Headline 11")).toHaveLength(1);
+    expect(screen.getByText("All 24 articles shown")).toBeInTheDocument();
+  });
+
+  it("shows an article once even if a batch arrives twice", async () => {
+    // React's strict mode makes an effect run twice in development, and a
+    // batch appended blindly would then show every article twice.
+    const user = userEvent.setup();
+    stubPlatform({
+      "/api/news/mentions": { body: [mentionedInstrument()] },
       "/api/news": { body: newsPage({ total: 24, items: newsItems(12) }) },
     });
     render(<News />);
@@ -127,12 +159,9 @@ describe("News", () => {
 
     await user.click(screen.getByRole("button", { name: /Load more/ }));
 
-    // The stub answers every batch with the same twelve; merging by link
-    // means they are shown once, not twice.
     await waitFor(() => {
       expect(screen.getAllByText("Headline 11")).toHaveLength(1);
     });
-    expect(screen.getByText("Headline 0")).toBeInTheDocument();
   });
 
   it("starts again from the beginning when the question changes", async () => {

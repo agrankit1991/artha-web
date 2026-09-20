@@ -12,18 +12,19 @@
  * arrive where they were.
  */
 
+import { Activity, LayoutDashboard, Newspaper, User } from "lucide-react";
 import { useCallback, useState } from "react";
-import { BrowserRouter, Link, NavLink, Route, Routes, useNavigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
 
 import type { Account } from "@/api/client";
-import { fetchAccount, signOut } from "@/api/client";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { Button } from "@/components/ui/button";
+import { fetchAccount, fetchHello, signOut } from "@/api/client";
+import { AppShell, type Screen } from "@/components/AppShell";
 import { useResource } from "@/hooks/useResource";
 import { ThemeProvider } from "@/lib/theme";
 import { Breadth } from "@/routes/Breadth";
 import { News } from "@/routes/News";
 import { Overview } from "@/routes/Overview";
+import { Profile } from "@/routes/Profile";
 import { SignIn } from "@/routes/SignIn";
 
 /** Where each screen lives, so no path is spelled out twice. */
@@ -31,13 +32,15 @@ export const PATHS = {
   overview: "/",
   breadth: "/breadth",
   news: "/news",
+  profile: "/profile",
 } as const;
 
 /** The navigation, in the order the screens are meant to be read. */
-const SCREENS: { path: string; label: string }[] = [
-  { path: PATHS.overview, label: "Overview" },
-  { path: PATHS.breadth, label: "Breadth" },
-  { path: PATHS.news, label: "News" },
+const SCREENS: Screen[] = [
+  { path: PATHS.overview, label: "Overview", icon: LayoutDashboard, exact: true },
+  { path: PATHS.breadth, label: "Breadth", icon: Activity },
+  { path: PATHS.news, label: "News", icon: Newspaper },
+  { path: PATHS.profile, label: "Profile", icon: User },
 ];
 
 /**
@@ -68,6 +71,12 @@ function Shell(): React.JSX.Element {
   // would be wrong is leaving the application on screen while it travels.
   const current = signedOut ? null : (account ?? session.data);
 
+  const leave = useCallback(() => {
+    setSignedOut(true);
+    setAccount(null);
+    void signOut();
+  }, []);
+
   if (session.loading && account === null && !signedOut) {
     return <Waiting />;
   }
@@ -84,71 +93,60 @@ function Shell(): React.JSX.Element {
   }
 
   return (
-    <div className="min-h-svh bg-background">
-      <header className="border-b">
-        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-4 px-4 py-3">
-          <div className="flex items-center gap-6">
-            <Link to={PATHS.overview} className="font-semibold">
-              Artha Science
-            </Link>
-            <nav className="flex items-center gap-1" aria-label="Screens">
-              {SCREENS.map((screen) => (
-                <NavLink
-                  key={screen.path}
-                  to={screen.path}
-                  end={screen.path === PATHS.overview}
-                  className={({ isActive }) =>
-                    `rounded-md px-3 py-1.5 text-sm ${
-                      isActive
-                        ? "bg-muted font-medium text-foreground"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`
-                  }
-                >
-                  {screen.label}
-                </NavLink>
-              ))}
-            </nav>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="hidden text-sm text-muted-foreground sm:inline">
-              {current.display_name}
-            </span>
-            <ThemeToggle />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSignedOut(true);
-                setAccount(null);
-                void signOut();
+    <SignedIn
+      account={current}
+      onSignOut={leave}
+      onNavigate={(path) => {
+        void navigate(path);
+      }}
+    />
+  );
+}
+
+/** The application proper, once there is somebody to show it to. */
+function SignedIn({
+  account,
+  onSignOut,
+  onNavigate,
+}: {
+  account: Account;
+  onSignOut: () => void;
+  onNavigate: (path: string) => void;
+}): React.JSX.Element {
+  // Asked once, for the footer: which build is running is the first thing
+  // worth knowing when a screen disagrees with what the code says it does.
+  const greeting = useCallback(() => fetchHello(), []);
+  const hello = useResource(greeting);
+
+  return (
+    <AppShell
+      account={account}
+      screens={SCREENS}
+      build={hello.data}
+      onOpenProfile={() => {
+        onNavigate(PATHS.profile);
+      }}
+      onSignOut={onSignOut}
+    >
+      <Routes>
+        <Route
+          path={PATHS.overview}
+          element={
+            <Overview
+              onOpenBreadth={() => {
+                onNavigate(PATHS.breadth);
               }}
-            >
-              Sign out
-            </Button>
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-[1600px] p-4">
-        <Routes>
-          <Route
-            path={PATHS.overview}
-            element={
-              <Overview
-                onOpenBreadth={() => {
-                  void navigate(PATHS.breadth);
-                }}
-                onOpenNews={() => {
-                  void navigate(PATHS.news);
-                }}
-              />
-            }
-          />
-          <Route path={PATHS.breadth} element={<Breadth />} />
-          <Route path={PATHS.news} element={<News />} />
-        </Routes>
-      </main>
-    </div>
+              onOpenNews={() => {
+                onNavigate(PATHS.news);
+              }}
+            />
+          }
+        />
+        <Route path={PATHS.breadth} element={<Breadth />} />
+        <Route path={PATHS.news} element={<News />} />
+        <Route path={PATHS.profile} element={<Profile account={account} onSignOut={onSignOut} />} />
+      </Routes>
+    </AppShell>
   );
 }
 

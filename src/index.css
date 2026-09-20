@@ -69,6 +69,66 @@
   --loss: oklch(0.704 0.191 22.216);
 }
 
+/*
+ * The accent, as a second axis of the theme.
+ *
+ * Light and dark decide the surfaces; the accent decides what the
+ * application points at things with -- the selected navigation item, a
+ * primary button, a focus ring. Kept to those tokens deliberately: an
+ * accent that also repainted surfaces would be four themes to check rather
+ * than one theme with four accents, and `--gain` and `--loss` are never
+ * touched by it, because green must mean "up" whatever colour the
+ * interface is.
+ */
+[data-accent="blue"] {
+  --primary: oklch(0.55 0.21 258);
+  --primary-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.55 0.21 258);
+}
+
+[data-accent="green"] {
+  --primary: oklch(0.55 0.15 155);
+  --primary-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.55 0.15 155);
+}
+
+[data-accent="orange"] {
+  --primary: oklch(0.63 0.2 42);
+  --primary-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.63 0.2 42);
+}
+
+[data-accent="violet"] {
+  --primary: oklch(0.55 0.24 295);
+  --primary-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.55 0.24 295);
+}
+
+/* Lifted against a dark surface, where the light-mode accents read muddy. */
+.dark[data-accent="blue"] {
+  --primary: oklch(0.68 0.19 258);
+  --primary-foreground: oklch(0.141 0.005 285.823);
+  --ring: oklch(0.68 0.19 258);
+}
+
+.dark[data-accent="green"] {
+  --primary: oklch(0.72 0.17 155);
+  --primary-foreground: oklch(0.141 0.005 285.823);
+  --ring: oklch(0.72 0.17 155);
+}
+
+.dark[data-accent="orange"] {
+  --primary: oklch(0.75 0.17 55);
+  --primary-foreground: oklch(0.141 0.005 285.823);
+  --ring: oklch(0.75 0.17 55);
+}
+
+.dark[data-accent="violet"] {
+  --primary: oklch(0.7 0.19 295);
+  --primary-foreground: oklch(0.141 0.005 285.823);
+  --ring: oklch(0.7 0.19 295);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

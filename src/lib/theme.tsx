@@ -1,10 +1,17 @@
 /**
- * The light and dark theme, and how a choice about it survives a reload.
+ * The theme, on two axes, and how a choice about it survives a reload.
  *
- * Three states rather than two: light, dark, and following the system. The
- * third is the default because an application that ignores the machine's own
- * setting is the one people complain about, and it is not the same as
- * either of the other two -- it changes when the machine does.
+ * Light or dark decides the surfaces; the accent decides what the
+ * application points at things with. They are separate because they answer
+ * separate questions -- somebody who wants a dark interface has not
+ * thereby said anything about which colour they want a selected menu item
+ * to be -- and storing them apart means changing one never resets the other.
+ *
+ * Light and dark have three states rather than two: light, dark, and
+ * following the system. The third is the default, because an application
+ * that ignores the machine's own setting is the one people complain about,
+ * and it is not the same as either of the others -- it changes when the
+ * machine does.
  */
 
 import { createContext, use, useCallback, useEffect, useMemo, useState } from "react";
@@ -15,12 +22,21 @@ export type ThemeChoice = "light" | "dark" | "system";
 /** What is actually showing. */
 export type Appearance = "light" | "dark";
 
+/** The colour the application points at things with. */
+export type Accent = "slate" | "blue" | "green" | "orange" | "violet";
+
+/** Every accent, in the order they are offered. */
+export const ACCENTS: readonly Accent[] = ["slate", "blue", "green", "orange", "violet"];
+
 const STORAGE_KEY = "artha-theme";
+const ACCENT_KEY = "artha-accent";
 
 interface ThemeContextValue {
   choice: ThemeChoice;
   appearance: Appearance;
+  accent: Accent;
   setChoice: (choice: ThemeChoice) => void;
+  setAccent: (accent: Accent) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -44,6 +60,24 @@ function storedChoice(): ThemeChoice {
   return "system";
 }
 
+/**
+ * Read the accent a previous visit stored.
+ *
+ * @returns The stored accent, or the neutral one when there is none or
+ *   storage is unavailable.
+ */
+function storedAccent(): Accent {
+  try {
+    const stored = window.localStorage.getItem(ACCENT_KEY);
+    if (ACCENTS.includes(stored as Accent)) {
+      return stored as Accent;
+    }
+  } catch {
+    // Storage blocked. The default is as good an answer as any.
+  }
+  return "slate";
+}
+
 /** Whether the machine currently asks for a dark interface. */
 function systemPrefersDark(): boolean {
   return window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -57,6 +91,7 @@ function systemPrefersDark(): boolean {
  */
 export function ThemeProvider({ children }: { children: React.ReactNode }): React.JSX.Element {
   const [choice, setStoredChoice] = useState<ThemeChoice>(storedChoice);
+  const [accent, setStoredAccent] = useState<Accent>(storedAccent);
   const [systemDark, setSystemDark] = useState<boolean>(systemPrefersDark);
 
   useEffect(() => {
@@ -78,6 +113,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }): Reac
     document.documentElement.classList.toggle("dark", appearance === "dark");
   }, [appearance]);
 
+  useEffect(() => {
+    // The neutral accent is the stylesheet's own defaults, so it is marked
+    // by the absence of an attribute rather than by one more rule saying
+    // what is already true.
+    const root = document.documentElement;
+    if (accent === "slate") {
+      root.removeAttribute("data-accent");
+    } else {
+      root.setAttribute("data-accent", accent);
+    }
+  }, [accent]);
+
   const setChoice = useCallback((next: ThemeChoice) => {
     setStoredChoice(next);
     try {
@@ -87,7 +134,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }): Reac
     }
   }, []);
 
-  const value = useMemo(() => ({ choice, appearance, setChoice }), [choice, appearance, setChoice]);
+  const setAccent = useCallback((next: Accent) => {
+    setStoredAccent(next);
+    try {
+      window.localStorage.setItem(ACCENT_KEY, next);
+    } catch {
+      // Storage blocked. The choice still holds for this visit.
+    }
+  }, []);
+
+  const value = useMemo(
+    () => ({ choice, appearance, accent, setChoice, setAccent }),
+    [choice, appearance, accent, setChoice, setAccent],
+  );
 
   return <ThemeContext value={value}>{children}</ThemeContext>;
 }
@@ -95,7 +154,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }): Reac
 /**
  * Read the current theme.
  *
- * @returns The choice, what is showing, and how to change it.
+ * @returns Both choices, what is showing, and how to change either.
  * @throws {Error} If used outside the provider, which is a wiring mistake
  *   rather than a state worth rendering around.
  */

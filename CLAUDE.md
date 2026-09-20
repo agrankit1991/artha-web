@@ -106,11 +106,18 @@ It rose from 95% with the first real views.
   own boundary is worse than an older major. Revisit when v9's generics
   settle; the call sites would not change.
 - **Radix popovers that open on pointer events cannot be driven in jsdom.**
-  `select` works with the polyfills in `src/test-setup.ts`; `dropdown-menu`
-  does not — its content never renders, by pointer or by keyboard. The theme
-  control is a visible group of three buttons partly for that reason and
-  partly because it is the better control. Before reaching for a menu,
-  budget for testing it in a real browser.
+  Re-verified: `select` works with the polyfills in `src/test-setup.ts`;
+  `@radix-ui/react-dropdown-menu` still never opens, and a test of one
+  times out rather than failing. `src/components/Menu.tsx` is this
+  application's own menu for that reason — a trigger, a panel, Escape and
+  click-outside, and every choice a real button with `role="menuitem"`.
+  It carries sign-out and the theme, which are exactly the things worth
+  having tests for. Do not swap it for the Radix one without a browser
+  test runner.
+- **A stub that ignores the query hides what depends on it.** `stubPlatform`
+  takes `bodyFor(path)` as well as a fixed `body`; a paged endpoint stubbed
+  with a fixed first page will pass a test of "load more" that the real
+  platform would fail.
 - **Lightweight Charts needs a canvas, and jsdom has none.** Every test that
   renders a chart replaces the library through `src/test/chartStub.ts` --
   one stub, because two stubs of one library drift apart and then a test
@@ -187,11 +194,21 @@ call site.
   oscillator: "+42" says nothing to most readers and "more stocks joining"
   does. Colour never carries a meaning on its own; every figure is printed
   and every shape is labelled for a screen reader.
+- **The frame** (`src/components/AppShell.tsx`): navigation down the side,
+  the account and theme across the top, the running build at the bottom.
+  The sidebar is the navigation because this is a set of places rather than
+  a flow; it slides away on a phone, where the header carries the button
+  that brings it back.
+- **Profile** (`src/routes/Profile.tsx`) -- what the platform holds about
+  the sign-in, both theme choices, and signing out. Deliberately short: a
+  profile with an invented "activity" panel is worse than one that admits
+  there is nothing to show.
 - **Shared components** in `src/components`: `DataTable`, `Delta`,
   `MoverPanel`, `IndexCard`, `MiniCandlestick`, `ScopeSelector`,
   `ScopePicker`, `ThemeToggle`, `Meter`, `Sparkline`, `Statistic`,
   `BreadthPanel`, `BreadthGridPanel`, `RegimeBanner`, `NewsFeed`,
-  `LoadMore`, `ComparisonChart`.
+  `LoadMore`, `ComparisonChart`, `Menu`, `ThemeMenu`, `UserMenu`,
+  `AppShell`.
 - **Breadth wording** in `src/lib/breadthReadings.ts`: every phrase that
   turns a breadth figure into something readable lives here, so two screens
   cannot describe the same reading differently. Note the `warn` tone --
@@ -211,8 +228,14 @@ call site.
 - **Debouncing** in `src/hooks/useDebounced.ts`: a search box that requests
   on every keystroke races its own answers, and the reply for "rel" can
   arrive after the reply for "relian" and leave the wrong results up.
-- **Theme** in `src/lib/theme.tsx`: light, dark, or following the system,
-  remembered across visits and working when storage is blocked.
+- **Theme** in `src/lib/theme.tsx`, on two axes. Light, dark or following
+  the system decides the surfaces; the accent (neutral, blue, green,
+  orange, violet) decides what the application points at things with.
+  Stored apart, because changing one must never reset the other. The
+  accent touches `--primary` and `--ring` only -- never `--gain` or
+  `--loss`, because green must mean "up" whatever colour the interface is.
+  Both work when storage is blocked; they are just forgotten between
+  visits.
 
 ## Not yet built
 

@@ -8,7 +8,7 @@
  * rather than twelve of the latest, filtered afterwards.
  */
 
-import { Search, X } from "lucide-react";
+import { Newspaper, Search, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import type { MentionedInstrument, NewsItem } from "@/api/client";
@@ -86,7 +86,10 @@ export function News(): React.JSX.Element {
     <div className="space-y-6">
       <header className="space-y-4">
         <div>
-          <h1 className="text-xl font-semibold">Market news</h1>
+          <h1 className="flex items-center gap-2 text-xl font-semibold">
+            <Newspaper className="h-5 w-5 text-primary" />
+            Market news
+          </h1>
           <p className="text-sm text-muted-foreground">
             Everything the platform has collected, and what it was published about.
           </p>

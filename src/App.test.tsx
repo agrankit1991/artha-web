@@ -77,7 +77,8 @@ describe("App", () => {
     render(<App />);
     await screen.findByText("Market movers");
 
-    await userEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    await userEvent.click(screen.getByRole("button", { name: "Account" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /Sign out/ }));
 
     expect(await screen.findByRole("button", { name: "Sign in" })).toBeInTheDocument();
   });
@@ -102,8 +103,70 @@ describe("App", () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByRole("group", { name: "Theme" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Theme" })).toBeInTheDocument();
     });
+  });
+
+  it("names the account in the header, and takes it to a page of its own", async () => {
+    stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
+    render(<App />);
+    await screen.findByText("Market movers");
+
+    await userEvent.click(screen.getByRole("button", { name: "Account" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /Profile/ }));
+
+    expect(await screen.findByRole("heading", { name: "Tester" })).toBeInTheDocument();
+    expect(screen.getByText("Owner")).toBeInTheDocument();
+  });
+
+  it("says which build is running, at the foot of every screen", async () => {
+    // The first thing worth knowing when a screen disagrees with what the
+    // code says it does.
+    stubPlatform({
+      "/api/me": { body: ACCOUNT },
+      "/api/hello": { body: { message: "", service: "artha-platform", version: "0.1.0" } },
+      ...DATA,
+    });
+
+    render(<App />);
+
+    expect(await screen.findByText("artha-platform 0.1.0")).toBeInTheDocument();
+  });
+
+  it("hides the navigation behind a button on a phone", async () => {
+    stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
+    render(<App />);
+    await screen.findByText("Market movers");
+
+    const opener = screen.getByRole("button", { name: "Open navigation" });
+    await userEvent.click(opener);
+
+    expect(screen.getByRole("button", { name: "Close navigation" })).toBeInTheDocument();
+  });
+
+  it("shuts the navigation again when the page behind it is touched", async () => {
+    // On a phone it covers the page, and one left open over the content is
+    // the most common way a sidebar gets in the way.
+    stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
+    const { container } = render(<App />);
+    await screen.findByText("Market movers");
+    await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+
+    const overlay = container.querySelector(".bg-black\\/40");
+    await userEvent.click(overlay as HTMLElement);
+
+    expect(screen.getByRole("button", { name: "Open navigation" })).toBeInTheDocument();
+  });
+
+  it("closes the navigation on choosing a screen from it", async () => {
+    stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
+    render(<App />);
+    await screen.findByText("Market movers");
+    await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+
+    await userEvent.click(screen.getByRole("link", { name: "Breadth" }));
+
+    expect(screen.getByRole("button", { name: "Open navigation" })).toBeInTheDocument();
   });
 
   it("opens on the overview", async () => {
