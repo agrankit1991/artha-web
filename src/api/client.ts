@@ -280,6 +280,26 @@ export interface PricePoint {
   close: string;
 }
 
+/** One session of an instrument, with the averages drawn over it. */
+export interface ChartPoint {
+  day: string;
+  open: string;
+  high: string;
+  low: string;
+  close: string;
+  volume: number;
+  sma_20: string | null;
+  sma_50: string | null;
+  sma_200: string | null;
+  rsi: string | null;
+}
+
+/** One instrument's sessions, oldest first. */
+export interface ChartSeries {
+  instrument_key: string;
+  points: ChartPoint[];
+}
+
 /** One instrument's closes over a window. */
 export interface PriceSeries {
   instrument_key: string;
@@ -575,4 +595,20 @@ export function fetchBreadthGrid(kind: ScopeKind, rotationSessions = 5): Promise
   return request<BreadthGrid>(
     `/api/breadth/grid?scope_kind=${kind}&rotation_sessions=${String(rotationSessions)}`,
   );
+}
+
+/**
+ * Fetch one instrument's sessions, with the averages drawn over them.
+ *
+ * Bars and averages from the same rows, which are the rows a rule reads:
+ * a chart that computed its own averages would draw something subtly
+ * different from what a signal fired on.
+ *
+ * @param key - The instrument.
+ * @param sessions - How many sessions to carry.
+ * @returns The sessions, oldest first.
+ */
+export function fetchFigures(key: string, sessions = 250): Promise<ChartSeries> {
+  const parameters = new URLSearchParams({ key, sessions: String(sessions) });
+  return request<ChartSeries>(`/api/figures?${parameters.toString()}`);
 }

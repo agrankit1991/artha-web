@@ -16,7 +16,19 @@ export const chartCalls = {
   setData: vi.fn(),
   remove: vi.fn(),
   fitContent: vi.fn(),
+  applyOptions: vi.fn(),
 };
+
+/** Which kind of series each `addSeries` call asked for, in order. */
+export function seriesKinds(): unknown[] {
+  return chartCalls.addSeries.mock.calls.map((call) => (call as unknown[])[0]);
+}
+
+/** The data handed to the series of a given kind, if one was added. */
+export function dataFor(kind: string): unknown[] | undefined {
+  const at = seriesKinds().indexOf(kind);
+  return at === -1 ? undefined : (chartCalls.setData.mock.calls[at]?.[0] as unknown[]);
+}
 
 /**
  * Build the module a `vi.mock` factory should return.
@@ -31,8 +43,11 @@ export function chartModule(): Record<string, unknown> {
       })),
       remove: chartCalls.remove,
       timeScale: () => ({ fitContent: chartCalls.fitContent }),
+      priceScale: () => ({ applyOptions: chartCalls.applyOptions }),
     })),
     LineSeries: "line",
+    CandlestickSeries: "candlestick",
+    HistogramSeries: "histogram",
     ColorType: { Solid: "solid" },
     CrosshairMode: { Magnet: 1 },
   };

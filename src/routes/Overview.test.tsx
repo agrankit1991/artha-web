@@ -8,6 +8,7 @@ import { Overview } from "./Overview";
 import { ThemeProvider } from "@/lib/theme";
 import {
   breadth,
+  chartPoints,
   moverRow,
   moversResponse,
   newsPage,
@@ -47,6 +48,7 @@ function stubEverything(): ReturnType<typeof stubPlatform> {
     },
     "/api/breadth": { body: breadth() },
     "/api/news": { body: newsPage() },
+    "/api/figures": { body: { instrument_key: "NSE_INDEX|Nifty 50", points: chartPoints(30) } },
     "/api/series": {
       body: [
         priceSeries("NSE_INDEX|Nifty 50", [100, 110]),
@@ -166,6 +168,7 @@ describe("Overview", () => {
       "/api/overviews": { body: [] },
       "/api/breadth": { body: breadth() },
       "/api/news": { body: newsPage({ total: 0, items: [] }) },
+      "/api/figures": { body: { instrument_key: "NSE_INDEX|Nifty 50", points: chartPoints(30) } },
       "/api/series": { body: [] },
     });
 
@@ -187,15 +190,37 @@ describe("Overview", () => {
     expect(chosen).toHaveBeenCalledWith(expect.objectContaining({ symbol: "RELIANCE" }));
   });
 
-  it("compares the benchmark against gold over six months", async () => {
-    // Different orders of magnitude on one price axis is one line and a
-    // floor, so both are rebased to the session they share.
+  it("draws the benchmark's own sessions, with this platform's averages", async () => {
+    // The chart shows the values a rule would fire on rather than ones it
+    // worked out for itself in the browser.
     stubEverything();
 
     renderOverview();
 
-    expect(await screen.findByText(/against gold/)).toBeInTheDocument();
+    expect(await screen.findByText("200-day")).toBeInTheDocument();
+  });
+
+  it("compares the benchmark against gold when asked to", async () => {
+    // Different orders of magnitude on one price axis is one line and a
+    // floor, so both are rebased to the session they share.
+    stubEverything();
+    renderOverview();
+    await screen.findByText("200-day");
+
+    await userEvent.click(screen.getByRole("button", { name: "vs Gold" }));
+
     expect(await screen.findByText("+10.00%")).toBeInTheDocument();
+  });
+
+  it("embeds only what this platform has no data of its own for", async () => {
+    // A TradingView chart of prices this platform also holds would sooner
+    // or later disagree with a signal fired on the stored ones.
+    stubEverything();
+
+    renderOverview();
+
+    expect(await screen.findByRole("region", { name: "World markets" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Sector heatmap" })).toBeInTheDocument();
   });
 
   it("offers the way through to the whole feed, under it as the old page did", async () => {

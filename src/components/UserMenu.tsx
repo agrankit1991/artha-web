@@ -26,12 +26,15 @@ interface UserMenuProps {
  */
 export function initialsOf(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) {
+  const first = words.at(0);
+  if (first === undefined) {
     return "—";
   }
-  const first = words[0]?.[0] ?? "";
-  const last = words.length > 1 ? (words[words.length - 1]?.[0] ?? "") : "";
-  return (first + last).toUpperCase();
+  // `charAt` rather than an index: it returns a string for an empty word
+  // too, where indexing would hand back undefined and need a fallback for
+  // a case `filter(Boolean)` has already ruled out.
+  const last = words.length > 1 ? words.at(-1) : undefined;
+  return (first.charAt(0) + (last?.charAt(0) ?? "")).toUpperCase();
 }
 
 /**

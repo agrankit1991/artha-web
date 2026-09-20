@@ -86,6 +86,24 @@ It rose from 95% with the first real views.
   duplicate the rule engine and quietly disagree with it on warm-up periods,
   gaps and corporate-action adjustment. The chart's job is to show why a
   signal fired, so it must display the values the rule actually used.
+  `PriceChart` therefore fetches bars _and_ moving averages from
+  `/api/figures`, which reads the same per-session rows a rule reads,
+  rather than computing averages in the browser.
+
+  **Advanced Charts is also not licensable here.** Checked 2026-09-20:
+  TradingView grant it "only to companies for use in public web projects
+  and/or applications", explicitly not for personal use. This platform is
+  single-user and personal. Lightweight Charts is Apache 2.0 and carries no
+  such restriction.
+
+- **TradingView embed widgets are for data this platform does not hold.**
+  World markets, a live heatmap, anything intraday. Never for prices that
+  are also in `daily_bar`: an embed draws TradingView's numbers with
+  TradingView's indicator maths, and a chart disagreeing with the signal
+  beside it sends somebody debugging a rule that is working correctly.
+  `TradingViewWidget` is the one wrapper; it follows the app's theme and
+  clears itself up, because the embed replaces its own script with an
+  iframe and leaves it behind otherwise.
 - TypeScript is strict, including `exactOptionalPropertyTypes` and
   `noUncheckedIndexedAccess`. ESLint runs type-aware rules.
 
@@ -207,8 +225,8 @@ call site.
   `MoverPanel`, `IndexCard`, `MiniCandlestick`, `ScopeSelector`,
   `ScopePicker`, `ThemeToggle`, `Meter`, `Sparkline`, `Statistic`,
   `BreadthPanel`, `BreadthGridPanel`, `RegimeBanner`, `NewsFeed`,
-  `LoadMore`, `ComparisonChart`, `Menu`, `Tooltip`, `ThemeMenu`,
-  `UserMenu`, `AppShell`.
+  `LoadMore`, `ComparisonChart`, `PriceChart`, `TradingViewWidget`,
+  `Menu`, `Tooltip`, `ThemeMenu`, `UserMenu`, `AppShell`.
 - **Card grids are three across, never four.** Every count asked for is a
   multiple of three -- six headlines on the overview, twelve to a news
   batch -- so the last row is always full. The news page asks for

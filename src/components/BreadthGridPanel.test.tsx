@@ -50,7 +50,23 @@ describe("BreadthGridPanel", () => {
     // Which sector is strongest, which is turning hardest, which has the
     // most companies behind the reading -- each is a column, and a column
     // that cannot be sorted cannot answer its own question.
-    render(<BreadthGridPanel scopes={breadthGrid().scopes} comparedWith="2026-09-11" />);
+    // One population with nothing to report, so every column is sorted
+    // with an absent figure in it as well as a present one.
+    render(
+      <BreadthGridPanel
+        scopes={[
+          ...breadthGrid().scopes,
+          scopeBreadth({
+            scope_key: "Unspecified",
+            above_sma_200: null,
+            above_sma_50: null,
+            rotation: null,
+            regime: null,
+          }),
+        ]}
+        comparedWith="2026-09-11"
+      />,
+    );
     const headers = screen.getAllByRole("button");
 
     for (const header of headers) {

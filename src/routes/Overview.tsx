@@ -7,12 +7,13 @@
  * arrives whole rather than in pieces.
  */
 
-import { Activity, ChevronRight, LineChart, Newspaper, TrendingUp } from "lucide-react";
+import { Activity, ChevronRight, Globe, LineChart, Newspaper, TrendingUp } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import type { MoverRow } from "@/api/client";
 import {
   fetchBreadth,
+  fetchFigures,
   fetchMovers,
   fetchNews,
   fetchOverviews,
@@ -21,6 +22,8 @@ import {
 } from "@/api/client";
 import { BreadthPanel } from "@/components/BreadthPanel";
 import { type ChartLine, ComparisonChart } from "@/components/ComparisonChart";
+import { PriceChart } from "@/components/PriceChart";
+import { TradingViewWidget } from "@/components/TradingViewWidget";
 import { IndexCard } from "@/components/IndexCard";
 import { MoverPanelCard } from "@/components/MoverPanel";
 import { NewsFeed } from "@/components/NewsFeed";
@@ -50,6 +53,15 @@ const HEADLINES = 6;
 /** Sessions of the gold comparison -- about six months. */
 const COMPARISON_SESSIONS = 125;
 
+/** Sessions of the benchmark's own chart -- about a year. */
+const CHART_SESSIONS = 250;
+
+/** What the chart section can show. */
+const VIEWS = [
+  { key: "price" as const, label: "Price" },
+  { key: "gold" as const, label: "vs Gold" },
+];
+
 /** The two lines of the comparison, and the colours they are drawn in. */
 const COMPARISON: ChartLine[] = [
   { instrumentKey: BENCHMARK.key, label: BENCHMARK.name, colour: "#2563eb" },
@@ -68,6 +80,7 @@ export function Overview({
   onOpenNews,
 }: OverviewProps): React.JSX.Element {
   const [scope, setScope] = useState<Scope>({ kind: "companies", key: null });
+  const [view, setView] = useState<"price" | "gold">("price");
 
   const loadScopes = useCallback(() => fetchScopes(), []);
   const loadIndices = useCallback(
@@ -81,6 +94,7 @@ export function Overview({
     () => fetchSeries([BENCHMARK.key, GOLD.key], COMPARISON_SESSIONS),
     [],
   );
+  const loadChart = useCallback(() => fetchFigures(BENCHMARK.key, CHART_SESSIONS), []);
 
   const scopes = useResource(loadScopes);
   const indices = useResource(loadIndices);
@@ -88,6 +102,7 @@ export function Overview({
   const breadth = useResource(loadBreadth);
   const news = useResource(loadNews);
   const comparison = useResource(loadComparison);
+  const chart = useResource(loadChart);
 
   const cards = useMemo(() => {
     const found = new Map(indices.data?.map((overview) => [overview.instrument_key, overview]));
@@ -109,16 +124,43 @@ export function Overview({
       </section>
 
       <section className="space-y-3" aria-labelledby="comparison-heading">
-        <div>
-          <h2 id="comparison-heading" className="flex items-center gap-2 text-lg font-semibold">
-            <LineChart className="h-5 w-5 text-primary" />
-            {BENCHMARK.name} against gold
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Six months, both rebased to their first shared session.
-          </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 id="comparison-heading" className="flex items-center gap-2 text-lg font-semibold">
+              <LineChart className="h-5 w-5 text-primary" />
+              {BENCHMARK.name}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {view === "price"
+                ? "A year of sessions, with this platform's own moving averages over them."
+                : "Six months against gold, both rebased to their first shared session."}
+            </p>
+          </div>
+          <div className="flex gap-1" role="group" aria-label="Chart">
+            {VIEWS.map((option) => (
+              <Button
+                key={option.key}
+                size="sm"
+                variant={option.key === view ? "secondary" : "ghost"}
+                aria-pressed={option.key === view}
+                onClick={() => {
+                  setView(option.key);
+                }}
+              >
+                {option.label}
+              </Button>
+            ))}
+          </div>
         </div>
-        <ComparisonChart series={comparison.data} lines={COMPARISON} loading={comparison.loading} />
+        {view === "price" ? (
+          <PriceChart points={chart.data?.points ?? null} loading={chart.loading} />
+        ) : (
+          <ComparisonChart
+            series={comparison.data}
+            lines={COMPARISON}
+            loading={comparison.loading}
+          />
+        )}
       </section>
 
       <section className="space-y-4" aria-labelledby="movers-heading">
@@ -159,6 +201,76 @@ export function Overview({
             ))}
           </div>
         )}
+      </section>
+
+      <section className="space-y-3" aria-labelledby="world-heading">
+        <div>
+          <h2 id="world-heading" className="flex items-center gap-2 text-lg font-semibold">
+            <Globe className="h-5 w-5 text-primary" />
+            Beyond this platform
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            World markets and a live sector heatmap, from TradingView — the two things this platform
+            holds no data for.
+          </p>
+        </div>
+        <div className="grid gap-4 xl:grid-cols-2">
+          <TradingViewWidget
+            widget="market-overview"
+            label="World markets"
+            settings={{
+              showChart: true,
+              locale: "en",
+              isTransparent: true,
+              showSymbolLogo: true,
+              tabs: [
+                {
+                  title: "Indices",
+                  symbols: [
+                    { s: "BSE:SENSEX", d: "Sensex" },
+                    { s: "NSE:NIFTY", d: "Nifty 50" },
+                    { s: "FOREXCOM:SPXUSD", d: "S&P 500" },
+                    { s: "FOREXCOM:NSXUSD", d: "Nasdaq 100" },
+                    { s: "INDEX:NKY", d: "Nikkei 225" },
+                    { s: "INDEX:HSI", d: "Hang Seng" },
+                  ],
+                },
+                {
+                  title: "Commodities",
+                  symbols: [
+                    { s: "MCX:GOLD1!", d: "Gold" },
+                    { s: "MCX:SILVER1!", d: "Silver" },
+                    { s: "MCX:CRUDEOIL1!", d: "Crude" },
+                  ],
+                },
+                {
+                  title: "Currencies",
+                  symbols: [
+                    { s: "FX_IDC:USDINR", d: "USD / INR" },
+                    { s: "FX_IDC:EURINR", d: "EUR / INR" },
+                  ],
+                },
+              ],
+            }}
+          />
+          <TradingViewWidget
+            widget="stock-heatmap"
+            label="Sector heatmap"
+            settings={{
+              exchanges: ["NSE"],
+              dataSource: "NIFTY500",
+              grouping: "sector",
+              blockSize: "market_cap_basic",
+              blockColor: "change",
+              locale: "en",
+              hasTopBar: false,
+              isDataSetEnabled: false,
+              isZoomEnabled: true,
+              hasSymbolTooltip: true,
+              isTransparent: true,
+            }}
+          />
+        </div>
       </section>
 
       <section className="space-y-3" aria-labelledby="news-heading">

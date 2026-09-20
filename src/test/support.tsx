@@ -11,6 +11,7 @@ import { vi } from "vitest";
 import type {
   Account,
   BreadthGrid,
+  ChartPoint,
   BreadthResponse,
   BreadthSession,
   InstrumentOverview,
@@ -324,6 +325,27 @@ export function mentionedInstrument(
     articles: 12,
     ...overrides,
   };
+}
+
+/** Build a run of chart sessions, each a day after the last. */
+export function chartPoints(count: number, start = "2026-09-01"): ChartPoint[] {
+  const first = new Date(`${start}T00:00:00Z`);
+  return Array.from({ length: count }, (_unused, index) => {
+    const day = new Date(first);
+    day.setUTCDate(first.getUTCDate() + index);
+    return {
+      day: day.toISOString().slice(0, 10),
+      open: String(100 + index),
+      high: String(104 + index),
+      low: String(99 + index),
+      close: String(103 + index),
+      volume: 1_000_000 + index,
+      sma_20: String(101 + index),
+      sma_50: String(99 + index),
+      sma_200: String(95 + index),
+      rsi: "57.5",
+    };
+  });
 }
 
 /** Build a closing-price series of a given length. */
