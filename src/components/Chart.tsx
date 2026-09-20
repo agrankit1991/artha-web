@@ -24,7 +24,9 @@ import {
   LineSeries,
   createChart,
 } from "lightweight-charts";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { RotateCcw } from "lucide-react";
 
 import { TradingViewLink } from "@/components/TradingViewLink";
 import { AVERAGE_WIDTH, CANDLE_DOWN, CANDLE_UP, PRICE_WIDTH, THRESHOLD } from "@/lib/chartPalette";
@@ -136,6 +138,10 @@ export function Chart({
 }: ChartProps): React.JSX.Element {
   const holder = useRef<HTMLDivElement>(null);
   const chart = useRef<IChartApi | null>(null);
+  // The frame the chart opens in, so "reset" has something exact to
+  // return to rather than re-fitting whatever happens to be drawn.
+  const opening = useRef<{ from: number; to: number } | null>(null);
+  const [moved, setMoved] = useState(false);
   const { appearance } = useTheme();
   const drawable = series.filter((one) => one.points.length > 0);
   const hasBars = drawable.some((one) => one.kind === "bars");
@@ -203,16 +209,36 @@ export function Chart({
     // there is somewhere to drag to and the first and last sessions are
     // not pressed against the edges of the frame.
     const longest = Math.max(...drawable.map((one) => one.points.length));
-    created.timeScale().setVisibleLogicalRange({ from: -EDGE_BARS, to: longest - 1 + EDGE_BARS });
+    const frame = { from: -EDGE_BARS, to: longest - 1 + EDGE_BARS };
+    opening.current = frame;
+    created.timeScale().setVisibleLogicalRange(frame);
+    setMoved(false);
+
+    // Watching the range rather than the pointer: a reader moves the
+    // chart by dragging, by the wheel, by pinching and by the keyboard,
+    // and all of them end here.
+    const watch = (range: { from: number; to: number } | null): void => {
+      setMoved(range !== null && !sameFrame(range, frame));
+    };
+    created.timeScale().subscribeVisibleLogicalRangeChange(watch);
 
     return () => {
+      created.timeScale().unsubscribeVisibleLogicalRangeChange(watch);
       created.remove();
       chart.current = null;
+      opening.current = null;
     };
     // `drawable` is rebuilt on every render; `series` is what a caller
     // actually changes, and is what this should redraw for.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [series, height, appearance, asPercent, hasBars, paneHeight]);
+
+  const reset = useCallback(() => {
+    const frame = opening.current;
+    if (chart.current !== null && frame !== null) {
+      chart.current.timeScale().setVisibleLogicalRange(frame);
+    }
+  }, []);
 
   if (drawable.length === 0) {
     return (
@@ -265,20 +291,39 @@ export function Chart({
               </li>
             ))}
         </ul>
-        {instruments.length > 0 && (
-          <div className="flex flex-wrap items-center gap-3">
-            {instruments.map((instrument) => (
-              <TradingViewLink
-                key={instrument.label}
-                label={instrument.label}
-                symbol={instrument.symbol}
-                derived={instrument.derived}
-              />
-            ))}
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-3">
+          {moved && (
+            // Offered only once there is something to undo: a reset that
+            // is always on screen is a button that does nothing nearly
+            // every time it is looked at.
+            <button
+              type="button"
+              onClick={reset}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
+            >
+              <RotateCcw className="h-3 w-3" />
+              Reset view
+            </button>
+          )}
+          {instruments.map((instrument) => (
+            <TradingViewLink
+              key={instrument.label}
+              label={instrument.label}
+              symbol={instrument.symbol}
+              derived={instrument.derived}
+            />
+          ))}
+        </div>
       </div>
-      <div ref={holder} style={{ height }} data-testid="chart" />
+      <div
+        ref={holder}
+        style={{ height }}
+        data-testid="chart"
+        // The conventional gesture, and the one somebody tries first. The
+        // button above says it is there; this is how it is reached
+        // without looking away from the chart.
+        onDoubleClick={reset}
+      />
     </div>
   );
 }
@@ -375,4 +420,22 @@ function add(
   );
   line.setData(series.points);
   return line;
+}
+
+/**
+ * Whether two frames are the same, allowing for the chart's own rounding.
+ *
+ * The library reports the range it settled on rather than the one it was
+ * given, and those differ by a fraction of a bar. Compared exactly, a
+ * chart would announce itself as moved the moment it was drawn.
+ *
+ * @param one - A frame.
+ * @param other - The frame to compare it against.
+ * @returns Whether they are the same frame.
+ */
+function sameFrame(
+  one: { from: number; to: number },
+  other: { from: number; to: number },
+): boolean {
+  return Math.abs(one.from - other.from) < 0.5 && Math.abs(one.to - other.to) < 0.5;
 }

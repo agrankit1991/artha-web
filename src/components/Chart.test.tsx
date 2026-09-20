@@ -8,11 +8,12 @@
  * draw.
  */
 
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Chart, type Series } from "./Chart";
-import { chartCalls, dataFor, seriesKinds } from "@/test/chartStub";
+import { chartCalls, dataFor, reportRange, seriesKinds } from "@/test/chartStub";
 import { ThemeProvider } from "@/lib/theme";
 
 vi.mock("lightweight-charts", async () => (await import("@/test/chartStub")).chartModule());
@@ -196,5 +197,83 @@ describe("Chart", () => {
     ]);
 
     expect(chartCalls.setVisibleLogicalRange).toHaveBeenCalledWith({ from: -6, to: 9 });
+  });
+
+  it("offers nothing to reset until the view has actually moved", () => {
+    // A reset that is always on screen is a button that does nothing
+    // nearly every time it is looked at.
+    draw([LINE]);
+
+    expect(screen.queryByRole("button", { name: /Reset view/ })).not.toBeInTheDocument();
+  });
+
+  it("offers a reset once the reader has moved it", () => {
+    draw([LINE]);
+
+    act(() => {
+      reportRange({ from: 40, to: 60 });
+    });
+
+    expect(screen.getByRole("button", { name: /Reset view/ })).toBeInTheDocument();
+  });
+
+  it("does not call a redraw a move", () => {
+    // The library reports the range it settled on rather than the one it
+    // was given, and those differ by a fraction of a bar.
+    draw([LINE]);
+
+    act(() => {
+      reportRange({ from: -6.2, to: 7.1 });
+    });
+
+    expect(screen.queryByRole("button", { name: /Reset view/ })).not.toBeInTheDocument();
+  });
+
+  it("puts the view back where it opened", async () => {
+    draw([LINE]);
+    act(() => {
+      reportRange({ from: 40, to: 60 });
+    });
+    chartCalls.setVisibleLogicalRange.mockClear();
+
+    await userEvent.click(screen.getByRole("button", { name: /Reset view/ }));
+
+    expect(chartCalls.setVisibleLogicalRange).toHaveBeenCalledWith({ from: -6, to: 7 });
+  });
+
+  it("resets on a double click, which is what a reader tries first", () => {
+    draw([LINE]);
+    act(() => {
+      reportRange({ from: 40, to: 60 });
+    });
+    chartCalls.setVisibleLogicalRange.mockClear();
+
+    fireEvent.doubleClick(screen.getByTestId("chart"));
+
+    expect(chartCalls.setVisibleLogicalRange).toHaveBeenCalledWith({ from: -6, to: 7 });
+  });
+
+  it("stops listening when the page moves on", () => {
+    // The subscription outlives the chart otherwise, and every redraw
+    // leaves another one behind.
+    const { unmount } = render(
+      <ThemeProvider>
+        <Chart series={[LINE]} />
+      </ThemeProvider>,
+    );
+
+    unmount();
+
+    expect(chartCalls.unsubscribeVisibleLogicalRangeChange).toHaveBeenCalled();
+  });
+
+  it("treats a chart with no range at all as unmoved", () => {
+    draw([LINE]);
+
+    act(() => {
+      reportRange(null);
+    });
+
+    expect(screen.queryByRole("button", { name: /Reset view/ })).not.toBeInTheDocument();
   });
 });

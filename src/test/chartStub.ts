@@ -18,9 +18,22 @@ export const chartCalls = {
   remove: vi.fn(),
   fitContent: vi.fn(),
   setVisibleLogicalRange: vi.fn(),
+  subscribeVisibleLogicalRangeChange: vi.fn(),
+  unsubscribeVisibleLogicalRangeChange: vi.fn(),
   applyOptions: vi.fn(),
   setHeight: vi.fn(),
 };
+
+/**
+ * Tell the chart the visible range has changed, as the library would.
+ *
+ * @param range - The range now showing, or null when there is none.
+ */
+export function reportRange(range: { from: number; to: number } | null): void {
+  for (const [handler] of chartCalls.subscribeVisibleLogicalRangeChange.mock.calls) {
+    (handler as (moved: typeof range) => void)(range);
+  }
+}
 
 /** Which kind of series each `addSeries` call asked for, in order. */
 export function seriesKinds(): unknown[] {
@@ -54,6 +67,8 @@ export function chartModule(): Record<string, unknown> {
       timeScale: () => ({
         fitContent: chartCalls.fitContent,
         setVisibleLogicalRange: chartCalls.setVisibleLogicalRange,
+        subscribeVisibleLogicalRangeChange: chartCalls.subscribeVisibleLogicalRangeChange,
+        unsubscribeVisibleLogicalRangeChange: chartCalls.unsubscribeVisibleLogicalRangeChange,
       }),
       priceScale: () => ({ applyOptions: chartCalls.applyOptions }),
       // Two panes, so a test of a series in a band of its own has one to
