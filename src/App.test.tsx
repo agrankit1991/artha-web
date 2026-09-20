@@ -271,8 +271,21 @@ describe("App", () => {
     await userEvent.click(screen.getByRole("link", { name: "Breadth" }));
     await screen.findByText("Where the market is working");
 
-    await userEvent.click(screen.getByRole("button", { name: "IT - Software" }));
+    await userEvent.click(screen.getByRole("button", { name: "Open IT - Software" }));
 
     expect(await screen.findByText("Relative strength")).toBeInTheDocument();
+  });
+
+  it("opens the chosen population's own page from the movers", async () => {
+    stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
+    render(<App />);
+    await screen.findByText("Market movers");
+
+    // The pinned chip appears once the platform has said which
+    // populations it ranks.
+    await userEvent.click(await screen.findByRole("button", { name: "Nifty 50" }));
+    await userEvent.click(await screen.findByRole("button", { name: /Open Nifty 50/ }));
+
+    expect(await screen.findByRole("tab", { name: "Relative strength" })).toBeInTheDocument();
   });
 });

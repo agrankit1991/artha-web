@@ -10,7 +10,7 @@
 import { Activity, ChevronRight, LineChart, Newspaper, PieChart, TrendingUp } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
-import type { MoverRow } from "@/api/client";
+import type { MoverRow, ScopeOptions } from "@/api/client";
 import {
   fetchBreadth,
   fetchExternalSymbols,
@@ -41,6 +41,8 @@ interface OverviewProps {
   onSelect?: (row: MoverRow) => void;
   /** Where to send a reader who chooses one of the index cards. */
   onOpenIndex?: (instrumentKey: string) => void;
+  /** Where to send a reader who wants the chosen population's own page. */
+  onOpenPopulation?: (kind: "index" | "sector", key: string) => void;
   /** Where to send a reader who wants breadth in full. */
   onOpenBreadth?: () => void;
   /** Where to send a reader who wants the whole news feed. */
@@ -85,6 +87,7 @@ const COMPARISON: ChartLine[] = [
 export function Overview({
   onSelect,
   onOpenIndex,
+  onOpenPopulation,
   onOpenBreadth,
   onOpenNews,
 }: OverviewProps): React.JSX.Element {
@@ -122,6 +125,15 @@ export function Overview({
   const comparison = useResource(loadComparison);
   const chart = useResource(loadChart);
   const symbols = useResource(loadSymbols);
+
+  // A list of indices leads to each index's own page. A list of companies
+  // does not, because a company has no page yet.
+  const opens =
+    scope.kind === "indices" && onOpenIndex
+      ? (row: MoverRow) => {
+          onOpenIndex(row.instrument_key);
+        }
+      : undefined;
 
   const cards = useMemo(() => {
     const found = new Map(indices.data?.map((overview) => [overview.instrument_key, overview]));
@@ -228,7 +240,17 @@ export function Overview({
             <Activity className="h-5 w-5 text-primary" />
             Market movers
           </h2>
-          <ScopePicker scope={scope} options={scopes.data} onChange={setScope} />
+          <div className="flex flex-wrap items-center gap-3">
+            <ScopePicker scope={scope} options={scopes.data} onChange={setScope} />
+            {scope.key !== null && onOpenPopulation && (
+              <OpenPopulation
+                kind={scope.kind === "index" ? "index" : "sector"}
+                scopeKey={scope.key}
+                label={nameOf(scope.key, scopes.data)}
+                onOpen={onOpenPopulation}
+              />
+            )}
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -256,6 +278,7 @@ export function Overview({
                 panel={panel}
                 loading={movers.loading}
                 {...(onSelect ? { onSelect } : {})}
+                {...(opens ? { onOpen: opens } : {})}
               />
             ))}
           </div>
@@ -282,4 +305,53 @@ export function Overview({
       </section>
     </div>
   );
+}
+
+/**
+ * The way through to the chosen population's own page.
+ *
+ * Its own component so the key it carries is a value rather than
+ * something read out of state inside a handler, where it is nullable
+ * again however it was checked.
+ *
+ * @param props - Which population, what it is called, and where to go.
+ * @returns The button.
+ */
+function OpenPopulation({
+  kind,
+  scopeKey,
+  label,
+  onOpen,
+}: {
+  kind: "index" | "sector";
+  scopeKey: string;
+  label: string;
+  onOpen: (kind: "index" | "sector", key: string) => void;
+}): React.JSX.Element {
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => {
+        onOpen(kind, scopeKey);
+      }}
+    >
+      Open {label}
+      <ChevronRight className="h-4 w-4" />
+    </Button>
+  );
+}
+
+/**
+ * What a chosen population is called.
+ *
+ * @param key - The population's key.
+ * @param options - What the platform offered, which carries the labels.
+ * @returns Its name, or its key when nothing named it -- a sector the
+ *   platform no longer ranks can still be chosen, and "Open" alone says
+ *   nothing.
+ */
+function nameOf(key: string, options: ScopeOptions | null): string {
+  const offered = [...(options?.indices ?? []), ...(options?.sectors ?? [])];
+  return offered.find((one) => one.key === key)?.label ?? key;
 }

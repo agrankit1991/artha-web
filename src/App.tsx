@@ -151,6 +151,9 @@ function SignedIn({
               onOpenIndex={(key) => {
                 onNavigate(populationPath("index", key));
               }}
+              onOpenPopulation={(kind, key) => {
+                onNavigate(populationPath(kind, key));
+              }}
               onOpenBreadth={() => {
                 onNavigate(PATHS.breadth);
               }}

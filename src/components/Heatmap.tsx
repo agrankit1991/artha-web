@@ -42,7 +42,12 @@ export function Heatmap({
   limit = DEFAULT_LIMIT,
   className,
 }: HeatmapProps): React.JSX.Element {
-  const moved = members.filter((member) => toNumber(member.change_percent) !== null);
+  // Parsed once, and carried: a company whose move will not parse has not
+  // been counted, and everything below can then take the figure as read.
+  const moved = members.flatMap((member) => {
+    const move = toNumber(member.change_percent);
+    return move === null ? [] : [{ member, move }];
+  });
   if (moved.length === 0) {
     return <p className="text-sm text-muted-foreground">Nothing counted for this population</p>;
   }
@@ -51,10 +56,7 @@ export function Heatmap({
   // hundred and twenty tiles of a two-hundred company sector should be the
   // hundred and twenty worth looking at.
   const shown = [...moved]
-    .sort(
-      (one, other) =>
-        Math.abs(toNumber(other.change_percent) ?? 0) - Math.abs(toNumber(one.change_percent) ?? 0),
-    )
+    .sort((one, other) => Math.abs(other.move) - Math.abs(one.move))
     .slice(0, limit);
 
   return (
@@ -64,8 +66,13 @@ export function Heatmap({
         role="list"
         aria-label="Companies by move"
       >
-        {shown.map((member) => (
-          <Tile key={member.instrument_key} member={member} {...(onSelect ? { onSelect } : {})} />
+        {shown.map((one) => (
+          <Tile
+            key={one.member.instrument_key}
+            member={one.member}
+            move={one.move}
+            {...(onSelect ? { onSelect } : {})}
+          />
         ))}
       </div>
       {shown.length < moved.length && (
@@ -80,12 +87,13 @@ export function Heatmap({
 /** One company. */
 function Tile({
   member,
+  move,
   onSelect,
 }: {
   member: Member;
+  move: number;
   onSelect?: (member: Member) => void;
 }): React.JSX.Element {
-  const move = toNumber(member.change_percent) ?? 0;
   // Opacity carries the size of the move and the hue carries its
   // direction, so a strong fall and a weak one are told apart without
   // needing a legend.

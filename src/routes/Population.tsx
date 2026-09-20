@@ -9,19 +9,26 @@
 
 import { useCallback, useMemo, useState } from "react";
 
-import type { Member } from "@/api/client";
-import { fetchBreadth, fetchFigures, fetchPopulation } from "@/api/client";
+import type { KnownSymbol, Member } from "@/api/client";
+import {
+  fetchBreadth,
+  fetchExternalSymbols,
+  fetchFigures,
+  fetchPopulation,
+  fetchSeries,
+} from "@/api/client";
 import { BreadthPanel } from "@/components/BreadthPanel";
+import { type ChartLine, ComparisonChart } from "@/components/ComparisonChart";
 import { type Column, DataTable } from "@/components/DataTable";
 import { Delta } from "@/components/Delta";
 import { Heatmap } from "@/components/Heatmap";
 import { PriceChart } from "@/components/PriceChart";
 import { PRICE_RANGES, RangeSelector } from "@/components/RangeSelector";
-import { RelativeStrength } from "@/components/RelativeStrength";
+import { Tabs } from "@/components/Tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useResource } from "@/hooks/useResource";
-import { formatPercent, formatPrice, formatVolume, toNumber } from "@/lib/format";
+import { formatPrice, formatVolume, toNumber } from "@/lib/format";
 
 interface PopulationProps {
   kind: "index" | "sector";
@@ -31,6 +38,15 @@ interface PopulationProps {
 
 const DEFAULT_RANGE = 250;
 
+/** The colours the comparison draws each line in, in benchmark order. */
+const LINE_COLOURS = ["#2563eb", "#71717a", "#0ea5e9", "#d97706", "#a855f7"];
+
+/** What the chart section can show. */
+const VIEWS = [
+  { key: "compare", label: "Relative strength" },
+  { key: "price", label: "Price" },
+];
+
 /**
  * Render the page.
  *
@@ -39,6 +55,9 @@ const DEFAULT_RANGE = 250;
  */
 export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Element {
   const [sessions, setSessions] = useState(DEFAULT_RANGE);
+  // The comparison first: how it is doing against the market is the
+  // question this page is opened with, and its own price is one tab away.
+  const [view, setView] = useState<"price" | "compare">("compare");
 
   const load = useCallback(() => fetchPopulation(kind, scopeKey), [kind, scopeKey]);
   const loadBreadth = useCallback(
@@ -56,6 +75,46 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
   const chart = useResource(loadChart);
 
   const members = useMemo(() => population.data?.members ?? [], [population.data]);
+
+  // The subject and every benchmark it was measured against, so the chart
+  // shows the same comparison the table above it states.
+  const lines = useMemo<ChartLine[]>(() => {
+    const benchmarks = population.data?.performance?.against ?? [];
+    const subject = population.data?.instrument_key;
+    const drawn = [
+      ...(subject === undefined || subject === null
+        ? []
+        : [{ instrumentKey: subject, label: population.data?.name ?? subject }]),
+      ...benchmarks.map((one) => ({ instrumentKey: one.instrument_key, label: one.label })),
+    ];
+    return drawn.map((one, position) => ({
+      ...one,
+      colour: LINE_COLOURS[position % LINE_COLOURS.length] ?? "#71717a",
+    }));
+  }, [population.data]);
+
+  // Every instrument the charts draw, asked about once, so each carries
+  // its way out to TradingView.
+  const loadSymbols = useCallback(
+    () =>
+      lines.length === 0
+        ? Promise.resolve<Record<string, KnownSymbol>>({})
+        : fetchExternalSymbols(lines.map((line) => line.instrumentKey)),
+    [lines],
+  );
+  const symbols = useResource(loadSymbols);
+
+  const loadComparison = useCallback(
+    () =>
+      lines.length === 0
+        ? Promise.resolve(null)
+        : fetchSeries(
+            lines.map((line) => line.instrumentKey),
+            sessions,
+          ),
+    [lines, sessions],
+  );
+  const comparison = useResource(loadComparison);
 
   if (population.error !== null) {
     return (
@@ -83,18 +142,19 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
         )}
       </header>
 
-      <RelativeStrength
-        performance={found?.performance ?? null}
-        name={found?.name ?? scopeKey}
-        loading={population.loading}
-      />
-
-      {instrument !== null && (
+      {found !== null && instrument !== null && (
         <section className="space-y-3" aria-labelledby="price-heading">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 id="price-heading" className="text-lg font-semibold">
-              Price
-            </h2>
+            <div>
+              <h2 id="price-heading" className="text-lg font-semibold">
+                How it is doing
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {view === "compare"
+                  ? "Against the market and the size bands, all rebased to the first session they share."
+                  : "Its own sessions, with this platform's moving averages over them."}
+              </p>
+            </div>
             <RangeSelector
               ranges={PRICE_RANGES}
               sessions={sessions}
@@ -102,7 +162,33 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
               label="History"
             />
           </div>
-          <PriceChart points={chart.data?.points ?? null} loading={chart.loading} />
+          <Tabs
+            tabs={VIEWS}
+            active={view}
+            onChange={(chosen) => {
+              setView(chosen === "compare" ? "compare" : "price");
+            }}
+            label="Chart"
+          >
+            {view === "price" ? (
+              <PriceChart
+                points={chart.data?.points ?? null}
+                loading={chart.loading}
+                instrument={{
+                  label: found.name,
+                  symbol: symbols.data?.[instrument]?.symbol,
+                  derived: symbols.data?.[instrument]?.derived,
+                }}
+              />
+            ) : (
+              <ComparisonChart
+                series={comparison.data}
+                lines={lines}
+                symbols={symbols.data ?? {}}
+                loading={comparison.loading}
+              />
+            )}
+          </Tabs>
         </section>
       )}
 
@@ -137,13 +223,20 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
   );
 }
 
-/** The companies, as the one table. */
+/**
+ * The companies, as a full list.
+ *
+ * The shape the previous project's indices page settled on: the name
+ * stays put as the figures scroll past it and the header stays put as the
+ * rows scroll under it, because a list of five hundred companies with a
+ * dozen columns is unreadable without both.
+ */
 function Members({ members, loading }: { members: Member[]; loading: boolean }): React.JSX.Element {
   const columns = useMemo<Column<Member>[]>(
     () => [
       {
         id: "symbol",
-        header: "Symbol",
+        header: "Company",
         accessorFn: (row) => row.symbol,
         cell: ({ row }) => (
           <div className="min-w-0">
@@ -159,20 +252,14 @@ function Members({ members, loading }: { members: Member[]; loading: boolean }):
         cell: ({ row }) => formatPrice(row.original.close),
         meta: { align: "right" },
       },
-      {
-        id: "change",
-        header: "Change",
-        accessorFn: (row) => toNumber(row.change_percent) ?? 0,
-        cell: ({ row }) => <Delta value={row.original.change_percent} />,
-        meta: { align: "right" },
-      },
-      {
-        id: "from_high",
-        header: "From high",
-        accessorFn: (row) => toNumber(row.from_high_percent) ?? 0,
-        cell: ({ row }) => formatPercent(row.original.from_high_percent),
-        meta: { align: "right" },
-      },
+      change("change", "Change", (row) => row.change_percent),
+      change("one_week", "1W", (row) => row.one_week),
+      change("one_month", "1M", (row) => row.one_month),
+      change("three_months", "3M", (row) => row.three_months),
+      change("one_year", "1Y", (row) => row.one_year),
+      change("from_high", "From high", (row) => row.from_high_percent),
+      change("from_low", "From low", (row) => row.from_low_percent),
+      change("from_sma_200", "From 200-day", (row) => row.from_sma_200_percent),
       {
         id: "volume",
         header: "Volume",
@@ -192,8 +279,27 @@ function Members({ members, loading }: { members: Member[]; loading: boolean }):
       empty="No companies recorded for this population"
       placeholderRows={8}
       label="Constituents"
+      full
     />
   );
+}
+
+/**
+ * A column of percentages, coloured by direction.
+ *
+ * @param id - The column's identity.
+ * @param header - What to call it.
+ * @param of - Which figure it reads.
+ * @returns The column.
+ */
+function change(id: string, header: string, of: (row: Member) => string | null): Column<Member> {
+  return {
+    id,
+    header,
+    accessorFn: (row) => toNumber(of(row)) ?? 0,
+    cell: ({ row }) => <Delta value={of(row.original)} />,
+    meta: { align: "right" },
+  };
 }
 
 /**

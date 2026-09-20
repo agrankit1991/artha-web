@@ -59,23 +59,7 @@ export function BreadthGridPanel({
         id: "scope_key",
         header: "Population",
         accessorFn: (row) => row.scope_key,
-        cell: ({ row }) =>
-          onOpen ? (
-            <button
-              type="button"
-              className="font-medium hover:underline"
-              onClick={(event) => {
-                // Counting a population and opening its page are separate
-                // intentions, and the row already does the first.
-                event.stopPropagation();
-                onOpen(row.original.scope_key);
-              }}
-            >
-              {label(row.original.scope_key)}
-            </button>
-          ) : (
-            <span className="font-medium">{label(row.original.scope_key)}</span>
-          ),
+        cell: ({ row }) => <span className="font-medium">{label(row.original.scope_key)}</span>,
       },
       {
         id: "regime",
@@ -133,7 +117,7 @@ export function BreadthGridPanel({
         meta: { align: "right" },
       },
     ],
-    [comparedWith, onOpen],
+    [comparedWith],
   );
 
   return (
@@ -143,10 +127,18 @@ export function BreadthGridPanel({
       loading={loading}
       empty="Nothing counted for this kind of population"
       placeholderRows={8}
+      nameOf={(row: ScopeBreadth) => label(row.scope_key)}
       {...(onSelect
         ? {
             onSelect: (row: ScopeBreadth) => {
               onSelect(row.scope_key);
+            },
+          }
+        : {})}
+      {...(onOpen
+        ? {
+            onOpen: (row: ScopeBreadth) => {
+              onOpen(row.scope_key);
             },
           }
         : {})}
@@ -205,5 +197,9 @@ function percent(value: string | null): string {
  * @returns What to show.
  */
 function label(scopeKey: string): string {
-  return scopeKey.includes("|") ? (scopeKey.split("|")[1] ?? scopeKey) : scopeKey;
+  // Matched rather than split: a split always yields something, so the
+  // "there was no segment" case has to be invented afterwards, and a
+  // case invented afterwards is one nothing ever reaches.
+  const [, named] = /\|(.+)$/.exec(scopeKey) ?? [];
+  return named ?? scopeKey;
 }

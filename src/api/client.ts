@@ -288,7 +288,13 @@ export interface Member {
   close: string | null;
   change_percent: string | null;
   volume: number | null;
+  one_week: string | null;
+  one_month: string | null;
+  three_months: string | null;
+  one_year: string | null;
   from_high_percent: string | null;
+  from_low_percent: string | null;
+  from_sma_200_percent: string | null;
   as_of: string | null;
 }
 

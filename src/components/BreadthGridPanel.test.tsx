@@ -124,9 +124,17 @@ describe("BreadthGridPanel", () => {
     const opened = vi.fn();
     render(<BreadthGridPanel scopes={breadthGrid().scopes} onSelect={counted} onOpen={opened} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "IT - Software" }));
+    await userEvent.click(screen.getByRole("button", { name: "Open IT - Software" }));
 
     expect(opened).toHaveBeenCalledWith("IT - Software");
     expect(counted).not.toHaveBeenCalled();
+  });
+
+  it("leaves a population that did not turn uncoloured", () => {
+    // Nought is neither a rise nor a fall, and colouring it either way
+    // would make a still week look like a small move.
+    render(<BreadthGridPanel scopes={[scopeBreadth({ rotation: "0" })]} />);
+
+    expect(screen.getByText(/0.0 pp/)).toHaveClass("text-muted-foreground");
   });
 });

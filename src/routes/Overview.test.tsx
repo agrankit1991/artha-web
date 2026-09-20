@@ -329,4 +329,64 @@ describe("Overview", () => {
       expect(asked?.match(/keys=/g)).toHaveLength(9);
     });
   });
+
+  it("opens an index's own page from a list of indices", async () => {
+    // A list of indices leads to each index; a list of companies does not,
+    // because a company has no page yet.
+    stubEverything();
+    const opened = vi.fn();
+    renderOverview({ onOpenIndex: opened });
+    await screen.findByText("Top gainers");
+    await userEvent.click(screen.getByRole("button", { name: "Indices" }));
+    await screen.findByText("Top gainers");
+
+    // The chevron rather than the row: a list of indices offers a way
+    // into each index's own page.
+    const [firstPanel] = screen.getAllByRole("table");
+    const [open] = within(firstPanel as HTMLElement).getAllByRole("button", {
+      name: /^Open /,
+    });
+    await userEvent.click(open as HTMLElement);
+
+    expect(opened).toHaveBeenCalledWith("NSE_EQ|INE002A01018");
+  });
+
+  it("leaves a list of companies without a way in, since there is nowhere to go", async () => {
+    // A company has no page yet, and a chevron leading nowhere is worse
+    // than none.
+    stubEverything();
+    renderOverview({ onOpenIndex: vi.fn() });
+    await screen.findByText("Top gainers");
+
+    const [firstPanel] = screen.getAllByRole("table");
+    expect(
+      within(firstPanel as HTMLElement).queryByRole("button", { name: /^Open / }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("names a chosen population by its key when nothing named it", async () => {
+    // A sector the platform no longer ranks can still be in the address
+    // bar, and a button reading "Open" alone says nothing.
+    stubEverything();
+    const opened = vi.fn();
+    renderOverview({ onOpenPopulation: opened });
+    await screen.findByText("Top gainers");
+
+    await userEvent.click(screen.getByRole("combobox"));
+    await userEvent.click(screen.getByRole("option", { name: "IT - Software" }));
+
+    expect(await screen.findByRole("button", { name: /Open IT - Software/ })).toBeInTheDocument();
+  });
+
+  it("offers the chosen population's own page", async () => {
+    stubEverything();
+    const opened = vi.fn();
+    renderOverview({ onOpenPopulation: opened });
+    await screen.findByText("Top gainers");
+
+    await userEvent.click(screen.getByRole("button", { name: "Nifty 50" }));
+    await userEvent.click(await screen.findByRole("button", { name: /Open Nifty 50/ }));
+
+    expect(opened).toHaveBeenCalledWith("index", "NSE_INDEX|Nifty 50");
+  });
 });

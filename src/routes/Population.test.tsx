@@ -6,7 +6,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Population } from "./Population";
 import { ThemeProvider } from "@/lib/theme";
-import { breadth, chartPoints, member, population, stubPlatform } from "@/test/support";
+import {
+  breadth,
+  chartPoints,
+  member,
+  population,
+  priceSeries,
+  stubPlatform,
+} from "@/test/support";
 
 vi.mock("lightweight-charts", async () => (await import("@/test/chartStub")).chartModule());
 
@@ -21,6 +28,21 @@ function stubEverything(
     "/api/populations": { body },
     "/api/breadth": { body: breadth() },
     "/api/figures": { body: { instrument_key: body.instrument_key, points: chartPoints(30) } },
+    "/api/external-symbols": {
+      body: [
+        {
+          instrument_key: body.instrument_key ?? "x",
+          symbol: "NSE:BANKNIFTY",
+          derived: false,
+        },
+      ],
+    },
+    "/api/series": {
+      body: [
+        priceSeries(body.instrument_key ?? "x", [100, 110]),
+        priceSeries("NSE_INDEX|Nifty 500", [200, 210]),
+      ],
+    },
   });
 }
 
@@ -43,14 +65,18 @@ describe("Population", () => {
     expect(screen.getByText("Sectoral")).toBeInTheDocument();
   });
 
-  it("says how it is doing against the market", async () => {
-    // The reason the page exists: a return on its own says almost nothing.
+  it("opens on how it is doing against the market", async () => {
+    // The reason the page exists: a return on its own says almost nothing,
+    // and its own price is one tab away.
     stubEverything();
 
     show();
 
-    expect(await screen.findByText("Relative strength")).toBeInTheDocument();
-    expect(screen.getByText("Whole market")).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "Relative strength" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(await screen.findByRole("tabpanel")).toHaveTextContent("Nifty 500");
   });
 
   it("counts how many companies it holds", async () => {
@@ -63,22 +89,44 @@ describe("Population", () => {
 
   it("draws the index's own price, because an index trades", async () => {
     stubEverything();
-
     show();
+    await screen.findByRole("tab", { name: "Price" });
 
-    expect(await screen.findByRole("heading", { name: "Price" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: "Price" }));
+
+    expect(await screen.findByText("SMA 200")).toBeInTheDocument();
+  });
+
+  it("offers the way out to TradingView from the price chart", async () => {
+    // Every price chart carries it; this one had been left without.
+    stubEverything();
+    show();
+    await userEvent.click(await screen.findByRole("tab", { name: "Price" }));
+
+    expect(
+      await screen.findByRole("link", { name: /Nifty Bank on TradingView/ }),
+    ).toBeInTheDocument();
   });
 
   it("draws no price for a sector, because a sector does not trade", async () => {
     // It is a grouping rather than a thing that trades.
+    // And no description either: an exchange publishes one for an index
+    // and nobody publishes one for a sector.
     stubEverything(
-      population({ scope_kind: "sector", name: "IT - Software", instrument_key: null }),
+      population({
+        scope_kind: "sector",
+        name: "IT - Software",
+        instrument_key: null,
+        category: null,
+        description: null,
+      }),
     );
 
     show("sector", "IT - Software");
 
     await screen.findByRole("heading", { name: "IT - Software" });
-    expect(screen.queryByRole("heading", { name: "Price" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Price" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/most liquid/)).not.toBeInTheDocument();
   });
 
   it("counts the population's breadth for its own scope", async () => {
@@ -155,7 +203,7 @@ describe("Population", () => {
   it("asks for more history when a longer range is chosen", async () => {
     const fetchMock = stubEverything();
     show();
-    await screen.findByRole("heading", { name: "Price" });
+    await screen.findByRole("tab", { name: "Price" });
 
     await userEvent.click(
       within(screen.getByRole("group", { name: "History" })).getByRole("button", { name: "5Y" }),
@@ -185,6 +233,54 @@ describe("Population", () => {
 
     await screen.findByRole("heading", { name: "Nifty Bank" });
     expect(screen.queryByText("Constituents")).not.toBeInTheDocument();
-    expect(screen.getByText("Nothing to compare yet")).toBeInTheDocument();
+  });
+
+  it("shows every return a full list of constituents needs", async () => {
+    // The shape the previous project's indices page settled on.
+    stubEverything();
+
+    show();
+
+    await screen.findByText("Constituents");
+    const table = screen.getByRole("table", { name: "Constituents" });
+    for (const column of ["1W", "1M", "3M", "1Y", "From high", "From low", "From 200-day"]) {
+      expect(within(table).getByRole("button", { name: new RegExp(column) })).toBeInTheDocument();
+    }
+  });
+
+  it("offers no way out when TradingView does not know the instrument", async () => {
+    // A link to the wrong chart is worse than none.
+    stubPlatform({
+      "/api/populations": { body: population() },
+      "/api/breadth": { body: breadth() },
+      "/api/external-symbols": { body: [] },
+      "/api/figures": {
+        body: { instrument_key: "NSE_INDEX|Nifty Bank", points: chartPoints(10) },
+      },
+      "/api/series": { body: [] },
+    });
+    show();
+
+    await userEvent.click(await screen.findByRole("tab", { name: "Price" }));
+
+    expect(await screen.findByText("SMA 200")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /TradingView/ })).not.toBeInTheDocument();
+  });
+
+  it("names itself by its key until the platform says what it is called", async () => {
+    // The page draws before the fetch lands, and a heading that is blank
+    // for a moment reads as a page that has lost its subject.
+    stubPlatform({
+      "/api/populations": { body: population() },
+      "/api/breadth": { body: breadth() },
+      "/api/external-symbols": { body: [] },
+      "/api/figures": { body: { instrument_key: null, points: [] } },
+      "/api/series": { body: [] },
+    });
+
+    show("index", "NSE_INDEX|Nifty Bank");
+
+    expect(screen.getByRole("heading", { name: "NSE_INDEX|Nifty Bank" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Nifty Bank" })).toBeInTheDocument();
   });
 });

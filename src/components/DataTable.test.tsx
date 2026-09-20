@@ -110,4 +110,71 @@ describe("DataTable", () => {
 
     expect(screen.queryByRole("button", { name: /Symbol/ })).not.toBeInTheDocument();
   });
+
+  it("pins the header and the first column in a full list", () => {
+    // Five hundred rows and a dozen columns: by the third screen a reader
+    // has lost which column they are in and which row they are on.
+    const { container } = render(
+      <DataTable columns={COLUMNS} rows={[ROWS[0] as Row]} full label="Everything" />,
+    );
+
+    const [name] = container.querySelectorAll("thead th");
+    expect(name?.className).toContain("sticky");
+    expect(name?.className).toContain("left-0");
+    expect(name?.className).toContain("top-0");
+  });
+
+  it("scrolls a full list rather than growing the page forever", () => {
+    const { container } = render(<DataTable columns={COLUMNS} rows={[ROWS[0] as Row]} full />);
+
+    expect(container.firstChild).toHaveClass("overflow-auto");
+  });
+
+  it("stays a plain table when it is a panel rather than a list", () => {
+    const { container } = render(<DataTable columns={COLUMNS} rows={[ROWS[0] as Row]} />);
+
+    expect(container.firstChild).not.toHaveClass("overflow-auto");
+  });
+
+  it("offers a way into a row's own page when there is one", async () => {
+    const opened = vi.fn();
+    render(<DataTable columns={COLUMNS} rows={[ROWS[0] as Row]} onOpen={opened} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Open details" }));
+
+    expect(opened).toHaveBeenCalled();
+  });
+
+  it("names each way in, so they are not a column of identical buttons", () => {
+    render(
+      <DataTable
+        columns={COLUMNS}
+        rows={[ROWS[0] as Row]}
+        onOpen={vi.fn()}
+        nameOf={(one) => one.symbol}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Open TCS" })).toBeInTheDocument();
+  });
+
+  it("opens a row without also choosing it", async () => {
+    // Two separate intentions, and the row itself may already do the first.
+    const chosen = vi.fn();
+    const opened = vi.fn();
+    render(
+      <DataTable columns={COLUMNS} rows={[ROWS[0] as Row]} onSelect={chosen} onOpen={opened} />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Open details" }));
+
+    expect(opened).toHaveBeenCalled();
+    expect(chosen).not.toHaveBeenCalled();
+  });
+
+  it("stretches the empty row across the way-in column too", () => {
+    render(<DataTable columns={COLUMNS} rows={[]} onOpen={vi.fn()} empty="Nothing here" />);
+
+    expect(screen.getByText("Nothing here")).toHaveAttribute("colspan", String(COLUMNS.length + 1));
+  });
 });

@@ -353,7 +353,13 @@ export function member(overrides: Partial<Member> = {}): Member {
     close: "1294.900000",
     change_percent: "2.500000",
     volume: 9799528,
+    one_week: "1.100000",
+    one_month: "2.400000",
+    three_months: "5.900000",
+    one_year: "14.300000",
     from_high_percent: "-8.200000",
+    from_low_percent: "15.900000",
+    from_sma_200_percent: "5.600000",
     as_of: "2026-09-18",
     ...overrides,
   };

@@ -21,7 +21,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronRight, ChevronsUpDown } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -33,6 +33,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+
+/**
+ * How the first column is pinned in a full list.
+ *
+ * A rule drawn with a pseudo-element rather than a border: a real border
+ * on a sticky cell scrolls away with the cell behind it and leaves the
+ * column looking as though it is floating over nothing.
+ */
+const STICKY_COLUMN =
+  "sticky left-0 z-20 bg-card after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border";
 
 /** A column of one of this application's tables. */
 export type Column<Row extends RowData> = ColumnDef<Row>;
@@ -61,6 +71,28 @@ interface DataTableProps<Row extends RowData> {
    * it. Worth giving wherever a screen carries more than one table.
    */
   label?: string;
+  /**
+   * Draw it as a full list rather than a panel: the header stays put as
+   * the rows scroll under it and the first column stays put as the
+   * figures scroll past it. A list of five hundred companies with a
+   * dozen columns is unreadable without both -- by the third screen a
+   * reader has lost which column they are in and which row they are on.
+   */
+  full?: boolean;
+  /** How tall a full list grows before it scrolls. */
+  maxHeight?: string;
+  /**
+   * What to do when a row's details are asked for. Given one, a column of
+   * chevrons is added at the end, which is a plainer invitation than a
+   * clickable row and survives a row that also selects something.
+   */
+  onOpen?: (row: Row) => void;
+  /**
+   * What a row is called, for the details button. Without it every button
+   * in the column announces itself identically, which is no use to
+   * anybody reading the page rather than looking at it.
+   */
+  nameOf?: (row: Row) => string;
 }
 
 /**
@@ -77,6 +109,10 @@ export function DataTable<Row extends RowData>({
   onSelect,
   placeholderRows = 5,
   label,
+  full = false,
+  maxHeight = "max-h-[70vh]",
+  onOpen,
+  nameOf,
 }: DataTableProps<Row>): React.JSX.Element {
   const [sorting, setSorting] = useState<SortingState>([]);
   const table = useReactTable({
@@ -88,16 +124,23 @@ export function DataTable<Row extends RowData>({
     getSortedRowModel: getSortedRowModel(),
   });
 
-  return (
+  const body = (
     <Table aria-label={label}>
       <TableHeader>
         {table.getHeaderGroups().map((group) => (
           <TableRow key={group.id}>
-            {group.headers.map((header) => {
+            {group.headers.map((header, position) => {
               const alignment = alignmentOf(header.column.columnDef);
               const sorted = header.column.getIsSorted();
               return (
-                <TableHead key={header.id} className={cn(alignment === "right" && "text-right")}>
+                <TableHead
+                  key={header.id}
+                  className={cn(
+                    alignment === "right" && "text-right",
+                    full && "sticky top-0 z-30 bg-card",
+                    full && position === 0 && STICKY_COLUMN,
+                  )}
+                >
                   {header.column.getCanSort() ? (
                     <button
                       type="button"
@@ -116,6 +159,11 @@ export function DataTable<Row extends RowData>({
                 </TableHead>
               );
             })}
+            {onOpen && (
+              <TableHead className={cn("w-12", full && "sticky top-0 z-30 bg-card")}>
+                <span className="sr-only">Details</span>
+              </TableHead>
+            )}
           </TableRow>
         ))}
       </TableHeader>
@@ -124,7 +172,10 @@ export function DataTable<Row extends RowData>({
           <LoadingRows columns={columns.length} rows={placeholderRows} />
         ) : table.getRowModel().rows.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+            <TableCell
+              colSpan={columns.length + (onOpen ? 1 : 0)}
+              className="h-24 text-center text-muted-foreground"
+            >
               {empty}
             </TableCell>
           </TableRow>
@@ -141,21 +192,45 @@ export function DataTable<Row extends RowData>({
               }
               className={cn(onSelect && "cursor-pointer")}
             >
-              {row.getVisibleCells().map((cell) => (
+              {row.getVisibleCells().map((cell, position) => (
                 <TableCell
                   key={cell.id}
                   className={cn(
                     alignmentOf(cell.column.columnDef) === "right" && "text-right tabular",
+                    full && position === 0 && cn(STICKY_COLUMN, "bg-card"),
                   )}
                 >
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </TableCell>
               ))}
+              {onOpen && (
+                <TableCell className="text-right">
+                  <button
+                    type="button"
+                    aria-label={nameOf ? `Open ${nameOf(row.original)}` : "Open details"}
+                    className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                    onClick={(event) => {
+                      // Choosing a row and opening it are separate
+                      // intentions, and a row may already do the first.
+                      event.stopPropagation();
+                      onOpen(row.original);
+                    }}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </TableCell>
+              )}
             </TableRow>
           ))
         )}
       </TableBody>
     </Table>
+  );
+
+  return full ? (
+    <div className={cn("relative w-full overflow-auto rounded-md border", maxHeight)}>{body}</div>
+  ) : (
+    body
   );
 }
 

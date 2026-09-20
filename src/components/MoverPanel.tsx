@@ -74,6 +74,12 @@ interface MoverPanelProps {
   panel: Panel;
   loading?: boolean;
   onSelect?: (row: MoverRow) => void;
+  /**
+   * What to do when a row's own page is asked for. Given one, a column of
+   * chevrons is added: a list of indices leads to each index's page, and a
+   * list of companies has nowhere to lead yet.
+   */
+  onOpen?: (row: MoverRow) => void;
 }
 
 /**
@@ -86,6 +92,7 @@ export function MoverPanelCard({
   panel,
   loading = false,
   onSelect,
+  onOpen,
 }: MoverPanelProps): React.JSX.Element {
   const { title, measure, render } = LISTS[panel.name];
 
@@ -150,7 +157,9 @@ export function MoverPanelCard({
           rows={panel.rows}
           loading={loading}
           empty="Nothing in this list"
+          nameOf={(row: MoverRow) => row.symbol}
           {...(onSelect ? { onSelect } : {})}
+          {...(onOpen ? { onOpen } : {})}
         />
       </CardContent>
     </Card>

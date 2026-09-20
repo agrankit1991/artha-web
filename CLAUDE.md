@@ -190,6 +190,21 @@ bottom. `PriceChart` carries its own controls (shape, and what is laid
 over the price) rather than taking them as props, so it drops into an
 instrument page with its settings intact.
 
+**Full lists use `DataTable`'s `full` mode**, which is the shape the
+previous project's indices page settled on: a scrolling container, the
+header pinned as rows pass under it and the first column pinned as figures
+pass beside it. Five hundred rows and a dozen columns are unreadable
+without both -- by the third screen a reader has lost which row they are
+on and which column they are in. `onOpen` adds the trailing chevron that
+leads to a row's own page; pass `nameOf` with it, or the column is a
+stack of buttons that all announce themselves identically.
+
+**Wherever an index appears in a list, it leads to its own page.** The
+mover panels when the population is the indices, the breadth grid, the
+index cards, and the chosen scope on the overview. A company does not,
+because a company has no page yet -- and a chevron leading nowhere is
+worse than no chevron.
+
 **The heatmap is ours, not an embed.** Drawn from stored figures, so it
 agrees with the table beside it and works for any population -- including
 the hundred and fifty-eight sectors no outside widget has heard of. Every
@@ -244,10 +259,17 @@ call site.
 - **A population** (`src/routes/Population.tsx`) at `/index/:key` and
   `/sector/:key` -- one page for both, because an index and a sector are
   the same question asked of a different set of companies. What it is,
-  how it is doing against the market and the size bands, its own price and
-  chart where it has one, its breadth, a heatmap of its companies and the
-  list of them. A sector has no instrument of its own, so it gets no price
-  chart and its performance stands on the median of its members.
+  how it is doing against the market and the size bands, its own price,
+  its breadth, a heatmap of its companies and the full list of them. A
+  sector has no instrument of its own, so it gets no price chart and its
+  performance stands on the median of its members.
+
+  **Relative strength is a chart, not a table.** It opens on the
+  comparison -- the population against the market and the three size
+  bands, rebased to the first session they share -- with its own price one
+  tab away. The gaps are read off the legend's totals over whichever range
+  is chosen.
+
 - **Market breadth** (`src/routes/Breadth.tsx`) -- the same counts at
   length: any population over any of five windows; the regime the
   population is in, named; six headline measures each printed with the
@@ -276,8 +298,7 @@ call site.
   `MoverPanel`, `IndexCard`, `MiniCandlestick`, `ScopeSelector`,
   `ScopePicker`, `ThemeToggle`, `Meter`, `Sparkline`, `Statistic`,
   `BreadthPanel`, `BreadthGridPanel`, `RegimeBanner`, `NewsFeed`,
-  `LoadMore`, `RangeSelector`, `Tabs`, `RelativeStrength`, `Heatmap`,
-  `Chart`, `ChartControls`,
+  `LoadMore`, `RangeSelector`, `Tabs`, `Heatmap`, `Chart`, `ChartControls`,
   `ComparisonChart`, `PriceChart`,
   `TradingViewWidget`, `TradingViewLink`, `Menu`, `Tooltip`, `ThemeMenu`,
   `UserMenu`, `AppShell`.
