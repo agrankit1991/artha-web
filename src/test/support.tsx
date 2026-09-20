@@ -16,8 +16,10 @@ import type {
   InstrumentOverview,
   MoverPanel,
   MoverRow,
+  MentionedInstrument,
   MoversResponse,
   NewsItem,
+  NewsPage,
   PriceSeries,
   ScopeBreadth,
   ScopeOptions,
@@ -276,6 +278,41 @@ export function newsItem(overrides: Partial<NewsItem> = {}): NewsItem {
     thumbnail_url: null,
     published_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
     mentions: [{ instrument_key: "NSE_EQ|INE002A01018", symbol: "RELIANCE" }],
+    ...overrides,
+  };
+}
+
+/** Build a page of the news feed. */
+export function newsPage(overrides: Partial<NewsPage> = {}): NewsPage {
+  return {
+    total: 1,
+    limit: 12,
+    offset: 0,
+    items: [newsItem()],
+    ...overrides,
+  };
+}
+
+/** Build a run of articles, each an hour older than the one before. */
+export function newsItems(count: number): NewsItem[] {
+  return Array.from({ length: count }, (_unused, index) =>
+    newsItem({
+      url: `https://upstox.com/news/a${String(index)}`,
+      headline: `Headline ${String(index)}`,
+      published_at: new Date(Date.now() - (index + 1) * 3_600_000).toISOString(),
+    }),
+  );
+}
+
+/** Build a company offered as a news filter. */
+export function mentionedInstrument(
+  overrides: Partial<MentionedInstrument> = {},
+): MentionedInstrument {
+  return {
+    instrument_key: "NSE_EQ|INE467B01029",
+    symbol: "TCS",
+    name: "Tata Consultancy Services",
+    articles: 12,
     ...overrides,
   };
 }

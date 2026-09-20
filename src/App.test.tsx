@@ -5,7 +5,14 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "./App";
-import { ACCOUNT, breadth, moversResponse, scopeOptions, stubPlatform } from "@/test/support";
+import {
+  ACCOUNT,
+  breadth,
+  moversResponse,
+  newsPage,
+  scopeOptions,
+  stubPlatform,
+} from "@/test/support";
 
 vi.mock("lightweight-charts", async () => (await import("@/test/chartStub")).chartModule());
 
@@ -20,7 +27,8 @@ const DATA = {
   "/api/movers": { body: moversResponse() },
   "/api/overviews": { body: [] },
   "/api/breadth": { body: breadth() },
-  "/api/news": { body: [] },
+  "/api/news": { body: newsPage({ total: 0, items: [] }) },
+  "/api/news/mentions": { body: [] },
   "/api/series": { body: [] },
 };
 
@@ -135,5 +143,25 @@ describe("App", () => {
     await userEvent.click(screen.getByRole("button", { name: /See breadth in full/ }));
 
     expect(await screen.findByText("Session by session")).toBeInTheDocument();
+  });
+
+  it("routes to the news page and back", async () => {
+    stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
+    render(<App />);
+    await screen.findByText("Market movers");
+
+    await userEvent.click(screen.getByRole("link", { name: "News" }));
+
+    expect(await screen.findByLabelText("Search news")).toBeInTheDocument();
+  });
+
+  it("takes the overview's own way through to the feed", async () => {
+    stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
+    render(<App />);
+    await screen.findByText("Market news");
+
+    await userEvent.click(screen.getByRole("button", { name: /All news/ }));
+
+    expect(await screen.findByLabelText("Search news")).toBeInTheDocument();
   });
 });

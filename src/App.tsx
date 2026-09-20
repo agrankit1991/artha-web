@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { useResource } from "@/hooks/useResource";
 import { ThemeProvider } from "@/lib/theme";
 import { Breadth } from "@/routes/Breadth";
+import { News } from "@/routes/News";
 import { Overview } from "@/routes/Overview";
 import { SignIn } from "@/routes/SignIn";
 
@@ -29,12 +30,14 @@ import { SignIn } from "@/routes/SignIn";
 export const PATHS = {
   overview: "/",
   breadth: "/breadth",
+  news: "/news",
 } as const;
 
 /** The navigation, in the order the screens are meant to be read. */
 const SCREENS: { path: string; label: string }[] = [
   { path: PATHS.overview, label: "Overview" },
   { path: PATHS.breadth, label: "Breadth" },
+  { path: PATHS.news, label: "News" },
 ];
 
 /**
@@ -135,10 +138,14 @@ function Shell(): React.JSX.Element {
                 onOpenBreadth={() => {
                   void navigate(PATHS.breadth);
                 }}
+                onOpenNews={() => {
+                  void navigate(PATHS.news);
+                }}
               />
             }
           />
           <Route path={PATHS.breadth} element={<Breadth />} />
+          <Route path={PATHS.news} element={<News />} />
         </Routes>
       </main>
     </div>

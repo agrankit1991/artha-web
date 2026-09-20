@@ -7,6 +7,7 @@
  * arrives whole rather than in pieces.
  */
 
+import { ArrowRight } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import type { MoverRow } from "@/api/client";
@@ -25,6 +26,7 @@ import { MoverPanelCard } from "@/components/MoverPanel";
 import { NewsFeed } from "@/components/NewsFeed";
 import { ScopePicker } from "@/components/ScopePicker";
 import type { Scope } from "@/components/ScopeSelector";
+import { Button } from "@/components/ui/button";
 import { useResource } from "@/hooks/useResource";
 import { BENCHMARK, FEATURED_INDICES, GOLD } from "@/lib/indices";
 
@@ -33,7 +35,17 @@ interface OverviewProps {
   onSelect?: (row: MoverRow) => void;
   /** Where to send a reader who wants breadth in full. */
   onOpenBreadth?: () => void;
+  /** Where to send a reader who wants the whole news feed. */
+  onOpenNews?: () => void;
 }
+
+/**
+ * How many headlines the overview carries.
+ *
+ * Enough to be worth glancing at and few enough that the page below them
+ * is still reachable; the rest are a click away on their own page.
+ */
+const HEADLINES = 6;
 
 /** Sessions of the gold comparison -- about six months. */
 const COMPARISON_SESSIONS = 125;
@@ -50,7 +62,11 @@ const COMPARISON: ChartLine[] = [
  * @param props - What to do when something is chosen.
  * @returns The page.
  */
-export function Overview({ onSelect, onOpenBreadth }: OverviewProps): React.JSX.Element {
+export function Overview({
+  onSelect,
+  onOpenBreadth,
+  onOpenNews,
+}: OverviewProps): React.JSX.Element {
   const [scope, setScope] = useState<Scope>({ kind: "companies", key: null });
 
   const loadScopes = useCallback(() => fetchScopes(), []);
@@ -60,7 +76,7 @@ export function Overview({ onSelect, onOpenBreadth }: OverviewProps): React.JSX.
   );
   const loadMovers = useCallback(() => fetchMovers(scope.kind, scope.key), [scope]);
   const loadBreadth = useCallback(() => fetchBreadth(scope.kind, scope.key), [scope]);
-  const loadNews = useCallback(() => fetchNews(), []);
+  const loadNews = useCallback(() => fetchNews({ limit: HEADLINES }), []);
   const loadComparison = useCallback(
     () => fetchSeries([BENCHMARK.key, GOLD.key], COMPARISON_SESSIONS),
     [],
@@ -143,10 +159,21 @@ export function Overview({ onSelect, onOpenBreadth }: OverviewProps): React.JSX.
       </section>
 
       <section className="space-y-3" aria-labelledby="news-heading">
-        <h2 id="news-heading" className="text-lg font-semibold">
-          Market news
-        </h2>
-        <NewsFeed items={news.data} loading={news.loading} />
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 id="news-heading" className="text-lg font-semibold">
+            Market news
+          </h2>
+          {onOpenNews && (
+            <Button variant="ghost" size="sm" onClick={onOpenNews}>
+              All news
+              {news.data !== null && (
+                <span className="ml-1 text-muted-foreground">({news.data.total})</span>
+              )}
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+        <NewsFeed items={news.data?.items ?? null} loading={news.loading} />
       </section>
     </div>
   );

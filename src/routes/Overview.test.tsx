@@ -10,7 +10,7 @@ import {
   breadth,
   moverRow,
   moversResponse,
-  newsItem,
+  newsPage,
   overview,
   panel,
   priceSeries,
@@ -46,7 +46,7 @@ function stubEverything(): ReturnType<typeof stubPlatform> {
       body: [overview(), overview({ instrument_key: "BSE_INDEX|SENSEX" })],
     },
     "/api/breadth": { body: breadth() },
-    "/api/news": { body: [newsItem()] },
+    "/api/news": { body: newsPage() },
     "/api/series": {
       body: [
         priceSeries("NSE_INDEX|Nifty 50", [100, 110]),
@@ -165,7 +165,7 @@ describe("Overview", () => {
       "/api/movers": { status: 500, body: { detail: "the lists are being rebuilt" } },
       "/api/overviews": { body: [] },
       "/api/breadth": { body: breadth() },
-      "/api/news": { body: [] },
+      "/api/news": { body: newsPage({ total: 0, items: [] }) },
       "/api/series": { body: [] },
     });
 
@@ -196,5 +196,30 @@ describe("Overview", () => {
 
     expect(await screen.findByText(/against gold/)).toBeInTheDocument();
     expect(await screen.findByText("+10.00%")).toBeInTheDocument();
+  });
+
+  it("offers the way through to the whole feed, with how much there is", async () => {
+    stubEverything();
+    const open = vi.fn();
+    renderOverview({ onOpenNews: open });
+    await screen.findByText("Refiners lead the index higher");
+
+    await userEvent.click(screen.getByRole("button", { name: /All news/ }));
+
+    expect(open).toHaveBeenCalled();
+  });
+
+  it("asks for only a handful of headlines, not the whole feed", async () => {
+    // The overview is a glance; the feed has its own page.
+    const fetchMock = stubEverything();
+
+    renderOverview();
+
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls
+        .map((call) => String(call[0]))
+        .find((path) => path.startsWith("/api/news"));
+      expect(asked).toContain("limit=6");
+    });
   });
 });

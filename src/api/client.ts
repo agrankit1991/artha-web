@@ -236,6 +236,34 @@ export interface NewsMention {
   symbol: string;
 }
 
+/** Which articles a reader is asking for. */
+export interface NewsQuery {
+  /** Words to look for in the headline or the summary. */
+  text?: string | null;
+  /** Show only what was published for one instrument. */
+  instrumentKey?: string | null;
+  /** Show only what was published within this many days. */
+  days?: number | null;
+  limit?: number;
+  offset?: number;
+}
+
+/** One page of the feed, and how much of it there is. */
+export interface NewsPage {
+  total: number;
+  limit: number;
+  offset: number;
+  items: NewsItem[];
+}
+
+/** A company worth offering as a filter, and how much was written about it. */
+export interface MentionedInstrument {
+  instrument_key: string;
+  symbol: string;
+  name: string;
+  articles: number;
+}
+
 /** One news article, with the instruments it concerns. */
 export interface NewsItem {
   url: string;
@@ -472,13 +500,47 @@ export function fetchOverviews(keys: string[]): Promise<InstrumentOverview[]> {
 }
 
 /**
- * Fetch the latest market news.
+ * Fetch a page of the market's news.
  *
- * @param limit - Maximum articles returned.
- * @returns Articles newest first.
+ * @param query - Which articles, and which page of them.
+ * @returns The page, with the total behind it.
  */
-export function fetchNews(limit = 12): Promise<NewsItem[]> {
-  return request<NewsItem[]>(`/api/news?limit=${String(limit)}`);
+export function fetchNews(query: NewsQuery = {}): Promise<NewsPage> {
+  const parameters = new URLSearchParams({
+    limit: String(query.limit ?? 12),
+    offset: String(query.offset ?? 0),
+  });
+  // Only what was actually asked for: an empty `q` is a request for
+  // everything, and sending one would make every unfiltered page look
+  // like a search.
+  if (query.text != null && query.text.trim() !== "") {
+    parameters.set("q", query.text.trim());
+  }
+  if (query.instrumentKey != null) {
+    parameters.set("instrument_key", query.instrumentKey);
+  }
+  if (query.days != null) {
+    parameters.set("days", String(query.days));
+  }
+  return request<NewsPage>(`/api/news?${parameters.toString()}`);
+}
+
+/**
+ * Fetch the companies written about most, to offer as filters.
+ *
+ * @param days - Only count articles published within this many days.
+ * @param limit - How many companies to return.
+ * @returns The companies, most written about first.
+ */
+export function fetchNewsMentions(
+  days: number | null = null,
+  limit = 12,
+): Promise<MentionedInstrument[]> {
+  const parameters = new URLSearchParams({ limit: String(limit) });
+  if (days !== null) {
+    parameters.set("days", String(days));
+  }
+  return request<MentionedInstrument[]>(`/api/news/mentions?${parameters.toString()}`);
 }
 
 /**

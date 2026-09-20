@@ -154,8 +154,9 @@ call site.
   between the application and the sign-in page, because flashing the
   sign-in form at someone who is signed in is the most common way an
   application like this feels broken.
-- **Routing** (`src/App.tsx`): the overview at `/` and market breadth at
-  `/breadth`, with `PATHS` as the one place a path is spelled. These are
+- **Routing** (`src/App.tsx`): the overview at `/`, market breadth at
+  `/breadth` and the news feed at `/news`, with `PATHS` as the one place a
+  path is spelled. These are
   places a reader bookmarks and presses Back out of, which is what makes
   them routes rather than component state. Caddy already serves the SPA
   fallback, so a deep link works.
@@ -163,6 +164,12 @@ call site.
   indices as cards, the benchmark against gold, every mover list for
   whichever population is chosen, and the news feed. One request brings all
   seven lists, so that section arrives whole.
+- **News** (`src/routes/News.tsx`) -- the whole feed, paged, with three
+  filters that compose: words, one company, a window. All applied by the
+  platform, so a page of twelve is twelve of the matches rather than
+  twelve of the latest filtered afterwards. The companies offered as
+  filters are the ones actually written about, because a reader wanting
+  one company's news should not have to spell its symbol.
 - **Market breadth** (`src/routes/Breadth.tsx`) -- the same counts at
   length: any population over any of five windows; the regime the
   population is in, named; six headline measures each printed with the
@@ -182,7 +189,7 @@ call site.
   `MoverPanel`, `IndexCard`, `MiniCandlestick`, `ScopeSelector`,
   `ScopePicker`, `ThemeToggle`, `Meter`, `Sparkline`, `Statistic`,
   `BreadthPanel`, `BreadthGridPanel`, `RegimeBanner`, `NewsFeed`,
-  `ComparisonChart`.
+  `Pagination`, `ComparisonChart`.
 - **Breadth wording** in `src/lib/breadthReadings.ts`: every phrase that
   turns a breadth figure into something readable lives here, so two screens
   cannot describe the same reading differently. Note the `warn` tone --
@@ -199,6 +206,9 @@ call site.
   expires: the longest single gold contract stored is 226 sessions, and
   stitching several needs a declared roll rule that does not exist. The
   reasoning is in `indices.ts` beside the key.
+- **Debouncing** in `src/hooks/useDebounced.ts`: a search box that requests
+  on every keystroke races its own answers, and the reply for "rel" can
+  arrive after the reply for "relian" and leave the wrong results up.
 - **Theme** in `src/lib/theme.tsx`: light, dark, or following the system,
   remembered across visits and working when storage is blocked.
 
