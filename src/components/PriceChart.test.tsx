@@ -59,14 +59,15 @@ async function toggleIndicator(name: string): Promise<void> {
 }
 
 describe("PriceChart", () => {
-  it("opens as a line, with the long averages and what traded", () => {
+  it("opens as a line, with all three averages and what traded", () => {
     // A chart somebody has just opened is being read as a shape rather
     // than a session at a time; the candles are one choice away.
     draw();
 
-    expect(seriesKinds()).toEqual(["line", "histogram", "line", "line"]);
-    expect(within(legend()).getByText("SMA 50")).toBeInTheDocument();
-    expect(within(legend()).getByText("SMA 200")).toBeInTheDocument();
+    expect(seriesKinds()).toEqual(["line", "histogram", "line", "line", "line"]);
+    for (const average of ["SMA 20", "SMA 50", "SMA 200"]) {
+      expect(within(legend()).getByText(average)).toBeInTheDocument();
+    }
   });
 
   it("draws the price from the closes when it is a line", () => {
@@ -115,7 +116,7 @@ describe("PriceChart", () => {
   });
 
   it("adds an average when one is asked for", async () => {
-    draw();
+    draw({ initialOverlays: ["sma_50"] });
     expect(within(legend()).queryByText("SMA 20")).not.toBeInTheDocument();
 
     await toggleIndicator("SMA 20");

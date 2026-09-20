@@ -52,8 +52,15 @@ const RSI_THRESHOLDS = [
   { value: 30, label: "30" },
 ];
 
-/** What is drawn over the price unless a caller says otherwise. */
-const DEFAULT_OVERLAYS: Overlay[] = ["sma_50", "sma_200", "volume"];
+/**
+ * What is drawn over the price unless a caller says otherwise.
+ *
+ * All three averages: the twenty against the fifty is what a reader looks
+ * at first, and leaving the short one off meant turning it on every time.
+ * In the order the menu offers them, so the set always draws the same way
+ * round.
+ */
+const DEFAULT_OVERLAYS: Overlay[] = ["sma_20", "sma_50", "sma_200", "volume"];
 
 /**
  * The shape a chart opens in.
