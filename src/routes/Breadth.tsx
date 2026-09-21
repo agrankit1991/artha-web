@@ -24,6 +24,8 @@ import type { Scope } from "@/components/ScopeSelector";
 import { Statistic } from "@/components/Statistic";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Failed } from "@/components/Failed";
+import { PageHeader } from "@/components/PageHeader";
 import { useResource } from "@/hooks/useResource";
 import { populationPath } from "@/lib/paths";
 import { readings } from "@/lib/breadthReadings";
@@ -67,15 +69,10 @@ export function Breadth(): React.JSX.Element {
   return (
     <div className="space-y-6">
       <header className="space-y-3">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl font-semibold">
-            <Activity className="h-5 w-5 text-primary" />
-            Market Breadth
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            How many instruments took part, rather than how far the index moved.
-          </p>
-        </div>
+        <PageHeader
+          title="Market Breadth"
+          description="How many instruments took part, rather than how far the index moved."
+        />
         <div className="flex flex-wrap items-center justify-between gap-3">
           <ScopePicker scope={scope} options={scopes.data} onChange={setScope} />
           <RangeSelector
@@ -88,9 +85,7 @@ export function Breadth(): React.JSX.Element {
       </header>
 
       {breadth.error !== null ? (
-        <p role="alert" className="text-sm text-destructive">
-          {breadth.error}
-        </p>
+        <Failed message={breadth.error} />
       ) : (
         <>
           <RegimeBanner

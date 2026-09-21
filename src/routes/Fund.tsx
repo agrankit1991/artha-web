@@ -15,12 +15,17 @@ import type { SchemeValue } from "@/api/client";
 import { fetchFund } from "@/api/client";
 import { Chart, type Series } from "@/components/Chart";
 import { Chooser } from "@/components/Chooser";
-import { Delta } from "@/components/Delta";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FactList } from "@/components/FactList";
+import { Failed } from "@/components/Failed";
+import { PageHeader } from "@/components/PageHeader";
+import { SectionHeader } from "@/components/SectionHeader";
+import { StatTile } from "@/components/StatTile";
+import { ENTITIES } from "@/lib/entities";
 import { useResource } from "@/hooks/useResource";
 import { PRICE_LINE, PRICE_WIDTH } from "@/lib/chartPalette";
-import { ABSENT, formatDay, formatPrice, toNumber } from "@/lib/format";
+import { ABSENT, formatDay, formatPercent, formatPrice, toNumber } from "@/lib/format";
 
 interface FundProps {
   /** AMFI's identifier for the scheme. */
@@ -67,11 +72,7 @@ export function Fund({ schemeCode }: FundProps): React.JSX.Element {
   }, [fund.data]);
 
   if (fund.error !== null) {
-    return (
-      <p role="alert" className="text-sm text-destructive">
-        {fund.error}
-      </p>
-    );
+    return <Failed message={fund.error} />;
   }
 
   const found = fund.data;
@@ -79,60 +80,40 @@ export function Fund({ schemeCode }: FundProps): React.JSX.Element {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-xl font-semibold">{scheme?.name ?? schemeCode}</h1>
-        <div className="flex flex-wrap items-center gap-2">
-          {scheme?.amc != null && <Badge variant="secondary">{scheme.amc}</Badge>}
-          {scheme?.plan != null && <Badge variant="outline">{scheme.plan}</Badge>}
-          {scheme?.option != null && <Badge variant="outline">{scheme.option}</Badge>}
-        </div>
-        {scheme?.category != null && (
-          <p className="text-sm text-muted-foreground">{scheme.category}</p>
-        )}
-      </header>
+      <PageHeader
+        kind="fund"
+        title={scheme?.name ?? schemeCode}
+        badges={
+          <>
+            {scheme?.amc != null && <Badge variant="secondary">{scheme.amc}</Badge>}
+            {scheme?.plan != null && <Badge variant="outline">{scheme.plan}</Badge>}
+            {scheme?.option != null && <Badge variant="outline">{scheme.option}</Badge>}
+          </>
+        }
+        identifiers={scheme?.category != null && <span>{scheme.category}</span>}
+      />
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardContent className="space-y-1 py-4">
-            <div className="text-xs text-muted-foreground">Net Asset Value</div>
-            <div className="tabular text-2xl font-semibold">{formatPrice(scheme?.nav ?? null)}</div>
-            <div className="text-xs text-muted-foreground">
-              As published for {formatDay(scheme?.nav_date ?? null)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="md:col-span-2">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Trailing Returns</CardTitle>
-            <CardDescription>
-              Three and five years are yearly rates, which is how funds are compared. A window the
-              scheme has no history for is left blank rather than shown as nought.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-            <Window label="1 month" value={found?.returns.one_month ?? null} />
-            <Window label="3 months" value={found?.returns.three_months ?? null} />
-            <Window label="1 year" value={found?.returns.one_year ?? null} />
-            <Window label="3 years p.a." value={found?.returns.three_years ?? null} />
-            <Window label="5 years p.a." value={found?.returns.five_years ?? null} />
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <StatTile
+          label="Net Asset Value"
+          value={formatPrice(scheme?.nav ?? null)}
+          hint={`As of ${formatDay(scheme?.nav_date ?? null)}`}
+        />
+        <Window label="1 month" value={found?.returns.one_month ?? null} />
+        <Window label="3 months" value={found?.returns.three_months ?? null} />
+        <Window label="1 year" value={found?.returns.one_year ?? null} />
+        <Window label="3 years" value={found?.returns.three_years ?? null} annualised />
+        <Window label="5 years" value={found?.returns.five_years ?? null} annualised />
       </div>
 
       <section className="space-y-3" aria-labelledby="value-heading">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 id="value-heading" className="text-lg font-semibold">
-              NAV History
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              One value a day, as published. A fund has no sessions, no high and low and no volume —
-              this is the whole of its record.
-            </p>
-          </div>
-          <Chooser options={SPANS} chosen={span} onChange={setSpan} label="History" />
-        </div>
+        <SectionHeader
+          id="value-heading"
+          icon={ENTITIES.index.icon}
+          title="NAV History"
+          description="One value a day, as published. A fund has no sessions, no high and low and no volume — this is the whole of its record."
+          actions={<Chooser options={SPANS} chosen={span} onChange={setSpan} label="History" />}
+        />
         <Chart series={series} loading={fund.loading} empty="No values published for this scheme" />
       </section>
 
@@ -141,41 +122,48 @@ export function Fund({ schemeCode }: FundProps): React.JSX.Element {
           <CardTitle className="text-base">Scheme Details</CardTitle>
         </CardHeader>
         <CardContent>
-          <dl className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
-            <Fact label="AMFI scheme code" value={scheme?.scheme_code ?? null} />
-            <Fact label="Fund house" value={scheme?.amc ?? null} />
-            <Fact label="Growth ISIN" value={scheme?.isin_growth ?? null} />
-            <Fact label="Reinvestment ISIN" value={scheme?.isin_reinvestment ?? null} />
-          </dl>
+          <FactList
+            columns={2}
+            facts={[
+              { label: "AMFI scheme code", value: scheme?.scheme_code ?? null },
+              { label: "Fund house", value: scheme?.amc ?? null },
+              { label: "Growth ISIN", value: scheme?.isin_growth ?? null },
+              { label: "Reinvestment ISIN", value: scheme?.isin_reinvestment ?? null },
+            ]}
+          />
         </CardContent>
       </Card>
     </div>
   );
 }
 
-/** One window's return. */
-function Window({ label, value }: { label: string; value: string | null }): React.JSX.Element {
+/**
+ * One window's return, as a tile.
+ *
+ * The long windows are yearly rates, which is how funds are compared, and
+ * the tile says so rather than leaving a three-year figure to be read as a
+ * total. A window the scheme has no history for is blank, with the reason.
+ */
+function Window({
+  label,
+  value,
+  annualised = false,
+}: {
+  label: string;
+  value: string | null;
+  annualised?: boolean;
+}): React.JSX.Element {
   return (
-    <div className="space-y-0.5">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="tabular text-lg font-semibold">
-        {value === null ? (
-          <span className="text-muted-foreground">{ABSENT}</span>
-        ) : (
-          <Delta value={value} />
-        )}
-      </div>
-    </div>
-  );
-}
-
-/** One stated fact about the scheme. */
-function Fact({ label, value }: { label: string; value: string | null }): React.JSX.Element {
-  return (
-    <div className="flex items-baseline justify-between gap-3 text-sm">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="tabular font-medium">{value ?? ABSENT}</dd>
-    </div>
+    <StatTile
+      label={label}
+      value={value === null ? ABSENT : formatPercent(value)}
+      {...(value === null
+        ? { hint: "No history that far back" }
+        : annualised
+          ? { hint: "Yearly rate" }
+          : {})}
+      className={value === null ? "" : Number(value) < 0 ? "text-loss" : "text-gain"}
+    />
   );
 }
 

@@ -13,6 +13,8 @@
 
 import type { InstrumentOverview } from "@/api/client";
 import { Delta } from "@/components/Delta";
+import { Empty } from "@/components/Empty";
+import { RangeMeter } from "@/components/RangeMeter";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   ABSENT,
@@ -21,6 +23,7 @@ import {
   formatPercent,
   formatPrice,
   formatVolume,
+  toNumber,
 } from "@/lib/format";
 
 interface InstrumentFiguresProps {
@@ -43,11 +46,10 @@ export function InstrumentFigures({
   }
   if (overview === null) {
     return (
-      <Card>
-        <CardContent className="py-6 text-sm text-muted-foreground">
-          No figures stored for this instrument yet.
-        </CardContent>
-      </Card>
+      <Empty
+        title="No figures stored for this instrument yet"
+        reason="The nightly rebuild found no recent sessions for it."
+      />
     );
   }
 
@@ -58,8 +60,15 @@ export function InstrumentFigures({
         <Line label="Close" value={formatPrice(day.close)} />
         <Line label="Change" delta={day.change_percent} />
         <Line label="Open" value={formatPrice(day.open)} />
-        <Line label="Day range" value={`${formatPrice(day.low)} – ${formatPrice(day.high)}`} />
         <Line label="Gap" delta={day.gap_percent} />
+        <RangeMeter
+          label="Day range"
+          low={toNumber(day.low)}
+          high={toNumber(day.high)}
+          value={toNumber(day.close)}
+          format={(figure) => formatPrice(String(figure))}
+          className="pt-1"
+        />
       </Group>
 
       <Group title="Returns">
@@ -80,6 +89,14 @@ export function InstrumentFigures({
         <Line label="From high" delta={range.from_high_percent} />
         <Line label="From low" delta={range.from_low_percent} />
         <Line label="Deepest fall" delta={range.max_drawdown_percent} />
+        <RangeMeter
+          label="Within the year"
+          low={toNumber(range.low)}
+          high={toNumber(range.high)}
+          value={toNumber(day.close)}
+          format={(figure) => formatPrice(String(figure))}
+          className="pt-1"
+        />
       </Group>
 
       <Group title="Trend & Volume">
@@ -96,7 +113,7 @@ export function InstrumentFigures({
           value={
             volume.relative_to_average === null
               ? ABSENT
-              : `${formatMultiple(volume.relative_to_average)}×`
+              : formatMultiple(volume.relative_to_average)
           }
         />
         <Line

@@ -15,6 +15,7 @@
 import { Link } from "react-router-dom";
 
 import type { Member } from "@/api/client";
+import { Empty } from "@/components/Empty";
 import { formatPercent, toNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -55,7 +56,12 @@ export function Heatmap({
     return move === null ? [] : [{ member, move }];
   });
   if (moved.length === 0) {
-    return <p className="text-sm text-muted-foreground">Nothing counted for this population</p>;
+    return (
+      <Empty
+        title="Nothing counted for this population"
+        reason="No company in it has a session on record."
+      />
+    );
   }
 
   // Biggest movers first and then cut, rather than cut alphabetically: a

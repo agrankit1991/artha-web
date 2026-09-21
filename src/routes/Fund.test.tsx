@@ -47,8 +47,9 @@ describe("Fund", () => {
 
     renderPage(<Fund schemeCode="120503" />);
 
-    expect(await screen.findByText("3 years p.a.")).toBeInTheDocument();
-    expect(screen.getByText("5 years p.a.")).toBeInTheDocument();
+    await screen.findByText("3 years");
+    // Said under the tile, once per annualised window that has a figure.
+    expect(screen.getAllByText("Yearly rate")).toHaveLength(1);
   });
 
   it("leaves a window it has no history for blank", async () => {
@@ -58,8 +59,32 @@ describe("Fund", () => {
 
     renderPage(<Fund schemeCode="120503" />);
 
-    await screen.findByText("5 years p.a.");
-    expect(screen.getAllByText("—").length).toBeGreaterThan(0);
+    await screen.findByText("5 years");
+    expect(screen.getByText("No history that far back")).toBeInTheDocument();
+  });
+
+  it("colours a losing window as a loss", async () => {
+    stubPlatform({
+      "/api/funds/120503": {
+        body: fund({ returns: { ...fund().returns, one_month: "-2.10" } }),
+      },
+    });
+
+    renderPage(<Fund schemeCode="120503" />);
+
+    expect(await screen.findByText("-2.10%")).toBeInTheDocument();
+  });
+
+  it("leaves out a value that will not parse rather than drawing nought", async () => {
+    stubPlatform({
+      "/api/funds/120503": {
+        body: fund({ values: [{ nav_date: "2026-09-18", nav: "not a number" }] }),
+      },
+    });
+
+    renderPage(<Fund schemeCode="120503" />);
+
+    expect(await screen.findByText("No values published for this scheme")).toBeInTheDocument();
   });
 
   it("draws the published values", async () => {

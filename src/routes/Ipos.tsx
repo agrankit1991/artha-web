@@ -20,6 +20,8 @@ import { type Column, DataTable } from "@/components/DataTable";
 import { Tabs } from "@/components/Tabs";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Failed } from "@/components/Failed";
+import { PageHeader } from "@/components/PageHeader";
 import { useResource } from "@/hooks/useResource";
 import { ABSENT, formatDay, formatMultiple, formatPrice, toNumber } from "@/lib/format";
 
@@ -113,22 +115,17 @@ export function Ipos(): React.JSX.Element {
   const list = LISTS[showing];
 
   if (offerings.error !== null) {
-    return (
-      <p role="alert" className="text-sm text-destructive">
-        {offerings.error}
-      </p>
-    );
+    return <Failed message={offerings.error} />;
   }
 
   return (
     <div className="space-y-6">
       <header className="space-y-4">
-        <div>
-          <h1 className="text-xl font-semibold">Initial Public Offerings</h1>
-          <p className="text-sm text-muted-foreground">
-            Every offering this platform has recorded, as its provider publishes them.
-          </p>
-        </div>
+        <PageHeader
+          kind="ipo"
+          title="Initial Public Offerings"
+          description="Every offering this platform has recorded, as its provider publishes them."
+        />
         <div className="flex flex-wrap items-center gap-3">
           <Input
             value={typed}

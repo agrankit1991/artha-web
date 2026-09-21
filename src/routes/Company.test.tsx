@@ -326,7 +326,7 @@ describe("Company", () => {
     renderPage(<Company instrumentKey={KEY} />);
 
     expect(
-      await screen.findByText("No figures stored for this instrument yet."),
+      await screen.findByText("No figures stored for this instrument yet"),
     ).toBeInTheDocument();
   });
 

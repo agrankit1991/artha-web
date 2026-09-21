@@ -23,6 +23,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useDebounced } from "@/hooks/useDebounced";
+import { Failed } from "@/components/Failed";
+import { PageHeader } from "@/components/PageHeader";
 import { useResource } from "@/hooks/useResource";
 import { ABSENT, formatDay, formatPrice, toNumber } from "@/lib/format";
 import { fundPath } from "@/lib/paths";
@@ -131,23 +133,17 @@ export function Funds(): React.JSX.Element {
   );
 
   if (funds.error !== null) {
-    return (
-      <p role="alert" className="text-sm text-destructive">
-        {funds.error}
-      </p>
-    );
+    return <Failed message={funds.error} />;
   }
 
   return (
     <div className="space-y-6">
       <header className="space-y-4">
-        <div>
-          <h1 className="text-xl font-semibold">Mutual Funds</h1>
-          <p className="text-sm text-muted-foreground">
-            Every scheme AMFI publishes, with its latest value. A direct plan is the same fund
-            without the distributor&rsquo;s commission, so the two are listed apart.
-          </p>
-        </div>
+        <PageHeader
+          kind="fund"
+          title="Mutual Funds"
+          description="Every scheme AMFI publishes, with its latest value. A direct plan is the same fund without the distributor's commission, so the two are listed apart."
+        />
         <div className="flex flex-wrap items-center gap-3">
           <Input
             value={typed}

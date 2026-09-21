@@ -12,7 +12,7 @@
  * arrive where they were.
  */
 
-import { Activity, LayoutDashboard, Newspaper, PiggyBank, Rocket, User } from "lucide-react";
+import { LayoutDashboard, User } from "lucide-react";
 import { useCallback, useState } from "react";
 import { BrowserRouter, Route, Routes, useNavigate, useParams } from "react-router-dom";
 
@@ -20,6 +20,7 @@ import type { Account } from "@/api/client";
 import { fetchAccount, fetchHello, signOut } from "@/api/client";
 import { AppShell, type Screen } from "@/components/AppShell";
 import { useResource } from "@/hooks/useResource";
+import { ENTITIES, MARKS } from "@/lib/entities";
 import { PATHS, populationPath } from "@/lib/paths";
 import { ThemeProvider } from "@/lib/theme";
 import { Breadth } from "@/routes/Breadth";
@@ -35,12 +36,12 @@ import { SignIn } from "@/routes/SignIn";
 
 /** The navigation, in the order the screens are meant to be read. */
 const SCREENS: Screen[] = [
-  { path: PATHS.overview, label: "Overview", icon: LayoutDashboard, exact: true },
-  { path: PATHS.breadth, label: "Breadth", icon: Activity },
-  { path: PATHS.news, label: "News", icon: Newspaper },
-  { path: PATHS.ipos, label: "IPOs", icon: Rocket },
-  { path: PATHS.funds, label: "Funds", icon: PiggyBank },
-  { path: PATHS.profile, label: "Profile", icon: User },
+  { path: PATHS.overview, label: "Overview", icon: LayoutDashboard, group: "Markets", exact: true },
+  { path: PATHS.breadth, label: "Breadth", icon: MARKS.breadth, group: "Markets" },
+  { path: PATHS.news, label: "News", icon: MARKS.news, group: "Markets" },
+  { path: PATHS.funds, label: "Funds", icon: ENTITIES.fund.icon, group: "Research" },
+  { path: PATHS.ipos, label: "IPOs", icon: ENTITIES.ipo.icon, group: "Research" },
+  { path: PATHS.profile, label: "Profile", icon: User, group: "Mine" },
 ];
 
 /**

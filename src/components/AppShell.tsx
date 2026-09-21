@@ -18,14 +18,25 @@ import { ThemeMenu } from "@/components/ThemeMenu";
 import { UserMenu } from "@/components/UserMenu";
 import { cn } from "@/lib/utils";
 
+/** The parts of the application, in the order they are read. */
+export type ScreenGroup = "Markets" | "Research" | "Mine";
+
 /** One place the application can be. */
 export interface Screen {
   path: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  /**
+   * Which part of the application it belongs to. Twelve destinations in
+   * one flat list is a list nobody scans; three short ones under headings
+   * are read at a glance.
+   */
+  group: ScreenGroup;
   /** Whether the path must match exactly, for the one that is a prefix of all. */
   exact?: boolean;
 }
+
+const GROUPS: ScreenGroup[] = ["Markets", "Research", "Mine"];
 
 interface AppShellProps {
   account: Account;
@@ -139,26 +150,36 @@ function Sidebar({
         </span>
         <span className="font-semibold">Artha Science</span>
       </div>
-      <nav className="space-y-1 p-3" aria-label="Screens">
-        {screens.map((screen) => (
-          <NavLink
-            key={screen.path}
-            to={screen.path}
-            end={screen.exact ?? false}
-            onClick={onClose}
-            className={({ isActive }) =>
-              cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                isActive
-                  ? "bg-primary text-primary-foreground font-medium shadow-sm"
-                  : "opacity-70 hover:bg-layout-accent hover:opacity-100",
-              )
-            }
-          >
-            <screen.icon className="h-4 w-4 shrink-0" />
-            {screen.label}
-          </NavLink>
-        ))}
+      <nav className="space-y-4 p-3" aria-label="Screens">
+        {GROUPS.filter((group) => screens.some((screen) => screen.group === group)).map((group) => {
+          const members = screens.filter((screen) => screen.group === group);
+          return (
+            <div key={group} className="space-y-1">
+              <div className="px-3 text-[0.65rem] font-semibold uppercase tracking-wider opacity-50">
+                {group}
+              </div>
+              {members.map((screen) => (
+                <NavLink
+                  key={screen.path}
+                  to={screen.path}
+                  end={screen.exact ?? false}
+                  onClick={onClose}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                      isActive
+                        ? "bg-primary text-primary-foreground font-medium shadow-sm"
+                        : "opacity-70 hover:bg-layout-accent hover:opacity-100",
+                    )
+                  }
+                >
+                  <screen.icon className="h-4 w-4 shrink-0" />
+                  {screen.label}
+                </NavLink>
+              ))}
+            </div>
+          );
+        })}
       </nav>
     </aside>
   );

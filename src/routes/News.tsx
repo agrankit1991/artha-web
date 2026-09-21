@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useDebounced } from "@/hooks/useDebounced";
+import { Failed } from "@/components/Failed";
 import { useResource } from "@/hooks/useResource";
 import { formatSince } from "@/lib/format";
 
@@ -142,9 +143,7 @@ export function News(): React.JSX.Element {
       </header>
 
       {news.error !== null ? (
-        <p role="alert" className="text-sm text-destructive">
-          {news.error}
-        </p>
+        <Failed message={news.error} />
       ) : (
         <>
           {shown.length > 0 && <Lead item={shown[0] as NewsItem} onSelectMention={setCompany} />}

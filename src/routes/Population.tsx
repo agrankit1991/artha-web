@@ -27,6 +27,10 @@ import { PRICE_RANGES, RangeSelector } from "@/components/RangeSelector";
 import { type Tab, Tabs } from "@/components/Tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Failed } from "@/components/Failed";
+import { PageHeader } from "@/components/PageHeader";
+import { SectionHeader } from "@/components/SectionHeader";
+import { ENTITIES } from "@/lib/entities";
 import { useResource } from "@/hooks/useResource";
 import { coloured } from "@/lib/chartPalette";
 import { companyPath } from "@/lib/paths";
@@ -122,51 +126,52 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
   const comparison = useResource(loadComparison);
 
   if (population.error !== null) {
-    return (
-      <p role="alert" className="text-sm text-destructive">
-        {population.error}
-      </p>
-    );
+    return <Failed message={population.error} />;
   }
 
   const found = population.data;
 
   return (
     <div className="space-y-6">
-      <header className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-xl font-semibold">{found?.name ?? scopeKey}</h1>
-          {found?.category != null && <Badge variant="secondary">{readable(found.category)}</Badge>}
-          <Badge variant="outline">{kind === "index" ? "Index" : "Sector"}</Badge>
-          <span className="text-sm text-muted-foreground">
+      <PageHeader
+        kind={kind}
+        title={found?.name ?? scopeKey}
+        badges={
+          <>
+            {found?.category != null && (
+              <Badge variant="secondary">{readable(found.category)}</Badge>
+            )}
+            <Badge variant="outline">{ENTITIES[kind].label}</Badge>
+          </>
+        }
+        identifiers={
+          <span>
             {members.length} {members.length === 1 ? "company" : "companies"}
           </span>
-        </div>
-        {found?.description != null && (
-          <p className="max-w-3xl text-sm text-muted-foreground">{found.description}</p>
-        )}
-      </header>
+        }
+        description={found?.description}
+      />
 
       {found !== null && instrument !== null && (
         <section className="space-y-3" aria-labelledby="price-heading">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 id="price-heading" className="text-lg font-semibold">
-                Price & Performance
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {view === "compare"
-                  ? "Against the market and the size bands, all rebased to the first session they share."
-                  : "Its own sessions, with this platform's moving averages over them."}
-              </p>
-            </div>
-            <RangeSelector
-              ranges={PRICE_RANGES}
-              sessions={sessions}
-              onChange={setSessions}
-              label="History"
-            />
-          </div>
+          <SectionHeader
+            id="price-heading"
+            icon={ENTITIES.index.icon}
+            title="Price & Performance"
+            description={
+              view === "compare"
+                ? "Against the market and the size bands, all rebased to the first session they share."
+                : "Its own sessions, with this platform's moving averages over them."
+            }
+            actions={
+              <RangeSelector
+                ranges={PRICE_RANGES}
+                sessions={sessions}
+                onChange={setSessions}
+                label="History"
+              />
+            }
+          />
           <Tabs tabs={VIEWS} active={view} onChange={setView} label="Chart">
             {view === "price" ? (
               <PriceChart

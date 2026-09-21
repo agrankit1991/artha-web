@@ -7,7 +7,7 @@
  * arrives whole rather than in pieces.
  */
 
-import { Activity, ChevronRight, LineChart, Newspaper, PieChart, TrendingUp } from "lucide-react";
+import { Activity, ChevronRight, LineChart, PieChart } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import type { MoverRow, ScopeOptions } from "@/api/client";
@@ -33,6 +33,9 @@ import { NewsFeed } from "@/components/NewsFeed";
 import { ScopePicker } from "@/components/ScopePicker";
 import type { Scope } from "@/components/ScopeSelector";
 import { Button } from "@/components/ui/button";
+import { Failed } from "@/components/Failed";
+import { SectionHeader } from "@/components/SectionHeader";
+import { ENTITIES, MARKS } from "@/lib/entities";
 import { useResource } from "@/hooks/useResource";
 import { companyPath, populationPath } from "@/lib/paths";
 import { BENCHMARK, FEATURED_INDICES, GOLD } from "@/lib/indices";
@@ -142,10 +145,7 @@ export function Overview({
   return (
     <div className="space-y-8">
       <section className="space-y-3" aria-labelledby="indices-heading">
-        <h2 id="indices-heading" className="flex items-center gap-2 text-lg font-semibold">
-          <TrendingUp className="h-5 w-5 text-primary" />
-          Market Indices
-        </h2>
+        <SectionHeader id="indices-heading" icon={ENTITIES.index.icon} title="Market Indices" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {cards.map((index) => (
             <IndexCard
@@ -160,10 +160,7 @@ export function Overview({
       </section>
 
       <section className="space-y-3" aria-labelledby="heatmap-heading">
-        <h2 id="heatmap-heading" className="flex items-center gap-2 text-lg font-semibold">
-          <PieChart className="h-5 w-5 text-primary" />
-          Market Heatmap
-        </h2>
+        <SectionHeader id="heatmap-heading" icon={PieChart} title="Market Heatmap" />
         <TradingViewWidget
           widget="stock-heatmap"
           label="Sector heatmap"
@@ -266,9 +263,7 @@ export function Overview({
         </div>
 
         {movers.error !== null ? (
-          <p role="alert" className="text-sm text-destructive">
-            {movers.error}
-          </p>
+          <Failed message={movers.error} />
         ) : (
           <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
             {(movers.data?.panels ?? []).map((panel) => (
@@ -285,10 +280,7 @@ export function Overview({
       </section>
 
       <section className="space-y-3" aria-labelledby="news-heading">
-        <h2 id="news-heading" className="flex items-center gap-2 text-lg font-semibold">
-          <Newspaper className="h-5 w-5 text-primary" />
-          Market News
-        </h2>
+        <SectionHeader id="news-heading" icon={MARKS.news} title="Market News" />
         <NewsFeed items={news.data?.items ?? null} loading={news.loading} />
         {onOpenNews && (
           <div className="flex justify-center pt-2">

@@ -41,6 +41,10 @@ import { type Tab, Tabs } from "@/components/Tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Failed } from "@/components/Failed";
+import { PageHeader } from "@/components/PageHeader";
+import { SectionHeader } from "@/components/SectionHeader";
+import { ENTITIES, MARKS } from "@/lib/entities";
 import { useResource } from "@/hooks/useResource";
 import { companyPath, newsPath, populationPath } from "@/lib/paths";
 import { ABSENT, formatPrice, formatVolume, toNumber } from "@/lib/format";
@@ -158,61 +162,58 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
   );
 
   if (company.error !== null) {
-    return (
-      <p role="alert" className="text-sm text-destructive">
-        {company.error}
-      </p>
-    );
+    return <Failed message={company.error} />;
   }
 
   const found = company.data;
 
   return (
     <div className="space-y-6">
-      <header className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-xl font-semibold">{found?.name ?? instrumentKey}</h1>
-          {found?.listings.map((listing) => (
-            <Badge key={listing.instrument_key} variant="outline">
-              {listing.exchange}: {listing.symbol}
-            </Badge>
-          ))}
-          {found?.sector != null && (
-            <Link to={populationPath("sector", found.sector)}>
-              <Badge variant="secondary" className="hover:bg-secondary/70">
-                {found.sector}
+      <PageHeader
+        kind="company"
+        title={found?.name ?? instrumentKey}
+        badges={
+          <>
+            {found?.listings.map((listing) => (
+              <Badge key={listing.instrument_key} variant="outline">
+                {listing.exchange}: {listing.symbol}
               </Badge>
-            </Link>
-          )}
-        </div>
-        {found !== null && <p className="text-xs text-muted-foreground">ISIN {found.isin}</p>}
-        {found?.description != null && (
-          <p className="max-w-3xl text-sm text-muted-foreground">{found.description}</p>
-        )}
-      </header>
+            ))}
+            {found?.sector != null && (
+              <Link to={populationPath("sector", found.sector)}>
+                <Badge variant="secondary" className="hover:bg-secondary/70">
+                  {found.sector}
+                </Badge>
+              </Link>
+            )}
+          </>
+        }
+        identifiers={found !== null && <span>ISIN {found.isin}</span>}
+        description={found?.description}
+      />
 
       <InstrumentFigures overview={overview.data?.[0] ?? null} loading={overview.loading} />
 
       {found !== null && key !== null && (
         <section className="space-y-3" aria-labelledby="price-heading">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 id="price-heading" className="text-lg font-semibold">
-                Price & Performance
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {view === "compare"
-                  ? "Against the market and the size bands, all rebased to the first session they share."
-                  : "Its own sessions, with this platform's moving averages over them."}
-              </p>
-            </div>
-            <RangeSelector
-              ranges={PRICE_RANGES}
-              sessions={sessions}
-              onChange={setSessions}
-              label="History"
-            />
-          </div>
+          <SectionHeader
+            id="price-heading"
+            icon={ENTITIES.index.icon}
+            title="Price & Performance"
+            description={
+              view === "compare"
+                ? "Against the market and the size bands, all rebased to the first session they share."
+                : "Its own sessions, with this platform's moving averages over them."
+            }
+            actions={
+              <RangeSelector
+                ranges={PRICE_RANGES}
+                sessions={sessions}
+                onChange={setSessions}
+                label="History"
+              />
+            }
+          />
           <Tabs tabs={VIEWS} active={view} onChange={setView} label="Chart">
             {view === "price" ? (
               <PriceChart
@@ -323,9 +324,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
       )}
 
       <section className="space-y-3" aria-labelledby="news-heading">
-        <h2 id="news-heading" className="text-lg font-semibold">
-          Company News
-        </h2>
+        <SectionHeader id="news-heading" icon={MARKS.news} title="Company News" />
         <NewsFeed items={news.data?.items ?? null} loading={news.loading} />
         {found !== null && (news.data?.total ?? 0) > HEADLINES && (
           <div className="flex justify-center">

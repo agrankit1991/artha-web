@@ -25,6 +25,16 @@ describe("InstrumentFigures", () => {
     expect(within(row as HTMLElement).getByText(/4 Aug 2026/)).toBeInTheDocument();
   });
 
+  it("writes volume against its average as a multiple", () => {
+    render(
+      <InstrumentFigures
+        overview={overview({ volume: { ...overview().volume, relative_to_average: "1.40" } })}
+      />,
+    );
+
+    expect(screen.getByText("1.4×")).toBeInTheDocument();
+  });
+
   it("dashes a figure the platform has not computed", () => {
     // A company too young to have a two-hundred-session average is not a
     // company sitting exactly on one.
@@ -44,7 +54,7 @@ describe("InstrumentFigures", () => {
   it("says nothing is stored rather than drawing a panel of dashes", () => {
     render(<InstrumentFigures overview={null} />);
 
-    expect(screen.getByText("No figures stored for this instrument yet.")).toBeInTheDocument();
+    expect(screen.getByText("No figures stored for this instrument yet")).toBeInTheDocument();
   });
 
   it("shows it is still arriving rather than showing nothing", () => {
