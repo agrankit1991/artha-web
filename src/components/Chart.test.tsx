@@ -8,12 +8,12 @@
  * draw.
  */
 
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Chart, type Series } from "./Chart";
-import { chartCalls, dataFor, reportRange, seriesKinds } from "@/test/chartStub";
+import { chartCalls, dataFor, moveCrosshair, reportRange, seriesKinds } from "@/test/chartStub";
 import { ThemeProvider } from "@/lib/theme";
 
 vi.mock("lightweight-charts", async () => (await import("@/test/chartStub")).chartModule());
@@ -275,5 +275,106 @@ describe("Chart", () => {
     });
 
     expect(screen.queryByRole("button", { name: /Reset view/ })).not.toBeInTheDocument();
+  });
+
+  it("says nothing until the crosshair is over the plot", () => {
+    draw([LINE]);
+
+    expect(screen.queryByText(/Sept 2026/)).not.toBeInTheDocument();
+  });
+
+  it("names each line and what it was worth where the crosshair is", async () => {
+    // A chart of four lines is unreadable without this: the axis says what
+    // one of them was worth and leaves the rest to be guessed at.
+    draw([LINE, { ...LINE, label: "Nifty 500", colour: "#71717a" }]);
+
+    act(() => {
+      moveCrosshair("2026-09-02", [24812.4, 22477.45]);
+    });
+
+    const reading = await screen.findByRole("group", { name: "Crosshair reading" });
+    expect(within(reading).getByText(/2 Sept 2026/)).toBeInTheDocument();
+    expect(within(reading).getByText("Nifty 50")).toBeInTheDocument();
+    expect(within(reading).getByText("24,812.40")).toBeInTheDocument();
+    expect(within(reading).getByText("22,477.45")).toBeInTheDocument();
+  });
+
+  it("reads a candle by where the session closed", () => {
+    draw([
+      {
+        kind: "candles",
+        label: "Nifty Bank",
+        points: [{ time: "2026-09-01", open: 1, high: 2, low: 0, close: 1 }],
+      },
+    ]);
+
+    act(() => {
+      moveCrosshair("2026-09-01", [{ close: 56292.45 }]);
+    });
+
+    expect(screen.getByText("56,292.45")).toBeInTheDocument();
+  });
+
+  it("says nothing about a series with no point on that session", () => {
+    // One instrument listed later than another is ordinary, and the
+    // earlier sessions are simply not its.
+    draw([LINE, { ...LINE, label: "Nifty 500", colour: "#71717a" }]);
+
+    act(() => {
+      moveCrosshair("2026-09-01", [100, {}]);
+    });
+
+    const reading = screen.getByRole("group", { name: "Crosshair reading" });
+    expect(within(reading).queryByText("Nifty 500")).not.toBeInTheDocument();
+    expect(within(reading).getByText("Nifty 50")).toBeInTheDocument();
+  });
+
+  it("reads percentages as percentages where the axis is one", () => {
+    draw([LINE], { asPercent: true });
+
+    act(() => {
+      moveCrosshair("2026-09-02", [10]);
+    });
+
+    expect(screen.getByText("+10.00%")).toBeInTheDocument();
+  });
+
+  it("clears the reading when the crosshair leaves the plot", () => {
+    // Frozen on the last session it saw, it would read as a reading of
+    // right now.
+    draw([LINE]);
+    act(() => {
+      moveCrosshair("2026-09-02", [100]);
+    });
+
+    act(() => {
+      moveCrosshair(undefined);
+    });
+
+    expect(screen.queryByText(/Sept 2026/)).not.toBeInTheDocument();
+  });
+
+  it("leaves volume out of the reading", () => {
+    // It is context for the price rather than a figure anybody reads off
+    // a crosshair.
+    draw([LINE, { kind: "bars", label: "Volume", points: [{ time: "2026-09-01", value: 9 }] }]);
+
+    act(() => {
+      moveCrosshair("2026-09-01", [100, 9]);
+    });
+
+    expect(screen.queryByText("Volume")).not.toBeInTheDocument();
+  });
+
+  it("stops following the crosshair when the page moves on", () => {
+    const { unmount } = render(
+      <ThemeProvider>
+        <Chart series={[LINE]} />
+      </ThemeProvider>,
+    );
+
+    unmount();
+
+    expect(chartCalls.unsubscribeCrosshairMove).toHaveBeenCalled();
   });
 });

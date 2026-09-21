@@ -183,6 +183,13 @@ whichever accent is chosen. The averages run light to heavy as they
 lengthen, and are drawn thin -- three of them at two pixels each is a
 chart of moving averages with a price somewhere behind it.
 
+The crosshair carries a reading: the session, and what every line was
+worth on it, over the plot rather than beside it so the eye does not leave
+the line it is following. Volume is left out -- it is context for the
+price, not a figure anybody reads off a crosshair -- and a series with no
+point on that session is simply absent, which is ordinary when one
+instrument listed later than another.
+
 A series says which pane it belongs in. Nought is the price; anything else
 gets a band of its own underneath, which is what an oscillator on a nought
 to a hundred scale needs -- drawn over a price it is a flat line along the

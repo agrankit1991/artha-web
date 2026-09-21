@@ -21,7 +21,10 @@ import {
   CrosshairMode,
   HistogramSeries,
   type IChartApi,
+  type ISeriesApi,
   LineSeries,
+  type MouseEventParams,
+  type SeriesType,
   createChart,
 } from "lightweight-charts";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -30,6 +33,7 @@ import { RotateCcw } from "lucide-react";
 
 import { TradingViewLink } from "@/components/TradingViewLink";
 import { AVERAGE_WIDTH, CANDLE_DOWN, CANDLE_UP, PRICE_WIDTH, THRESHOLD } from "@/lib/chartPalette";
+import { formatDay, formatPrice } from "@/lib/format";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -76,6 +80,12 @@ export type Series =
   | (Common & { kind: "line"; colour: string; points: Point[]; width?: number })
   | (Common & { kind: "area"; colour: string; points: Point[] })
   | (Common & { kind: "bars"; points: Point[] });
+
+/** What the crosshair is over, and what each series was worth there. */
+interface Hovered {
+  day: string;
+  figures: { label: string; colour: string; value: number }[];
+}
 
 /** An instrument a chart draws, and how to leave for it. */
 export interface ChartInstrument {
@@ -142,6 +152,10 @@ export function Chart({
   // return to rather than re-fitting whatever happens to be drawn.
   const opening = useRef<{ from: number; to: number } | null>(null);
   const [moved, setMoved] = useState(false);
+  // What the crosshair is over: the session, and each series' figure on
+  // it. A chart of four lines is unreadable without this -- the axis says
+  // what one of them was worth and leaves the rest to be guessed at.
+  const [hovered, setHovered] = useState<Hovered | null>(null);
   const { appearance } = useTheme();
   const drawable = series.filter((one) => one.points.length > 0);
   const hasBars = drawable.some((one) => one.kind === "bars");
@@ -184,8 +198,11 @@ export function Chart({
     });
     chart.current = created;
 
+    // Kept by series so the crosshair can name what it is over. The
+    // library hands back the series it drew, not the label we gave it.
+    const named = new Map<ISeriesApi<SeriesType>, Series>();
     for (const one of drawable) {
-      draw(created, one, asPercent);
+      named.set(draw(created, one, asPercent), one);
     }
 
     // Panes past the first are given a fixed band rather than an equal
@@ -222,11 +239,41 @@ export function Chart({
     };
     created.timeScale().subscribeVisibleLogicalRangeChange(watch);
 
+    const follow = (event: MouseEventParams): void => {
+      // Off the plot entirely: cleared rather than frozen on the last
+      // session it saw, which would read as a reading of right now.
+      //
+      // The time is narrowed rather than stringified: the library's own
+      // type also admits a business-day object, and every series here is
+      // handed ISO dates.
+      if (typeof event.time !== "string" || event.point === undefined) {
+        setHovered(null);
+        return;
+      }
+      const day = event.time;
+      setHovered({
+        day,
+        figures: [...event.seriesData]
+          .map(([series, point]) => ({
+            series: named.get(series),
+            value: figureOf(point),
+          }))
+          .flatMap(({ series, value }) =>
+            series === undefined || value === null || series.kind === "bars"
+              ? []
+              : [{ label: series.label, colour: colourOf(series), value }],
+          ),
+      });
+    };
+    created.subscribeCrosshairMove(follow);
+
     return () => {
+      created.unsubscribeCrosshairMove(follow);
       created.timeScale().unsubscribeVisibleLogicalRangeChange(watch);
       created.remove();
       chart.current = null;
       opening.current = null;
+      setHovered(null);
     };
     // `drawable` is rebuilt on every render; `series` is what a caller
     // actually changes, and is what this should redraw for.
@@ -315,15 +362,43 @@ export function Chart({
           ))}
         </div>
       </div>
-      <div
-        ref={holder}
-        style={{ height }}
-        data-testid="chart"
-        // The conventional gesture, and the one somebody tries first. The
-        // button above says it is there; this is how it is reached
-        // without looking away from the chart.
-        onDoubleClick={reset}
-      />
+      <div className="relative">
+        {hovered !== null && hovered.figures.length > 0 && (
+          // Over the plot rather than beside it: a reading that appears
+          // in the margin makes the eye leave the line it is following.
+          <div
+            role="group"
+            aria-label="Crosshair reading"
+            className="pointer-events-none absolute left-2 top-2 z-10 rounded-md border bg-popover/95 px-2.5 py-1.5 text-xs shadow-sm"
+          >
+            <div className="mb-0.5 text-muted-foreground">{formatDay(hovered.day)}</div>
+            {hovered.figures.map((figure) => (
+              <div key={figure.label} className="flex items-center gap-2">
+                <span
+                  aria-hidden="true"
+                  className="h-0.5 w-3 shrink-0 rounded"
+                  style={{ backgroundColor: figure.colour }}
+                />
+                <span className="text-muted-foreground">{figure.label}</span>
+                <span className="tabular ml-auto font-medium">
+                  {asPercent
+                    ? `${figure.value > 0 ? "+" : ""}${figure.value.toFixed(2)}%`
+                    : formatPrice(String(figure.value))}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+        <div
+          ref={holder}
+          style={{ height }}
+          data-testid="chart"
+          // The conventional gesture, and the one somebody tries first. The
+          // button above says it is there; this is how it is reached
+          // without looking away from the chart.
+          onDoubleClick={reset}
+        />
+      </div>
     </div>
   );
 }
@@ -335,7 +410,7 @@ export function Chart({
  * @param series - What to draw.
  * @param asPercent - Whether the axis shows percentages.
  */
-function draw(chart: IChartApi, series: Series, asPercent: boolean): void {
+function draw(chart: IChartApi, series: Series, asPercent: boolean): ISeriesApi<SeriesType> {
   const pane = series.pane ?? 0;
   const drawn = add(chart, series, asPercent, pane);
   for (const threshold of series.thresholds ?? []) {
@@ -348,6 +423,29 @@ function draw(chart: IChartApi, series: Series, asPercent: boolean): void {
       title: threshold.label ?? "",
     });
   }
+  return drawn;
+}
+
+/**
+ * Read one point's figure, whatever shape of series it came from.
+ *
+ * @param point - The point the crosshair is over.
+ * @returns Its figure -- a candle's close, anything else's value -- or
+ *   null on a session the series has no point for.
+ */
+function figureOf(point: unknown): number | null {
+  const found = point as { close?: number; value?: number };
+  return found.close ?? found.value ?? null;
+}
+
+/**
+ * The colour a series is drawn in.
+ *
+ * @param series - The series.
+ * @returns Its colour, or the neutral one for shapes that carry none.
+ */
+function colourOf(series: Series): string {
+  return series.kind === "line" || series.kind === "area" ? series.colour : CANDLE_UP;
 }
 
 /**
