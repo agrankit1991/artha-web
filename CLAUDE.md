@@ -202,15 +202,17 @@ previous project's indices page settled on: a scrolling container, the
 header pinned as rows pass under it and the first column pinned as figures
 pass beside it. Five hundred rows and a dozen columns are unreadable
 without both -- by the third screen a reader has lost which row they are
-on and which column they are in. `onOpen` adds the trailing chevron that
-leads to a row's own page; pass `nameOf` with it, or the column is a
-stack of buttons that all announce themselves identically.
+on and which column they are in. `linkTo` makes the first column the
+link to a row's own page; the trailing chevron it once had is gone,
+because the user wanted the name itself to be the way through.
 
-**Wherever an index appears in a list, it leads to its own page.** The
-mover panels when the population is the indices, the breadth grid, the
-index cards, and the chosen scope on the overview. A company does not,
-because a company has no page yet -- and a chevron leading nowhere is
-worse than no chevron.
+**Wherever anything with a page appears in a list, its name leads there.**
+Companies, indices, sectors, funds, offerings, futures contracts and
+mover rows all link through `DataTable`'s `linkTo`, which makes the first
+column the link; there are no trailing chevrons. The paths are spelled
+once in `src/lib/paths.ts` (`companyPath`, `populationPath`, `fundPath`,
+`ipoPath`, `futurePath`, `moversPath`, `comparePath`, `watchlistPath`,
+`hitPath` for a search result).
 
 **The heatmap is ours, not an embed.** Drawn from stored figures, so it
 agrees with the table beside it and works for any population -- including
@@ -245,11 +247,16 @@ call site.
   between the application and the sign-in page, because flashing the
   sign-in form at someone who is signed in is the most common way an
   application like this feels broken.
-- **Routing** (`src/App.tsx`): the overview at `/`, market breadth at
-  `/breadth` and the news feed at `/news`, with `PATHS` as the one place a
-  path is spelled. These are
-  places a reader bookmarks and presses Back out of, which is what makes
-  them routes rather than component state. Caddy already serves the SPA
+- **Routing** (`src/App.tsx`): `PATHS` is the one place a path is spelled.
+  Markets: `/` overview, `/breadth`, `/indices`, `/sectors`, `/futures`,
+  `/movers/:list`, `/earnings`, `/news`. Research: `/screen`, `/compare`,
+  `/ipos`, `/funds`. Mine: `/watchlists`, `/profile`. Entity pages:
+  `/company/:key`, `/index/:key`, `/sector/:key`, `/fund/:code`,
+  `/ipo/:id`, `/future/:key`. Pages that are a _question_ keep their
+  state in the URL (`useSearchParams`): the screener's conditions, the
+  comparison's set, the movers list and scope, a watchlist's `?list=`,
+  and `?as_of=` on the company and population pages. These are places a
+  reader bookmarks and presses Back out of. Caddy serves the SPA
   fallback, so a deep link works.
 - **The overview** (`src/routes/Overview.tsx`) -- the eight headline
   indices as cards, the benchmark against gold, every mover list for
@@ -308,7 +315,16 @@ call site.
   `LoadMore`, `RangeSelector`, `Tabs`, `Heatmap`, `Chart`, `ChartControls`,
   `ComparisonChart`, `PriceChart`,
   `TradingViewWidget`, `TradingViewLink`, `Menu`, `Tooltip`, `ThemeMenu`,
-  `UserMenu`, `AppShell`.
+  `UserMenu`, `AppShell`. Since the plan
+  (`../UI-PLAN.md`): page furniture `PageHeader`, `SectionHeader`,
+  `StatTile`/`StatGrid`, `FactList`, `RangeMeter`, `Empty`, `Failed`,
+  `Hint`, `Chooser`, `Tabs`; `SearchBox` in the header; `Dialog` (own,
+  like `Menu`, so jsdom can drive it); `WatchButton`, `ShareButton`,
+  `SessionPicker`, `EarningsPanel`, `ValuationPanel`,
+  `ValuationHistoryChart`, `PopulationValuationPanel`,
+  `InstrumentFigures` (with a sparkline beside every reading when given
+  history). Entity icons and information marks are the one vocabulary
+  in `src/lib/entities.ts`.
 - **Links out to TradingView** come from `/api/external-symbols`, which
   serves what the weekly job recorded that each outside service calls our
   instruments. A page asks about everything it draws in one request. An
@@ -409,7 +425,32 @@ call site.
   because nothing else in the build notices when the accent list and the
   CSS disagree.
 
-## Not yet built
+## Test conventions learnt the hard way
 
-The instrument and comparison views, candlestick and indicator charts on
-the instrument page, registration by invitation, and localisation.
+- `stubPlatform` matches by longest path prefix and its `bodyFor` /
+  `statusFor` also receive the method, so a refused `POST` beside a
+  successful `GET` of the same address is a case a test can state. A
+  prefix that is also the prefix of another endpoint (`/api/populations`
+  and `…/valuation`) is answered with `bodyFor` on the suffix.
+- `renderPage(ui, { at })` renders under a `MemoryRouter` at an address,
+  for pages that read their state from it.
+- `URLSearchParams` writes a space as `+`; decode _and_ replace before
+  asserting on a requested path.
+- Every canvas has a quiet `null` context in `src/test-setup.ts`; a test
+  that needs one spies over `HTMLCanvasElement.prototype.getContext`.
+- Preferences persist on purpose and are cleared before every test in
+  the setup; a test that wants one sets `localStorage` and calls
+  `forgetForTests()` before rendering.
+- A form's buttons live inside the form, so Enter submits a two-field
+  form; `Dialog`'s `actions` slot is for dialogs without a form.
+- A component that reads a route parameter reads it itself
+  (`useParams`) rather than taking it as a prop, or a test that changes
+  the address changes nothing.
+
+## What remains
+
+Every slice in `../UI-PLAN.md` has landed; the open items are gathered
+there under "What remains" (contributors, median-multiple history,
+movers as of a day, watch buttons on rows and other entity pages, saved
+screens, continuous futures, alerts). Registration by invitation and
+localisation were never part of the plan.
