@@ -27,6 +27,7 @@ import { Breadth } from "@/routes/Breadth";
 import { Company } from "@/routes/Company";
 import { Fund } from "@/routes/Fund";
 import { Funds } from "@/routes/Funds";
+import { Ipo } from "@/routes/Ipo";
 import { Ipos } from "@/routes/Ipos";
 import { News } from "@/routes/News";
 import { Overview } from "@/routes/Overview";
@@ -152,6 +153,7 @@ function SignedIn({
         <Route path={PATHS.breadth} element={<Breadth />} />
         <Route path={PATHS.news} element={<News />} />
         <Route path={PATHS.ipos} element={<Ipos />} />
+        <Route path="/ipo/:id" element={<IpoRoute />} />
         <Route path={PATHS.funds} element={<Funds />} />
         <Route path="/fund/:code" element={<FundRoute />} />
         <Route path="/company/:key" element={<CompanyRoute />} />
@@ -172,6 +174,16 @@ function SignedIn({
 function PopulationRoute({ kind }: { kind: "index" | "sector" }): React.JSX.Element {
   const { key } = useParams();
   return <Population kind={kind} scopeKey={key ?? ""} />;
+}
+
+/**
+ * Read the offering's identifier out of the path and show its page.
+ *
+ * @returns The page.
+ */
+function IpoRoute(): React.JSX.Element {
+  const { id } = useParams();
+  return <Ipo ipoId={id ?? ""} />;
 }
 
 /**

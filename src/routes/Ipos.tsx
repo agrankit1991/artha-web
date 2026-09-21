@@ -6,61 +6,51 @@
  * is a diary entry; what has listed is a record of how these things have
  * been going lately, which is the only honest guide to the next one.
  *
+ * Cards by default, because an offering is decided on -- band, lot, dates,
+ * subscription, prospectus -- and a row cannot carry that. A table is one
+ * click away for scanning forty listed ones by what they opened at.
+ *
  * Every offering arrives in one reply, so the searching and the narrowing
  * happen here and are instant. A year brings a few hundred offerings; the
  * whole set is a page's worth of text.
  */
 
+import { LayoutGrid, List } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import type { IpoStatus, IssueType, Offering } from "@/api/client";
 import { fetchIpos } from "@/api/client";
 import { Chooser } from "@/components/Chooser";
 import { type Column, DataTable } from "@/components/DataTable";
-import { Tabs } from "@/components/Tabs";
+import { Empty } from "@/components/Empty";
+import { Failed } from "@/components/Failed";
+import { BOARDS, IpoCard, STATUSES, minimumInvestment, priceBand } from "@/components/IpoCard";
+import { PageHeader } from "@/components/PageHeader";
+import { type Tab, Tabs } from "@/components/Tabs";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Failed } from "@/components/Failed";
-import { PageHeader } from "@/components/PageHeader";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useResource } from "@/hooks/useResource";
 import { ABSENT, formatDay, formatMultiple, formatPrice, toNumber } from "@/lib/format";
+import { ipoPath } from "@/lib/paths";
+import { cn } from "@/lib/utils";
 
-/** What each list is called, and what it is for. */
-const LISTS: Record<IpoStatus, { label: string; hint: string }> = {
-  OPEN: {
-    label: "Open",
-    hint: "Taking bids now. The last day to apply is the one that matters.",
-  },
-  UPCOMING: {
-    label: "Upcoming",
-    hint: "Announced and not yet open. A band still to be published is ordinary at this stage.",
-  },
-  CLOSED: {
-    label: "Closed",
-    hint: "Bidding is over and they have not listed. Allotment and listing dates are next.",
-  },
-  LISTED: {
-    label: "Listed",
-    hint: "How the recent ones have gone, which is the only honest guide to the next.",
-  },
+/** What each list is for. */
+const HINTS: Record<IpoStatus, string> = {
+  OPEN: "Taking bids now. The last day to apply is the one that matters.",
+  UPCOMING: "Announced and not yet open. A band still to be published is ordinary at this stage.",
+  CLOSED: "Bidding is over and they have not listed. Allotment and listing dates are next.",
+  LISTED: "How the recent ones have gone, which is the only honest guide to the next.",
 };
 
 /** The order the lists are worth reading in. */
 const ORDER: IpoStatus[] = ["OPEN", "UPCOMING", "CLOSED", "LISTED"];
-
-/** Which board an offering is on, as a reader would say it. */
-const BOARDS: Record<IssueType, string> = {
-  REGULAR: "Mainboard",
-  SME: "SME",
-};
-
-/** What each status is tinted. */
-const TINTS: Record<IpoStatus, string> = {
-  OPEN: "border-gain/40 bg-gain/10 text-gain",
-  UPCOMING: "border-primary/40 bg-primary/10 text-primary",
-  CLOSED: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-500",
-  LISTED: "border-border bg-muted text-muted-foreground",
-};
 
 /** What the board filter offers, "any" first. */
 const BOARD_OPTIONS = [
@@ -69,39 +59,67 @@ const BOARD_OPTIONS = [
   { key: "SME", label: "SME" },
 ] as const;
 
+/** What the lists can be ordered by. */
+type Order = "date" | "size" | "subscription" | "name";
+
+const ORDERS: { key: Order; label: string }[] = [
+  { key: "date", label: "By date" },
+  { key: "size", label: "By size" },
+  { key: "subscription", label: "By subscription" },
+  { key: "name", label: "By name" },
+];
+
+/** How the offerings are laid out. */
+type Layout = "cards" | "table";
+
+const ANY = "all";
+
 /**
  * Render the page.
  *
+ * @param props - The day the page is read on, for how long bidding has left.
  * @returns The page.
  */
-export function Ipos(): React.JSX.Element {
+export function Ipos({ today = new Date() }: { today?: Date }): React.JSX.Element {
   const load = useCallback(() => fetchIpos(), []);
   const offerings = useResource(load);
   const [showing, setShowing] = useState<IpoStatus>("OPEN");
   const [typed, setTyped] = useState("");
   const [board, setBoard] = useState<"all" | IssueType>("all");
+  const [industry, setIndustry] = useState(ANY);
+  const [order, setOrder] = useState<Order>("date");
+  const [layout, setLayout] = useState<Layout>("cards");
 
   const all = useMemo(() => offerings.data ?? [], [offerings.data]);
+
+  const industries = useMemo(
+    () =>
+      [
+        ...new Set(all.map((one) => one.industry).filter((one): one is string => one !== null)),
+      ].sort(),
+    [all],
+  );
 
   const matching = useMemo(() => {
     const words = typed.trim().toLowerCase();
     return all.filter(
       (one) =>
         (board === "all" || one.issue_type === board) &&
+        (industry === ANY || one.industry === industry) &&
         (words === "" ||
           one.name.toLowerCase().includes(words) ||
           (one.symbol ?? "").toLowerCase().includes(words) ||
           (one.industry ?? "").toLowerCase().includes(words)),
     );
-  }, [all, typed, board]);
+  }, [all, typed, board, industry]);
 
   // Counted after the search rather than before it: a tab reading "Open 8"
   // beside a filtered list of two is a count of something else.
-  const tabs = useMemo(
+  const tabs = useMemo<Tab<IpoStatus>[]>(
     () =>
       ORDER.map((status) => ({
         key: status,
-        label: `${LISTS[status].label} (${String(
+        label: `${STATUSES[status].label} (${String(
           matching.filter((one) => one.status === status).length,
         )})`,
       })),
@@ -109,14 +127,19 @@ export function Ipos(): React.JSX.Element {
   );
 
   const shown = useMemo(
-    () => matching.filter((one) => one.status === showing),
-    [matching, showing],
+    () =>
+      sorted(
+        matching.filter((one) => one.status === showing),
+        order,
+      ),
+    [matching, showing, order],
   );
-  const list = LISTS[showing];
 
   if (offerings.error !== null) {
     return <Failed message={offerings.error} />;
   }
+
+  const narrowed = typed !== "" || board !== "all" || industry !== ANY;
 
   return (
     <div className="space-y-6">
@@ -137,28 +160,161 @@ export function Ipos(): React.JSX.Element {
             className="max-w-sm"
           />
           <Chooser options={BOARD_OPTIONS} chosen={board} onChange={setBoard} label="Board" />
+          <Select value={industry} onValueChange={setIndustry}>
+            <SelectTrigger className="w-[14rem]" aria-label="Industry">
+              <SelectValue placeholder="All industries" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ANY}>All industries</SelectItem>
+              {industries.map((one) => (
+                <SelectItem key={one} value={one}>
+                  {one}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </header>
 
-      <Tabs tabs={tabs} active={showing} onChange={setShowing} label="Offerings">
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">{list.hint}</p>
-          <Offerings offerings={shown} loading={offerings.loading} status={showing} />
+      <Tabs
+        tabs={tabs}
+        active={showing}
+        onChange={setShowing}
+        label="Offerings"
+        aside={
+          <div className="flex flex-wrap items-center gap-3">
+            <Chooser options={ORDERS} chosen={order} onChange={setOrder} label="Order" />
+            <div className="flex gap-1" role="group" aria-label="Layout">
+              <LayoutButton
+                active={layout === "cards"}
+                onClick={() => {
+                  setLayout("cards");
+                }}
+                label="Cards"
+                icon={LayoutGrid}
+              />
+              <LayoutButton
+                active={layout === "table"}
+                onClick={() => {
+                  setLayout("table");
+                }}
+                label="Table"
+                icon={List}
+              />
+            </div>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">{HINTS[showing]}</p>
+          {layout === "table" ? (
+            <OfferingsTable offerings={shown} loading={offerings.loading} status={showing} />
+          ) : offerings.loading && shown.length === 0 ? (
+            <div className="grid gap-4 xl:grid-cols-2">
+              {[0, 1].map((one) => (
+                <div key={one} className="h-80 animate-pulse rounded-lg border bg-muted/40" />
+              ))}
+            </div>
+          ) : shown.length === 0 ? (
+            <Empty
+              title="No offerings in this list"
+              reason={
+                narrowed
+                  ? "Nothing matches the search and filters above."
+                  : `Nothing is ${STATUSES[showing].label.toLowerCase()} right now.`
+              }
+            />
+          ) : (
+            <div className="grid gap-4 xl:grid-cols-2">
+              {shown.map((one) => (
+                <IpoCard key={one.ipo_id} offering={one} today={today} />
+              ))}
+            </div>
+          )}
         </div>
       </Tabs>
     </div>
   );
 }
 
+/** One of the two layout buttons. */
+function LayoutButton({
+  active,
+  onClick,
+  label,
+  icon: Icon,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}): React.JSX.Element {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={active}
+      onClick={onClick}
+      className={cn(
+        "rounded-md p-1.5 transition-colors",
+        active ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-accent",
+      )}
+    >
+      <Icon className="h-4 w-4" />
+    </button>
+  );
+}
+
 /**
- * One list of offerings.
+ * Order a list of offerings.
  *
- * The columns differ by status, and deliberately. An open offering is read
- * for its band, its lot and how many times it has been subscribed; a
- * listed one for what it priced at and what it opened at, which are the
- * two figures that say whether applying would have been worth it.
+ * @param offerings - The list.
+ * @param order - What to order it by.
+ * @returns The list, ordered. An offering without the figure ordered by
+ *   sorts last rather than first, where an absent value would otherwise
+ *   put it.
  */
-function Offerings({
+function sorted(offerings: Offering[], order: Order): Offering[] {
+  const figure = (one: Offering): number | string | null => {
+    switch (order) {
+      case "date":
+        return one.bidding_start;
+      case "size":
+        return toNumber(one.issue_size);
+      case "subscription":
+        return toNumber(one.total_subscription);
+      case "name":
+        return one.name;
+    }
+  };
+  return [...offerings].sort((a, b) => {
+    const left = figure(a);
+    const right = figure(b);
+    if (left === null && right === null) {
+      return 0;
+    }
+    if (left === null) {
+      return 1;
+    }
+    if (right === null) {
+      return -1;
+    }
+    if (typeof left === "string" && typeof right === "string") {
+      // Dates read newest first, names A to Z.
+      return order === "name" ? left.localeCompare(right) : right.localeCompare(left);
+    }
+    return Number(right) - Number(left);
+  });
+}
+
+/**
+ * The offerings as a table, for scanning.
+ *
+ * The columns differ by status: an open offering is scanned for its band,
+ * lot and subscription; a listed one for what it priced at and what it
+ * opened at.
+ */
+function OfferingsTable({
   offerings,
   loading,
   status,
@@ -178,7 +334,7 @@ function Offerings({
             <div className="truncate font-medium">{row.original.name}</div>
             <div className="truncate text-xs text-muted-foreground">
               {row.original.symbol ?? "Symbol not yet assigned"}
-              {row.original.industry != null && ` · ${row.original.industry}`}
+              {row.original.industry !== null && ` · ${row.original.industry}`}
             </div>
           </div>
         ),
@@ -188,9 +344,7 @@ function Offerings({
         header: "Board",
         accessorFn: (row) => row.issue_type,
         cell: ({ row }) => (
-          <Badge variant="outline" className={TINTS[row.original.status]}>
-            {BOARDS[row.original.issue_type]}
-          </Badge>
+          <Badge variant="secondary">{BOARDS[row.original.issue_type].label}</Badge>
         ),
       },
       {
@@ -201,7 +355,6 @@ function Offerings({
         meta: { align: "right" },
       },
     ];
-
     const band: Column<Offering>[] = [
       {
         id: "band",
@@ -214,23 +367,27 @@ function Offerings({
         id: "lot_size",
         header: "Lot",
         accessorFn: (row) => row.lot_size ?? 0,
-        cell: ({ row }) => (row.original.lot_size === null ? ABSENT : row.original.lot_size),
+        cell: ({ row }) => row.original.lot_size ?? ABSENT,
         meta: { align: "right" },
       },
       {
         id: "outlay",
-        header: "Least outlay",
-        accessorFn: (row) => outlay(row) ?? 0,
+        header: "Min. investment",
+        accessorFn: (row) => minimumInvestment(row) ?? 0,
         cell: ({ row }) => {
-          const least = outlay(row.original);
-          // A band alone says nothing about the cheque: shares are bought
-          // a lot at a time, and this is the two figures multiplied.
+          const least = minimumInvestment(row.original);
           return least === null ? ABSENT : formatPrice(String(least));
         },
         meta: { align: "right" },
       },
     ];
-
+    const subscription: Column<Offering> = {
+      id: "total_subscription",
+      header: "Subscribed",
+      accessorFn: (row) => toNumber(row.total_subscription) ?? 0,
+      cell: ({ row }) => formatMultiple(row.original.total_subscription),
+      meta: { align: "right" },
+    };
     const dates: Column<Offering>[] = [
       {
         id: "bidding_start",
@@ -251,18 +408,6 @@ function Offerings({
         cell: ({ row }) => formatDay(row.original.listing_date),
       },
     ];
-
-    const subscription: Column<Offering> = {
-      id: "total_subscription",
-      header: "Subscribed",
-      accessorFn: (row) => toNumber(row.total_subscription) ?? 0,
-      cell: ({ row }) =>
-        row.original.total_subscription === null
-          ? ABSENT
-          : `${formatMultiple(row.original.total_subscription)}×`,
-      meta: { align: "right" },
-    };
-
     const listing: Column<Offering>[] = [
       {
         id: "cut_off_price",
@@ -279,7 +424,6 @@ function Offerings({
         meta: { align: "right" },
       },
     ];
-
     return status === "LISTED"
       ? [...identity, ...listing, subscription, ...dates]
       : [...identity, ...band, subscription, ...dates];
@@ -294,42 +438,7 @@ function Offerings({
       placeholderRows={5}
       label="Offerings"
       full
+      linkTo={(row) => ipoPath(row.ipo_id)}
     />
   );
-}
-
-/**
- * The price band, or the one price when the band has no width.
- *
- * @param offering - The offering.
- * @returns The band, or a dash.
- */
-function priceBand(offering: Offering): string {
-  const low = toNumber(offering.minimum_price);
-  const high = toNumber(offering.maximum_price);
-  if (low === null && high === null) {
-    return ABSENT;
-  }
-  if (low === null || high === null || low === high) {
-    return formatPrice(offering.maximum_price ?? offering.minimum_price);
-  }
-  return `${formatPrice(offering.minimum_price)} – ${formatPrice(offering.maximum_price)}`;
-}
-
-/**
- * The smallest cheque an applicant can write.
- *
- * The top of the band times a lot, because a bid below the top is not
- * allotted when an offering is oversubscribed, which the ones worth
- * applying for are.
- *
- * @param offering - The offering.
- * @returns The outlay, or null when the band or the lot is unpublished.
- */
-function outlay(offering: Offering): number | null {
-  const price = toNumber(offering.maximum_price);
-  if (price === null || offering.lot_size === null) {
-    return null;
-  }
-  return price * offering.lot_size;
 }

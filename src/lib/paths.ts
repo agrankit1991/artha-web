@@ -94,3 +94,13 @@ export function hitPath(kind: "company" | "index" | "sector" | "fund", key: stri
       return fundPath(key);
   }
 }
+
+/**
+ * Where a public offering's own page is.
+ *
+ * @param ipoId - The provider's identifier for the offering.
+ * @returns The path.
+ */
+export function ipoPath(ipoId: string): string {
+  return `/ipo/${encodeURIComponent(ipoId)}`;
+}
