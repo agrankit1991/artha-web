@@ -62,4 +62,39 @@ describe("InstrumentFigures", () => {
 
     expect(container.firstChild).toHaveClass("animate-pulse");
   });
+
+  it("reads momentum and risk from the figures already stored", () => {
+    render(<InstrumentFigures overview={overview()} />);
+
+    expect(screen.getByText("Momentum & Risk")).toBeInTheDocument();
+    expect(screen.getByText("MACD")).toBeInTheDocument();
+    expect(screen.getByText("ATR (14)")).toBeInTheDocument();
+    // Two consecutive rises in the fixture.
+    expect(screen.getByText("2 up")).toBeInTheDocument();
+  });
+
+  it("names a falling streak, and no streak at all", () => {
+    render(
+      <InstrumentFigures
+        overview={overview({
+          trend: { ...overview().trend, consecutive_rises: 0, consecutive_falls: 3 },
+        })}
+      />,
+    );
+    expect(screen.getByText("3 down")).toBeInTheDocument();
+  });
+
+  it("dashes momentum figures the platform has not computed", () => {
+    render(
+      <InstrumentFigures
+        overview={overview({
+          momentum: { rsi: null, macd: null, macd_signal: null, macd_histogram: null },
+          risk: { ...overview().risk, volatility_year: null },
+          trend: { ...overview().trend, consecutive_rises: 0, consecutive_falls: 0 },
+        })}
+      />,
+    );
+
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(5);
+  });
 });

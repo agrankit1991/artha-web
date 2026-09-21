@@ -17,7 +17,9 @@ import type {
   BreadthGrid,
   ChartPoint,
   Company,
+  CompanyValuation,
   Comparison,
+  Derived,
   CorporateAction,
   Member,
   Performance,
@@ -75,7 +77,7 @@ export function stubPlatform(replies: Record<string, Reply>): ReturnType<typeof 
     return Promise.resolve({
       ok: status >= 200 && status < 300,
       status,
-      json: () => Promise.resolve(body ?? {}),
+      json: () => Promise.resolve(body === undefined ? {} : body),
     } as Response);
   });
   vi.stubGlobal("fetch", mock);
@@ -495,6 +497,25 @@ export function corporateAction(overrides: Partial<CorporateAction> = {}): Corpo
     announced_on: "2026-05-01",
     amount: "6.000000",
     ratio: null,
+    ...overrides,
+  };
+}
+
+/** Build a company's valuation, on Reliance's real figures. */
+export function valuation(overrides: Partial<CompanyValuation> = {}): CompanyValuation {
+  const derived = (value: string | null, derivation: string): Derived => ({ value, derivation });
+  return {
+    as_of: "2026-09-16",
+    price: "1240.000000",
+    shares_outstanding: derived("1353.43", "Profit 43,851 crore ÷ EPS 32.40, standalone"),
+    market_cap: derived("1678253.20", "Price 1,240.00 × 1,353.43 crore shares"),
+    earnings_ttm: derived("39219.00", "Standalone net profit summed over four quarters"),
+    eps_ttm: derived("28.98", "39,219 crore trailing profit ÷ 1,353.43 crore shares"),
+    pe: derived("42.79", "Price 1,240.00 ÷ 28.98 trailing EPS"),
+    book_value: derived("566235.00", "Shareholders' funds at Mar 2026"),
+    pb: derived("2.96", "1,678,253 crore market cap ÷ 566,235 crore book value"),
+    dividends_ttm: derived("6.00", "1 dividend(s) with an ex-date in the last year"),
+    dividend_yield: derived("0.48", "6.00 per share ÷ price 1,240.00"),
     ...overrides,
   };
 }

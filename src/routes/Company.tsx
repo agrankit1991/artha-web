@@ -6,16 +6,23 @@
  * measured by, then the detail. A reader who has learnt one has learnt
  * the other.
  *
- * What a company has that a population does not is a filing history --
- * statements, a shareholding pattern, corporate events -- and those are
- * fetched separately from its identity. Identity is a few hundred bytes
- * and is wanted at once; a decade of statements is not.
+ * The detail sits behind tabs -- Overview, Financials, Shareholding,
+ * Corporate Actions, News -- because a company page that answers every
+ * question at once answers none of them above the fold. The overview
+ * carries the price, the valuation and the comparison; everything a
+ * reader scrolls for is one click away instead.
  */
 
 import { useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import type { Comparison, KnownSymbol, Member } from "@/api/client";
+import type {
+  Comparison,
+  CorporateAction,
+  CorporateActionKind,
+  KnownSymbol,
+  Member,
+} from "@/api/client";
 import {
   fetchCompany,
   fetchCorporateActions,
@@ -25,29 +32,33 @@ import {
   fetchNews,
   fetchOverviews,
   fetchSeries,
+  fetchValuation,
 } from "@/api/client";
+import { Chooser } from "@/components/Chooser";
 import { type ChartLine, ComparisonChart } from "@/components/ComparisonChart";
-import { coloured } from "@/lib/chartPalette";
 import { CorporateActions } from "@/components/CorporateActions";
 import { type Column, DataTable } from "@/components/DataTable";
 import { Delta } from "@/components/Delta";
+import { Failed } from "@/components/Failed";
 import { Financials } from "@/components/Financials";
+import { GrowthChart, ShareholdingChart } from "@/components/FundamentalsChart";
 import { InstrumentFigures } from "@/components/InstrumentFigures";
 import { NewsFeed } from "@/components/NewsFeed";
+import { PageHeader } from "@/components/PageHeader";
 import { PriceChart } from "@/components/PriceChart";
 import { PRICE_RANGES, RangeSelector } from "@/components/RangeSelector";
+import { SectionHeader } from "@/components/SectionHeader";
 import { StatementTable } from "@/components/StatementTable";
 import { type Tab, Tabs } from "@/components/Tabs";
+import { ValuationPanel } from "@/components/ValuationPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Failed } from "@/components/Failed";
-import { PageHeader } from "@/components/PageHeader";
-import { SectionHeader } from "@/components/SectionHeader";
-import { ENTITIES, MARKS } from "@/lib/entities";
 import { useResource } from "@/hooks/useResource";
-import { companyPath, newsPath, populationPath } from "@/lib/paths";
+import { coloured } from "@/lib/chartPalette";
+import { ENTITIES, MARKS } from "@/lib/entities";
 import { ABSENT, formatPrice, formatVolume, toNumber } from "@/lib/format";
+import { companyPath, newsPath, populationPath } from "@/lib/paths";
 
 interface CompanyProps {
   /** The company's listing on either exchange. Both reach this page. */
@@ -62,10 +73,20 @@ const HEADLINES = 6;
 /** Which view of the chart is showing. */
 type View = "compare" | "price";
 
-/** What the chart section can show. */
 const VIEWS: Tab<View>[] = [
   { key: "compare", label: "Relative strength" },
   { key: "price", label: "Price" },
+];
+
+/** The parts of the page. */
+type Part = "overview" | "financials" | "shareholding" | "actions" | "news";
+
+const PARTS: Tab<Part>[] = [
+  { key: "overview", label: "Overview" },
+  { key: "financials", label: "Financials" },
+  { key: "shareholding", label: "Shareholding" },
+  { key: "actions", label: "Corporate Actions" },
+  { key: "news", label: "News" },
 ];
 
 /**
@@ -76,9 +97,8 @@ const VIEWS: Tab<View>[] = [
  */
 export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
   const [sessions, setSessions] = useState(DEFAULT_RANGE);
-  // How it reads against its sector and the market is the question this
-  // page is opened with; its own price is one tab away.
   const [view, setView] = useState<View>("compare");
+  const [part, setPart] = useState<Part>("overview");
 
   const load = useCallback(() => fetchCompany(instrumentKey), [instrumentKey]);
   const company = useResource(load);
@@ -90,6 +110,10 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
 
   const loadOverview = useCallback(
     () => (key === null ? Promise.resolve([]) : fetchOverviews([key])),
+    [key],
+  );
+  const loadValuation = useCallback(
+    () => (key === null ? Promise.resolve(null) : fetchValuation(key)),
     [key],
   );
   const loadChart = useCallback(
@@ -110,14 +134,12 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
     [key],
   );
   const overview = useResource(loadOverview);
+  const valuation = useResource(loadValuation);
   const chart = useResource(loadChart);
   const statements = useResource(loadStatements);
   const actions = useResource(loadActions);
   const news = useResource(loadNews);
 
-  // The company and every benchmark that trades. Its sector is measured
-  // against below but cannot be drawn: a sector is a grouping of companies
-  // rather than something with a price of its own.
   const lines = useMemo<ChartLine[]>(() => {
     const found = company.data;
     if (found === null || key === null) {
@@ -131,8 +153,6 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
           : [{ instrumentKey: one.instrument_key, label: one.label }],
       ),
     ];
-    // Everything after the company is there to be read against rather
-    // than read, so it is drawn thin.
     return coloured(drawn).map((one, position) => ({ ...one, subdued: position > 0 }));
   }, [company.data, key]);
 
@@ -192,150 +212,230 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
         description={found?.description}
       />
 
-      <InstrumentFigures overview={overview.data?.[0] ?? null} loading={overview.loading} />
+      <Tabs tabs={PARTS} active={part} onChange={setPart} label="Company">
+        {part === "overview" && (
+          <div className="space-y-6">
+            <InstrumentFigures overview={overview.data?.[0] ?? null} loading={overview.loading} />
 
-      {found !== null && key !== null && (
-        <section className="space-y-3" aria-labelledby="price-heading">
-          <SectionHeader
-            id="price-heading"
-            icon={ENTITIES.index.icon}
-            title="Price & Performance"
-            description={
-              view === "compare"
-                ? "Against the market and the size bands, all rebased to the first session they share."
-                : "Its own sessions, with this platform's moving averages over them."
-            }
-            actions={
-              <RangeSelector
-                ranges={PRICE_RANGES}
-                sessions={sessions}
-                onChange={setSessions}
-                label="History"
+            <section className="space-y-3" aria-labelledby="valuation-heading">
+              <SectionHeader
+                id="valuation-heading"
+                icon={ENTITIES.company.icon}
+                title="Valuation"
+                description="What the company is worth against what it earns, owns and pays — worked out from the stored price, statements and dividends when the page is read."
               />
-            }
-          />
-          <Tabs tabs={VIEWS} active={view} onChange={setView} label="Chart">
-            {view === "price" ? (
-              <PriceChart
-                points={chart.data?.points ?? null}
-                loading={chart.loading}
-                instrument={{
-                  label: found.symbol,
-                  symbol: symbols.data?.[key]?.symbol,
-                  derived: symbols.data?.[key]?.derived,
-                }}
-              />
-            ) : (
-              <ComparisonChart
-                series={comparison.data}
-                lines={lines}
-                symbols={symbols.data ?? {}}
-                loading={comparison.loading}
-              />
+              <ValuationPanel valuation={valuation.data} loading={valuation.loading} />
+            </section>
+
+            {found !== null && key !== null && (
+              <section className="space-y-3" aria-labelledby="price-heading">
+                <SectionHeader
+                  id="price-heading"
+                  icon={ENTITIES.index.icon}
+                  title="Price & Performance"
+                  description={
+                    view === "compare"
+                      ? "Against the market and the size bands, all rebased to the first session they share."
+                      : "Its own sessions, with this platform's moving averages over them."
+                  }
+                  actions={
+                    <RangeSelector
+                      ranges={PRICE_RANGES}
+                      sessions={sessions}
+                      onChange={setSessions}
+                      label="History"
+                    />
+                  }
+                />
+                <Tabs tabs={VIEWS} active={view} onChange={setView} label="Chart">
+                  {view === "price" ? (
+                    <PriceChart
+                      points={chart.data?.points ?? null}
+                      loading={chart.loading}
+                      instrument={{
+                        label: found.symbol,
+                        symbol: symbols.data?.[key]?.symbol,
+                        derived: symbols.data?.[key]?.derived,
+                      }}
+                    />
+                  ) : (
+                    <ComparisonChart
+                      series={comparison.data}
+                      lines={lines}
+                      symbols={symbols.data ?? {}}
+                      loading={comparison.loading}
+                    />
+                  )}
+                </Tabs>
+              </section>
             )}
-          </Tabs>
-        </section>
-      )}
 
-      {found?.performance != null && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Relative Performance</CardTitle>
-            <CardDescription>
-              In percentage points. Its own trade first: a company beating the market while trailing
-              every rival in its sector is doing worse than the market comparison alone suggests.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Against comparisons={found.performance.against} loading={company.loading} />
-          </CardContent>
-        </Card>
-      )}
+            {found?.performance != null && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Relative Performance</CardTitle>
+                  <CardDescription>
+                    In percentage points. Its own trade first: a company beating the market while
+                    trailing every rival in its sector is doing worse than the market comparison
+                    alone suggests.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Against comparisons={found.performance.against} loading={company.loading} />
+                </CardContent>
+              </Card>
+            )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Financial Statements</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Financials statements={statements.data} loading={statements.loading} />
-        </CardContent>
-      </Card>
+            {found !== null && found.peers.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <MARKS.peers aria-hidden="true" className="h-4 w-4 text-primary" />
+                    Peer Companies
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Peers peers={found.peers} loading={company.loading} />
+                </CardContent>
+              </Card>
+            )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Shareholding Pattern</CardTitle>
-          <CardDescription>
-            The shareholding pattern as filed each quarter, in per cent of the company.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <StatementTable
-            statement={shareholding}
-            loading={statements.loading}
-            empty="No shareholding pattern filed for this company"
-            label="Shareholding pattern"
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Corporate Actions</CardTitle>
-          <CardDescription>
-            Dividends, bonuses and splits. A price chart that looks broken on a date is usually
-            explained here.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <CorporateActions actions={actions.data} loading={actions.loading} />
-        </CardContent>
-      </Card>
-
-      {found !== null && found.indices.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Index Membership</CardTitle>
-            <CardDescription>
-              {found.indices.length} {found.indices.length === 1 ? "index" : "indices"} currently
-              hold it, which says what size band it is in as plainly as any label would.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-1.5">
-            {found.indices.map((one) => (
-              <Link key={one.instrument_key} to={populationPath("index", one.instrument_key)}>
-                <Badge variant="outline" className="hover:bg-accent">
-                  {one.name}
-                </Badge>
-              </Link>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {found !== null && found.peers.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Peer Companies</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Peers peers={found.peers} loading={company.loading} />
-          </CardContent>
-        </Card>
-      )}
-
-      <section className="space-y-3" aria-labelledby="news-heading">
-        <SectionHeader id="news-heading" icon={MARKS.news} title="Company News" />
-        <NewsFeed items={news.data?.items ?? null} loading={news.loading} />
-        {found !== null && (news.data?.total ?? 0) > HEADLINES && (
-          <div className="flex justify-center">
-            <Button variant="outline" asChild>
-              <Link to={newsPath(found.instrument_key, found.symbol)}>
-                All news for {found.symbol} ›
-              </Link>
-            </Button>
+            {found !== null && found.indices.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <ENTITIES.index.icon aria-hidden="true" className="h-4 w-4 text-primary" />
+                    Index Membership
+                  </CardTitle>
+                  <CardDescription>
+                    {found.indices.length} {found.indices.length === 1 ? "index" : "indices"}{" "}
+                    currently hold it, which says what size band it is in as plainly as any label
+                    would.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-wrap gap-1.5">
+                  {found.indices.map((one) => (
+                    <Link key={one.instrument_key} to={populationPath("index", one.instrument_key)}>
+                      <Badge variant="outline" className="hover:bg-accent">
+                        {one.name}
+                      </Badge>
+                    </Link>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
-      </section>
+
+        {part === "financials" && (
+          <div className="space-y-6">
+            <section className="space-y-3" aria-labelledby="growth-heading">
+              <SectionHeader
+                id="growth-heading"
+                icon={ENTITIES.index.icon}
+                title="Revenue & Profit"
+                description="Every year reported. A table says what each year was; the line says whether the years are going anywhere."
+              />
+              <GrowthChart statements={statements.data} loading={statements.loading} />
+            </section>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Financial Statements</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Financials statements={statements.data} loading={statements.loading} />
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {part === "shareholding" && (
+          <div className="space-y-6">
+            <section className="space-y-3" aria-labelledby="holders-heading">
+              <SectionHeader
+                id="holders-heading"
+                icon={MARKS.peers}
+                title="Shareholding Pattern"
+                description="Who has owned the company, quarter by quarter, in per cent. Promoters selling down and institutions building are the movements worth watching."
+              />
+              <ShareholdingChart statements={statements.data} loading={statements.loading} />
+            </section>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">As Filed</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <StatementTable
+                  statement={shareholding}
+                  loading={statements.loading}
+                  empty="No shareholding pattern filed for this company"
+                  label="Shareholding pattern"
+                />
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {part === "actions" && <ActionsByKind actions={actions.data} loading={actions.loading} />}
+
+        {part === "news" && (
+          <section className="space-y-3" aria-labelledby="news-heading">
+            <SectionHeader id="news-heading" icon={MARKS.news} title="Company News" />
+            <NewsFeed items={news.data?.items ?? null} loading={news.loading} />
+            {found !== null && (news.data?.total ?? 0) > HEADLINES && (
+              <div className="flex justify-center">
+                <Button variant="outline" asChild>
+                  <Link to={newsPath(found.instrument_key, found.symbol)}>
+                    All news for {found.symbol} ›
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </section>
+        )}
+      </Tabs>
+    </div>
+  );
+}
+
+/** What each kind of event is called in the chooser, "all" first. */
+const KINDS: { key: "ALL" | CorporateActionKind; label: string }[] = [
+  { key: "ALL", label: "All" },
+  { key: "DIVIDEND", label: "Dividends" },
+  { key: "BONUS", label: "Bonuses" },
+  { key: "SPLIT", label: "Splits" },
+  { key: "RIGHTS", label: "Rights" },
+];
+
+/**
+ * The corporate events, narrowed to one kind when asked.
+ *
+ * The previous project kept a dividend history, a bonus history and a
+ * split history as separate cards. One table with a chooser is the same
+ * reading in less room, and keeps the dates of different kinds in one
+ * order when nothing is chosen.
+ */
+function ActionsByKind({
+  actions,
+  loading,
+}: {
+  actions: CorporateAction[] | null;
+  loading: boolean;
+}): React.JSX.Element {
+  const [kind, setKind] = useState<"ALL" | CorporateActionKind>("ALL");
+  const shown = useMemo(
+    () => (actions ?? []).filter((one) => kind === "ALL" || one.kind === kind),
+    [actions, kind],
+  );
+  return (
+    <div className="space-y-3">
+      <SectionHeader
+        icon={MARKS.dates}
+        title="Corporate Actions"
+        description="Dividends, bonuses, splits and rights. A price chart that looks broken on a date is usually explained here."
+        actions={<Chooser options={KINDS} chosen={kind} onChange={setKind} label="Kind" />}
+      />
+      <CorporateActions actions={shown} loading={loading} />
     </div>
   );
 }
@@ -344,9 +444,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
  * The populations the company was measured against.
  *
  * A table rather than the chart above it, because the nearest comparison
- * -- its own sector -- has no price and cannot be drawn. Leaving the
- * sector out of both would drop the one benchmark a company is most
- * usefully read against.
+ * -- its own sector -- has no price and cannot be drawn.
  */
 function Against({
   comparisons,
@@ -393,13 +491,7 @@ function Against({
   );
 }
 
-/**
- * A column of gaps, in percentage points.
- *
- * @param window - Which trailing window it reads.
- * @param header - What to call it.
- * @returns The column.
- */
+/** A column of gaps, in percentage points. */
 function gap(window: keyof Comparison["relative"], header: string): Column<Comparison> {
   return {
     id: window,
@@ -461,13 +553,7 @@ function Peers({ peers, loading }: { peers: Member[]; loading: boolean }): React
   );
 }
 
-/**
- * A column of percentage moves, coloured by direction.
- *
- * @param field - Which figure it reads.
- * @param header - What to call it.
- * @returns The column.
- */
+/** A column of percentage moves, coloured by direction. */
 function move(
   field: "change_percent" | "one_month" | "three_months" | "one_year" | "from_high_percent",
   header: string,

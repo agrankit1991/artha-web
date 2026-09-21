@@ -53,7 +53,7 @@ export function InstrumentFigures({
     );
   }
 
-  const { day, returns, year_range: range, trend, volume, momentum } = overview;
+  const { day, returns, year_range: range, trend, volume, momentum, risk } = overview;
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       <Group title="Latest Session" note={formatDay(overview.as_of)}>
@@ -121,8 +121,37 @@ export function InstrumentFigures({
           value={momentum.rsi === null ? ABSENT : formatPercent(momentum.rsi).replace("%", "")}
         />
       </Group>
+
+      <Group title="Momentum & Risk">
+        <Line label="MACD" value={figure(momentum.macd)} />
+        <Line label="Signal" value={figure(momentum.macd_signal)} />
+        <Line label="Histogram" value={figure(momentum.macd_histogram)} />
+        <Line label="ATR (14)" value={figure(risk.average_true_range)} />
+        <Line label="Volatility, 1 month" value={annualised(risk.volatility_month)} />
+        <Line label="Volatility, 1 year" value={annualised(risk.volatility_year)} />
+        <Line
+          label="Streak"
+          value={
+            (trend.consecutive_rises ?? 0) > 0
+              ? `${String(trend.consecutive_rises)} up`
+              : (trend.consecutive_falls ?? 0) > 0
+                ? `${String(trend.consecutive_falls)} down`
+                : ABSENT
+          }
+        />
+      </Group>
     </div>
   );
+}
+
+/** A plain figure, or a dash. */
+function figure(value: string | null): string {
+  return value === null ? ABSENT : formatPrice(value);
+}
+
+/** A volatility, which is an annualised percentage without a sign. */
+function annualised(value: string | null): string {
+  return value === null ? ABSENT : formatPercent(value).replace(/^\+/, "");
 }
 
 /** One group of readings. */

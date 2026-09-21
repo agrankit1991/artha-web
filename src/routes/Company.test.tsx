@@ -19,6 +19,7 @@ import {
   statement,
   stubPlatform,
   trailing,
+  valuation,
 } from "@/test/support";
 
 vi.mock("lightweight-charts", async () => (await import("@/test/chartStub")).chartModule());
@@ -33,6 +34,7 @@ function stubEverything(replies: Record<string, unknown> = {}): ReturnType<typeo
   return stubPlatform({
     "/api/companies/NSE_EQ%7CINE002A01018/fundamentals": { body: [statement()] },
     "/api/companies/NSE_EQ%7CINE002A01018/corporate-actions": { body: [corporateAction()] },
+    "/api/companies/NSE_EQ%7CINE002A01018/valuation": { body: valuation() },
     "/api/companies/NSE_EQ%7CINE002A01018": { body: company() },
     "/api/overviews": { body: [overview({ instrument_key: KEY })] },
     "/api/figures": { body: { instrument_key: KEY, points: chartPoints(40) } },
@@ -141,6 +143,7 @@ describe("Company", () => {
     stubEverything();
 
     renderPage(<Company instrumentKey={KEY} />);
+    await userEvent.click(await screen.findByRole("tab", { name: "Financials" }));
 
     // Awaited inside: the table is drawn before its figures arrive, so a
     // query that resolves on the table alone runs against an empty one.
@@ -162,6 +165,7 @@ describe("Company", () => {
     });
 
     renderPage(<Company instrumentKey={KEY} />);
+    await userEvent.click(await screen.findByRole("tab", { name: "Corporate Actions" }));
 
     expect(await screen.findByText("Bonus")).toBeInTheDocument();
     const table = screen.getByRole("table", { name: "Corporate actions" });
@@ -275,6 +279,7 @@ describe("Company", () => {
     stubEverything({ "/api/news": { body: newsPage({ total: 40 }) } });
 
     renderPage(<Company instrumentKey={KEY} />);
+    await userEvent.click(await screen.findByRole("tab", { name: "News" }));
 
     expect(await screen.findByRole("link", { name: /All news for RELIANCE/ })).toHaveAttribute(
       "href",
@@ -288,6 +293,7 @@ describe("Company", () => {
     stubPlatform({
       "/api/companies/NSE_EQ%7CINE002A01018/fundamentals": { body: [] },
       "/api/companies/NSE_EQ%7CINE002A01018/corporate-actions": { body: [] },
+      "/api/companies/NSE_EQ%7CINE002A01018/valuation": { body: null },
       "/api/companies/NSE_EQ%7CINE002A01018": { body: company() },
       "/api/overviews": { body: [overview({ instrument_key: KEY })] },
       "/api/figures": { status: 500, body: { detail: "no sessions" } },
@@ -300,8 +306,10 @@ describe("Company", () => {
     await screen.findByText("Price & Performance");
 
     await userEvent.click(screen.getByRole("tab", { name: "Price" }));
-
     expect(await screen.findByText("Reliance Industries")).toBeInTheDocument();
+    expect(screen.getByText("No valuation yet")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("tab", { name: "News" }));
     expect(screen.queryByRole("link", { name: /All news/ })).not.toBeInTheDocument();
   });
 
@@ -351,5 +359,64 @@ describe("Company", () => {
 
     await screen.findByText("Reliance Industries");
     expect(screen.queryByText("Relative Performance")).not.toBeInTheDocument();
+  });
+
+  it("values the company, with every derivation a hover away", async () => {
+    stubEverything();
+    renderPage(<Company instrumentKey={KEY} />);
+
+    // Awaited on a tile: the section heading is drawn before the figures
+    // arrive.
+    expect(await screen.findByText("42.79×")).toBeInTheDocument();
+    expect(screen.getByText("₹16.78 lakh cr")).toBeInTheDocument();
+    expect(screen.getByText("Valuation")).toBeInTheDocument();
+  });
+
+  it("draws who has owned it and how it has grown, each on its own tab", async () => {
+    stubEverything({
+      "/api/companies/NSE_EQ%7CINE002A01018/fundamentals": {
+        body: [
+          statement(),
+          statement({
+            statement: "SHAREHOLDING",
+            basis: "NOT_APPLICABLE",
+            frequency: "QUARTERLY",
+            line_items: ["promoters"],
+            periods: [
+              {
+                period_end: "2026-06-30",
+                figures: [{ line_item: "promoters", value: "50.48", units: "percent" }],
+              },
+            ],
+          }),
+        ],
+      },
+    });
+    renderPage(<Company instrumentKey={KEY} />);
+
+    await userEvent.click(await screen.findByRole("tab", { name: "Shareholding" }));
+    expect(await screen.findByText("Promoters")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("tab", { name: "Financials" }));
+    expect(await screen.findByText(/Revenue \(consolidated\)/)).toBeInTheDocument();
+  });
+
+  it("narrows the corporate events to one kind", async () => {
+    stubEverything({
+      "/api/companies/NSE_EQ%7CINE002A01018/corporate-actions": {
+        body: [
+          corporateAction(),
+          corporateAction({ kind: "BONUS", label: "Bonus 1:1", ratio: "1:1", amount: null }),
+        ],
+      },
+    });
+    renderPage(<Company instrumentKey={KEY} />);
+    await userEvent.click(await screen.findByRole("tab", { name: "Corporate Actions" }));
+    await screen.findByText("Bonus");
+
+    await userEvent.click(screen.getByRole("button", { name: "Dividends" }));
+
+    expect(screen.queryByText("Bonus")).not.toBeInTheDocument();
+    expect(screen.getByText("Dividend")).toBeInTheDocument();
   });
 });

@@ -1009,3 +1009,43 @@ export function fetchSearch(query: string, limit = 12): Promise<SearchHit[]> {
   const parameters = new URLSearchParams({ q: query, limit: String(limit) });
   return request<SearchHit[]>(`/api/search?${parameters.toString()}`);
 }
+
+/** One derived figure, with how it was derived. */
+export interface Derived {
+  value: string | null;
+  /** The arithmetic in words, with the inputs it used. */
+  derivation: string;
+}
+
+/** What a company is worth against what it earns, owns and pays. */
+export interface CompanyValuation {
+  as_of: string;
+  price: string;
+  /** In crore. */
+  shares_outstanding: Derived;
+  /** In crore. */
+  market_cap: Derived;
+  /** Standalone profit over the last four quarters, in crore. */
+  earnings_ttm: Derived;
+  eps_ttm: Derived;
+  pe: Derived;
+  /** Shareholders' funds, in crore. */
+  book_value: Derived;
+  pb: Derived;
+  dividends_ttm: Derived;
+  /** In per cent. */
+  dividend_yield: Derived;
+}
+
+/**
+ * Fetch what a company is worth against its earnings, book and payout.
+ *
+ * @param instrumentKey - The company's listing.
+ * @returns The valuation, or null when the company has no price to value
+ *   against.
+ */
+export function fetchValuation(instrumentKey: string): Promise<CompanyValuation | null> {
+  return request<CompanyValuation | null>(
+    `/api/companies/${encodeURIComponent(instrumentKey)}/valuation`,
+  );
+}
