@@ -129,9 +129,9 @@ export function Breadth({
                 Participation over time
               </CardTitle>
               <CardDescription>
-                The advance–decline line, and the McClellan oscillator in a band of its own. Both
-                are read for their shape: the line for its direction, the oscillator for where it
-                crosses nought.
+                How many companies rose and fell each session, and the McClellan oscillator in a
+                band of its own. Where the advancing line sits above the declining one the market
+                rose broadly; the oscillator is read for where it crosses nought.
               </CardDescription>
             </CardHeader>
             <CardContent role="region" aria-label="Participation over time">

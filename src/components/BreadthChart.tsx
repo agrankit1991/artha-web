@@ -1,22 +1,28 @@
 /**
- * The advance–decline line and the McClellan oscillator, over time.
+ * How many companies rose and fell each session, and the McClellan
+ * oscillator beneath them.
  *
- * Both are shapes rather than readings -- a cumulative line is read for
- * its direction and its disagreements with the index, and an oscillator
- * for where it crosses nought -- so both want a chart with dates on it
- * rather than the sparkline that stands in for them at a glance.
+ * Two counts rather than the textbook cumulative advance-decline line.
+ * That line is a running total from an arbitrary origin, so its level says
+ * nothing on its own: it reaches many times the size of the population it
+ * counts, and a reader has to know the convention before the number means
+ * anything at all. These are companies -- bounded by the population,
+ * readable without the convention, and answering what is actually asked of
+ * a breadth chart, which is how much of the market was taking part. Where
+ * the advancing line sits above the declining one the market rose broadly;
+ * where they cross, it turned.
  *
- * Two panes, because the two cannot share a scale: this market's
- * advance–decline line sits near minus seventy-six thousand and its
- * oscillator between roughly plus and minus a hundred. On one axis the
- * oscillator is a flat line along the bottom.
+ * Two panes, because counts and an oscillator cannot share a scale: the
+ * counts run to several thousand and the oscillator between roughly plus
+ * and minus a hundred. On one axis the oscillator is a flat line along the
+ * bottom.
  */
 
 import { useMemo } from "react";
 
 import type { BreadthSession } from "@/api/client";
 import { Chart, type Series } from "@/components/Chart";
-import { OSCILLATOR, PRICE_LINE, PRICE_WIDTH } from "@/lib/chartPalette";
+import { CANDLE_DOWN, CANDLE_UP, OSCILLATOR, PRICE_WIDTH } from "@/lib/chartPalette";
 import { toNumber } from "@/lib/format";
 
 interface BreadthChartProps {
@@ -28,7 +34,7 @@ interface BreadthChartProps {
 const ZERO = [{ value: 0 }];
 
 /**
- * Draw the two measures.
+ * Draw the participation measures.
  *
  * @param props - The counted sessions, oldest first.
  * @returns The chart.
@@ -41,10 +47,19 @@ export function BreadthChart({ sessions, loading = false }: BreadthChartProps): 
     return [
       {
         kind: "line",
-        label: "Advance–decline line",
-        colour: PRICE_LINE,
+        // The green a rising candle is drawn in, and the red a falling
+        // one, so a colour means the same thing on every chart here.
+        label: "Advancing",
+        colour: CANDLE_UP,
         width: PRICE_WIDTH,
-        points: figures(sessions, (session) => session.advance_decline_line),
+        points: points(sessions, (session) => session.advancing),
+      },
+      {
+        kind: "line",
+        label: "Declining",
+        colour: CANDLE_DOWN,
+        width: PRICE_WIDTH,
+        points: points(sessions, (session) => session.declining),
       },
       {
         kind: "line",
@@ -52,7 +67,7 @@ export function BreadthChart({ sessions, loading = false }: BreadthChartProps): 
         colour: OSCILLATOR,
         pane: 1,
         thresholds: ZERO,
-        points: figures(sessions, (session) => session.mcclellan_oscillator),
+        points: points(sessions, (session) => toNumber(session.mcclellan_oscillator)),
       },
     ];
   }, [sessions]);
@@ -70,11 +85,11 @@ export function BreadthChart({ sessions, loading = false }: BreadthChartProps): 
  *   sessions before it means anything, and a flat run at nought before
  *   that would read as a market in perfect balance.
  */
-function figures(
+function points(
   sessions: BreadthSession[],
-  of: (session: BreadthSession) => string | null,
+  of: (session: BreadthSession) => number | null,
 ): { time: string; value: number }[] {
   return sessions
-    .map((session) => ({ time: session.as_of, value: toNumber(of(session)) }))
+    .map((session) => ({ time: session.as_of, value: of(session) }))
     .filter((point): point is { time: string; value: number } => point.value !== null);
 }
