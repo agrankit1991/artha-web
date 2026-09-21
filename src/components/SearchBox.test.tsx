@@ -176,4 +176,70 @@ describe("SearchBox", () => {
 
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
+
+  it("is reached with Ctrl+K as well", async () => {
+    stubPlatform({ "/api/search": { body: [] } });
+    draw();
+
+    await userEvent.keyboard("{Control>}k{/Control}");
+
+    expect(screen.getByRole("combobox", { name: "Search" })).toHaveFocus();
+  });
+
+  it("moves back up the list with the arrow", async () => {
+    stubPlatform({ "/api/search": { body: HITS } });
+    draw();
+    await userEvent.type(screen.getByRole("combobox", { name: "Search" }), "reli");
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+    await screen.findByRole("option", { name: /RELIANCE/ });
+
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowUp}{Enter}");
+
+    await waitFor(() => {
+      expect(screen.getByTestId("where")).toHaveTextContent("/index/NSE_INDEX%7CNifty%2050");
+    });
+  });
+
+  it("says nothing was found when the platform failed", async () => {
+    stubPlatform({ "/api/search": { status: 500, body: { detail: "down" } } });
+    draw();
+
+    await userEvent.type(screen.getByRole("combobox", { name: "Search" }), "reli");
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+
+    expect(await screen.findByText(/Nothing called/)).toBeInTheDocument();
+  });
+
+  it("forgets recent searches it cannot read, and carries on", async () => {
+    window.localStorage.setItem("artha.search.recent", "not json");
+    stubPlatform({ "/api/search": { body: [] } });
+    draw();
+
+    await userEvent.click(screen.getByRole("combobox", { name: "Search" }));
+
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  it("still opens the page when storage refuses to remember", async () => {
+    const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("quota");
+    });
+    stubPlatform({ "/api/search": { body: HITS } });
+    draw();
+    await userEvent.type(screen.getByRole("combobox", { name: "Search" }), "reli");
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+
+    await userEvent.click(await screen.findByRole("option", { name: /RELIANCE/ }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("where")).toHaveTextContent("/company/");
+    });
+    setItem.mockRestore();
+  });
 });

@@ -1,11 +1,11 @@
 /** Tests for one mutual fund scheme's own page. */
 
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Fund } from "./Fund";
-import { fund, fundScheme, renderPage, stubPlatform } from "@/test/support";
+import { fund, fundScheme, renderPage, schemePage, stubPlatform } from "@/test/support";
 
 vi.mock("lightweight-charts", async () => (await import("@/test/chartStub")).chartModule());
 
@@ -24,7 +24,7 @@ describe("Fund", () => {
     expect(
       await screen.findByText("Axis Bluechip Fund - Direct Plan - Growth"),
     ).toBeInTheDocument();
-    expect(screen.getByText("Direct Plan")).toBeInTheDocument();
+    expect(screen.getAllByText("Direct Plan").length).toBeGreaterThan(0);
     // Named twice on purpose: once as a badge and once among the facts
     // that identify the scheme.
     expect(screen.getAllByText("Axis Mutual Fund")).toHaveLength(2);
@@ -36,8 +36,8 @@ describe("Fund", () => {
 
     renderPage(<Fund schemeCode="120503" />);
 
-    expect(await screen.findByText("62.50")).toBeInTheDocument();
-    expect(screen.getByText(/18 Sept? 2026/)).toBeInTheDocument();
+    expect((await screen.findAllByText("62.50")).length).toBeGreaterThan(0);
+    expect(screen.getByText(/As of 18 Sept? 2026/)).toBeInTheDocument();
   });
 
   it("names the long windows as yearly rates", async () => {
@@ -128,5 +128,104 @@ describe("Fund", () => {
     renderPage(<Fund schemeCode="000000" />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("no scheme called 000000");
+  });
+
+  it("opens on ten thousand rupees growing, with the other readings a tab away", async () => {
+    stubPlatform({ "/api/funds/120503": { body: fund() } });
+    renderPage(<Fund schemeCode="120503" />);
+    await screen.findByText("NAV History");
+
+    expect(screen.getByRole("tab", { name: "Growth of ₹10,000" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await userEvent.click(screen.getByRole("tab", { name: "Drawdown" }));
+    expect(screen.getByText(/below its highest point/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: "Rolling 1-year return" }));
+    expect(screen.getByText(/as it stood on each day/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: "NAV" }));
+    expect(screen.getByText(/One value a day/)).toBeInTheDocument();
+  });
+
+  it("states where the value peaked, troughed and fell furthest", async () => {
+    stubPlatform({ "/api/funds/120503": { body: fund() } });
+    renderPage(<Fund schemeCode="120503" />);
+
+    expect(await screen.findByText("Highest in window")).toBeInTheDocument();
+    expect(screen.getByText("Lowest in window")).toBeInTheDocument();
+    expect(screen.getByText("61.00")).toBeInTheDocument();
+    expect(screen.getByText("Deepest fall from a peak")).toBeInTheDocument();
+  });
+
+  it("summarises the rolling year as a distribution", async () => {
+    stubPlatform({ "/api/funds/120503": { body: fund() } });
+    renderPage(<Fund schemeCode="120503" />);
+
+    expect(await screen.findByText("Rolling One-Year Returns")).toBeInTheDocument();
+    expect(screen.getByText("Best year")).toBeInTheDocument();
+    expect(screen.getByText("Worst year")).toBeInTheDocument();
+    // Three positive years of three, said in the tile and among the facts.
+    expect(screen.getAllByText("100%")).toHaveLength(2);
+  });
+
+  it("says nothing of a rolling year for a scheme too young to have one", async () => {
+    stubPlatform({ "/api/funds/120503": { body: fund({ rolling: [] }) } });
+    renderPage(<Fund schemeCode="120503" />);
+
+    await screen.findByText("NAV History");
+    expect(screen.queryByText("Rolling One-Year Returns")).not.toBeInTheDocument();
+    expect(screen.getByText("Less than a year of values")).toBeInTheDocument();
+  });
+
+  it("lists similar schemes in its category, each leading to its own page", async () => {
+    const fetchMock = stubPlatform({
+      "/api/funds/120503": { body: fund() },
+      "/api/funds": {
+        body: schemePage({
+          items: [
+            fundScheme(),
+            fundScheme({ scheme_code: "118989", name: "HDFC Top 100 Fund", amc: null }),
+          ],
+        }),
+      },
+    });
+    renderPage(<Fund schemeCode="120503" />);
+
+    const table = await screen.findByRole("table", { name: "Similar schemes" });
+    // Awaited on the row: the table is drawn before its schemes arrive.
+    expect(await within(table).findByRole("link", { name: /HDFC Top 100/ })).toHaveAttribute(
+      "href",
+      "/fund/118989",
+    );
+    // Itself left out: a scheme is not similar to itself.
+    expect(within(table).queryByText(/Axis Bluechip/)).not.toBeInTheDocument();
+    const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+    expect(asked.some((path) => path.includes("category=Open"))).toBe(true);
+  });
+
+  it("asks for no similar schemes when the scheme has no category", async () => {
+    const fetchMock = stubPlatform({
+      "/api/funds/120503": { body: fund({ scheme: fundScheme({ category: null }) }) },
+    });
+    renderPage(<Fund schemeCode="120503" />);
+
+    await screen.findByText("NAV History");
+    expect(screen.queryByText("Similar Schemes")).not.toBeInTheDocument();
+    const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+    expect(asked.some((path) => path.includes("category="))).toBe(false);
+  });
+
+  it("draws no rolling line from returns that will not parse", async () => {
+    stubPlatform({
+      "/api/funds/120503": {
+        body: fund({ rolling: [{ nav_date: "2026-09-18", percent: "not a number" }] }),
+      },
+    });
+    renderPage(<Fund schemeCode="120503" />);
+    await screen.findByText("NAV History");
+
+    await userEvent.click(screen.getByRole("tab", { name: "Rolling 1-year return" }));
+
+    expect(screen.getByText("No values published for this scheme")).toBeInTheDocument();
   });
 });

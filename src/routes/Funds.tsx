@@ -13,7 +13,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Scheme } from "@/api/client";
 import { fetchFundFilters, fetchFunds } from "@/api/client";
 import { type Column, DataTable } from "@/components/DataTable";
+import { Delta } from "@/components/Delta";
+import { Hint } from "@/components/Hint";
 import { LoadMore } from "@/components/LoadMore";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -101,33 +104,35 @@ export function Funds(): React.JSX.Element {
         id: "plan",
         header: "Plan",
         accessorFn: (row) => row.plan ?? "",
-        cell: ({ row }) => (
-          <span className="text-xs text-muted-foreground">
-            {[row.original.plan, row.original.option].filter(Boolean).join(" · ") || ABSENT}
-          </span>
-        ),
+        cell: ({ row }) => <PlanBadge scheme={row.original} />,
       },
       {
         id: "category",
         header: "Category",
         accessorFn: (row) => row.category ?? "",
         cell: ({ row }) => (
-          <span className="text-xs text-muted-foreground">{row.original.category ?? ABSENT}</span>
+          <span className="text-xs text-muted-foreground">
+            {shortCategory(row.original.category)}
+          </span>
         ),
       },
       {
         id: "nav",
-        header: "Value",
+        header: "NAV",
         accessorFn: (row) => toNumber(row.nav) ?? 0,
-        cell: ({ row }) => formatPrice(row.original.nav),
+        cell: ({ row }) => (
+          <div className="leading-tight">
+            <div>{formatPrice(row.original.nav)}</div>
+            <div className="text-xs text-muted-foreground">{formatDay(row.original.nav_date)}</div>
+          </div>
+        ),
         meta: { align: "right" },
       },
-      {
-        id: "nav_date",
-        header: "As of",
-        accessorFn: (row) => row.nav_date ?? "",
-        cell: ({ row }) => formatDay(row.original.nav_date),
-      },
+      window("one_month", "1M"),
+      window("three_months", "3M"),
+      window("one_year", "1Y"),
+      window("three_years", "3Y p.a."),
+      window("five_years", "5Y p.a."),
     ],
     [],
   );
@@ -238,4 +243,85 @@ function Narrow({
 function merge(held: Scheme[], arrived: Scheme[]): Scheme[] {
   const seen = new Set(held.map((one) => one.scheme_code));
   return [...held, ...arrived.filter((one) => !seen.has(one.scheme_code))];
+}
+
+/**
+ * A column of returns over one window, coloured by direction.
+ *
+ * @param field - Which window.
+ * @param header - What to call it.
+ * @returns The column. A window a scheme has no history for sorts last
+ *   rather than as nought, where a nought would place a fund launched last
+ *   year among the flat ones.
+ */
+function window(field: keyof Scheme["returns"], header: string): Column<Scheme> {
+  return {
+    id: field,
+    header,
+    accessorFn: (row) => toNumber(row.returns[field]) ?? Number.NEGATIVE_INFINITY,
+    cell: ({ row }) =>
+      row.original.returns[field] === null ? (
+        <span className="text-muted-foreground">{ABSENT}</span>
+      ) : (
+        <Delta value={row.original.returns[field]} />
+      ),
+    meta: { align: "right" },
+  };
+}
+
+/**
+ * The plan and the option as badges, with the plan explained.
+ *
+ * A direct plan is the same fund without the distributor's commission, so
+ * the two differ by roughly a percent a year compounded, and a reader
+ * comparing the two rows should know that the gap is the fee and not the
+ * fund.
+ */
+function PlanBadge({ scheme }: { scheme: Scheme }): React.JSX.Element {
+  if (scheme.plan === null) {
+    return <span className="text-muted-foreground">{ABSENT}</span>;
+  }
+  const direct = scheme.plan.toLowerCase().includes("direct");
+  return (
+    <span className="flex flex-wrap items-center gap-1">
+      <Hint
+        text={
+          direct
+            ? "Bought from the fund house directly, with no distributor's commission. The same fund as the regular plan, roughly a percent a year cheaper, compounded."
+            : "Bought through a distributor, whose commission comes out of the fund each year. The direct plan of the same fund is roughly a percent a year cheaper."
+        }
+      >
+        <Badge variant={direct ? "secondary" : "outline"}>{direct ? "Direct" : "Regular"}</Badge>
+      </Hint>
+      {scheme.option !== null && (
+        <span className="text-xs text-muted-foreground">{shortOption(scheme.option)}</span>
+      )}
+    </span>
+  );
+}
+
+/**
+ * AMFI's category label, shorn of its wrapper.
+ *
+ * "Open Ended Schemes(Equity Scheme - Large Cap Fund)" is "Large Cap Fund"
+ * to anybody reading a table; the wrapper is the same on nine schemes in
+ * ten and says nothing about this one.
+ *
+ * @param category - The label as published.
+ * @returns The part that distinguishes it, or a dash.
+ */
+export function shortCategory(category: string | null): string {
+  if (category === null) {
+    return ABSENT;
+  }
+  const inner = /\(([^)]*)\)/.exec(category)?.[1] ?? category;
+  return inner
+    .slice(inner.lastIndexOf(" - ") + 1)
+    .replace(/^- /, "")
+    .trim();
+}
+
+/** "Growth Option" is "Growth" in a table. */
+function shortOption(option: string): string {
+  return option.replace(/\s*option\s*$/i, "").trim();
 }

@@ -871,6 +871,8 @@ export interface Scheme {
   isin_reinvestment: string | null;
   nav: string | null;
   nav_date: string | null;
+  /** What it has returned; the long windows are yearly rates. */
+  returns: SchemeReturns;
 }
 
 /** One page of schemes, and how many there are in all. */
@@ -902,11 +904,19 @@ export interface SchemeValue {
   nav: string;
 }
 
+/** The one-year return as it stood on a day. */
+export interface RollingReturn {
+  nav_date: string;
+  percent: string;
+}
+
 /** One scheme, its record, and its published values. */
 export interface Fund {
   scheme: Scheme;
   returns: SchemeReturns;
   values: SchemeValue[];
+  /** The one-year return on every day in the window it can be measured. */
+  rolling: RollingReturn[];
 }
 
 /** Which schemes a reader is asking for. */

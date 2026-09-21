@@ -4,7 +4,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { Funds } from "./Funds";
+import { Funds, shortCategory } from "./Funds";
 import { fundScheme, renderPage, schemePage, stubPlatform } from "@/test/support";
 
 afterEach(() => {
@@ -195,5 +195,75 @@ describe("Funds", () => {
     renderPage(<Funds />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("the values are being rebuilt");
+  });
+
+  it("carries what each scheme has returned, coloured and sortable", async () => {
+    // A list of funds is read by what they have returned; without the
+    // figures it is an alphabetical index of twenty thousand names.
+    stubEverything({
+      "/api/funds": {
+        body: schemePage({
+          total: 2,
+          items: [
+            fundScheme(),
+            fundScheme({
+              scheme_code: "118989",
+              name: "HDFC Liquid",
+              returns: { ...fundScheme().returns, one_year: "-3.00", five_years: null },
+            }),
+          ],
+        }),
+      },
+    });
+    renderPage(<Funds />);
+    const table = await screen.findByRole("table", { name: "Schemes" });
+
+    expect(within(table).getByText("+12.30%")).toHaveClass("text-gain");
+    expect(within(table).getByText("-3.00%")).toHaveClass("text-loss");
+    expect(within(table).getByRole("button", { name: /3Y p.a./ })).toBeInTheDocument();
+
+    // A numeric column sorts widest-first, so the better year leads.
+    await userEvent.click(within(table).getByRole("button", { name: /^1Y/ }));
+    const [, first] = within(table).getAllByRole("row");
+    expect(first).toHaveTextContent("+12.30%");
+  });
+
+  it("names the plan plainly and explains what it costs", async () => {
+    stubEverything({
+      "/api/funds": {
+        body: schemePage({
+          items: [fundScheme(), fundScheme({ scheme_code: "2", plan: "Regular Plan" })],
+        }),
+      },
+    });
+    renderPage(<Funds />);
+    const table = await screen.findByRole("table", { name: "Schemes" });
+
+    expect(within(table).getByText("Direct")).toBeInTheDocument();
+    expect(within(table).getByText("Regular")).toBeInTheDocument();
+    await userEvent.hover(
+      within(table).getAllByRole("button", { name: "What this means" })[0] as HTMLElement,
+    );
+    expect(screen.getByRole("tooltip")).toHaveTextContent(/commission/);
+  });
+
+  it("shows the part of a category that distinguishes it", async () => {
+    // "Open Ended Schemes(Equity Scheme - Large Cap Fund)" is "Large Cap
+    // Fund" to anybody reading a table.
+    stubEverything();
+    renderPage(<Funds />);
+    const table = await screen.findByRole("table", { name: "Schemes" });
+
+    expect(within(table).getByText("Large Cap Fund")).toBeInTheDocument();
+    expect(within(table).queryByText(/Open Ended Schemes/)).not.toBeInTheDocument();
+  });
+
+  it("shortens a category to the part that distinguishes it", () => {
+    expect(shortCategory("Open Ended Schemes(Equity Scheme - Large Cap Fund)")).toBe(
+      "Large Cap Fund",
+    );
+    expect(shortCategory("Close Ended Schemes ( Income )")).toBe("Income");
+    expect(shortCategory("Debt")).toBe("Debt");
+    expect(shortCategory(null)).toBe("—");
   });
 });

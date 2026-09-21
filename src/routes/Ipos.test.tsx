@@ -262,4 +262,54 @@ describe("Ipos", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("the feed is down");
   });
+
+  it("searches an offering that has neither a symbol nor an industry", async () => {
+    stubPlatform({
+      "/api/ipos": { body: [offering({ status: "UPCOMING", symbol: null, industry: null })] },
+    });
+    renderPage(<Ipos today={TODAY} />);
+    await screen.findByRole("tab", { name: "Upcoming (1)" });
+
+    await userEvent.type(screen.getByLabelText("Search offerings"), "zzz");
+
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: "Upcoming (0)" })).toBeInTheDocument();
+    });
+  });
+
+  it("orders by subscription, and puts the undated last when ordering by date", async () => {
+    stubPlatform({
+      "/api/ipos": {
+        body: [
+          offering({
+            ipo_id: "a",
+            name: "Alpha IPO",
+            bidding_start: null,
+            total_subscription: null,
+          }),
+          offering({
+            ipo_id: "b",
+            name: "Beta IPO",
+            bidding_start: null,
+            total_subscription: "2.00",
+          }),
+          offering({ ipo_id: "c", name: "Gamma IPO", total_subscription: "9.00" }),
+        ],
+      },
+    });
+    renderPage(<Ipos today={TODAY} />);
+    await screen.findByRole("heading", { name: /Gamma IPO/ });
+
+    let names = screen.getAllByRole("heading", { level: 3 }).map((one) => one.textContent);
+    expect(names[0]).toContain("Gamma IPO");
+    expect(names[2]).toMatch(/Alpha|Beta/);
+
+    await userEvent.click(screen.getByRole("button", { name: "By subscription" }));
+    names = screen.getAllByRole("heading", { level: 3 }).map((one) => one.textContent);
+    expect(names.map((one) => one.replace(/\s+/g, " ").trim())).toEqual([
+      expect.stringContaining("Gamma IPO"),
+      expect.stringContaining("Beta IPO"),
+      expect.stringContaining("Alpha IPO"),
+    ]);
+  });
 });

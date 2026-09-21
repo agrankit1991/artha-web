@@ -102,7 +102,15 @@ describe("IpoCard", () => {
   });
 
   it("dashes what has not been published", () => {
-    draw(offering({ symbol: null, isin: null, face_value: null, listing_exchange: null }));
+    draw(
+      offering({
+        symbol: null,
+        isin: null,
+        face_value: null,
+        listing_exchange: null,
+        minimum_quantity: null,
+      }),
+    );
 
     expect(screen.getByText("ISIN not yet assigned")).toBeInTheDocument();
     expect(screen.getAllByText("—").length).toBeGreaterThan(1);
@@ -119,5 +127,21 @@ describe("daysLeft", () => {
     expect(daysLeft(offering(), new Date(2026, 8, 20))).toBe(0);
     expect(daysLeft(offering({ status: "LISTED" }), TODAY)).toBeNull();
     expect(daysLeft(offering({ bidding_end: null }), TODAY)).toBeNull();
+  });
+
+  it("says one day left on the day before bidding closes", () => {
+    render(
+      <MemoryRouter>
+        <IpoCard offering={offering()} today={new Date(2026, 8, 14)} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("1 day left")).toBeInTheDocument();
+  });
+
+  it("states the one end of a band the provider published", () => {
+    draw(offering({ maximum_price: null, minimum_price: "72.000000" }));
+
+    expect(screen.getByText("72.00")).toBeInTheDocument();
   });
 });

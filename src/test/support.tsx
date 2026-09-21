@@ -544,6 +544,13 @@ export function fundScheme(overrides: Partial<Scheme> = {}): Scheme {
     isin_reinvestment: null,
     nav: "62.500000",
     nav_date: "2026-09-18",
+    returns: {
+      one_month: "1.20",
+      three_months: "4.50",
+      one_year: "12.30",
+      three_years: "10.00",
+      five_years: null,
+    },
     ...overrides,
   };
 }
@@ -574,6 +581,11 @@ export function fund(overrides: Partial<FundResponse> = {}): FundResponse {
       { nav_date: "2026-09-16", nav: "61.000000" },
       { nav_date: "2026-09-17", nav: "61.800000" },
       { nav_date: "2026-09-18", nav: "62.500000" },
+    ],
+    rolling: [
+      { nav_date: "2026-09-16", percent: "11.10" },
+      { nav_date: "2026-09-17", percent: "11.90" },
+      { nav_date: "2026-09-18", percent: "12.30" },
     ],
     ...overrides,
   };
