@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Overview } from "./Overview";
 import {
+  type Reply,
   breadth,
   chartPoints,
   moverRow,
@@ -30,7 +31,7 @@ function renderOverview(props: Parameters<typeof Overview>[0] = {}): void {
   renderPage(<Overview {...props} />);
 }
 
-function stubEverything(): ReturnType<typeof stubPlatform> {
+function stubEverything(extra: Record<string, Reply> = {}): ReturnType<typeof stubPlatform> {
   return stubPlatform({
     "/api/movers/scopes": { body: scopeOptions() },
     "/api/movers": {
@@ -57,6 +58,7 @@ function stubEverything(): ReturnType<typeof stubPlatform> {
         priceSeries("NSE_EQ|INF204KB17I5", [200, 190]),
       ],
     },
+    ...extra,
   });
 }
 
@@ -374,5 +376,47 @@ describe("Overview", () => {
     await userEvent.click(await screen.findByRole("button", { name: /Open Nifty 50/ }));
 
     expect(opened).toHaveBeenCalledWith("index", "NSE_INDEX|Nifty 50");
+  });
+
+  it("opens with what moved today, and offers every list in full", async () => {
+    stubEverything({
+      "/api/movers": {
+        body: moversResponse([
+          panel({ name: "top-gainers" }),
+          panel({
+            name: "top-losers",
+            rows: [
+              moverRow({ instrument_key: "NSE_EQ|INE467B01029", symbol: "TCS", value: "-2.10" }),
+            ],
+          }),
+        ]),
+      },
+    });
+    renderPage(<Overview />);
+    expect(await screen.findByText("Dragged by")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "TCS" })).toHaveAttribute(
+      "href",
+      "/company/NSE_EQ%7CINE467B01029",
+    );
+
+    const band = await screen.findByRole("region", { name: "What moved today" });
+    expect(within(band).getByText(/up$/)).toBeInTheDocument();
+    expect(within(band).getByRole("link", { name: "All movers →" })).toHaveAttribute(
+      "href",
+      "/movers/top-gainers?scope_kind=companies",
+    );
+    expect((await screen.findAllByRole("link", { name: "See all →" })).length).toBeGreaterThan(0);
+  });
+
+  it("keeps the band to what it knows before the lists and the breadth arrive", async () => {
+    stubEverything({
+      "/api/movers": { body: moversResponse([]) },
+      "/api/breadth": { body: breadth({ latest: null, sessions: [] }) },
+    });
+    renderPage(<Overview />);
+
+    const band = await screen.findByRole("region", { name: "What moved today" });
+    expect(within(band).queryByText("Breadth")).not.toBeInTheDocument();
+    expect(within(band).queryByText("Led by")).not.toBeInTheDocument();
   });
 });

@@ -37,6 +37,7 @@ import { Future } from "@/routes/Future";
 import { Futures } from "@/routes/Futures";
 import { Ipo } from "@/routes/Ipo";
 import { Ipos } from "@/routes/Ipos";
+import { Movers } from "@/routes/Movers";
 import { News } from "@/routes/News";
 import { Overview } from "@/routes/Overview";
 import { Population } from "@/routes/Population";
@@ -49,6 +50,7 @@ const SCREENS: Screen[] = [
   { path: PATHS.breadth, label: "Breadth", icon: MARKS.breadth, group: "Markets" },
   { path: PATHS.indices, label: "Indices", icon: ENTITIES.index.icon, group: "Markets" },
   { path: PATHS.sectors, label: "Sectors", icon: ENTITIES.sector.icon, group: "Markets" },
+  { path: PATHS.movers, label: "Movers", icon: MARKS.breadth, group: "Markets" },
   { path: PATHS.earnings, label: "Earnings", icon: MARKS.earnings, group: "Markets" },
   { path: PATHS.futures, label: "Futures", icon: ENTITIES.future.icon, group: "Markets" },
   { path: PATHS.news, label: "News", icon: MARKS.news, group: "Markets" },
@@ -167,6 +169,7 @@ function SignedIn({
         />
         <Route path={PATHS.breadth} element={<Breadth />} />
         <Route path={PATHS.news} element={<News />} />
+        <Route path="/movers/:list" element={<Movers />} />
         <Route path={PATHS.earnings} element={<EarningsPage />} />
         <Route path={PATHS.indices} element={<Indices />} />
         <Route path={PATHS.sectors} element={<Sectors />} />

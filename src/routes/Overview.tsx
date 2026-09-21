@@ -8,9 +8,16 @@
  */
 
 import { Activity, ChevronRight, LineChart, PieChart } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useCallback, useMemo, useState } from "react";
 
-import type { MoverRow, ScopeOptions } from "@/api/client";
+import type {
+  BreadthSession,
+  InstrumentOverview,
+  MoverPanel,
+  MoverRow,
+  ScopeOptions,
+} from "@/api/client";
 import {
   fetchBreadth,
   fetchExternalSymbols,
@@ -33,11 +40,13 @@ import { NewsFeed } from "@/components/NewsFeed";
 import { ScopePicker } from "@/components/ScopePicker";
 import type { Scope } from "@/components/ScopeSelector";
 import { Button } from "@/components/ui/button";
+import { Delta } from "@/components/Delta";
 import { Failed } from "@/components/Failed";
 import { SectionHeader } from "@/components/SectionHeader";
 import { ENTITIES, MARKS } from "@/lib/entities";
 import { useResource } from "@/hooks/useResource";
-import { companyPath, populationPath } from "@/lib/paths";
+import { formatDay, formatPrice } from "@/lib/format";
+import { companyPath, moversPath, populationPath } from "@/lib/paths";
 import { BENCHMARK, FEATURED_INDICES, GOLD } from "@/lib/indices";
 
 interface OverviewProps {
@@ -144,6 +153,13 @@ export function Overview({
 
   return (
     <div className="space-y-8">
+      <MarketBand
+        benchmark={indices.data?.find((one) => one.instrument_key === BENCHMARK.key) ?? null}
+        breadth={breadth.data?.latest ?? null}
+        panels={movers.data?.panels ?? []}
+        scope={scope}
+      />
+
       <section className="space-y-3" aria-labelledby="indices-heading">
         <SectionHeader id="indices-heading" icon={ENTITIES.index.icon} title="Market Indices" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -268,6 +284,7 @@ export function Overview({
           <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
             {(movers.data?.panels ?? []).map((panel) => (
               <MoverPanelCard
+                href={moversPath(panel.name, scope.kind, scope.key)}
                 key={panel.name}
                 panel={panel}
                 loading={movers.loading}
@@ -345,4 +362,70 @@ function OpenPopulation({
 function nameOf(key: string, options: ScopeOptions | null): string {
   const offered = [...(options?.indices ?? []), ...(options?.sectors ?? [])];
   return offered.find((one) => one.key === key)?.label ?? key;
+}
+
+/**
+ * What moved today, in one line: the benchmark, how many took part, and
+ * who led each way. The overview's first sentence, before its sections.
+ */
+function MarketBand({
+  benchmark,
+  breadth,
+  panels,
+  scope,
+}: {
+  benchmark: InstrumentOverview | null;
+  breadth: BreadthSession | null;
+  panels: MoverPanel[];
+  scope: Scope;
+}): React.JSX.Element {
+  const gainer = panels.find((one) => one.name === "top-gainers")?.rows[0];
+  const loser = panels.find((one) => one.name === "top-losers")?.rows[0];
+  const counted = breadth === null ? 0 : breadth.advancing + breadth.declining + breadth.unchanged;
+  return (
+    <section
+      aria-label="What moved today"
+      className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border bg-card px-4 py-3 text-sm"
+    >
+      <span className="flex items-baseline gap-2">
+        <span className="text-muted-foreground">{BENCHMARK.name}</span>
+        <span className="tabular font-semibold">{formatPrice(benchmark?.day.close)}</span>
+        <Delta value={benchmark?.day.change_percent ?? null} />
+      </span>
+      {breadth !== null && counted > 0 && (
+        <span className="flex items-baseline gap-2">
+          <span className="text-muted-foreground">Breadth</span>
+          <span className="tabular text-gain">{breadth.advancing} up</span>
+          <span className="tabular text-loss">{breadth.declining} down</span>
+          <span className="text-xs text-muted-foreground">
+            of {counted} on {formatDay(breadth.as_of)}
+          </span>
+        </span>
+      )}
+      {gainer !== undefined && (
+        <span className="flex items-baseline gap-2">
+          <span className="text-muted-foreground">Led by</span>
+          <Link to={companyPath(gainer.instrument_key)} className="font-medium hover:underline">
+            {gainer.symbol}
+          </Link>
+          <Delta value={gainer.value} />
+        </span>
+      )}
+      {loser !== undefined && (
+        <span className="flex items-baseline gap-2">
+          <span className="text-muted-foreground">Dragged by</span>
+          <Link to={companyPath(loser.instrument_key)} className="font-medium hover:underline">
+            {loser.symbol}
+          </Link>
+          <Delta value={loser.value} />
+        </span>
+      )}
+      <Link
+        to={moversPath("top-gainers", scope.kind, scope.key)}
+        className="ml-auto text-xs text-muted-foreground underline-offset-4 hover:underline"
+      >
+        All movers →
+      </Link>
+    </section>
+  );
 }

@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import { MoverPanelCard, titleOf } from "./MoverPanel";
-import { moverRow, panel } from "@/test/support";
+import { moverRow, panel, renderPage } from "@/test/support";
 
 describe("MoverPanelCard", () => {
   it("names the list and the session it ranked", () => {
@@ -153,5 +153,17 @@ describe("MoverPanelCard", () => {
 
     const [, firstRow] = screen.getAllByRole("row");
     expect(firstRow?.textContent).toContain("TCS");
+  });
+
+  it("offers the whole list when told where it is, and not otherwise", () => {
+    const linked = renderPage(<MoverPanelCard panel={panel()} href="/movers/top-gainers" />);
+    expect(screen.getByRole("link", { name: "See all →" })).toHaveAttribute(
+      "href",
+      "/movers/top-gainers",
+    );
+    linked.unmount();
+
+    renderPage(<MoverPanelCard panel={panel()} />);
+    expect(screen.queryByRole("link", { name: "See all →" })).not.toBeInTheDocument();
   });
 });

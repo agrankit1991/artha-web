@@ -8,6 +8,7 @@
  */
 
 import { useMemo } from "react";
+import { Link } from "react-router-dom";
 
 import type { MoverListName, MoverPanel as Panel, MoverRow } from "@/api/client";
 import { type Column, DataTable } from "@/components/DataTable";
@@ -24,7 +25,7 @@ import {
 } from "@/lib/format";
 
 /** How each list is titled, and how the figure it ranks should be read. */
-const LISTS: Record<
+export const MOVER_LISTS: Record<
   MoverListName,
   { title: string; measure: string; render: (row: MoverRow) => React.ReactNode }
 > = {
@@ -67,7 +68,7 @@ const LISTS: Record<
 
 /** What a list is called, for a heading or a link. */
 export function titleOf(name: MoverListName): string {
-  return LISTS[name].title;
+  return MOVER_LISTS[name].title;
 }
 
 interface MoverPanelProps {
@@ -80,6 +81,8 @@ interface MoverPanelProps {
    * indices to index pages.
    */
   linkTo?: (row: MoverRow) => string;
+  /** Where the whole list is, when a fuller page exists. */
+  href?: string;
 }
 
 /**
@@ -93,8 +96,9 @@ export function MoverPanelCard({
   loading = false,
   onSelect,
   linkTo,
+  href,
 }: MoverPanelProps): React.JSX.Element {
-  const { title, measure, render } = LISTS[panel.name];
+  const { title, measure, render } = MOVER_LISTS[panel.name];
 
   const columns = useMemo<Column<MoverRow>[]>(
     () => [
@@ -146,10 +150,22 @@ export function MoverPanelCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">{title}</CardTitle>
-        <CardDescription>
-          {panel.as_of === null ? "No session ranked yet" : formatDay(panel.as_of)}
-        </CardDescription>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <CardTitle className="text-base">{title}</CardTitle>
+            <CardDescription>
+              {panel.as_of === null ? "No session ranked yet" : formatDay(panel.as_of)}
+            </CardDescription>
+          </div>
+          {href !== undefined && (
+            <Link
+              to={href}
+              className="shrink-0 text-xs text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
+            >
+              See all →
+            </Link>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         <DataTable

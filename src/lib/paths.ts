@@ -19,6 +19,7 @@ export const PATHS = {
   screen: "/screen",
   compare: "/compare",
   futures: "/futures",
+  movers: "/movers/top-gainers",
   watchlists: "/watchlists",
   sectors: "/sectors",
   ipos: "/ipos",
@@ -144,4 +145,20 @@ export function comparePath(keys: string[]): string {
  */
 export function futurePath(instrumentKey: string): string {
   return `/future/${encodeURIComponent(instrumentKey)}`;
+}
+
+/**
+ * The full ranking of one mover list within a population.
+ *
+ * @param list - Which list.
+ * @param kind - The whole market, an index or a sector.
+ * @param key - Which index or sector, or null for the whole market.
+ * @returns The path, with the population in the query.
+ */
+export function moversPath(list: string, kind = "companies", key: string | null = null): string {
+  const parameters = new URLSearchParams({ scope_kind: kind });
+  if (key !== null) {
+    parameters.set("scope_key", key);
+  }
+  return `/movers/${list}?${parameters.toString()}`;
 }
