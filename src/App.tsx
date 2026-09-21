@@ -33,6 +33,8 @@ import { Watchlists } from "@/routes/Watchlists";
 import { Sectors } from "@/routes/Sectors";
 import { Fund } from "@/routes/Fund";
 import { Funds } from "@/routes/Funds";
+import { Future } from "@/routes/Future";
+import { Futures } from "@/routes/Futures";
 import { Ipo } from "@/routes/Ipo";
 import { Ipos } from "@/routes/Ipos";
 import { News } from "@/routes/News";
@@ -48,6 +50,7 @@ const SCREENS: Screen[] = [
   { path: PATHS.indices, label: "Indices", icon: ENTITIES.index.icon, group: "Markets" },
   { path: PATHS.sectors, label: "Sectors", icon: ENTITIES.sector.icon, group: "Markets" },
   { path: PATHS.earnings, label: "Earnings", icon: MARKS.earnings, group: "Markets" },
+  { path: PATHS.futures, label: "Futures", icon: ENTITIES.future.icon, group: "Markets" },
   { path: PATHS.news, label: "News", icon: MARKS.news, group: "Markets" },
   { path: PATHS.funds, label: "Funds", icon: ENTITIES.fund.icon, group: "Research" },
   { path: PATHS.screen, label: "Screener", icon: MARKS.screen, group: "Research" },
@@ -173,6 +176,8 @@ function SignedIn({
         <Route path={PATHS.ipos} element={<Ipos />} />
         <Route path="/ipo/:id" element={<IpoRoute />} />
         <Route path={PATHS.funds} element={<Funds />} />
+        <Route path={PATHS.futures} element={<Futures />} />
+        <Route path="/future/:key" element={<FutureRoute />} />
         <Route path="/fund/:code" element={<FundRoute />} />
         <Route path="/company/:key" element={<CompanyRoute />} />
         <Route path="/index/:key" element={<PopulationRoute kind="index" />} />
@@ -222,6 +227,11 @@ function FundRoute(): React.JSX.Element {
 function CompanyRoute(): React.JSX.Element {
   const { key } = useParams();
   return <Company instrumentKey={key ?? ""} />;
+}
+
+function FutureRoute(): React.JSX.Element {
+  const { key } = useParams();
+  return <Future instrumentKey={key ?? ""} />;
 }
 
 /** What shows while the platform is being asked who is signed in. */

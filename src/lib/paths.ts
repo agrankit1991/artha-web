@@ -18,6 +18,7 @@ export const PATHS = {
   indices: "/indices",
   screen: "/screen",
   compare: "/compare",
+  futures: "/futures",
   watchlists: "/watchlists",
   sectors: "/sectors",
   ipos: "/ipos",
@@ -133,4 +134,14 @@ export function comparePath(keys: string[]): string {
     parameters.append("keys", key);
   }
   return `${PATHS.compare}?${parameters.toString()}`;
+}
+
+/**
+ * The page of one futures contract.
+ *
+ * @param instrumentKey - The contract.
+ * @returns The path.
+ */
+export function futurePath(instrumentKey: string): string {
+  return `/future/${encodeURIComponent(instrumentKey)}`;
 }

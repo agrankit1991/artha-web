@@ -12,6 +12,7 @@ import {
   BarChart3,
   Building2,
   Calendar,
+  CalendarClock,
   GitCompareArrows,
   ExternalLink,
   FileText,
@@ -27,7 +28,7 @@ import {
 } from "lucide-react";
 
 /** The kinds of thing this platform has pages about. */
-export type EntityKind = "company" | "index" | "sector" | "fund" | "ipo";
+export type EntityKind = "company" | "index" | "sector" | "fund" | "ipo" | "future";
 
 /** An icon, as every icon in this application is shaped. */
 export type Icon = React.ComponentType<{ className?: string }>;
@@ -39,6 +40,7 @@ export const ENTITIES: Record<EntityKind, { icon: Icon; label: string }> = {
   sector: { icon: Layers, label: "Sector" },
   fund: { icon: PiggyBank, label: "Fund" },
   ipo: { icon: Rocket, label: "IPO" },
+  future: { icon: CalendarClock, label: "Future" },
 };
 
 /**

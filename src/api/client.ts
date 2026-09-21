@@ -1392,6 +1392,71 @@ export function fetchInstruments(keys: string[]): Promise<InstrumentSummary[]> {
   return request<InstrumentSummary[]>(`/api/instruments?${parameters.toString()}`);
 }
 
+/** One futures contract with its latest figures. */
+export interface ContractSummary {
+  instrument_key: string;
+  symbol: string;
+  expiry: string;
+  /** Calendar days from today; nought on the day, negative once past. */
+  days_to_expiry: number;
+  lot_size: number;
+  as_of: string | null;
+  close: string | null;
+  change_percent: string | null;
+  volume: number | null;
+  /** Contracts outstanding after the latest session; null where unpublished. */
+  open_interest: number | null;
+  one_month: string | null;
+}
+
+/** One underlying with how many contracts run on it and the nearest one. */
+export interface UnderlyingSummary {
+  underlying_key: string;
+  symbol: string;
+  name: string;
+  exchange: string;
+  /** COMMODITY, DERIVATIVES or CURRENCY. */
+  segment: string;
+  contracts: number;
+  nearest: ContractSummary;
+}
+
+/** One contract with the run it belongs to. */
+export interface FutureContract {
+  contract: ContractSummary;
+  underlying: UnderlyingSummary;
+  /** Every contract listed today on the same underlying, nearest first. */
+  chain: ContractSummary[];
+}
+
+/** The families of futures. */
+export type FuturesSegment = "COMMODITY" | "DERIVATIVES" | "CURRENCY";
+
+/**
+ * Fetch every underlying with futures listed today.
+ *
+ * @param segment - One family, or every family when omitted.
+ * @returns The underlyings by symbol, each with its nearest contract.
+ */
+export function fetchFutures(segment?: FuturesSegment): Promise<UnderlyingSummary[]> {
+  const parameters = new URLSearchParams();
+  if (segment !== undefined) {
+    parameters.set("segment", segment);
+  }
+  const query = parameters.toString();
+  return request<UnderlyingSummary[]>(`/api/futures${query === "" ? "" : `?${query}`}`);
+}
+
+/**
+ * Fetch one contract with its chain.
+ *
+ * @param instrumentKey - The contract.
+ * @returns The contract, its underlying and every contract on it today.
+ */
+export function fetchFuture(instrumentKey: string): Promise<FutureContract> {
+  return request<FutureContract>(`/api/futures/${encodeURIComponent(instrumentKey)}`);
+}
+
 /** Where the latest reading of a ratio sits in its own history. */
 export interface RangeReading {
   /** How many sessions had the ratio. */

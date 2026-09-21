@@ -13,6 +13,9 @@ import { vi } from "vitest";
 import { ThemeProvider } from "@/lib/theme";
 
 import type {
+  ContractSummary,
+  FutureContract,
+  UnderlyingSummary,
   InstrumentSummary,
   HeldBy,
   WatchedInstrument,
@@ -1171,6 +1174,76 @@ export function instrumentSummary(overrides: Partial<InstrumentSummary> = {}): I
     name: "Reliance Industries",
     kind: "EQUITY",
     exchange: "NSE",
+    ...overrides,
+  };
+}
+
+/**
+ * One futures contract, ten days from expiry.
+ *
+ * @param overrides - Fields to change.
+ * @returns The contract.
+ */
+export function contractSummary(overrides: Partial<ContractSummary> = {}): ContractSummary {
+  return {
+    instrument_key: "MCX_FO|1",
+    symbol: "CRUDEOIL26SEPFUT",
+    expiry: "2026-10-02",
+    days_to_expiry: 10,
+    lot_size: 100,
+    as_of: "2026-09-16",
+    close: "6100.00",
+    change_percent: "1.20",
+    volume: 12000,
+    open_interest: 12345,
+    one_month: "4.50",
+    ...overrides,
+  };
+}
+
+/**
+ * One underlying with two contracts on it.
+ *
+ * @param overrides - Fields to change.
+ * @returns The underlying.
+ */
+export function underlyingSummary(overrides: Partial<UnderlyingSummary> = {}): UnderlyingSummary {
+  return {
+    underlying_key: "MCX_COM|294",
+    symbol: "CRUDEOIL",
+    name: "CRUDE OIL",
+    exchange: "MCX",
+    segment: "COMMODITY",
+    contracts: 2,
+    nearest: contractSummary(),
+    ...overrides,
+  };
+}
+
+/**
+ * One contract with its two-contract chain.
+ *
+ * @param overrides - Fields to change.
+ * @returns The contract page.
+ */
+export function futureContract(overrides: Partial<FutureContract> = {}): FutureContract {
+  return {
+    contract: contractSummary(),
+    underlying: underlyingSummary(),
+    chain: [
+      contractSummary(),
+      contractSummary({
+        instrument_key: "MCX_FO|2",
+        symbol: "CRUDEOIL26OCTFUT",
+        expiry: "2026-11-02",
+        days_to_expiry: 41,
+        close: "6180.00",
+        change_percent: "0.90",
+        volume: null,
+        open_interest: null,
+        one_month: null,
+      }),
+    ],
     ...overrides,
   };
 }
