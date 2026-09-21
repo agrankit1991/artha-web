@@ -9,6 +9,7 @@
 
 import {
   Activity,
+  BarChart3,
   Building2,
   Calendar,
   ExternalLink,
@@ -48,6 +49,7 @@ export const MARKS = {
   breadth: Activity,
   dates: Calendar,
   documents: FileText,
+  earnings: BarChart3,
   exchange: Globe,
   external: ExternalLink,
   news: Newspaper,

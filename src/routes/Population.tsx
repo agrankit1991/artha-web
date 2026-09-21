@@ -9,9 +9,10 @@
 
 import { useCallback, useMemo, useState } from "react";
 
-import type { KnownSymbol, Member } from "@/api/client";
+import type { Cadence, KnownSymbol, Member } from "@/api/client";
 import {
   fetchBreadth,
+  fetchEarnings,
   fetchExternalSymbols,
   fetchFigures,
   fetchPopulation,
@@ -19,6 +20,7 @@ import {
 } from "@/api/client";
 import { BreadthPanel } from "@/components/BreadthPanel";
 import { type ChartLine, ComparisonChart } from "@/components/ComparisonChart";
+import { EarningsPanel } from "@/components/EarningsPanel";
 import { type Column, DataTable } from "@/components/DataTable";
 import { Delta } from "@/components/Delta";
 import { Heatmap } from "@/components/Heatmap";
@@ -30,7 +32,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
 import { SectionHeader } from "@/components/SectionHeader";
-import { ENTITIES } from "@/lib/entities";
+import { ENTITIES, MARKS } from "@/lib/entities";
 import { useResource } from "@/hooks/useResource";
 import { coloured } from "@/lib/chartPalette";
 import { companyPath } from "@/lib/paths";
@@ -72,6 +74,14 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
   );
   const population = useResource(load);
   const breadth = useResource(loadBreadth);
+
+  // What the population's companies earned, summed period by period.
+  const [cadence, setCadence] = useState<Cadence>("annual");
+  const loadEarnings = useCallback(
+    () => fetchEarnings(kind, scopeKey, cadence),
+    [kind, scopeKey, cadence],
+  );
+  const earnings = useResource(loadEarnings);
 
   const instrument = population.data?.instrument_key ?? null;
   const loadChart = useCallback(
@@ -196,6 +206,25 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
       )}
 
       <BreadthPanel breadth={breadth.data} loading={breadth.loading} />
+
+      <section className="space-y-3" aria-labelledby="earnings-heading">
+        <SectionHeader
+          id="earnings-heading"
+          icon={MARKS.earnings}
+          title="Earnings"
+          description="What its companies earned, summed period by period, with the share of them growing beside the total."
+        />
+        {earnings.error !== null ? (
+          <Failed message={earnings.error} />
+        ) : (
+          <EarningsPanel
+            earnings={earnings.data}
+            loading={earnings.loading}
+            cadence={cadence}
+            onCadence={setCadence}
+          />
+        )}
+      </section>
 
       {members.length > 0 && (
         <>

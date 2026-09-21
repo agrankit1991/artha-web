@@ -13,6 +13,10 @@ import { vi } from "vitest";
 import { ThemeProvider } from "@/lib/theme";
 
 import type {
+  Earnings,
+  EarningsPeriod,
+  GrowthFigure,
+  SectorEarnings,
   Account,
   BreadthGrid,
   ChartPoint,
@@ -670,4 +674,87 @@ export function renderPage(ui: React.ReactElement): ReturnType<typeof render> {
       <ThemeProvider>{ui}</ThemeProvider>
     </MemoryRouter>,
   );
+}
+
+/**
+ * One growth figure, over a sample of forty.
+ *
+ * @param overrides - Fields to change.
+ * @returns The figure.
+ */
+export function growthFigure(overrides: Partial<GrowthFigure> = {}): GrowthFigure {
+  return {
+    sample: 40,
+    total: "1200.00",
+    before: "1000.00",
+    percent: "20.00",
+    growing: "72.50",
+    ...overrides,
+  };
+}
+
+/**
+ * One period of a population's earnings.
+ *
+ * @param overrides - Fields to change.
+ * @returns The period.
+ */
+export function earningsPeriod(overrides: Partial<EarningsPeriod> = {}): EarningsPeriod {
+  return {
+    period_end: "2026-03-31",
+    reported: 42,
+    revenue: "1250.00",
+    profit: "180.00",
+    revenue_yoy: growthFigure(),
+    profit_yoy: growthFigure({ percent: "-5.00", growing: "40.00" }),
+    revenue_qoq: null,
+    profit_qoq: null,
+    ...overrides,
+  };
+}
+
+/**
+ * Three annual periods of a sector's earnings, most recent first, the
+ * oldest with no comparison because nothing came before it.
+ *
+ * @param overrides - Fields to change.
+ * @returns The series.
+ */
+export function earnings(overrides: Partial<Earnings> = {}): Earnings {
+  return {
+    scope_kind: "sector",
+    scope_key: "IT - Software",
+    cadence: "annual",
+    companies: 92,
+    periods: [
+      earningsPeriod(),
+      earningsPeriod({ period_end: "2025-03-31", revenue: "1040.00", profit: "150.00" }),
+      earningsPeriod({
+        period_end: "2024-03-31",
+        reported: 38,
+        revenue: "900.00",
+        profit: "120.00",
+        revenue_yoy: null,
+        profit_yoy: null,
+      }),
+    ],
+    ...overrides,
+  };
+}
+
+/**
+ * One sector's latest period, for the ranking.
+ *
+ * @param overrides - Fields to change.
+ * @returns The sector.
+ */
+export function sectorEarnings(overrides: Partial<SectorEarnings> = {}): SectorEarnings {
+  return {
+    sector: "IT - Software",
+    companies: 92,
+    period_end: "2026-03-31",
+    revenue_yoy: growthFigure(),
+    profit_yoy: growthFigure({ percent: "12.00" }),
+    ...overrides,
+  };
 }

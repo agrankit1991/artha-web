@@ -1049,3 +1049,79 @@ export function fetchValuation(instrumentKey: string): Promise<CompanyValuation 
     `/api/companies/${encodeURIComponent(instrumentKey)}/valuation`,
   );
 }
+
+/** Which of the two statement series an earnings aggregate is taken over. */
+export type Cadence = "annual" | "quarterly";
+
+/** How one figure moved against a comparison period, over a constant sample. */
+export interface GrowthFigure {
+  /** How many companies reported in both periods. Always stated. */
+  sample: number;
+  /** The figure summed over the sample this period, in crore. */
+  total: string;
+  /** The same sample's figure in the comparison period. */
+  before: string;
+  /** The change in per cent, or null when the earlier total was nought or a loss. */
+  percent: string | null;
+  /** The share of the sample whose figure rose, in per cent. */
+  growing: string;
+}
+
+/** One period of a population's earnings. */
+export interface EarningsPeriod {
+  period_end: string;
+  /** How many companies reported this period at all. */
+  reported: number;
+  revenue: string | null;
+  profit: string | null;
+  revenue_yoy: GrowthFigure | null;
+  profit_yoy: GrowthFigure | null;
+  /** Quarterly only. */
+  revenue_qoq: GrowthFigure | null;
+  profit_qoq: GrowthFigure | null;
+}
+
+/** A population's earnings, period by period, most recent first. */
+export interface Earnings {
+  scope_kind: ScopeKind;
+  scope_key: string;
+  cadence: Cadence;
+  companies: number;
+  periods: EarningsPeriod[];
+}
+
+/** One sector's latest period, for ranking sectors against each other. */
+export interface SectorEarnings {
+  sector: string;
+  companies: number;
+  period_end: string;
+  revenue_yoy: GrowthFigure | null;
+  profit_yoy: GrowthFigure | null;
+}
+
+/**
+ * Fetch what a population earned, period by period.
+ *
+ * @param kind - The whole market, a sector or an index.
+ * @param key - Which one; anything for the whole market.
+ * @param cadence - Annual reaches back fifteen years; quarterly gives
+ *   quarter-on-quarter and, where held, year-on-year.
+ * @returns The series, most recent first.
+ */
+export function fetchEarnings(
+  kind: "companies" | "sector" | "index",
+  key: string,
+  cadence: Cadence = "annual",
+): Promise<Earnings> {
+  return request<Earnings>(`/api/earnings/${kind}/${encodeURIComponent(key)}?cadence=${cadence}`);
+}
+
+/**
+ * Fetch every sector ranked by how its earnings grew in its latest period.
+ *
+ * @param cadence - Which series.
+ * @returns The sectors, best revenue growth first.
+ */
+export function fetchSectorEarnings(cadence: Cadence = "annual"): Promise<SectorEarnings[]> {
+  return request<SectorEarnings[]>(`/api/earnings/sectors?cadence=${cadence}`);
+}

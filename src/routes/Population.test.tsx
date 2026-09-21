@@ -13,6 +13,7 @@ import {
   priceSeries,
   renderPage,
   stubPlatform,
+  earnings,
 } from "@/test/support";
 
 vi.mock("lightweight-charts", async () => (await import("@/test/chartStub")).chartModule());
@@ -27,6 +28,7 @@ function stubEverything(
   return stubPlatform({
     "/api/populations": { body },
     "/api/breadth": { body: breadth() },
+    "/api/earnings": { body: earnings() },
     "/api/figures": { body: { instrument_key: body.instrument_key, points: chartPoints(30) } },
     "/api/external-symbols": {
       body: [
