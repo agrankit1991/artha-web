@@ -20,6 +20,7 @@ import {
   stubPlatform,
   trailing,
   valuation,
+  valuationHistory,
 } from "@/test/support";
 
 vi.mock("lightweight-charts", async () => (await import("@/test/chartStub")).chartModule());
@@ -35,6 +36,7 @@ function stubEverything(replies: Record<string, unknown> = {}): ReturnType<typeo
     "/api/companies/NSE_EQ%7CINE002A01018/fundamentals": { body: [statement()] },
     "/api/companies/NSE_EQ%7CINE002A01018/corporate-actions": { body: [corporateAction()] },
     "/api/companies/NSE_EQ%7CINE002A01018/valuation": { body: valuation() },
+    "/api/companies/NSE_EQ%7CINE002A01018/valuation/history": { body: valuationHistory() },
     "/api/companies/NSE_EQ%7CINE002A01018": { body: company() },
     "/api/overviews": { body: [overview({ instrument_key: KEY })] },
     "/api/figures": { body: { instrument_key: KEY, points: chartPoints(40) } },
@@ -112,7 +114,9 @@ describe("Company", () => {
     await screen.findByText("Price & Performance");
 
     await userEvent.click(screen.getByRole("tab", { name: "Price" }));
-    expect(await screen.findByLabelText("Series drawn")).toBeInTheDocument();
+    // Scoped to its section: the valuation history is a chart of its own.
+    const price = screen.getByRole("region", { name: "Price & Performance" });
+    expect(await within(price).findByLabelText("Series drawn")).toBeInTheDocument();
 
     // And back, because a reader comparing two things looks at each in turn.
     await userEvent.click(screen.getByRole("tab", { name: "Relative strength" }));
@@ -267,12 +271,42 @@ describe("Company", () => {
     renderPage(<Company instrumentKey={KEY} />);
     await screen.findByText("Price & Performance");
 
-    await userEvent.click(screen.getByRole("button", { name: "5Y" }));
+    const price = screen.getByRole("region", { name: "Price & Performance" });
+    await userEvent.click(within(price).getByRole("button", { name: "5Y" }));
 
     await waitFor(() => {
       const asked = fetchMock.mock.calls.map((call) => String(call[0]));
       expect(asked.some((path) => path.includes("sessions=1250"))).toBe(true);
     });
+  });
+
+  it("draws its valuation over its own sessions, as far back as is asked", async () => {
+    const fetchMock = stubEverything();
+    renderPage(<Company instrumentKey={KEY} />);
+    const history = await screen.findByRole("region", { name: "Valuation History" });
+
+    expect(
+      await within(history).findByRole("meter", { name: "Price to earnings" }),
+    ).toHaveAttribute("aria-valuenow", "38.27");
+    await userEvent.click(within(history).getByRole("button", { name: "3Y" }));
+
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      expect(asked.some((path) => path.includes("/valuation/history?years=3"))).toBe(true);
+    });
+  });
+
+  it("reports a valuation history that cannot be read without losing the page", async () => {
+    stubEverything({
+      "/api/companies/NSE_EQ%7CINE002A01018/valuation/history": {
+        status: 500,
+        body: { detail: "no run" },
+      },
+    });
+    renderPage(<Company instrumentKey={KEY} />);
+
+    expect(await screen.findByText(/no run/)).toBeInTheDocument();
+    expect(screen.getByText("Price & Performance")).toBeInTheDocument();
   });
 
   it("offers the whole feed when there is more news than it shows", async () => {

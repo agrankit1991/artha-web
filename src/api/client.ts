@@ -1050,6 +1050,61 @@ export function fetchValuation(instrumentKey: string): Promise<CompanyValuation 
   );
 }
 
+/** Where the latest reading of a ratio sits in its own history. */
+export interface RangeReading {
+  /** How many sessions had the ratio. */
+  sample: number;
+  low: string | null;
+  high: string | null;
+  median: string | null;
+  /** The most recent reading, or null when today has none. */
+  latest: string | null;
+  /** The share of readings at or below the latest, in per cent. */
+  percentile: string | null;
+}
+
+/** One session's price against the annual figures then public. */
+export interface ValuationSession {
+  day: string;
+  price: string;
+  /** Which financial year's figures applied; null before the first held year was public. */
+  year_end: string | null;
+  eps: string | null;
+  /** Null for a loss-making year: a loss has no price-to-earnings. */
+  pe: string | null;
+  book_per_share: string | null;
+  pb: string | null;
+}
+
+/**
+ * A company's price-to-earnings and price-to-book over its sessions,
+ * against the annual standalone statements. A year's figures apply from
+ * sixty days after its end, the deadline for audited results.
+ */
+export interface CompanyValuationHistory {
+  instrument_key: string;
+  years: number;
+  sessions: ValuationSession[];
+  pe: RangeReading;
+  pb: RangeReading;
+}
+
+/**
+ * Fetch a company's valuation ratios over its sessions.
+ *
+ * @param instrumentKey - The company's listing.
+ * @param years - How far back to reach, one to fifteen.
+ * @returns The run, oldest first, with where today sits in it.
+ */
+export function fetchValuationHistory(
+  instrumentKey: string,
+  years = 10,
+): Promise<CompanyValuationHistory> {
+  return request<CompanyValuationHistory>(
+    `/api/companies/${encodeURIComponent(instrumentKey)}/valuation/history?years=${String(years)}`,
+  );
+}
+
 /** Which of the two statement series an earnings aggregate is taken over. */
 export type Cadence = "annual" | "quarterly";
 

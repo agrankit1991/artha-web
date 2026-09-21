@@ -33,6 +33,7 @@ import {
   fetchOverviews,
   fetchSeries,
   fetchValuation,
+  fetchValuationHistory,
 } from "@/api/client";
 import { Chooser } from "@/components/Chooser";
 import { type ChartLine, ComparisonChart } from "@/components/ComparisonChart";
@@ -50,6 +51,7 @@ import { PRICE_RANGES, RangeSelector } from "@/components/RangeSelector";
 import { SectionHeader } from "@/components/SectionHeader";
 import { StatementTable } from "@/components/StatementTable";
 import { type Tab, Tabs } from "@/components/Tabs";
+import { ValuationHistoryChart } from "@/components/ValuationHistoryChart";
 import { ValuationPanel } from "@/components/ValuationPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -66,6 +68,9 @@ interface CompanyProps {
 }
 
 const DEFAULT_RANGE = 250;
+
+/** Ten years: long enough for a cycle, short enough that the company is the same one. */
+const DEFAULT_SPAN = 10;
 
 /** How many articles the page shows before sending a reader to the feed. */
 const HEADLINES = 6;
@@ -99,6 +104,8 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
   const [sessions, setSessions] = useState(DEFAULT_RANGE);
   const [view, setView] = useState<View>("compare");
   const [part, setPart] = useState<Part>("overview");
+  // How far back the valuation ratios are drawn, in years.
+  const [span, setSpan] = useState(DEFAULT_SPAN);
 
   const load = useCallback(() => fetchCompany(instrumentKey), [instrumentKey]);
   const company = useResource(load);
@@ -120,6 +127,10 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
     () => (key === null ? Promise.resolve(null) : fetchFigures(key, sessions)),
     [key, sessions],
   );
+  const loadHistory = useCallback(
+    () => (key === null ? Promise.resolve(null) : fetchValuationHistory(key, span)),
+    [key, span],
+  );
   const loadStatements = useCallback(
     () => (key === null ? Promise.resolve([]) : fetchFundamentals(key)),
     [key],
@@ -135,6 +146,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
   );
   const overview = useResource(loadOverview);
   const valuation = useResource(loadValuation);
+  const valuationHistory = useResource(loadHistory);
   const chart = useResource(loadChart);
   const statements = useResource(loadStatements);
   const actions = useResource(loadActions);
@@ -225,6 +237,25 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
                 description="What the company is worth against what it earns, owns and pays — worked out from the stored price, statements and dividends when the page is read."
               />
               <ValuationPanel valuation={valuation.data} loading={valuation.loading} />
+            </section>
+
+            <section className="space-y-3" aria-labelledby="valuation-history-heading">
+              <SectionHeader
+                id="valuation-history-heading"
+                icon={MARKS.earnings}
+                title="Valuation History"
+                description="Price to earnings and price to book over its own sessions, and where today sits in that run."
+              />
+              {valuationHistory.error !== null ? (
+                <Failed message={valuationHistory.error} />
+              ) : (
+                <ValuationHistoryChart
+                  history={valuationHistory.data}
+                  loading={valuationHistory.loading}
+                  years={span}
+                  onYears={setSpan}
+                />
+              )}
             </section>
 
             {found !== null && key !== null && (

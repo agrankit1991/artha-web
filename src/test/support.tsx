@@ -13,6 +13,8 @@ import { vi } from "vitest";
 import { ThemeProvider } from "@/lib/theme";
 
 import type {
+  CompanyValuationHistory,
+  ValuationSession,
   Earnings,
   EarningsPeriod,
   GrowthFigure,
@@ -755,6 +757,71 @@ export function sectorEarnings(overrides: Partial<SectorEarnings> = {}): SectorE
     period_end: "2026-03-31",
     revenue_yoy: growthFigure(),
     profit_yoy: growthFigure({ percent: "12.00" }),
+    ...overrides,
+  };
+}
+
+/**
+ * One session of a valuation run.
+ *
+ * @param overrides - Fields to change.
+ * @returns The session.
+ */
+export function valuationSession(overrides: Partial<ValuationSession> = {}): ValuationSession {
+  return {
+    day: "2026-09-16",
+    price: "1240.00",
+    year_end: "2026-03-31",
+    eps: "32.40",
+    pe: "38.27",
+    book_per_share: "620.00",
+    pb: "2.00",
+    ...overrides,
+  };
+}
+
+/**
+ * Three sessions of a company's valuation run, the first before the
+ * year's figures were public.
+ *
+ * @param overrides - Fields to change.
+ * @returns The run.
+ */
+export function valuationHistory(
+  overrides: Partial<CompanyValuationHistory> = {},
+): CompanyValuationHistory {
+  return {
+    instrument_key: "NSE_EQ|INE002A01018",
+    years: 10,
+    sessions: [
+      valuationSession({
+        day: "2026-05-29",
+        price: "1200.00",
+        year_end: null,
+        eps: null,
+        pe: null,
+        book_per_share: null,
+        pb: null,
+      }),
+      valuationSession({ day: "2026-06-01", price: "1100.00", pe: "33.95", pb: "1.77" }),
+      valuationSession(),
+    ],
+    pe: {
+      sample: 2,
+      low: "33.95",
+      high: "38.27",
+      median: "36.11",
+      latest: "38.27",
+      percentile: "100.00",
+    },
+    pb: {
+      sample: 2,
+      low: "1.77",
+      high: "2.00",
+      median: "1.89",
+      latest: "2.00",
+      percentile: "100.00",
+    },
     ...overrides,
   };
 }
