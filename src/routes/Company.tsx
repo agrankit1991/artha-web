@@ -37,7 +37,7 @@ import { NewsFeed } from "@/components/NewsFeed";
 import { PriceChart } from "@/components/PriceChart";
 import { PRICE_RANGES, RangeSelector } from "@/components/RangeSelector";
 import { StatementTable } from "@/components/StatementTable";
-import { Tabs } from "@/components/Tabs";
+import { type Tab, Tabs } from "@/components/Tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,8 +55,11 @@ const DEFAULT_RANGE = 250;
 /** How many articles the page shows before sending a reader to the feed. */
 const HEADLINES = 6;
 
+/** Which view of the chart is showing. */
+type View = "compare" | "price";
+
 /** What the chart section can show. */
-const VIEWS = [
+const VIEWS: Tab<View>[] = [
   { key: "compare", label: "Relative strength" },
   { key: "price", label: "Price" },
 ];
@@ -71,7 +74,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
   const [sessions, setSessions] = useState(DEFAULT_RANGE);
   // How it reads against its sector and the market is the question this
   // page is opened with; its own price is one tab away.
-  const [view, setView] = useState<"price" | "compare">("compare");
+  const [view, setView] = useState<View>("compare");
 
   const load = useCallback(() => fetchCompany(instrumentKey), [instrumentKey]);
   const company = useResource(load);
@@ -210,14 +213,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
               label="History"
             />
           </div>
-          <Tabs
-            tabs={VIEWS}
-            active={view}
-            onChange={(chosen) => {
-              setView(chosen === "compare" ? "compare" : "price");
-            }}
-            label="Chart"
-          >
+          <Tabs tabs={VIEWS} active={view} onChange={setView} label="Chart">
             {view === "price" ? (
               <PriceChart
                 points={chart.data?.points ?? null}

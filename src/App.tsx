@@ -12,7 +12,7 @@
  * arrive where they were.
  */
 
-import { Activity, LayoutDashboard, Newspaper, User } from "lucide-react";
+import { Activity, LayoutDashboard, Newspaper, PiggyBank, Rocket, User } from "lucide-react";
 import { useCallback, useState } from "react";
 import { BrowserRouter, Route, Routes, useNavigate, useParams } from "react-router-dom";
 
@@ -24,6 +24,9 @@ import { PATHS, populationPath } from "@/lib/paths";
 import { ThemeProvider } from "@/lib/theme";
 import { Breadth } from "@/routes/Breadth";
 import { Company } from "@/routes/Company";
+import { Fund } from "@/routes/Fund";
+import { Funds } from "@/routes/Funds";
+import { Ipos } from "@/routes/Ipos";
 import { News } from "@/routes/News";
 import { Overview } from "@/routes/Overview";
 import { Population } from "@/routes/Population";
@@ -35,6 +38,8 @@ const SCREENS: Screen[] = [
   { path: PATHS.overview, label: "Overview", icon: LayoutDashboard, exact: true },
   { path: PATHS.breadth, label: "Breadth", icon: Activity },
   { path: PATHS.news, label: "News", icon: Newspaper },
+  { path: PATHS.ipos, label: "IPOs", icon: Rocket },
+  { path: PATHS.funds, label: "Funds", icon: PiggyBank },
   { path: PATHS.profile, label: "Profile", icon: User },
 ];
 
@@ -145,6 +150,9 @@ function SignedIn({
         />
         <Route path={PATHS.breadth} element={<Breadth />} />
         <Route path={PATHS.news} element={<News />} />
+        <Route path={PATHS.ipos} element={<Ipos />} />
+        <Route path={PATHS.funds} element={<Funds />} />
+        <Route path="/fund/:code" element={<FundRoute />} />
         <Route path="/company/:key" element={<CompanyRoute />} />
         <Route path="/index/:key" element={<PopulationRoute kind="index" />} />
         <Route path="/sector/:key" element={<PopulationRoute kind="sector" />} />
@@ -163,6 +171,16 @@ function SignedIn({
 function PopulationRoute({ kind }: { kind: "index" | "sector" }): React.JSX.Element {
   const { key } = useParams();
   return <Population kind={kind} scopeKey={key ?? ""} />;
+}
+
+/**
+ * Read the scheme code out of the path and show its page.
+ *
+ * @returns The page.
+ */
+function FundRoute(): React.JSX.Element {
+  const { code } = useParams();
+  return <Fund schemeCode={code ?? ""} />;
 }
 
 /**

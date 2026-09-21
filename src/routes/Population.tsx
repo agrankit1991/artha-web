@@ -24,7 +24,7 @@ import { Delta } from "@/components/Delta";
 import { Heatmap } from "@/components/Heatmap";
 import { PriceChart } from "@/components/PriceChart";
 import { PRICE_RANGES, RangeSelector } from "@/components/RangeSelector";
-import { Tabs } from "@/components/Tabs";
+import { type Tab, Tabs } from "@/components/Tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useResource } from "@/hooks/useResource";
@@ -40,8 +40,11 @@ interface PopulationProps {
 
 const DEFAULT_RANGE = 250;
 
+/** Which view of the chart is showing. */
+type View = "compare" | "price";
+
 /** What the chart section can show. */
-const VIEWS = [
+const VIEWS: Tab<View>[] = [
   { key: "compare", label: "Relative strength" },
   { key: "price", label: "Price" },
 ];
@@ -56,7 +59,7 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
   const [sessions, setSessions] = useState(DEFAULT_RANGE);
   // The comparison first: how it is doing against the market is the
   // question this page is opened with, and its own price is one tab away.
-  const [view, setView] = useState<"price" | "compare">("compare");
+  const [view, setView] = useState<View>("compare");
 
   const load = useCallback(() => fetchPopulation(kind, scopeKey), [kind, scopeKey]);
   const loadBreadth = useCallback(
@@ -164,14 +167,7 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
               label="History"
             />
           </div>
-          <Tabs
-            tabs={VIEWS}
-            active={view}
-            onChange={(chosen) => {
-              setView(chosen === "compare" ? "compare" : "price");
-            }}
-            label="Chart"
-          >
+          <Tabs tabs={VIEWS} active={view} onChange={setView} label="Chart">
             {view === "price" ? (
               <PriceChart
                 points={chart.data?.points ?? null}

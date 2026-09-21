@@ -14,6 +14,8 @@ export const PATHS = {
   overview: "/",
   breadth: "/breadth",
   news: "/news",
+  ipos: "/ipos",
+  funds: "/funds",
   profile: "/profile",
 } as const;
 
@@ -58,4 +60,14 @@ export function newsPath(instrumentKey?: string, symbol?: string): string {
     query.set("symbol", symbol);
   }
   return `${PATHS.news}?${query.toString()}`;
+}
+
+/**
+ * Where a mutual fund scheme's own page is.
+ *
+ * @param schemeCode - AMFI's identifier for the scheme.
+ * @returns The path.
+ */
+export function fundPath(schemeCode: string): string {
+  return `/fund/${encodeURIComponent(schemeCode)}`;
 }

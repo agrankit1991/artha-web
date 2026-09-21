@@ -11,7 +11,11 @@ import {
   breadthGrid as grid,
   overview,
   moversResponse,
+  company,
+  fund,
   newsPage,
+  offering,
+  schemePage,
   scopeOptions,
   stubPlatform,
 } from "@/test/support";
@@ -262,6 +266,64 @@ describe("App", () => {
     await userEvent.click(card as HTMLElement);
 
     expect(await screen.findByText("Relative strength")).toBeInTheDocument();
+  });
+
+  it("opens a company's own page from a list of companies", async () => {
+    // Every mover row leads somewhere now, and a list of companies leads
+    // to each company.
+    stubPlatform({
+      "/api/me": { body: ACCOUNT },
+      ...DATA,
+      "/api/companies/NSE_EQ%7CINE002A01018/fundamentals": { body: [] },
+      "/api/companies/NSE_EQ%7CINE002A01018/corporate-actions": { body: [] },
+      "/api/companies": { body: company() },
+      "/api/ipos": { body: [] },
+    });
+    render(<App />);
+    // Awaited on the row rather than the heading: the heading is drawn
+    // before the lists under it arrive.
+    const [first] = await screen.findAllByRole("link", { name: /RELIANCE/ });
+
+    await userEvent.click(first as HTMLElement);
+
+    expect(await screen.findByText("Reliance Industries")).toBeInTheDocument();
+  });
+
+  it("opens the public offerings and the funds from the navigation", async () => {
+    stubPlatform({
+      "/api/me": { body: ACCOUNT },
+      ...DATA,
+      "/api/ipos": { body: [offering()] },
+      "/api/funds/filters": { body: { categories: [], fund_houses: [] } },
+      "/api/funds": { body: schemePage() },
+    });
+    render(<App />);
+    await screen.findByText("Market movers");
+
+    await userEvent.click(screen.getByRole("link", { name: "IPOs" }));
+    expect(await screen.findByText("Public offerings")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("link", { name: "Funds" }));
+    expect(await screen.findByText("Mutual funds")).toBeInTheDocument();
+  });
+
+  it("opens a scheme's own page from the funds list", async () => {
+    stubPlatform({
+      "/api/me": { body: ACCOUNT },
+      ...DATA,
+      "/api/ipos": { body: [] },
+      "/api/funds/filters": { body: { categories: [], fund_houses: [] } },
+      "/api/funds/120503": { body: fund() },
+      "/api/funds": { body: schemePage() },
+    });
+    render(<App />);
+    await screen.findByText("Market movers");
+    await userEvent.click(screen.getByRole("link", { name: "Funds" }));
+    await screen.findByText("Mutual funds");
+
+    await userEvent.click(await screen.findByRole("link", { name: /Axis Bluechip/ }));
+
+    expect(await screen.findByText("Value over time")).toBeInTheDocument();
   });
 
   it("opens a population's own page from the breadth grid", async () => {

@@ -31,11 +31,15 @@ import type {
   MoversResponse,
   NewsItem,
   NewsPage,
+  Offering,
   PriceSeries,
   ScopeBreadth,
+  Scheme,
+  SchemePage,
   ScopeOptions,
   Statement,
   TrailingReturns,
+  Fund as FundResponse,
 } from "@/api/client";
 
 /** A reply the stubbed platform should give to a path. */
@@ -491,6 +495,86 @@ export function corporateAction(overrides: Partial<CorporateAction> = {}): Corpo
     announced_on: "2026-05-01",
     amount: "6.000000",
     ratio: null,
+    ...overrides,
+  };
+}
+
+/** Build one public offering. */
+export function offering(overrides: Partial<Offering> = {}): Offering {
+  return {
+    ipo_id: "veegaland-developers-limited-ipo",
+    name: "Veegaland Developers IPO",
+    status: "OPEN",
+    issue_type: "REGULAR",
+    symbol: "VEEGALAND",
+    isin: "INE1JTV01015",
+    industry: "Construction - Real Estate",
+    issue_size: "210.00",
+    minimum_price: "130.000000",
+    maximum_price: "140.000000",
+    cut_off_price: null,
+    face_value: "10.000000",
+    lot_size: 107,
+    minimum_quantity: 107,
+    bidding_start: "2026-09-10",
+    bidding_end: "2026-09-15",
+    listing_price: null,
+    listing_exchange: "BSE,NSE",
+    total_subscription: "15.66",
+    rhp_url: "https://example.test/rhp.pdf",
+    drhp_url: null,
+    allotment_date: "2026-09-16",
+    refund_initiation: "2026-09-17",
+    listing_date: "2026-09-18",
+    mandate_end: "2026-09-16",
+    ...overrides,
+  };
+}
+
+/** Build one mutual fund scheme. */
+export function fundScheme(overrides: Partial<Scheme> = {}): Scheme {
+  return {
+    scheme_code: "120503",
+    name: "Axis Bluechip Fund - Direct Plan - Growth",
+    amc: "Axis Mutual Fund",
+    category: "Open Ended Schemes(Equity Scheme - Large Cap Fund)",
+    plan: "Direct Plan",
+    option: "Growth Option",
+    isin_growth: "INF846K01131",
+    isin_reinvestment: null,
+    nav: "62.500000",
+    nav_date: "2026-09-18",
+    ...overrides,
+  };
+}
+
+/** Build one page of schemes. */
+export function schemePage(overrides: Partial<SchemePage> = {}): SchemePage {
+  return {
+    total: 1,
+    limit: 25,
+    offset: 0,
+    items: [fundScheme()],
+    ...overrides,
+  };
+}
+
+/** Build one scheme's record and values. */
+export function fund(overrides: Partial<FundResponse> = {}): FundResponse {
+  return {
+    scheme: fundScheme(),
+    returns: {
+      one_month: "1.20",
+      three_months: "4.50",
+      one_year: "12.30",
+      three_years: "10.00",
+      five_years: null,
+    },
+    values: [
+      { nav_date: "2026-09-16", nav: "61.000000" },
+      { nav_date: "2026-09-17", nav: "61.800000" },
+      { nav_date: "2026-09-18", nav: "62.500000" },
+    ],
     ...overrides,
   };
 }

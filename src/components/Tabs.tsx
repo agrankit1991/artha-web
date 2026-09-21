@@ -15,17 +15,23 @@ import { useId } from "react";
 
 import { cn } from "@/lib/utils";
 
-/** One view on offer. */
-export interface Tab {
-  key: string;
+/**
+ * One view on offer.
+ *
+ * Generic in its key so a caller gets its own view names back rather than
+ * a bare string: a page switching between "price" and "compare" should not
+ * have to narrow a string into those two again on the way out.
+ */
+export interface Tab<Key extends string = string> {
+  key: Key;
   label: string;
 }
 
-interface TabsProps {
-  tabs: Tab[];
+interface TabsProps<Key extends string> {
+  tabs: Tab<Key>[];
   /** Which view is showing. */
-  active: string;
-  onChange: (key: string) => void;
+  active: Key;
+  onChange: (key: Key) => void;
   /** What the choice is between, for a reader who cannot see the strip. */
   label: string;
   /** The view itself. */
@@ -41,7 +47,7 @@ interface TabsProps {
  * @param props - The views, which is showing, and what to show.
  * @returns The tabs.
  */
-export function Tabs({
+export function Tabs<Key extends string>({
   tabs,
   active,
   onChange,
@@ -49,7 +55,7 @@ export function Tabs({
   children,
   aside,
   className,
-}: TabsProps): React.JSX.Element {
+}: TabsProps<Key>): React.JSX.Element {
   const group = useId();
   const at = tabs.findIndex((tab) => tab.key === active);
 

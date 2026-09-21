@@ -819,3 +819,159 @@ export function fetchCorporateActions(instrumentKey: string): Promise<CorporateA
     `/api/companies/${encodeURIComponent(instrumentKey)}/corporate-actions`,
   );
 }
+
+/** Where a public offering is in its life. */
+export type IpoStatus = "UPCOMING" | "OPEN" | "CLOSED" | "LISTED";
+
+/** Which board an offering is on. */
+export type IssueType = "REGULAR" | "SME";
+
+/** One public offering. */
+export interface Offering {
+  ipo_id: string;
+  name: string;
+  status: IpoStatus;
+  issue_type: IssueType;
+  symbol: string | null;
+  isin: string | null;
+  industry: string | null;
+  /** How much is being raised, in crore. */
+  issue_size: string | null;
+  minimum_price: string | null;
+  maximum_price: string | null;
+  cut_off_price: string | null;
+  face_value: string | null;
+  /** Shares per lot: the smallest thing anybody can buy. */
+  lot_size: number | null;
+  minimum_quantity: number | null;
+  bidding_start: string | null;
+  bidding_end: string | null;
+  listing_price: string | null;
+  listing_exchange: string | null;
+  /** Times subscribed, as published. */
+  total_subscription: string | null;
+  rhp_url: string | null;
+  drhp_url: string | null;
+  allotment_date: string | null;
+  refund_initiation: string | null;
+  listing_date: string | null;
+  mandate_end: string | null;
+}
+
+/** One share class of one fund. */
+export interface Scheme {
+  scheme_code: string;
+  name: string;
+  amc: string | null;
+  category: string | null;
+  /** Direct or regular: the same fund with and without commission. */
+  plan: string | null;
+  option: string | null;
+  isin_growth: string | null;
+  isin_reinvestment: string | null;
+  nav: string | null;
+  nav_date: string | null;
+}
+
+/** One page of schemes, and how many there are in all. */
+export interface SchemePage {
+  total: number;
+  limit: number;
+  offset: number;
+  items: Scheme[];
+}
+
+/** What the schemes may be narrowed by. */
+export interface SchemeFilters {
+  categories: string[];
+  fund_houses: string[];
+}
+
+/** What a scheme returned over each window. The long ones are annualised. */
+export interface SchemeReturns {
+  one_month: string | null;
+  three_months: string | null;
+  one_year: string | null;
+  three_years: string | null;
+  five_years: string | null;
+}
+
+/** One published value. */
+export interface SchemeValue {
+  nav_date: string;
+  nav: string;
+}
+
+/** One scheme, its record, and its published values. */
+export interface Fund {
+  scheme: Scheme;
+  returns: SchemeReturns;
+  values: SchemeValue[];
+}
+
+/** Which schemes a reader is asking for. */
+export interface FundQuery {
+  text?: string | null;
+  category?: string | null;
+  amc?: string | null;
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * Fetch every stored public offering.
+ *
+ * All of them: a year brings a few hundred, so searching and narrowing
+ * happen here rather than over the wire, which makes them instant.
+ *
+ * @returns The offerings, most recent bidding first.
+ */
+export function fetchIpos(): Promise<Offering[]> {
+  return request<Offering[]>("/api/ipos");
+}
+
+/**
+ * Search the mutual fund schemes.
+ *
+ * @param query - What to look for, and which page of it.
+ * @returns The page, each scheme carrying its latest value.
+ */
+export function fetchFunds(query: FundQuery = {}): Promise<SchemePage> {
+  const parameters = new URLSearchParams({
+    limit: String(query.limit ?? 25),
+    offset: String(query.offset ?? 0),
+  });
+  // Only what was actually asked for: an empty filter is a request for
+  // everything, and sending one would narrow nothing while looking as
+  // though it had.
+  if (query.text) {
+    parameters.set("text", query.text);
+  }
+  if (query.category) {
+    parameters.set("category", query.category);
+  }
+  if (query.amc) {
+    parameters.set("amc", query.amc);
+  }
+  return request<SchemePage>(`/api/funds?${parameters.toString()}`);
+}
+
+/**
+ * Fetch what the schemes may be narrowed by.
+ *
+ * @returns The categories and the fund houses.
+ */
+export function fetchFundFilters(): Promise<SchemeFilters> {
+  return request<SchemeFilters>("/api/funds/filters");
+}
+
+/**
+ * Fetch one scheme, its record and its published values.
+ *
+ * @param schemeCode - AMFI's identifier.
+ * @param years - How much history to draw.
+ * @returns The scheme.
+ */
+export function fetchFund(schemeCode: string, years = 5): Promise<Fund> {
+  return request<Fund>(`/api/funds/${encodeURIComponent(schemeCode)}?years=${String(years)}`);
+}
