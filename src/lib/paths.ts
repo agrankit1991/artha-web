@@ -71,3 +71,26 @@ export function newsPath(instrumentKey?: string, symbol?: string): string {
 export function fundPath(schemeCode: string): string {
   return `/fund/${encodeURIComponent(schemeCode)}`;
 }
+
+/**
+ * Where a thing a search found lives.
+ *
+ * Stated once beside the other paths so a search result and a table row
+ * lead to the same page for the same thing.
+ *
+ * @param kind - What kind of thing it is.
+ * @param key - What its page is reached by.
+ * @returns The path.
+ */
+export function hitPath(kind: "company" | "index" | "sector" | "fund", key: string): string {
+  switch (kind) {
+    case "company":
+      return companyPath(key);
+    case "index":
+      return populationPath("index", key);
+    case "sector":
+      return populationPath("sector", key);
+    case "fund":
+      return fundPath(key);
+  }
+}

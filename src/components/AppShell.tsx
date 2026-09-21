@@ -14,6 +14,7 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 
 import type { Account } from "@/api/client";
+import { SearchBox } from "@/components/SearchBox";
 import { ThemeMenu } from "@/components/ThemeMenu";
 import { UserMenu } from "@/components/UserMenu";
 import { cn } from "@/lib/utils";
@@ -100,6 +101,9 @@ export function AppShell({
             >
               {open ? <X className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
             </button>
+            <div className="flex flex-1 justify-center px-2">
+              <SearchBox />
+            </div>
             <div className="ml-auto flex items-center gap-2">
               <ThemeMenu />
               <UserMenu account={account} onOpenProfile={onOpenProfile} onSignOut={onSignOut} />

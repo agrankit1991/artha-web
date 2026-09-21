@@ -975,3 +975,27 @@ export function fetchFundFilters(): Promise<SchemeFilters> {
 export function fetchFund(schemeCode: string, years = 5): Promise<Fund> {
   return request<Fund>(`/api/funds/${encodeURIComponent(schemeCode)}?years=${String(years)}`);
 }
+
+/** What kind of thing a search found, which decides where it leads. */
+export type HitKind = "company" | "index" | "sector" | "fund";
+
+/** One thing a search found. */
+export interface SearchHit {
+  kind: HitKind;
+  /** What its page is reached by. */
+  key: string;
+  label: string;
+  detail: string | null;
+}
+
+/**
+ * Find companies, indices, sectors and schemes by a few letters.
+ *
+ * @param query - What was typed.
+ * @param limit - How many to return.
+ * @returns The best matches first, across every kind.
+ */
+export function fetchSearch(query: string, limit = 12): Promise<SearchHit[]> {
+  const parameters = new URLSearchParams({ q: query, limit: String(limit) });
+  return request<SearchHit[]>(`/api/search?${parameters.toString()}`);
+}
