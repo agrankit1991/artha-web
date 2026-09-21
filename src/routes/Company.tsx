@@ -53,6 +53,7 @@ import { StatementTable } from "@/components/StatementTable";
 import { type Tab, Tabs } from "@/components/Tabs";
 import { ValuationHistoryChart } from "@/components/ValuationHistoryChart";
 import { ValuationPanel } from "@/components/ValuationPanel";
+import { WatchButton } from "@/components/WatchButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -222,6 +223,10 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
         }
         identifiers={found !== null && <span>ISIN {found.isin}</span>}
         description={found?.description}
+        actions={
+          found !== null &&
+          key !== null && <WatchButton instrumentKey={key} symbol={found.symbol} />
+        }
       />
 
       <Tabs tabs={PARTS} active={part} onChange={setPart} label="Company">

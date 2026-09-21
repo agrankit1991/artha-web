@@ -13,6 +13,10 @@ import { vi } from "vitest";
 import { ThemeProvider } from "@/lib/theme";
 
 import type {
+  HeldBy,
+  WatchedInstrument,
+  WatchlistPage,
+  WatchlistSummary,
   ScreenField,
   ScreenHit,
   ScreenPage,
@@ -68,7 +72,9 @@ export interface Reply {
    * different question from the platform and hides whatever depended on
    * the difference.
    */
-  bodyFor?: (path: string) => unknown;
+  bodyFor?: (path: string, method: string) => unknown;
+  /** A status worked out the same way, for a write that is refused where the read is not. */
+  statusFor?: (path: string, method: string) => number;
 }
 
 /**
@@ -79,14 +85,15 @@ export interface Reply {
  * @returns The mock, so a test can assert on what was requested.
  */
 export function stubPlatform(replies: Record<string, Reply>): ReturnType<typeof vi.fn> {
-  const mock = vi.fn((input: string | URL | Request) => {
+  const mock = vi.fn((input: string | URL | Request, init?: RequestInit) => {
     const path = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     const match = Object.keys(replies)
       .sort((a, b) => b.length - a.length)
       .find((prefix) => path.startsWith(prefix));
     const reply: Reply = match === undefined ? { status: 404 } : (replies[match] ?? {});
-    const status = reply.status ?? 200;
-    const body = reply.bodyFor === undefined ? reply.body : reply.bodyFor(path);
+    const status = reply.statusFor?.(path, init?.method ?? "GET") ?? reply.status ?? 200;
+    const body =
+      reply.bodyFor === undefined ? reply.body : reply.bodyFor(path, init?.method ?? "GET");
     return Promise.resolve({
       ok: status >= 200 && status < 300,
       status,
@@ -1057,4 +1064,95 @@ export function screenPage(overrides: Partial<ScreenPage> = {}): ScreenPage {
     items: [screenHit()],
     ...overrides,
   };
+}
+
+/**
+ * One watchlist on the list of lists.
+ *
+ * @param overrides - Fields to change.
+ * @returns The list.
+ */
+export function watchlistSummary(overrides: Partial<WatchlistSummary> = {}): WatchlistSummary {
+  return {
+    watchlist_id: 1,
+    name: "Long term",
+    description: "Compounders",
+    items: 2,
+    created_at: "2026-09-01",
+    ...overrides,
+  };
+}
+
+/**
+ * One instrument on a watchlist, with a target above and a stop below.
+ *
+ * @param overrides - Fields to change.
+ * @returns The instrument.
+ */
+export function watchedInstrument(overrides: Partial<WatchedInstrument> = {}): WatchedInstrument {
+  return {
+    item_id: 11,
+    instrument_key: "NSE_EQ|INE002A01018",
+    symbol: "RELIANCE",
+    name: "Reliance Industries",
+    notes: "Retail listing ahead",
+    target_price: "1500.00",
+    stop_loss: "1100.00",
+    tags: ["oil", "retail"],
+    added_on: "2026-09-02",
+    close: "1240.00",
+    change_percent: "1.50",
+    one_month: "4.20",
+    one_year: "18.00",
+    to_target_percent: "20.97",
+    to_stop_percent: "-11.29",
+    as_of: "2026-09-16",
+    ...overrides,
+  };
+}
+
+/**
+ * One watchlist read whole, with two instruments.
+ *
+ * @param overrides - Fields to change.
+ * @returns The page.
+ */
+export function watchlistPage(overrides: Partial<WatchlistPage> = {}): WatchlistPage {
+  return {
+    watchlist_id: 1,
+    name: "Long term",
+    description: "Compounders",
+    created_at: "2026-09-01",
+    items: [
+      watchedInstrument(),
+      watchedInstrument({
+        item_id: 12,
+        instrument_key: "NSE_EQ|INE467B01029",
+        symbol: "TCS",
+        name: "Tata Consultancy Services",
+        notes: null,
+        target_price: null,
+        stop_loss: null,
+        tags: ["it"],
+        close: null,
+        change_percent: null,
+        one_month: null,
+        one_year: null,
+        to_target_percent: null,
+        to_stop_percent: null,
+        as_of: null,
+      }),
+    ],
+    ...overrides,
+  };
+}
+
+/**
+ * One list's hold on an instrument.
+ *
+ * @param overrides - Fields to change.
+ * @returns The hold.
+ */
+export function heldBy(overrides: Partial<HeldBy> = {}): HeldBy {
+  return { watchlist_id: 1, item_id: 11, ...overrides };
 }

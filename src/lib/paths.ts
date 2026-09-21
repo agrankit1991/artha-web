@@ -17,6 +17,7 @@ export const PATHS = {
   earnings: "/earnings",
   indices: "/indices",
   screen: "/screen",
+  watchlists: "/watchlists",
   sectors: "/sectors",
   ipos: "/ipos",
   funds: "/funds",
@@ -107,4 +108,14 @@ export function hitPath(kind: "company" | "index" | "sector" | "fund", key: stri
  */
 export function ipoPath(ipoId: string): string {
   return `/ipo/${encodeURIComponent(ipoId)}`;
+}
+
+/**
+ * The page of one watchlist.
+ *
+ * @param watchlistId - Which list.
+ * @returns The path, with the list chosen in the query.
+ */
+export function watchlistPath(watchlistId: number): string {
+  return `${PATHS.watchlists}?list=${String(watchlistId)}`;
 }

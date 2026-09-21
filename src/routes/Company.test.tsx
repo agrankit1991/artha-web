@@ -37,6 +37,8 @@ function stubEverything(replies: Record<string, unknown> = {}): ReturnType<typeo
     "/api/companies/NSE_EQ%7CINE002A01018/corporate-actions": { body: [corporateAction()] },
     "/api/companies/NSE_EQ%7CINE002A01018/valuation": { body: valuation() },
     "/api/companies/NSE_EQ%7CINE002A01018/valuation/history": { body: valuationHistory() },
+    "/api/watchlists/holding": { body: [] },
+    "/api/watchlists": { body: [] },
     "/api/companies/NSE_EQ%7CINE002A01018": { body: company() },
     "/api/overviews": { body: [overview({ instrument_key: KEY })] },
     "/api/figures": { body: { instrument_key: KEY, points: chartPoints(40) } },

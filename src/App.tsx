@@ -28,6 +28,7 @@ import { Company } from "@/routes/Company";
 import { EarningsPage } from "@/routes/Earnings";
 import { Indices } from "@/routes/Indices";
 import { Screener } from "@/routes/Screener";
+import { Watchlists } from "@/routes/Watchlists";
 import { Sectors } from "@/routes/Sectors";
 import { Fund } from "@/routes/Fund";
 import { Funds } from "@/routes/Funds";
@@ -50,6 +51,7 @@ const SCREENS: Screen[] = [
   { path: PATHS.funds, label: "Funds", icon: ENTITIES.fund.icon, group: "Research" },
   { path: PATHS.screen, label: "Screener", icon: MARKS.screen, group: "Research" },
   { path: PATHS.ipos, label: "IPOs", icon: ENTITIES.ipo.icon, group: "Research" },
+  { path: PATHS.watchlists, label: "Watchlists", icon: MARKS.watchlist, group: "Mine" },
   { path: PATHS.profile, label: "Profile", icon: User, group: "Mine" },
 ];
 
@@ -164,6 +166,7 @@ function SignedIn({
         <Route path={PATHS.indices} element={<Indices />} />
         <Route path={PATHS.sectors} element={<Sectors />} />
         <Route path={PATHS.screen} element={<Screener />} />
+        <Route path={PATHS.watchlists} element={<Watchlists />} />
         <Route path={PATHS.ipos} element={<Ipos />} />
         <Route path="/ipo/:id" element={<IpoRoute />} />
         <Route path={PATHS.funds} element={<Funds />} />

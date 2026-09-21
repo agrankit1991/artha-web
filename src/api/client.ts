@@ -1233,6 +1233,141 @@ export function fetchScreen(query: ScreenQuery): Promise<ScreenPage> {
   return request<ScreenPage>(`/api/screen?${parameters.toString()}`);
 }
 
+/** One watchlist, as the list of lists shows it. */
+export interface WatchlistSummary {
+  watchlist_id: number;
+  name: string;
+  description: string | null;
+  /** How many instruments are on it. */
+  items: number;
+  created_at: string;
+}
+
+/** What a watchlist is made or changed from. */
+export interface WatchlistDraft {
+  name: string;
+  description?: string | null;
+}
+
+/** What an item is added with, or changed to. */
+export interface WatchlistItemDraft {
+  instrument_key?: string;
+  notes?: string | null;
+  target_price?: string | null;
+  stop_loss?: string | null;
+  tags?: string[];
+}
+
+/** One instrument on a watchlist, with the reader's levels against its price. */
+export interface WatchedInstrument {
+  item_id: number;
+  instrument_key: string;
+  symbol: string;
+  name: string;
+  notes: string | null;
+  target_price: string | null;
+  stop_loss: string | null;
+  tags: string[];
+  added_on: string;
+  close: string | null;
+  change_percent: string | null;
+  one_month: string | null;
+  one_year: string | null;
+  /** How far the target is from the close, in per cent; null when either is unknown. */
+  to_target_percent: string | null;
+  to_stop_percent: string | null;
+  as_of: string | null;
+}
+
+/** One watchlist read whole. */
+export interface WatchlistPage {
+  watchlist_id: number;
+  name: string;
+  description: string | null;
+  created_at: string;
+  items: WatchedInstrument[];
+}
+
+/** Fetch the account's watchlists, oldest first. */
+export function fetchWatchlists(): Promise<WatchlistSummary[]> {
+  return request<WatchlistSummary[]>("/api/watchlists");
+}
+
+/** Fetch one watchlist with every instrument's figures beside the reader's levels. */
+export function fetchWatchlist(watchlistId: number): Promise<WatchlistPage> {
+  return request<WatchlistPage>(`/api/watchlists/${String(watchlistId)}`);
+}
+
+/** One watchlist's hold on an instrument: enough to show a star and to undo it. */
+export interface HeldBy {
+  watchlist_id: number;
+  item_id: number;
+}
+
+/** Which of the account's watchlists hold an instrument, with each item's id. */
+export function fetchWatchlistsHolding(instrumentKey: string): Promise<HeldBy[]> {
+  return request<HeldBy[]>(
+    `/api/watchlists/holding?instrument_key=${encodeURIComponent(instrumentKey)}`,
+  );
+}
+
+/** Make a watchlist. */
+export function createWatchlist(draft: WatchlistDraft): Promise<WatchlistSummary> {
+  return request<WatchlistSummary>("/api/watchlists", {
+    method: "POST",
+    body: JSON.stringify(draft),
+  });
+}
+
+/** Rename or redescribe a watchlist. */
+export function updateWatchlist(
+  watchlistId: number,
+  draft: WatchlistDraft,
+): Promise<WatchlistSummary> {
+  return request<WatchlistSummary>(`/api/watchlists/${String(watchlistId)}`, {
+    method: "PATCH",
+    body: JSON.stringify(draft),
+  });
+}
+
+/** Delete a watchlist and everything on it. */
+export async function deleteWatchlist(watchlistId: number): Promise<void> {
+  await request<unknown>(`/api/watchlists/${String(watchlistId)}`, { method: "DELETE" });
+}
+
+/** Put an instrument on a watchlist; a second add returns the existing item. */
+export function addWatchlistItem(
+  watchlistId: number,
+  draft: WatchlistItemDraft,
+): Promise<WatchedInstrument> {
+  return request<WatchedInstrument>(`/api/watchlists/${String(watchlistId)}/items`, {
+    method: "POST",
+    body: JSON.stringify(draft),
+  });
+}
+
+/** Change an item's notes, levels and tags. */
+export function updateWatchlistItem(
+  watchlistId: number,
+  itemId: number,
+  draft: WatchlistItemDraft,
+): Promise<WatchedInstrument> {
+  return request<WatchedInstrument>(
+    `/api/watchlists/${String(watchlistId)}/items/${String(itemId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(draft),
+    },
+  );
+}
+
+/** Take an item off a watchlist. */
+export async function removeWatchlistItem(watchlistId: number, itemId: number): Promise<void> {
+  await request<unknown>(`/api/watchlists/${String(watchlistId)}/items/${String(itemId)}`, {
+    method: "DELETE",
+  });
+}
+
 /** Where the latest reading of a ratio sits in its own history. */
 export interface RangeReading {
   /** How many sessions had the ratio. */
