@@ -55,10 +55,12 @@ function addedSeries(): unknown[] {
  * @param figures - What each series was worth there, in the order the
  *   series were drawn. A bare number is a line's value; `{ close }` is a
  *   candle; an empty object is a session the series has no point for.
+ * @param point - Where in the plot the cursor sits.
  */
 export function moveCrosshair(
   day: string | undefined,
   figures: (number | { close: number } | Record<string, never>)[] = [],
+  point: { x: number; y: number } = { x: 1, y: 1 },
 ): void {
   const drawn = addedSeries();
   const seriesData = new Map(
@@ -69,7 +71,7 @@ export function moveCrosshair(
   );
   for (const [handler] of chartCalls.subscribeCrosshairMove.mock.calls) {
     (handler as (event: unknown) => void)(
-      day === undefined ? {} : { time: day, point: { x: 1, y: 1 }, seriesData },
+      day === undefined ? {} : { time: day, point, seriesData },
     );
   }
 }

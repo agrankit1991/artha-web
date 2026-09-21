@@ -33,6 +33,18 @@ const LINE: Series = {
   ],
 };
 
+/**
+ * Give the plot a size, which jsdom otherwise reports as nought.
+ *
+ * @param width - The plot's width.
+ * @param height - Its height.
+ */
+function sizePlot(width: number, height: number): void {
+  const plot = screen.getByTestId("chart");
+  Object.defineProperty(plot, "clientWidth", { value: width, configurable: true });
+  Object.defineProperty(plot, "clientHeight", { value: height, configurable: true });
+}
+
 function draw(series: Series[], props: Partial<Parameters<typeof Chart>[0]> = {}): void {
   render(
     <ThemeProvider>
@@ -327,6 +339,37 @@ describe("Chart", () => {
     const reading = screen.getByRole("group", { name: "Crosshair reading" });
     expect(within(reading).queryByText("Nifty 500")).not.toBeInTheDocument();
     expect(within(reading).getByText("Nifty 50")).toBeInTheDocument();
+  });
+
+  it("follows the cursor rather than sitting in a corner", () => {
+    draw([LINE]);
+    sizePlot(600, 360);
+
+    act(() => {
+      moveCrosshair("2026-09-01", [100], { x: 40, y: 30 });
+    });
+
+    const reading = screen.getByRole("group", { name: "Crosshair reading" });
+    expect(reading.style.left).toBe("54px");
+    expect(reading.style.top).toBe("44px");
+  });
+
+  it("flips to the other side of the cursor near an edge", () => {
+    // Anchored to the far edge rather than the near one, which flips it
+    // without anybody having to know how wide it is -- and its width
+    // depends on the longest name in it, so nobody does until it has been
+    // drawn.
+    draw([LINE]);
+    sizePlot(600, 360);
+
+    act(() => {
+      moveCrosshair("2026-09-01", [100], { x: 560, y: 340 });
+    });
+
+    const reading = screen.getByRole("group", { name: "Crosshair reading" });
+    expect(reading.style.left).toBe("");
+    expect(reading.style.right).toBe("54px");
+    expect(reading.style.bottom).toBe("34px");
   });
 
   it("reads percentages as percentages where the axis is one", () => {

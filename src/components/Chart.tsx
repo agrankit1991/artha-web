@@ -81,10 +81,12 @@ export type Series =
   | (Common & { kind: "area"; colour: string; points: Point[] })
   | (Common & { kind: "bars"; points: Point[] });
 
-/** What the crosshair is over, and what each series was worth there. */
+/** What the crosshair is over, what each series was worth, and where it is. */
 interface Hovered {
   day: string;
   figures: { label: string; colour: string; value: number }[];
+  /** Where in the plot the crosshair sits, and how big the plot is. */
+  at: { x: number; y: number; width: number; height: number };
 }
 
 /** An instrument a chart draws, and how to leave for it. */
@@ -251,8 +253,10 @@ export function Chart({
         return;
       }
       const day = event.time;
+      const { x, y } = event.point;
       setHovered({
         day,
+        at: { x, y, width: element.clientWidth, height: element.clientHeight },
         figures: [...event.seriesData]
           .map(([series, point]) => ({
             series: named.get(series),
@@ -369,7 +373,8 @@ export function Chart({
           <div
             role="group"
             aria-label="Crosshair reading"
-            className="pointer-events-none absolute left-2 top-2 z-10 rounded-md border bg-popover/95 px-2.5 py-1.5 text-xs shadow-sm"
+            className="pointer-events-none absolute z-10 whitespace-nowrap rounded-md border bg-popover/95 px-2.5 py-1.5 text-xs shadow-sm"
+            style={placed(hovered.at)}
           >
             <div className="mb-0.5 text-muted-foreground">{formatDay(hovered.day)}</div>
             {hovered.figures.map((figure) => (
@@ -536,4 +541,28 @@ function sameFrame(
   other: { from: number; to: number },
 ): boolean {
   return Math.abs(one.from - other.from) < 0.5 && Math.abs(one.to - other.to) < 0.5;
+}
+
+/** How far the reading sits from the cursor. */
+const READING_GAP = 14;
+
+/**
+ * Place the reading beside the cursor, on whichever side has room.
+ *
+ * Anchored to the far edge rather than the near one when the cursor is
+ * past halfway, which flips it without anybody having to know how wide it
+ * is -- and its width depends on the longest instrument name in it, so
+ * nobody does until it has been drawn.
+ *
+ * @param at - Where the crosshair is, and how big the plot is.
+ * @returns Where to put the reading.
+ */
+function placed(at: Hovered["at"]): React.CSSProperties {
+  const past = { right: at.x > at.width / 2, bottom: at.y > at.height / 2 };
+  return {
+    left: past.right ? undefined : at.x + READING_GAP,
+    right: past.right ? at.width - at.x + READING_GAP : undefined,
+    top: past.bottom ? undefined : at.y + READING_GAP,
+    bottom: past.bottom ? at.height - at.y + READING_GAP : undefined,
+  };
 }
