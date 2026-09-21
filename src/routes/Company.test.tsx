@@ -38,6 +38,15 @@ function stubEverything(replies: Record<string, unknown> = {}): ReturnType<typeo
     "/api/companies/NSE_EQ%7CINE002A01018/valuation": { body: valuation() },
     "/api/companies/NSE_EQ%7CINE002A01018/valuation/history": { body: valuationHistory() },
     "/api/watchlists/holding": { body: [] },
+    "/api/sessions": {
+      body: [
+        { day: "2026-09-16", instruments: 5000 },
+        { day: "2026-09-15", instruments: 5000 },
+      ],
+    },
+    "/api/overviews/history": {
+      body: [overview({ instrument_key: KEY }), overview({ instrument_key: KEY })],
+    },
     "/api/watchlists": { body: [] },
     "/api/companies/NSE_EQ%7CINE002A01018": { body: company() },
     "/api/overviews": { body: [overview({ instrument_key: KEY })] },
@@ -468,5 +477,23 @@ describe("Company", () => {
       const asked = fetched.mock.calls.map((call) => String(call[0]));
       expect(asked.some((path) => path.includes("/api/series?sessions=22"))).toBe(true);
     });
+  });
+
+  it("reads its figures as they stood on a chosen session, and draws each figure's shape", async () => {
+    const fetched = stubEverything();
+    renderPage(<Company instrumentKey={KEY} />);
+    await screen.findByText("Price & Performance");
+    // Two sessions of history: every reading with a shape carries a sparkline.
+    expect(
+      (await screen.findAllByRole("img", { name: /over recent sessions/ })).length,
+    ).toBeGreaterThan(3);
+
+    await userEvent.type(screen.getByLabelText("As of"), "2026-09-15");
+
+    await waitFor(() => {
+      const asked = fetched.mock.calls.map((call) => decodeURIComponent(String(call[0])));
+      expect(asked.some((path) => path.includes("/api/overviews?as_of=2026-09-15"))).toBe(true);
+    });
+    expect(screen.getByText(/Read as it stood on/)).toBeInTheDocument();
   });
 });

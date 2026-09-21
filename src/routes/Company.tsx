@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import type {
   Comparison,
@@ -30,6 +30,7 @@ import {
   fetchFigures,
   fetchFundamentals,
   fetchNews,
+  fetchOverviewHistory,
   fetchOverviews,
   fetchSeries,
   fetchValuation,
@@ -53,6 +54,7 @@ import { StatementTable } from "@/components/StatementTable";
 import { type Tab, Tabs } from "@/components/Tabs";
 import { ValuationHistoryChart } from "@/components/ValuationHistoryChart";
 import { ValuationPanel } from "@/components/ValuationPanel";
+import { SessionPicker } from "@/components/SessionPicker";
 import { ShareButton } from "@/components/ShareButton";
 import { WatchButton } from "@/components/WatchButton";
 import { Badge } from "@/components/ui/badge";
@@ -114,6 +116,18 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
   const [sessions, setSessions] = useState(DEFAULT_RANGE);
   const [view, setView] = useState<View>("compare");
   const [part, setPart] = useState<Part>("overview");
+  // The session the page is read as of, kept in the address; null is the latest.
+  const [params, setParams] = useSearchParams();
+  const asOf = params.get("as_of");
+  const setAsOf = (next: string | null): void => {
+    const query = new URLSearchParams(params);
+    if (next === null) {
+      query.delete("as_of");
+    } else {
+      query.set("as_of", next);
+    }
+    setParams(query, { replace: true });
+  };
   // How far back the valuation ratios are drawn, in years.
   const [span, setSpan] = useState(DEFAULT_SPAN);
 
@@ -126,7 +140,11 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
   const key = company.data?.instrument_key ?? null;
 
   const loadOverview = useCallback(
-    () => (key === null ? Promise.resolve([]) : fetchOverviews([key])),
+    () => (key === null ? Promise.resolve([]) : fetchOverviews([key], asOf)),
+    [key, asOf],
+  );
+  const loadFigureHistory = useCallback(
+    () => (key === null ? Promise.resolve([]) : fetchOverviewHistory(key)),
     [key],
   );
   const loadValuation = useCallback(
@@ -155,6 +173,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
     [key],
   );
   const overview = useResource(loadOverview);
+  const figureHistory = useResource(loadFigureHistory);
   const valuation = useResource(loadValuation);
   const valuationHistory = useResource(loadHistory);
   const chart = useResource(loadChart);
@@ -263,7 +282,12 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
       <Tabs tabs={PARTS} active={part} onChange={setPart} label="Company">
         {part === "overview" && (
           <div className="space-y-6">
-            <InstrumentFigures overview={overview.data?.[0] ?? null} loading={overview.loading} />
+            <SessionPicker asOf={asOf} onChange={setAsOf} />
+            <InstrumentFigures
+              overview={overview.data?.[0] ?? null}
+              loading={overview.loading}
+              history={figureHistory.data ?? []}
+            />
 
             <section className="space-y-3" aria-labelledby="valuation-heading">
               <SectionHeader

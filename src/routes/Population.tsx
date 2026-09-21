@@ -8,12 +8,14 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import type { Cadence, KnownSymbol, Member } from "@/api/client";
 import {
   fetchBreadth,
   fetchEarnings,
   fetchExternalSymbols,
+  fetchOverviewHistory,
   fetchOverviews,
   fetchPopulationValuation,
   fetchFigures,
@@ -29,6 +31,7 @@ import { type Column, DataTable } from "@/components/DataTable";
 import { Delta } from "@/components/Delta";
 import { Heatmap } from "@/components/Heatmap";
 import { PriceChart } from "@/components/PriceChart";
+import { SessionPicker } from "@/components/SessionPicker";
 import { ShareButton } from "@/components/ShareButton";
 import { PRICE_RANGES, RangeSelector } from "@/components/RangeSelector";
 import { type Tab, Tabs } from "@/components/Tabs";
@@ -73,7 +76,19 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
   // question this page is opened with, and its own price is one tab away.
   const [view, setView] = useState<View>("compare");
 
-  const load = useCallback(() => fetchPopulation(kind, scopeKey), [kind, scopeKey]);
+  // The session the page is read as of, kept in the address; null is the latest.
+  const [params, setParams] = useSearchParams();
+  const asOf = params.get("as_of");
+  const setAsOf = (next: string | null): void => {
+    const query = new URLSearchParams(params);
+    if (next === null) {
+      query.delete("as_of");
+    } else {
+      query.set("as_of", next);
+    }
+    setParams(query, { replace: true });
+  };
+  const load = useCallback(() => fetchPopulation(kind, scopeKey, asOf), [kind, scopeKey, asOf]);
   const loadBreadth = useCallback(
     () => fetchBreadth(kind, scopeKey, sessions),
     [kind, scopeKey, sessions],
@@ -98,10 +113,15 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
   const valuation = useResource(loadValuation);
   const ownKey = population.data?.instrument_key ?? null;
   const loadOwn = useCallback(
-    () => (ownKey === null ? Promise.resolve([]) : fetchOverviews([ownKey])),
-    [ownKey],
+    () => (ownKey === null ? Promise.resolve([]) : fetchOverviews([ownKey], asOf)),
+    [ownKey, asOf],
   );
   const own = useResource(loadOwn);
+  const loadOwnHistory = useCallback(
+    () => (ownKey === null ? Promise.resolve([]) : fetchOverviewHistory(ownKey)),
+    [ownKey],
+  );
+  const ownHistory = useResource(loadOwnHistory);
 
   const instrument = population.data?.instrument_key ?? null;
   const loadChart = useCallback(
@@ -199,6 +219,8 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
         }
       />
 
+      <SessionPicker asOf={asOf} onChange={setAsOf} />
+
       {found !== null && instrument !== null && (
         <section className="space-y-3" aria-labelledby="price-heading">
           <SectionHeader
@@ -250,7 +272,11 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
             title="The Index Itself"
             description="Its own level, range, trend, volume and momentum — the same figures a company carries, because an index trades."
           />
-          <InstrumentFigures overview={own.data?.[0] ?? null} loading={own.loading} />
+          <InstrumentFigures
+            overview={own.data?.[0] ?? null}
+            loading={own.loading}
+            history={ownHistory.data ?? []}
+          />
         </section>
       )}
 

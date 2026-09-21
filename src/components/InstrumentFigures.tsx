@@ -15,6 +15,7 @@ import type { InstrumentOverview } from "@/api/client";
 import { Delta } from "@/components/Delta";
 import { Empty } from "@/components/Empty";
 import { RangeMeter } from "@/components/RangeMeter";
+import { Sparkline } from "@/components/Sparkline";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   ABSENT,
@@ -29,6 +30,8 @@ import {
 interface InstrumentFiguresProps {
   overview: InstrumentOverview | null;
   loading?: boolean;
+  /** The same figures over recent sessions, oldest first, for the shape beside each. */
+  history?: InstrumentOverview[];
 }
 
 /**
@@ -40,6 +43,7 @@ interface InstrumentFiguresProps {
 export function InstrumentFigures({
   overview,
   loading = false,
+  history = [],
 }: InstrumentFiguresProps): React.JSX.Element {
   if (loading) {
     return <div className="h-40 animate-pulse rounded-lg border bg-muted/40" />;
@@ -54,11 +58,21 @@ export function InstrumentFigures({
   }
 
   const { day, returns, year_range: range, trend, volume, momentum, risk } = overview;
+  const trail = (of: (one: InstrumentOverview) => string | number | null): (number | null)[] =>
+    history.map((one) => {
+      const value = of(one);
+      return value === null ? null : toNumber(String(value));
+    });
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       <Group title="Latest Session" note={formatDay(overview.as_of)}>
-        <Line label="Close" value={formatPrice(day.close)} />
-        <Line label="Change" delta={day.change_percent} />
+        <Line label="Close" value={formatPrice(day.close)} trail={trail((one) => one.day.close)} />
+        <Line
+          label="Change"
+          delta={day.change_percent}
+          trail={trail((one) => one.day.change_percent)}
+          baseline={0}
+        />
         <Line label="Open" value={formatPrice(day.open)} />
         <Line label="Gap" delta={day.gap_percent} />
         <RangeMeter
@@ -72,10 +86,30 @@ export function InstrumentFigures({
       </Group>
 
       <Group title="Returns">
-        <Line label="1 week" delta={returns.one_week} />
-        <Line label="1 month" delta={returns.one_month} />
-        <Line label="3 months" delta={returns.three_months} />
-        <Line label="1 year" delta={returns.one_year} />
+        <Line
+          label="1 week"
+          delta={returns.one_week}
+          trail={trail((one) => one.returns.one_week)}
+          baseline={0}
+        />
+        <Line
+          label="1 month"
+          delta={returns.one_month}
+          trail={trail((one) => one.returns.one_month)}
+          baseline={0}
+        />
+        <Line
+          label="3 months"
+          delta={returns.three_months}
+          trail={trail((one) => one.returns.three_months)}
+          baseline={0}
+        />
+        <Line
+          label="1 year"
+          delta={returns.one_year}
+          trail={trail((one) => one.returns.one_year)}
+          baseline={0}
+        />
         <Line label="This year" delta={returns.year_to_date} />
       </Group>
 
@@ -189,16 +223,31 @@ function Line({
   value,
   delta,
   note,
+  trail,
+  baseline,
 }: {
   label: string;
   value?: string;
   delta?: string | null;
   note?: string;
+  /** The reading over recent sessions, drawn small beside it. */
+  trail?: (number | null)[];
+  /** A level the trail is read against, such as nought for a change. */
+  baseline?: number;
 }): React.JSX.Element {
+  const shaped = trail !== undefined && trail.filter((one) => one !== null).length >= 2;
   return (
     <div className="flex items-baseline justify-between gap-3 text-sm">
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className="tabular text-right font-medium">
+      <dd className="flex items-baseline gap-2 tabular text-right font-medium">
+        {shaped && (
+          <Sparkline
+            values={trail}
+            {...(baseline === undefined ? {} : { baseline })}
+            label={`${label} over recent sessions`}
+            className="h-4 w-14 self-center bg-transparent"
+          />
+        )}
         {delta === undefined ? value : <Delta value={delta} />}
         {note !== undefined && note !== ABSENT && (
           <span className="ml-2 text-xs font-normal text-muted-foreground">{note}</span>

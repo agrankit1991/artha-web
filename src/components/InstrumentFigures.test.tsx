@@ -97,4 +97,29 @@ describe("InstrumentFigures", () => {
 
     expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(5);
   });
+
+  it("draws each figure's shape from its history, skipping a reading it lacks", () => {
+    const base = overview();
+    const history = [
+      overview({ returns: { ...base.returns, one_week: null } }),
+      overview({ returns: { ...base.returns, one_week: "1.00" } }),
+      overview({ returns: { ...base.returns, one_week: "2.00" } }),
+    ];
+    render(
+      <InstrumentFigures
+        overview={overview({
+          trend: { ...base.trend, consecutive_rises: null, consecutive_falls: null },
+        })}
+        history={history}
+      />,
+    );
+
+    expect(
+      screen.getByRole("img", { name: /^1 week over recent sessions: rising/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: /^Close over recent sessions: flat/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Streak").nextElementSibling).toHaveTextContent("—");
+  });
 });

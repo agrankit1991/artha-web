@@ -36,6 +36,13 @@ function stubEverything(
       bodyFor: (path) => (path.endsWith("/valuation") ? populationValuation() : body),
     },
     "/api/overviews": { body: [] },
+    "/api/overviews/history": { body: [] },
+    "/api/sessions": {
+      body: [
+        { day: "2026-09-16", instruments: 5000 },
+        { day: "2026-09-15", instruments: 5000 },
+      ],
+    },
     "/api/breadth": { body: breadth() },
     "/api/earnings": { body: earnings() },
     "/api/figures": { body: { instrument_key: body.instrument_key, points: chartPoints(30) } },
@@ -347,6 +354,19 @@ describe("Population", () => {
     await waitFor(() => {
       const asked = fetched.mock.calls.map((call) => String(call[0]));
       expect(asked.some((path) => path.includes("/api/series?sessions=22"))).toBe(true);
+    });
+  });
+
+  it("reads the population as it stood on a chosen session", async () => {
+    const fetched = stubEverything();
+    renderPage(<Population kind="index" scopeKey="NSE_INDEX|Nifty 50" />);
+    await screen.findByRole("heading", { name: "Earnings" });
+
+    await userEvent.type(screen.getByLabelText("As of"), "2026-09-15");
+
+    await waitFor(() => {
+      const asked = fetched.mock.calls.map((call) => decodeURIComponent(String(call[0])));
+      expect(asked.some((path) => path.includes("Nifty 50?as_of=2026-09-15"))).toBe(true);
     });
   });
 });

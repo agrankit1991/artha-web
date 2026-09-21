@@ -572,8 +572,14 @@ export function fetchScopes(): Promise<ScopeOptions> {
  * @param keys - The instrument keys.
  * @returns The snapshots that exist, in instrument key order.
  */
-export function fetchOverviews(keys: string[]): Promise<InstrumentOverview[]> {
+export function fetchOverviews(
+  keys: string[],
+  asOf: string | null = null,
+): Promise<InstrumentOverview[]> {
   const parameters = new URLSearchParams();
+  if (asOf !== null) {
+    parameters.set("as_of", asOf);
+  }
   for (const key of keys) {
     parameters.append("keys", key);
   }
@@ -708,8 +714,13 @@ export async function fetchExternalSymbols(
  * @param key - Which one.
  * @returns The population.
  */
-export function fetchPopulation(kind: "index" | "sector", key: string): Promise<Population> {
-  return request<Population>(`/api/populations/${kind}/${encodeURIComponent(key)}`);
+export function fetchPopulation(
+  kind: "index" | "sector",
+  key: string,
+  asOf: string | null = null,
+): Promise<Population> {
+  const query = asOf === null ? "" : `?as_of=${asOf}`;
+  return request<Population>(`/api/populations/${kind}/${encodeURIComponent(key)}${query}`);
 }
 
 /** One exchange a company trades on. */
@@ -1455,6 +1466,35 @@ export function fetchFutures(segment?: FuturesSegment): Promise<UnderlyingSummar
  */
 export function fetchFuture(instrumentKey: string): Promise<FutureContract> {
   return request<FutureContract>(`/api/futures/${encodeURIComponent(instrumentKey)}`);
+}
+
+/**
+ * Fetch one instrument's figures over its recent sessions, oldest first.
+ *
+ * @param key - The instrument.
+ * @param sessions - How many sessions back.
+ * @returns The figures per session; fewer when fewer are held.
+ */
+export function fetchOverviewHistory(key: string, sessions = 60): Promise<InstrumentOverview[]> {
+  const parameters = new URLSearchParams({ key, sessions: String(sessions) });
+  return request<InstrumentOverview[]>(`/api/overviews/history?${parameters.toString()}`);
+}
+
+/** One session the platform holds figures for. */
+export interface SessionSummary {
+  day: string;
+  /** How many instruments have figures for it. */
+  instruments: number;
+}
+
+/**
+ * Fetch the most recent sessions, newest first.
+ *
+ * @param limit - How many.
+ * @returns The sessions.
+ */
+export function fetchSessions(limit = 500): Promise<SessionSummary[]> {
+  return request<SessionSummary[]>(`/api/sessions?limit=${String(limit)}`);
 }
 
 /** Where the latest reading of a ratio sits in its own history. */
