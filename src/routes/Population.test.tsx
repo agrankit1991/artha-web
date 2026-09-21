@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Population } from "./Population";
 import {
+  type Reply,
   breadth,
   chartPoints,
   member,
@@ -14,6 +15,8 @@ import {
   renderPage,
   stubPlatform,
   earnings,
+  overview,
+  populationValuation,
 } from "@/test/support";
 
 vi.mock("lightweight-charts", async () => (await import("@/test/chartStub")).chartModule());
@@ -24,9 +27,15 @@ afterEach(() => {
 
 function stubEverything(
   body: ReturnType<typeof population> = population(),
+  extra: Record<string, Reply> = {},
 ): ReturnType<typeof stubPlatform> {
   return stubPlatform({
-    "/api/populations": { body },
+    // One prefix for the population and its valuation: a longer prefix for
+    // the valuation would also capture a sector's population request.
+    "/api/populations": {
+      bodyFor: (path) => (path.endsWith("/valuation") ? populationValuation() : body),
+    },
+    "/api/overviews": { body: [] },
     "/api/breadth": { body: breadth() },
     "/api/earnings": { body: earnings() },
     "/api/figures": { body: { instrument_key: body.instrument_key, points: chartPoints(30) } },
@@ -45,6 +54,7 @@ function stubEverything(
         priceSeries("NSE_INDEX|Nifty 500", [200, 210]),
       ],
     },
+    ...extra,
   });
 }
 
@@ -249,7 +259,9 @@ describe("Population", () => {
   it("offers no way out when TradingView does not know the instrument", async () => {
     // A link to the wrong chart is worse than none.
     stubPlatform({
-      "/api/populations": { body: population() },
+      "/api/populations": {
+        bodyFor: (path) => (path.endsWith("/valuation") ? populationValuation() : population()),
+      },
       "/api/breadth": { body: breadth() },
       "/api/external-symbols": { body: [] },
       "/api/figures": {
@@ -269,7 +281,9 @@ describe("Population", () => {
     // The page draws before the fetch lands, and a heading that is blank
     // for a moment reads as a page that has lost its subject.
     stubPlatform({
-      "/api/populations": { body: population() },
+      "/api/populations": {
+        bodyFor: (path) => (path.endsWith("/valuation") ? populationValuation() : population()),
+      },
       "/api/breadth": { body: breadth() },
       "/api/external-symbols": { body: [] },
       "/api/figures": { body: { instrument_key: null, points: [] } },
@@ -280,5 +294,43 @@ describe("Population", () => {
 
     expect(screen.getByRole("heading", { name: "NSE_INDEX|Nifty Bank" })).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "Nifty Bank" })).toBeInTheDocument();
+  });
+
+  it("carries an index's own figures, which a sector has none of", async () => {
+    stubEverything(population(), {
+      "/api/overviews": { body: [overview({ instrument_key: "NSE_INDEX|Nifty 50" })] },
+    });
+    renderPage(<Population kind="index" scopeKey="NSE_INDEX|Nifty 50" />);
+
+    expect(await screen.findByRole("heading", { name: "The Index Itself" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Valuation & Contribution" }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText("Median price to earnings")).toBeInTheDocument();
+  });
+
+  it("values a sector's companies without an index of its own", async () => {
+    stubEverything(
+      population({ scope_kind: "sector", scope_key: "IT - Software", instrument_key: null }),
+    );
+    renderPage(<Population kind="sector" scopeKey="IT - Software" />);
+
+    expect(await screen.findByText("Median price to earnings")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "The Index Itself" })).not.toBeInTheDocument();
+  });
+
+  it("reports a valuation that cannot be read without losing the page", async () => {
+    // An index key is safe to stub by its longer prefix: only the valuation
+    // path carries the suffix.
+    stubEverything(population(), {
+      "/api/populations/index/NSE_INDEX%7CNifty%2050/valuation": {
+        status: 500,
+        body: { detail: "no valuation" },
+      },
+    });
+    renderPage(<Population kind="index" scopeKey="NSE_INDEX|Nifty 50" />);
+
+    expect(await screen.findByText(/no valuation/)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Earnings" })).toBeInTheDocument();
   });
 });

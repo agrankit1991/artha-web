@@ -26,6 +26,8 @@ import { ThemeProvider } from "@/lib/theme";
 import { Breadth } from "@/routes/Breadth";
 import { Company } from "@/routes/Company";
 import { EarningsPage } from "@/routes/Earnings";
+import { Indices } from "@/routes/Indices";
+import { Sectors } from "@/routes/Sectors";
 import { Fund } from "@/routes/Fund";
 import { Funds } from "@/routes/Funds";
 import { Ipo } from "@/routes/Ipo";
@@ -40,6 +42,8 @@ import { SignIn } from "@/routes/SignIn";
 const SCREENS: Screen[] = [
   { path: PATHS.overview, label: "Overview", icon: LayoutDashboard, group: "Markets", exact: true },
   { path: PATHS.breadth, label: "Breadth", icon: MARKS.breadth, group: "Markets" },
+  { path: PATHS.indices, label: "Indices", icon: ENTITIES.index.icon, group: "Markets" },
+  { path: PATHS.sectors, label: "Sectors", icon: ENTITIES.sector.icon, group: "Markets" },
   { path: PATHS.earnings, label: "Earnings", icon: MARKS.earnings, group: "Markets" },
   { path: PATHS.news, label: "News", icon: MARKS.news, group: "Markets" },
   { path: PATHS.funds, label: "Funds", icon: ENTITIES.fund.icon, group: "Research" },
@@ -155,6 +159,8 @@ function SignedIn({
         <Route path={PATHS.breadth} element={<Breadth />} />
         <Route path={PATHS.news} element={<News />} />
         <Route path={PATHS.earnings} element={<EarningsPage />} />
+        <Route path={PATHS.indices} element={<Indices />} />
+        <Route path={PATHS.sectors} element={<Sectors />} />
         <Route path={PATHS.ipos} element={<Ipos />} />
         <Route path="/ipo/:id" element={<IpoRoute />} />
         <Route path={PATHS.funds} element={<Funds />} />

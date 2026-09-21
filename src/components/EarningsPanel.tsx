@@ -20,7 +20,7 @@ import { Delta } from "@/components/Delta";
 import { Empty } from "@/components/Empty";
 import { Hint } from "@/components/Hint";
 import { CANDLE_UP, OSCILLATOR, PRICE_LINE, PRICE_WIDTH } from "@/lib/chartPalette";
-import { ABSENT, formatDay, formatPrice, toNumber } from "@/lib/format";
+import { ABSENT, formatDay, formatWhole, toNumber } from "@/lib/format";
 
 interface EarningsPanelProps {
   earnings: Earnings | null;
@@ -271,5 +271,5 @@ function share(figure: GrowthFigure | null): React.JSX.Element | string {
 /** A sum in crore, written whole. */
 function crore(value: string | null): string {
   const figure = toNumber(value);
-  return figure === null ? ABSENT : formatPrice(String(Math.round(figure)));
+  return figure === null ? ABSENT : formatWhole(figure);
 }

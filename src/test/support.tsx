@@ -13,6 +13,10 @@ import { vi } from "vitest";
 import { ThemeProvider } from "@/lib/theme";
 
 import type {
+  IndexSummary,
+  MemberValuation,
+  PopulationValuation,
+  SectorSummary,
   CompanyValuationHistory,
   ValuationSession,
   Earnings,
@@ -822,6 +826,117 @@ export function valuationHistory(
       latest: "2.00",
       percentile: "100.00",
     },
+    ...overrides,
+  };
+}
+
+/**
+ * One index on the list of every index.
+ *
+ * @param overrides - Fields to change.
+ * @returns The index.
+ */
+export function indexSummary(overrides: Partial<IndexSummary> = {}): IndexSummary {
+  return {
+    instrument_key: "NSE_INDEX|Nifty 50",
+    symbol: "NIFTY 50",
+    name: "Nifty 50",
+    category: "BROAD_MARKET",
+    constituents: 50,
+    as_of: "2026-09-16",
+    close: "25000.00",
+    change_percent: "0.50",
+    returns: trailing(),
+    from_high_percent: "-3.10",
+    ...overrides,
+  };
+}
+
+/**
+ * One sector on the list of every sector.
+ *
+ * @param overrides - Fields to change.
+ * @returns The sector.
+ */
+export function sectorSummary(overrides: Partial<SectorSummary> = {}): SectorSummary {
+  return {
+    sector: "IT - Software",
+    companies: 92,
+    measured: 90,
+    as_of: "2026-09-16",
+    median_change_percent: "0.80",
+    advancing: 60,
+    declining: 25,
+    unchanged: 5,
+    returns: trailing(),
+    ...overrides,
+  };
+}
+
+/**
+ * One member of a population valued.
+ *
+ * @param overrides - Fields to change.
+ * @returns The member.
+ */
+export function memberValuation(overrides: Partial<MemberValuation> = {}): MemberValuation {
+  return {
+    instrument_key: "NSE_EQ|INE002A01018",
+    symbol: "RELIANCE",
+    name: "Reliance Industries",
+    close: "1240.00",
+    change_percent: "1.50",
+    market_cap: "1678254.00",
+    pe: "38.27",
+    pb: "2.96",
+    moved: "24800.00",
+    ...overrides,
+  };
+}
+
+/**
+ * A population of three valued: a riser, a faller and one with nothing reported.
+ *
+ * @param overrides - Fields to change.
+ * @returns The valuation.
+ */
+export function populationValuation(
+  overrides: Partial<PopulationValuation> = {},
+): PopulationValuation {
+  return {
+    scope_kind: "index",
+    scope_key: "NSE_INDEX|Nifty 50",
+    as_of: "2026-09-16",
+    companies: 3,
+    valued: 2,
+    market_cap: "2000000.00",
+    pe_median: "30.00",
+    pb_median: "4.00",
+    members: [
+      memberValuation(),
+      memberValuation({
+        instrument_key: "NSE_EQ|INE467B01029",
+        symbol: "TCS",
+        name: "Tata Consultancy Services",
+        close: "3000.00",
+        change_percent: "-2.50",
+        market_cap: "321746.00",
+        pe: "21.73",
+        pb: "5.04",
+        moved: "-8250.00",
+      }),
+      memberValuation({
+        instrument_key: "NSE_EQ|INE000000001",
+        symbol: "NEW",
+        name: "Newly Listed",
+        close: "100.00",
+        change_percent: "0.00",
+        market_cap: null,
+        pe: null,
+        pb: null,
+        moved: null,
+      }),
+    ],
     ...overrides,
   };
 }

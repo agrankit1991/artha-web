@@ -13,6 +13,7 @@ import {
   formatSince,
   formatStreak,
   formatVolume,
+  formatWhole,
   toNumber,
 } from "./format";
 
@@ -113,5 +114,13 @@ describe("formatSince", () => {
   it("shows a dash rather than inventing a time", () => {
     expect(formatSince(null, now)).toBe(ABSENT);
     expect(formatSince("not a time", now)).toBe(ABSENT);
+  });
+});
+
+describe("formatWhole", () => {
+  it("groups the Indian way and drops the decimals", () => {
+    expect(formatWhole(1678254.4)).toBe("16,78,254");
+    expect(formatWhole(-8250)).toBe("-8,250");
+    expect(formatWhole(0.4)).toBe("0");
   });
 });

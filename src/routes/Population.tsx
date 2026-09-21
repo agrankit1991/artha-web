@@ -14,6 +14,8 @@ import {
   fetchBreadth,
   fetchEarnings,
   fetchExternalSymbols,
+  fetchOverviews,
+  fetchPopulationValuation,
   fetchFigures,
   fetchPopulation,
   fetchSeries,
@@ -21,6 +23,8 @@ import {
 import { BreadthPanel } from "@/components/BreadthPanel";
 import { type ChartLine, ComparisonChart } from "@/components/ComparisonChart";
 import { EarningsPanel } from "@/components/EarningsPanel";
+import { InstrumentFigures } from "@/components/InstrumentFigures";
+import { PopulationValuationPanel } from "@/components/PopulationValuationPanel";
 import { type Column, DataTable } from "@/components/DataTable";
 import { Delta } from "@/components/Delta";
 import { Heatmap } from "@/components/Heatmap";
@@ -82,6 +86,20 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
     [kind, scopeKey, cadence],
   );
   const earnings = useResource(loadEarnings);
+
+  // Every member valued by the rule its own page uses, and the population
+  // with them; and, for an index, its own figures, because it trades.
+  const loadValuation = useCallback(
+    () => fetchPopulationValuation(kind, scopeKey),
+    [kind, scopeKey],
+  );
+  const valuation = useResource(loadValuation);
+  const ownKey = population.data?.instrument_key ?? null;
+  const loadOwn = useCallback(
+    () => (ownKey === null ? Promise.resolve([]) : fetchOverviews([ownKey])),
+    [ownKey],
+  );
+  const own = useResource(loadOwn);
 
   const instrument = population.data?.instrument_key ?? null;
   const loadChart = useCallback(
@@ -205,7 +223,33 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
         </section>
       )}
 
+      {ownKey !== null && (
+        <section className="space-y-3" aria-labelledby="figures-heading">
+          <SectionHeader
+            id="figures-heading"
+            icon={ENTITIES.index.icon}
+            title="The Index Itself"
+            description="Its own level, range, trend, volume and momentum — the same figures a company carries, because an index trades."
+          />
+          <InstrumentFigures overview={own.data?.[0] ?? null} loading={own.loading} />
+        </section>
+      )}
+
       <BreadthPanel breadth={breadth.data} loading={breadth.loading} />
+
+      <section className="space-y-3" aria-labelledby="valuation-heading">
+        <SectionHeader
+          id="valuation-heading"
+          icon={ENTITIES.company.icon}
+          title="Valuation & Contribution"
+          description="What the typical company trades at, and which companies moved the most money today."
+        />
+        {valuation.error !== null ? (
+          <Failed message={valuation.error} />
+        ) : (
+          <PopulationValuationPanel valuation={valuation.data} loading={valuation.loading} />
+        )}
+      </section>
 
       <section className="space-y-3" aria-labelledby="earnings-heading">
         <SectionHeader

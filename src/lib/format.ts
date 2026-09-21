@@ -108,6 +108,19 @@ export function formatCount(value: number | null | undefined): string {
 }
 
 /**
+ * Render a whole number, grouped the Indian way.
+ *
+ * For sums whose decimals are noise -- a market capitalisation in crore
+ * -- where a count's plain digits would be unreadable past five figures.
+ *
+ * @param value - The figure; rounded to the nearest whole.
+ * @returns The grouped figure, e.g. ``1,67,825``.
+ */
+export function formatWhole(value: number): string {
+  return Math.round(value).toLocaleString("en-IN", { maximumFractionDigits: 0 });
+}
+
+/**
  * Render a session date.
  *
  * @param value - An ISO date, or null.

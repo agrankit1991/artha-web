@@ -1050,6 +1050,105 @@ export function fetchValuation(instrumentKey: string): Promise<CompanyValuation 
   );
 }
 
+/** One index, as a list of every index shows it. */
+export interface IndexSummary {
+  instrument_key: string;
+  symbol: string;
+  name: string;
+  /** What kind of index its exchange says it is; null when never described. */
+  category: string | null;
+  /** How many companies it holds today; nought when membership is unpublished. */
+  constituents: number;
+  as_of: string | null;
+  close: string | null;
+  change_percent: string | null;
+  returns: TrailingReturns | null;
+  from_high_percent: string | null;
+}
+
+/**
+ * Fetch every index listed today, by name.
+ *
+ * @returns The indices.
+ */
+export function fetchIndices(): Promise<IndexSummary[]> {
+  return request<IndexSummary[]>("/api/indices");
+}
+
+/** One sector, reduced to its companies' figures with every company counting once. */
+export interface SectorSummary {
+  sector: string;
+  /** How many of its companies have a listing today. */
+  companies: number;
+  /** How many of those have figures: the sample every figure here is over. */
+  measured: number;
+  as_of: string | null;
+  median_change_percent: string | null;
+  advancing: number;
+  declining: number;
+  unchanged: number;
+  returns: TrailingReturns;
+}
+
+/**
+ * Fetch every sector, by name.
+ *
+ * @returns The sectors.
+ */
+export function fetchSectors(): Promise<SectorSummary[]> {
+  return request<SectorSummary[]>("/api/sectors");
+}
+
+/** One member of a population valued, with what its move was worth. */
+export interface MemberValuation {
+  instrument_key: string;
+  symbol: string;
+  name: string;
+  close: string;
+  change_percent: string | null;
+  /** In crore; null when the share count is not held. */
+  market_cap: string | null;
+  pe: string | null;
+  pb: string | null;
+  /** Today's change in its capitalisation, in crore. */
+  moved: string | null;
+}
+
+/**
+ * A population valued, member by member and as a whole. The medians count
+ * every member once and leave losses out; the money moved is a proxy for
+ * index contribution, since real index weights are free-float and unheld.
+ */
+export interface PopulationValuation {
+  scope_kind: ScopeKind;
+  scope_key: string;
+  as_of: string | null;
+  /** How many members have a price. */
+  companies: number;
+  /** How many have a positive price-to-earnings. */
+  valued: number;
+  market_cap: string | null;
+  pe_median: string | null;
+  pb_median: string | null;
+  members: MemberValuation[];
+}
+
+/**
+ * Fetch a population valued.
+ *
+ * @param kind - An index or a sector.
+ * @param key - Which one.
+ * @returns The valuation.
+ */
+export function fetchPopulationValuation(
+  kind: ScopeKind,
+  key: string,
+): Promise<PopulationValuation> {
+  return request<PopulationValuation>(
+    `/api/populations/${kind}/${encodeURIComponent(key)}/valuation`,
+  );
+}
+
 /** Where the latest reading of a ratio sits in its own history. */
 export interface RangeReading {
   /** How many sessions had the ratio. */
