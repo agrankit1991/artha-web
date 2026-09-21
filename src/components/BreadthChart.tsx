@@ -1,36 +1,39 @@
 /**
- * How many companies rose and fell each session, and the McClellan
- * oscillator beneath them.
+ * Whether a session advanced or declined, and the McClellan oscillator
+ * beneath it.
  *
- * Two counts rather than the textbook cumulative advance-decline line.
- * That line is a running total from an arbitrary origin, so its level says
- * nothing on its own: it reaches many times the size of the population it
- * counts, and a reader has to know the convention before the number means
- * anything at all. These are companies -- bounded by the population,
- * readable without the convention, and answering what is actually asked of
- * a breadth chart, which is how much of the market was taking part. Where
- * the advancing line sits above the declining one the market rose broadly;
- * where they cross, it turned.
+ * One line rather than two counts. Two counts meant reading which of them
+ * sat higher, which is a comparison the eye has to make afresh at every
+ * point; a single line against a rule at nought answers it by its sign.
+ * Above the rule more companies rose than fell, below it more fell than
+ * rose, and how far from the rule is how one-sided the session was.
  *
- * Two panes, because counts and an oscillator cannot share a scale: the
- * counts run to several thousand and the oscillator between roughly plus
- * and minus a hundred. On one axis the oscillator is a flat line along the
- * bottom.
+ * The counts are not lost -- they are written under the reading when the
+ * crosshair is over a session, which is the moment anybody wants them.
+ *
+ * Not the cumulative advance-decline line this replaced. That is a running
+ * total from an arbitrary origin: its level is a fact about where the
+ * window starts rather than about the market, and it reaches many times
+ * the size of the population it counts.
+ *
+ * Two panes, because a percentage and an oscillator cannot share a scale:
+ * the oscillator runs to some hundreds and would flatten the line against
+ * the middle of the frame.
  */
 
 import { useMemo } from "react";
 
 import type { BreadthSession } from "@/api/client";
-import { Chart, type Series } from "@/components/Chart";
-import { CANDLE_DOWN, CANDLE_UP, OSCILLATOR, PRICE_WIDTH } from "@/lib/chartPalette";
-import { toNumber } from "@/lib/format";
+import { Chart, type Point, type Series } from "@/components/Chart";
+import { OSCILLATOR, PRICE_LINE, PRICE_WIDTH } from "@/lib/chartPalette";
+import { formatCount, toNumber } from "@/lib/format";
 
 interface BreadthChartProps {
   sessions: BreadthSession[];
   loading?: boolean;
 }
 
-/** Nought, which is the only level an oscillator is read against. */
+/** Nought: balance, and the only level either measure is read against. */
 const ZERO = [{ value: 0 }];
 
 /**
@@ -47,32 +50,50 @@ export function BreadthChart({ sessions, loading = false }: BreadthChartProps): 
     return [
       {
         kind: "line",
-        // The green a rising candle is drawn in, and the red a falling
-        // one, so a colour means the same thing on every chart here.
-        label: "Advancing",
-        colour: CANDLE_UP,
+        label: "Net advancing",
+        colour: PRICE_LINE,
         width: PRICE_WIDTH,
-        points: points(sessions, (session) => session.advancing),
-      },
-      {
-        kind: "line",
-        label: "Declining",
-        colour: CANDLE_DOWN,
-        width: PRICE_WIDTH,
-        points: points(sessions, (session) => session.declining),
+        scale: "percent",
+        thresholds: ZERO,
+        points: balance(sessions),
       },
       {
         kind: "line",
         label: "McClellan oscillator",
         colour: OSCILLATOR,
         pane: 1,
+        scale: "count",
         thresholds: ZERO,
-        points: points(sessions, (session) => toNumber(session.mcclellan_oscillator)),
+        points: figures(sessions, (session) => session.mcclellan_oscillator),
       },
     ];
   }, [sessions]);
 
-  return <Chart series={series} scale="count" loading={loading} empty="No sessions to draw" />;
+  return <Chart series={series} scale="percent" loading={loading} empty="No sessions to draw" />;
+}
+
+/**
+ * How one-sided each session was, with its counts kept alongside.
+ *
+ * @param sessions - The counted sessions.
+ * @returns One point per session that anything moved on. A session nothing
+ *   moved on has no balance to report -- not a balanced one -- so it is
+ *   left out rather than drawn at nought.
+ */
+function balance(sessions: BreadthSession[]): Point[] {
+  return sessions.flatMap((session) => {
+    const percent = toNumber(session.net_advance_percent);
+    if (percent === null) {
+      return [];
+    }
+    return [
+      {
+        time: session.as_of,
+        value: percent,
+        detail: `${formatCount(session.advancing)} up · ${formatCount(session.declining)} down`,
+      },
+    ];
+  });
 }
 
 /**
@@ -85,11 +106,11 @@ export function BreadthChart({ sessions, loading = false }: BreadthChartProps): 
  *   sessions before it means anything, and a flat run at nought before
  *   that would read as a market in perfect balance.
  */
-function points(
+function figures(
   sessions: BreadthSession[],
-  of: (session: BreadthSession) => number | null,
-): { time: string; value: number }[] {
+  of: (session: BreadthSession) => string | null,
+): Point[] {
   return sessions
-    .map((session) => ({ time: session.as_of, value: of(session) }))
-    .filter((point): point is { time: string; value: number } => point.value !== null);
+    .map((session) => ({ time: session.as_of, value: toNumber(of(session)) }))
+    .filter((point): point is Point => point.value !== null);
 }

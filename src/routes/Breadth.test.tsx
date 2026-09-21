@@ -317,12 +317,11 @@ describe("Breadth", () => {
       </ThemeProvider>,
     );
 
-    // Named in two places on this page -- as columns of the history and as
-    // lines on this chart -- so the chart is asked for by its own region.
+    // Named in two places on this page -- as a column of the history and
+    // as a line on this chart -- so the chart is asked for by its own region.
     await screen.findByText("Session by session");
     const drawn = screen.getByRole("region", { name: "Participation over time" });
-    expect(within(drawn).getByText("Advancing")).toBeInTheDocument();
-    expect(within(drawn).getByText("Declining")).toBeInTheDocument();
+    expect(within(drawn).getByText("Net advancing")).toBeInTheDocument();
     expect(within(drawn).getByText("McClellan oscillator")).toBeInTheDocument();
   });
 });

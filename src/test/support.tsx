@@ -201,6 +201,7 @@ export function breadthSession(overrides: Partial<BreadthSession> = {}): Breadth
     above_sma_50: "54.000000",
     above_sma_200: "62.000000",
     advance_decline_ratio: "1.714286",
+    net_advance_percent: "26.315789",
     arms_index: "0.857143",
     advance_decline_line: "1250",
     mcclellan_oscillator: "42.500000",

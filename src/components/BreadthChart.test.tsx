@@ -1,4 +1,4 @@
-/** Tests for the participation counts and the oscillator over time. */
+/** Tests for the session balance and the oscillator over time. */
 
 import { act, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -23,47 +23,73 @@ function draw(sessions = breadth().sessions): void {
 }
 
 describe("BreadthChart", () => {
-  it("draws both sides of the count, and the oscillator", () => {
+  it("draws the balance of the session, and the oscillator", () => {
     draw();
 
-    expect(screen.getByText("Advancing")).toBeInTheDocument();
-    expect(screen.getByText("Declining")).toBeInTheDocument();
+    expect(screen.getByText("Net advancing")).toBeInTheDocument();
     expect(screen.getByText("McClellan oscillator")).toBeInTheDocument();
   });
 
   it("puts the oscillator in a band of its own", () => {
-    // The counts run to several thousand and the oscillator between
-    // roughly plus and minus a hundred; sharing an axis, the oscillator is
-    // a flat line along the bottom.
+    // A percentage and an oscillator running to some hundreds cannot
+    // share a scale; together the line flattens against the middle.
     draw();
 
-    expect(seriesPanes()).toEqual([0, 0, 1]);
+    expect(seriesPanes()).toEqual([0, 1]);
   });
 
-  it("marks the only level an oscillator is read against", () => {
+  it("rules both measures at nought, which is balance", () => {
+    // The line is read by which side of nought it is on, so the rule is
+    // not decoration: without it the sign has to be read off the axis.
     draw();
 
+    expect(chartCalls.createPriceLine).toHaveBeenCalledTimes(2);
     expect(chartCalls.createPriceLine).toHaveBeenCalledWith(expect.objectContaining({ price: 0 }));
   });
 
-  it("counts companies rather than accumulating them", () => {
-    // The cumulative line this replaced reached many times the size of the
-    // population it counted, which is no longer a number of companies.
-    // Each point is that session's own count, bounded by the population.
+  it("writes the balance as a percentage and the oscillator as a figure", () => {
+    // One chart, two units. A percentage sign on a McClellan reading
+    // would be a claim about the measure that is simply untrue.
+    draw();
+
+    const [balance, oscillator] = chartCalls.addSeries.mock.calls;
+    expect(balance?.[1]).toHaveProperty("priceFormat");
+    expect(oscillator?.[1]).not.toHaveProperty("priceFormat");
+  });
+
+  it("draws each session's balance, keeping its counts alongside", () => {
     draw([
-      breadthSession({ as_of: "2026-09-15", instruments: 5262, advancing: 1202, declining: 3898 }),
-      breadthSession({ as_of: "2026-09-16", instruments: 5243, advancing: 2304, declining: 2723 }),
+      breadthSession({
+        as_of: "2026-09-15",
+        advancing: 1202,
+        declining: 3898,
+        net_advance_percent: "-52.862745",
+      }),
+      breadthSession({
+        as_of: "2026-09-16",
+        advancing: 2304,
+        declining: 2723,
+        net_advance_percent: "-8.334991",
+      }),
     ]);
 
-    const [advancing, declining] = chartCalls.setData.mock.calls;
-    expect(advancing?.[0]).toEqual([
-      { time: "2026-09-15", value: 1202 },
-      { time: "2026-09-16", value: 2304 },
+    const [balance] = chartCalls.setData.mock.calls;
+    expect(balance?.[0]).toEqual([
+      { time: "2026-09-15", value: -52.862745, detail: "1202 up · 3898 down" },
+      { time: "2026-09-16", value: -8.334991, detail: "2304 up · 2723 down" },
     ]);
-    expect(declining?.[0]).toEqual([
-      { time: "2026-09-15", value: 3898 },
-      { time: "2026-09-16", value: 2723 },
+  });
+
+  it("leaves out a session nothing moved on rather than calling it balanced", () => {
+    // No mover is not the same claim as an even split, and drawn at
+    // nought it would be indistinguishable from one.
+    draw([
+      breadthSession({ as_of: "2026-09-15", net_advance_percent: null }),
+      breadthSession({ as_of: "2026-09-16", net_advance_percent: "-8.33" }),
     ]);
+
+    const [balance] = chartCalls.setData.mock.calls;
+    expect(balance?.[0]).toEqual([{ time: "2026-09-16", value: -8.33, detail: "60 up · 35 down" }]);
   });
 
   it("leaves out the sessions an oscillator does not exist for yet", () => {
@@ -74,27 +100,33 @@ describe("BreadthChart", () => {
       breadthSession({ as_of: "2026-09-16", mcclellan_oscillator: "-37.3" }),
     ]);
 
-    const [, , oscillator] = chartCalls.setData.mock.calls;
+    const [, oscillator] = chartCalls.setData.mock.calls;
     expect(oscillator?.[0]).toEqual([{ time: "2026-09-16", value: -37.3 }]);
   });
 
-  it("names the session and how many companies each way", () => {
-    // The whole point of drawing it full size: reading one session off it.
-    // The counts are whole -- two decimal places on a number of companies
-    // is noise pretending to be precision.
+  it("gives back the counts where the cursor is", () => {
+    // A ratio says which way a session went and forgets what it was taken
+    // over. The counts are what anybody asks for next, so they are written
+    // under the reading rather than left to another part of the page.
     draw([
       breadthSession({ as_of: "2026-09-15" }),
-      breadthSession({ as_of: "2026-09-16", advancing: 2304, declining: 2723 }),
+      breadthSession({
+        as_of: "2026-09-16",
+        advancing: 2304,
+        declining: 2723,
+        net_advance_percent: "-8.334991",
+      }),
     ]);
 
     act(() => {
-      moveCrosshair("2026-09-16", [2304, 2723, -37.3]);
+      moveCrosshair("2026-09-16", [-8.334991, -37.3]);
     });
 
     const reading = screen.getByRole("group", { name: "Crosshair reading" });
     expect(within(reading).getByText(/16 Sept? 2026/)).toBeInTheDocument();
-    expect(within(reading).getByText("2304")).toBeInTheDocument();
-    expect(within(reading).getByText("2723")).toBeInTheDocument();
+    expect(within(reading).getByText("2304 up · 2723 down")).toBeInTheDocument();
+    // Its own unit, not the chart's: the oscillator is no percentage.
+    expect(within(reading).getByText("-8.33%")).toBeInTheDocument();
     expect(within(reading).getByText("-37")).toBeInTheDocument();
   });
 

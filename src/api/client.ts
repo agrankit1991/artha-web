@@ -94,6 +94,7 @@ export interface BreadthSession {
   above_sma_50: string | null;
   above_sma_200: string | null;
   advance_decline_ratio: string | null;
+  net_advance_percent: string | null;
   arms_index: string | null;
   advance_decline_line: string;
   mcclellan_oscillator: string | null;

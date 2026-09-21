@@ -52,6 +52,13 @@ export interface Point {
   value: number;
   /** A per-bar colour, for a histogram whose bars mean two things. */
   color?: string;
+  /**
+   * The figures behind this one, written under it in the crosshair
+   * reading. A derived value -- a ratio, a share, a spread -- loses what
+   * it was computed from, and the raw counts are usually the thing a
+   * reader wants back at the moment they ask about one session.
+   */
+  detail?: string;
 }
 
 /** A horizontal rule on a series, such as an oscillator's thresholds. */
@@ -72,6 +79,13 @@ interface Common {
   pane?: number;
   /** Rules to draw across the series, such as 30 and 70 on an RSI. */
   thresholds?: Threshold[];
+  /**
+   * What this series' figures are, when they are not the chart's own.
+   * A chart with panes can hold two units at once -- a percentage over an
+   * oscillator -- and the unit belongs to the series rather than to the
+   * frame around it.
+   */
+  scale?: Scale;
 }
 
 /** Something to draw, and what to call it. */
@@ -87,7 +101,7 @@ export type Scale = "price" | "percent" | "count";
 /** What the crosshair is over, what each series was worth, and where it is. */
 interface Hovered {
   day: string;
-  figures: { label: string; colour: string; value: number }[];
+  figures: { label: string; colour: string; value: number; scale: Scale; detail?: string }[];
   /** Where in the plot the crosshair sits, and how big the plot is. */
   at: { x: number; y: number; width: number; height: number };
 }
@@ -248,6 +262,25 @@ export function Chart({
     };
     created.timeScale().subscribeVisibleLogicalRangeChange(watch);
 
+    // What each series wrote under its points, by session. Built once
+    // rather than searched on every pointer move: a full history is
+    // thousands of points, and a hover would walk all of them.
+    const detailed = new Map<string, Map<string, string>>();
+    for (const one of drawable) {
+      if (one.kind === "candles") {
+        continue;
+      }
+      const byDay = new Map<string, string>();
+      for (const point of one.points) {
+        if (point.detail !== undefined) {
+          byDay.set(point.time, point.detail);
+        }
+      }
+      if (byDay.size > 0) {
+        detailed.set(one.label, byDay);
+      }
+    }
+
     const follow = (event: MouseEventParams): void => {
       // Off the plot entirely: cleared rather than frozen on the last
       // session it saw, which would read as a reading of right now.
@@ -269,11 +302,21 @@ export function Chart({
             series: named.get(series),
             value: figureOf(point),
           }))
-          .flatMap(({ series, value }) =>
-            series === undefined || value === null || series.kind === "bars"
-              ? []
-              : [{ label: series.label, colour: colourOf(series), value }],
-          ),
+          .flatMap(({ series, value }) => {
+            if (series === undefined || value === null || series.kind === "bars") {
+              return [];
+            }
+            const detail = detailed.get(series.label)?.get(day);
+            return [
+              {
+                label: series.label,
+                colour: colourOf(series),
+                value,
+                scale: series.scale ?? scale,
+                ...(detail === undefined ? {} : { detail }),
+              },
+            ];
+          }),
       });
     };
     created.subscribeCrosshairMove(follow);
@@ -385,14 +428,21 @@ export function Chart({
           >
             <div className="mb-0.5 text-muted-foreground">{formatDay(hovered.day)}</div>
             {hovered.figures.map((figure) => (
-              <div key={figure.label} className="flex items-center gap-2">
-                <span
-                  aria-hidden="true"
-                  className="h-0.5 w-3 shrink-0 rounded"
-                  style={{ backgroundColor: figure.colour }}
-                />
-                <span className="text-muted-foreground">{figure.label}</span>
-                <span className="tabular ml-auto font-medium">{written(figure.value, scale)}</span>
+              <div key={figure.label}>
+                <div className="flex items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="h-0.5 w-3 shrink-0 rounded"
+                    style={{ backgroundColor: figure.colour }}
+                  />
+                  <span className="text-muted-foreground">{figure.label}</span>
+                  <span className="tabular ml-auto font-medium">
+                    {written(figure.value, figure.scale)}
+                  </span>
+                </div>
+                {figure.detail !== undefined && (
+                  <div className="tabular pl-5 text-muted-foreground">{figure.detail}</div>
+                )}
               </div>
             ))}
           </div>
@@ -416,11 +466,11 @@ export function Chart({
  *
  * @param chart - The chart to add it to.
  * @param series - What to draw.
- * @param asPercent - Whether the axis shows percentages.
+ * @param scale - What the chart's figures are, unless the series says.
  */
 function draw(chart: IChartApi, series: Series, scale: Scale): ISeriesApi<SeriesType> {
   const pane = series.pane ?? 0;
-  const drawn = add(chart, series, scale, pane);
+  const drawn = add(chart, series, series.scale ?? scale, pane);
   for (const threshold of series.thresholds ?? []) {
     drawn.createPriceLine({
       price: threshold.value,
@@ -461,7 +511,7 @@ function colourOf(series: Series): string {
  *
  * @param chart - The chart to add it to.
  * @param series - What to draw.
- * @param asPercent - Whether the axis shows percentages.
+ * @param scale - What this series' figures are.
  * @param pane - Which pane to draw in.
  * @returns The series, so rules can be drawn across it.
  */
