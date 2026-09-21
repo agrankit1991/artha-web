@@ -2,11 +2,12 @@
 
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Profile } from "./Profile";
+import { DEFAULT_PREFERENCES, forgetForTests, readPreferences } from "@/lib/preferences";
 import { ThemeProvider } from "@/lib/theme";
-import { ACCOUNT } from "@/test/support";
+import { ACCOUNT, renderPage, scopeOptions, stubPlatform } from "@/test/support";
 
 afterEach(() => {
   window.localStorage.clear();
@@ -22,6 +23,17 @@ function show(onSignOut = vi.fn()): { left: typeof onSignOut } {
   );
   return { left: onSignOut };
 }
+
+// The preferences card asks for the populations it can offer. A test that
+// does not care gets a platform that never answers, so nothing lands after
+// the test has ended; the one that does care stubs the answer itself.
+beforeEach(() => {
+  vi.stubGlobal("fetch", () => new Promise<Response>(() => undefined));
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("Profile", () => {
   it("shows what the platform holds about the sign-in", () => {
@@ -100,5 +112,27 @@ describe("Profile", () => {
     await userEvent.click(screen.getByRole("button", { name: /Sign out/ }));
 
     expect(left).toHaveBeenCalled();
+  });
+
+  it("remembers the population, chart and range the reader prefers, and forgets them on request", async () => {
+    window.localStorage.removeItem("artha.preferences");
+    forgetForTests();
+    stubPlatform({ "/api/movers/scopes": { body: scopeOptions() } });
+    renderPage(<Profile account={ACCOUNT} onSignOut={vi.fn()} />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Nifty 50" }));
+    await userEvent.click(screen.getByRole("button", { name: "Candles" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "RSI" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "SMA 20" }));
+    await userEvent.click(screen.getByRole("button", { name: "5Y" }));
+
+    expect(readPreferences()).toEqual({
+      scope: { kind: "index", key: "NSE_INDEX|Nifty 50" },
+      chartStyle: "candles",
+      overlays: ["sma_50", "sma_200", "volume", "rsi"],
+      range: 1250,
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Forget my preferences" }));
+    expect(readPreferences()).toEqual(DEFAULT_PREFERENCES);
   });
 });

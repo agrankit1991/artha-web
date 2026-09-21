@@ -61,6 +61,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useResource } from "@/hooks/useResource";
+import { readPreferences, writePreferences } from "@/lib/preferences";
 import { coloured } from "@/lib/chartPalette";
 import { ENTITIES, MARKS } from "@/lib/entities";
 import {
@@ -78,8 +79,6 @@ interface CompanyProps {
   /** The company's listing on either exchange. Both reach this page. */
   instrumentKey: string;
 }
-
-const DEFAULT_RANGE = 250;
 
 /** Three years: the annual statements are broadly held for four, and the run starts when the first became public. */
 const DEFAULT_SPAN = 3;
@@ -113,7 +112,11 @@ const PARTS: Tab<Part>[] = [
  * @returns The page.
  */
 export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
-  const [sessions, setSessions] = useState(DEFAULT_RANGE);
+  const [sessions, setSessionsOnly] = useState(() => readPreferences().range);
+  const setSessions = (next: number): void => {
+    setSessionsOnly(next);
+    writePreferences({ range: next });
+  };
   const [view, setView] = useState<View>("compare");
   const [part, setPart] = useState<Part>("overview");
   // The session the page is read as of, kept in the address; null is the latest.

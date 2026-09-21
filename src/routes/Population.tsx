@@ -42,6 +42,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { SectionHeader } from "@/components/SectionHeader";
 import { ENTITIES, MARKS } from "@/lib/entities";
 import { useResource } from "@/hooks/useResource";
+import { readPreferences, writePreferences } from "@/lib/preferences";
 import { coloured } from "@/lib/chartPalette";
 import { companyPath } from "@/lib/paths";
 import { monthOfCloses } from "@/lib/sharing";
@@ -52,8 +53,6 @@ interface PopulationProps {
   /** Which one, as the platform keys it. */
   scopeKey: string;
 }
-
-const DEFAULT_RANGE = 250;
 
 /** Which view of the chart is showing. */
 type View = "compare" | "price";
@@ -71,7 +70,11 @@ const VIEWS: Tab<View>[] = [
  * @returns The page.
  */
 export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Element {
-  const [sessions, setSessions] = useState(DEFAULT_RANGE);
+  const [sessions, setSessionsOnly] = useState(() => readPreferences().range);
+  const setSessions = (next: number): void => {
+    setSessionsOnly(next);
+    writePreferences({ range: next });
+  };
   // The comparison first: how it is doing against the market is the
   // question this page is opened with, and its own price is one tab away.
   const [view, setView] = useState<View>("compare");

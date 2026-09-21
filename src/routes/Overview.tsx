@@ -45,6 +45,7 @@ import { Failed } from "@/components/Failed";
 import { SectionHeader } from "@/components/SectionHeader";
 import { ENTITIES, MARKS } from "@/lib/entities";
 import { useResource } from "@/hooks/useResource";
+import { readPreferences, writePreferences } from "@/lib/preferences";
 import { formatDay, formatPrice } from "@/lib/format";
 import { companyPath, moversPath, populationPath } from "@/lib/paths";
 import { BENCHMARK, FEATURED_INDICES, GOLD } from "@/lib/indices";
@@ -71,8 +72,6 @@ interface OverviewProps {
 const HEADLINES = 6;
 
 /** How much history the chart opens on -- a year. */
-const DEFAULT_RANGE = 250;
-
 /**
  * What the chart section can show.
  *
@@ -104,11 +103,20 @@ export function Overview({
   onOpenBreadth,
   onOpenNews,
 }: OverviewProps): React.JSX.Element {
-  const [scope, setScope] = useState<Scope>({ kind: "companies", key: null });
+  // Where the reader left the overview last time; where they put it now is kept.
+  const [scope, setScopeOnly] = useState<Scope>(() => readPreferences().scope);
+  const setScope = (next: Scope): void => {
+    setScopeOnly(next);
+    writePreferences({ scope: next });
+  };
   const [view, setView] = useState<"price" | "gold">("gold");
   // One range for both views. Switching between them to find the span
   // reset is the kind of thing that makes a chart feel like two charts.
-  const [sessions, setSessions] = useState(DEFAULT_RANGE);
+  const [sessions, setSessionsOnly] = useState(() => readPreferences().range);
+  const setSessions = (next: number): void => {
+    setSessionsOnly(next);
+    writePreferences({ range: next });
+  };
 
   const loadScopes = useCallback(() => fetchScopes(), []);
   const loadIndices = useCallback(

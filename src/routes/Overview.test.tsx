@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Overview } from "./Overview";
+import { forgetForTests } from "@/lib/preferences";
 import {
   type Reply,
   breadth,
@@ -418,5 +419,28 @@ describe("Overview", () => {
     const band = await screen.findByRole("region", { name: "What moved today" });
     expect(within(band).queryByText("Breadth")).not.toBeInTheDocument();
     expect(within(band).queryByText("Led by")).not.toBeInTheDocument();
+  });
+
+  it("opens on the population the reader left it on last time", async () => {
+    window.localStorage.setItem(
+      "artha.preferences",
+      JSON.stringify({ scope: { kind: "index", key: "NSE_INDEX|Nifty 50" } }),
+    );
+    forgetForTests();
+    const fetched = stubEverything();
+    renderPage(<Overview />);
+
+    await waitFor(() => {
+      const asked = fetched.mock.calls.map((call) =>
+        decodeURIComponent(String(call[0])).replaceAll("+", " "),
+      );
+      expect(
+        asked.some((path) =>
+          path.includes("/api/movers?scope_kind=index&scope_key=NSE_INDEX|Nifty 50"),
+        ),
+      ).toBe(true);
+    });
+    window.localStorage.removeItem("artha.preferences");
+    forgetForTests();
   });
 });

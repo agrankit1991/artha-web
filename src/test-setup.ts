@@ -1,3 +1,5 @@
+import { forgetForTests } from "@/lib/preferences";
+import { beforeEach } from "vitest";
 /** Global test setup: jest-dom matchers, and the browser APIs jsdom lacks. */
 
 import "@testing-library/jest-dom/vitest";
@@ -50,3 +52,9 @@ if (!("ResizeObserver" in globalThis)) {
 // a test that needs a context spies over this.
 HTMLCanvasElement.prototype.getContext = (() =>
   null) as typeof HTMLCanvasElement.prototype.getContext;
+
+// Preferences persist on purpose; a test must not inherit the last one's.
+beforeEach(() => {
+  window.localStorage.clear();
+  forgetForTests();
+});

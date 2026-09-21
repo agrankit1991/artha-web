@@ -37,6 +37,7 @@ import { Input } from "@/components/ui/input";
 import { useDebounced } from "@/hooks/useDebounced";
 import { useResource } from "@/hooks/useResource";
 import { coloured } from "@/lib/chartPalette";
+import { readPreferences } from "@/lib/preferences";
 import { ENTITIES } from "@/lib/entities";
 import { figureAt, writtenFigure } from "@/lib/figures";
 import { formatDay, formatPrice, toNumber } from "@/lib/format";
@@ -45,8 +46,6 @@ import { cn } from "@/lib/utils";
 
 /** How many instruments one comparison may hold: what the series endpoint serves at once. */
 export const MOST = 8;
-
-const DEFAULT_SESSIONS = 250;
 
 /** What one row of the returns table is about. */
 interface Compared {
@@ -63,7 +62,7 @@ interface Compared {
 export function Compare(): React.JSX.Element {
   const [params, setParams] = useSearchParams();
   const keys = useMemo(() => [...new Set(params.getAll("keys"))].slice(0, MOST), [params]);
-  const sessions = toNumber(params.get("sessions")) ?? DEFAULT_SESSIONS;
+  const sessions = toNumber(params.get("sessions")) ?? readPreferences().range;
 
   const loadNames = useCallback(
     () => (keys.length === 0 ? Promise.resolve([]) : fetchInstruments(keys)),

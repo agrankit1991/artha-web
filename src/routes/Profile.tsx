@@ -7,9 +7,17 @@
  * one that admits there is nothing to show.
  */
 
-import { Check, LogOut, Monitor, Moon, Palette, Sun, User } from "lucide-react";
+import { Check, LogOut, Monitor, Moon, Palette, SlidersHorizontal, Sun, User } from "lucide-react";
+import { useCallback } from "react";
 
 import type { Account } from "@/api/client";
+import { fetchScopes } from "@/api/client";
+import { OVERLAYS } from "@/components/ChartControls";
+import { Chooser } from "@/components/Chooser";
+import { PRICE_RANGES } from "@/components/RangeSelector";
+import { ScopePicker } from "@/components/ScopePicker";
+import { useResource } from "@/hooks/useResource";
+import { resetPreferences, usePreferences, writePreferences } from "@/lib/preferences";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { initialsOf } from "@/components/UserMenu";
@@ -152,6 +160,7 @@ export function Profile({ account, onSignOut }: ProfileProps): React.JSX.Element
           </Button>
         </CardContent>
       </Card>
+      <PreferencesCard />
     </div>
   );
 }
@@ -163,5 +172,88 @@ function Fact({ label, value }: { label: string; value: string }): React.JSX.Ele
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="truncate text-sm font-medium">{value}</dd>
     </div>
+  );
+}
+
+/** The choices the reader makes once and should not make again. */
+function PreferencesCard(): React.JSX.Element {
+  const preferences = usePreferences();
+  const loadScopes = useCallback(() => fetchScopes(), []);
+  const scopes = useResource(loadScopes);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <SlidersHorizontal aria-hidden="true" className="h-4 w-4 text-primary" />
+          Preferences
+        </CardTitle>
+        <CardDescription>
+          The population the overview opens on, how a price chart is drawn, and how far back a chart
+          reaches. Remembered by this browser; changing any of them on a page remembers it too.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium">Default population</h3>
+          <ScopePicker
+            scope={preferences.scope}
+            options={scopes.data}
+            onChange={(next) => {
+              writePreferences({ scope: next });
+            }}
+          />
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium">Price chart</h3>
+          <Chooser
+            options={[
+              { key: "line", label: "Line" },
+              { key: "candles", label: "Candles" },
+              { key: "area", label: "Area" },
+            ]}
+            chosen={preferences.chartStyle}
+            onChange={(next) => {
+              writePreferences({ chartStyle: next });
+            }}
+            label="Chart style"
+          />
+          <div className="flex flex-wrap gap-3" role="group" aria-label="Overlays">
+            {OVERLAYS.map((overlay) => (
+              <label key={overlay.key} className="flex items-center gap-1.5 text-sm">
+                <input
+                  type="checkbox"
+                  checked={preferences.overlays.includes(overlay.key)}
+                  onChange={(event) => {
+                    writePreferences({
+                      overlays: event.target.checked
+                        ? [...preferences.overlays, overlay.key]
+                        : preferences.overlays.filter((one) => one !== overlay.key),
+                    });
+                  }}
+                />
+                {overlay.label}
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium">Default range</h3>
+          <Chooser
+            options={PRICE_RANGES.map((range) => ({
+              key: String(range.sessions),
+              label: range.label,
+            }))}
+            chosen={String(preferences.range)}
+            onChange={(next) => {
+              writePreferences({ range: Number(next) });
+            }}
+            label="Default range"
+          />
+        </div>
+        <Button variant="outline" size="sm" onClick={resetPreferences}>
+          Forget my preferences
+        </Button>
+      </CardContent>
+    </Card>
   );
 }

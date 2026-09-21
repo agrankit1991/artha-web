@@ -12,6 +12,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { PriceChart } from "./PriceChart";
+import { forgetForTests, readPreferences } from "@/lib/preferences";
 import { chartCalls, dataFor, seriesKinds, seriesPanes } from "@/test/chartStub";
 import { AVERAGE_COLOURS, PRICE_LINE } from "@/lib/chartPalette";
 import { chartPoints } from "@/test/support";
@@ -239,5 +240,20 @@ describe("PriceChart", () => {
       AVERAGE_COLOURS.sma_200,
     ]);
     expect(drawn.every((options) => options.lineWidth === 1)).toBe(true);
+  });
+
+  it("draws in the shape the reader chose last time, and remembers a new choice", async () => {
+    window.localStorage.setItem(
+      "artha.preferences",
+      JSON.stringify({ chartStyle: "candles", overlays: ["volume"], range: 250 }),
+    );
+    forgetForTests();
+    draw({ points: chartPoints(30) });
+
+    expect(screen.getByRole("button", { name: "Chart style" })).toHaveTextContent("Candles");
+    await chooseShape("Line");
+    expect(readPreferences().chartStyle).toBe("line");
+    window.localStorage.removeItem("artha.preferences");
+    forgetForTests();
   });
 });

@@ -17,6 +17,7 @@ import { useMemo, useState } from "react";
 import type { ChartPoint } from "@/api/client";
 import { Chart, type ChartInstrument, type Series } from "@/components/Chart";
 import { type ChartStyle, ChartControls, type Overlay } from "@/components/ChartControls";
+import { readPreferences, writePreferences } from "@/lib/preferences";
 import {
   AVERAGE_COLOURS,
   OSCILLATOR,
@@ -60,8 +61,6 @@ const RSI_THRESHOLDS = [
  * In the order the menu offers them, so the set always draws the same way
  * round.
  */
-const DEFAULT_OVERLAYS: Overlay[] = ["sma_20", "sma_50", "sma_200", "volume"];
-
 /**
  * The shape a chart opens in.
  *
@@ -70,8 +69,6 @@ const DEFAULT_OVERLAYS: Overlay[] = ["sma_20", "sma_50", "sma_200", "volume"];
  * read as a shape -- the candles are one choice away for whoever wants
  * them.
  */
-const DEFAULT_STYLE: ChartStyle = "line";
-
 /**
  * Draw the sessions.
  *
@@ -81,11 +78,23 @@ const DEFAULT_STYLE: ChartStyle = "line";
 export function PriceChart({
   points,
   instrument,
-  initialOverlays = DEFAULT_OVERLAYS,
+  initialOverlays,
   loading = false,
 }: PriceChartProps): React.JSX.Element {
-  const [style, setStyle] = useState<ChartStyle>(DEFAULT_STYLE);
-  const [overlays, setOverlays] = useState<Overlay[]>(initialOverlays);
+  // What the reader chose last time, unless the page asks for something
+  // particular; what they choose now is remembered for next time.
+  const [style, setStyle] = useState<ChartStyle>(() => readPreferences().chartStyle);
+  const [overlays, setOverlays] = useState<Overlay[]>(
+    () => initialOverlays ?? readPreferences().overlays,
+  );
+  const chooseStyle = (next: ChartStyle): void => {
+    setStyle(next);
+    writePreferences({ chartStyle: next });
+  };
+  const chooseOverlays = (next: Overlay[]): void => {
+    setOverlays(next);
+    writePreferences({ overlays: next });
+  };
   const sessions = useMemo(() => points ?? [], [points]);
 
   const series = useMemo<Series[]>(() => {
@@ -140,8 +149,8 @@ export function PriceChart({
       <ChartControls
         style={style}
         overlays={overlays}
-        onStyle={setStyle}
-        onOverlays={setOverlays}
+        onStyle={chooseStyle}
+        onOverlays={chooseOverlays}
       />
       <Chart
         series={series}
