@@ -32,7 +32,7 @@ export function BreadthPanel({ breadth, loading = false }: BreadthPanelProps): R
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Market breadth</CardTitle>
+        <CardTitle className="text-base">Market Breadth</CardTitle>
         <CardDescription>
           {latest === null
             ? loading

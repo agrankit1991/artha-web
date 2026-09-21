@@ -143,7 +143,7 @@ describe("Population", () => {
 
     show();
 
-    expect(await screen.findByText("How the day went")).toBeInTheDocument();
+    expect(await screen.findByText("Performance Heatmap")).toBeInTheDocument();
     expect(screen.getByRole("list", { name: "Companies by move" })).toBeInTheDocument();
   });
 

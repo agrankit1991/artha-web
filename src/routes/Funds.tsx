@@ -142,7 +142,7 @@ export function Funds(): React.JSX.Element {
     <div className="space-y-6">
       <header className="space-y-4">
         <div>
-          <h1 className="text-xl font-semibold">Mutual funds</h1>
+          <h1 className="text-xl font-semibold">Mutual Funds</h1>
           <p className="text-sm text-muted-foreground">
             Every scheme AMFI publishes, with its latest value. A direct plan is the same fund
             without the distributor&rsquo;s commission, so the two are listed apart.

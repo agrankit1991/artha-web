@@ -67,7 +67,7 @@ describe("Overview", () => {
     renderOverview();
 
     await screen.findAllByText("24,812.40");
-    const cards = screen.getByRole("region", { name: "Market indices" });
+    const cards = screen.getByRole("region", { name: "Market Indices" });
     const names = within(cards)
       .getAllByText(/Nifty|Sensex|Bank Nifty|India VIX/)
       .map((element) => element.textContent);
@@ -138,7 +138,7 @@ describe("Overview", () => {
 
     renderOverview();
 
-    expect(await screen.findByText("Market breadth")).toBeInTheDocument();
+    expect(await screen.findByText("Market Breadth")).toBeInTheDocument();
     expect(screen.getByText("60 advancing")).toBeInTheDocument();
   });
 
@@ -146,7 +146,7 @@ describe("Overview", () => {
     stubEverything();
     const open = vi.fn();
     renderOverview({ onOpenBreadth: open });
-    await screen.findByText("Market breadth");
+    await screen.findByText("Market Breadth");
 
     await userEvent.click(screen.getByRole("button", { name: /See breadth in full/ }));
 

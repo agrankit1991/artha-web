@@ -58,7 +58,7 @@ export function Fund({ schemeCode }: FundProps): React.JSX.Element {
     return [
       {
         kind: "line",
-        label: "Value per unit",
+        label: "Net Asset Value",
         colour: PRICE_LINE,
         width: PRICE_WIDTH,
         points: points(values),
@@ -94,7 +94,7 @@ export function Fund({ schemeCode }: FundProps): React.JSX.Element {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardContent className="space-y-1 py-4">
-            <div className="text-xs text-muted-foreground">Value per unit</div>
+            <div className="text-xs text-muted-foreground">Net Asset Value</div>
             <div className="tabular text-2xl font-semibold">{formatPrice(scheme?.nav ?? null)}</div>
             <div className="text-xs text-muted-foreground">
               As published for {formatDay(scheme?.nav_date ?? null)}
@@ -104,7 +104,7 @@ export function Fund({ schemeCode }: FundProps): React.JSX.Element {
 
         <Card className="md:col-span-2">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">What it has returned</CardTitle>
+            <CardTitle className="text-base">Trailing Returns</CardTitle>
             <CardDescription>
               Three and five years are yearly rates, which is how funds are compared. A window the
               scheme has no history for is left blank rather than shown as nought.
@@ -124,7 +124,7 @@ export function Fund({ schemeCode }: FundProps): React.JSX.Element {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 id="value-heading" className="text-lg font-semibold">
-              Value over time
+              NAV History
             </h2>
             <p className="text-sm text-muted-foreground">
               One value a day, as published. A fund has no sessions, no high and low and no volume —
@@ -138,7 +138,7 @@ export function Fund({ schemeCode }: FundProps): React.JSX.Element {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">What identifies it</CardTitle>
+          <CardTitle className="text-base">Scheme Details</CardTitle>
         </CardHeader>
         <CardContent>
           <dl className="grid gap-x-8 gap-y-2 sm:grid-cols-2">

@@ -70,7 +70,7 @@ export function Breadth(): React.JSX.Element {
         <div>
           <h1 className="flex items-center gap-2 text-xl font-semibold">
             <Activity className="h-5 w-5 text-primary" />
-            Market breadth
+            Market Breadth
           </h1>
           <p className="text-sm text-muted-foreground">
             How many instruments took part, rather than how far the index moved.
@@ -122,7 +122,7 @@ export function Breadth(): React.JSX.Element {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <Activity className="h-4 w-4 text-muted-foreground" />
-                Participation over time
+                Advance–Decline Trend
               </CardTitle>
               <CardDescription>
                 How one-sided each session was: above the rule more companies rose than fell, below
@@ -130,7 +130,7 @@ export function Breadth(): React.JSX.Element {
                 keeps a band of its own.
               </CardDescription>
             </CardHeader>
-            <CardContent role="region" aria-label="Participation over time">
+            <CardContent role="region" aria-label="Advance–Decline Trend">
               <BreadthChart sessions={breadth.data?.sessions ?? []} loading={breadth.loading} />
             </CardContent>
           </Card>
@@ -141,7 +141,7 @@ export function Breadth(): React.JSX.Element {
                 <div>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <LayoutGrid className="h-4 w-4 text-muted-foreground" />
-                    Where the market is working
+                    Sector & Index Breadth
                   </CardTitle>
                   <CardDescription>
                     Every population of one kind, strongest participation first.
@@ -181,7 +181,7 @@ export function Breadth(): React.JSX.Element {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <TableIcon className="h-4 w-4 text-muted-foreground" />
-                Session by session
+                Daily Breadth
               </CardTitle>
             </CardHeader>
             <CardContent role="region" aria-label="Session history">

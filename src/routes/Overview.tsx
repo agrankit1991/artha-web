@@ -144,7 +144,7 @@ export function Overview({
       <section className="space-y-3" aria-labelledby="indices-heading">
         <h2 id="indices-heading" className="flex items-center gap-2 text-lg font-semibold">
           <TrendingUp className="h-5 w-5 text-primary" />
-          Market indices
+          Market Indices
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {cards.map((index) => (
@@ -162,7 +162,7 @@ export function Overview({
       <section className="space-y-3" aria-labelledby="heatmap-heading">
         <h2 id="heatmap-heading" className="flex items-center gap-2 text-lg font-semibold">
           <PieChart className="h-5 w-5 text-primary" />
-          Market heatmap
+          Market Heatmap
         </h2>
         <TradingViewWidget
           widget="stock-heatmap"
@@ -189,7 +189,7 @@ export function Overview({
           <div>
             <h2 id="comparison-heading" className="flex items-center gap-2 text-lg font-semibold">
               <LineChart className="h-5 w-5 text-primary" />
-              Charts
+              Index vs Gold
             </h2>
             <p className="text-sm text-muted-foreground">
               {view === "price"
@@ -237,7 +237,7 @@ export function Overview({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 id="movers-heading" className="flex items-center gap-2 text-lg font-semibold">
             <Activity className="h-5 w-5 text-primary" />
-            Market movers
+            Market Movers
           </h2>
           <div className="flex flex-wrap items-center gap-3">
             <ScopePicker scope={scope} options={scopes.data} onChange={setScope} />
@@ -287,7 +287,7 @@ export function Overview({
       <section className="space-y-3" aria-labelledby="news-heading">
         <h2 id="news-heading" className="flex items-center gap-2 text-lg font-semibold">
           <Newspaper className="h-5 w-5 text-primary" />
-          Market news
+          Market News
         </h2>
         <NewsFeed items={news.data?.items ?? null} loading={news.loading} />
         {onOpenNews && (

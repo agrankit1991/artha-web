@@ -12,14 +12,20 @@
  * once", and match the breadth counts rather than contradicting them.
  */
 
+import { Link } from "react-router-dom";
+
 import type { Member } from "@/api/client";
 import { formatPercent, toNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 interface HeatmapProps {
   members: Member[];
-  /** What to do when a company is chosen, if anything. */
-  onSelect?: (member: Member) => void;
+  /**
+   * Where a company's own page is, if it has one. Given this, every tile
+   * becomes the way to it -- which is what a reader who has just spotted
+   * the darkest tile on the grid wants next.
+   */
+  linkTo?: (member: Member) => string;
   /** How many companies to draw before stopping. */
   limit?: number;
   className?: string;
@@ -38,7 +44,7 @@ const DEFAULT_LIMIT = 120;
  */
 export function Heatmap({
   members,
-  onSelect,
+  linkTo,
   limit = DEFAULT_LIMIT,
   className,
 }: HeatmapProps): React.JSX.Element {
@@ -71,7 +77,7 @@ export function Heatmap({
             key={one.member.instrument_key}
             member={one.member}
             move={one.move}
-            {...(onSelect ? { onSelect } : {})}
+            {...(linkTo ? { to: linkTo(one.member) } : {})}
           />
         ))}
       </div>
@@ -88,11 +94,11 @@ export function Heatmap({
 function Tile({
   member,
   move,
-  onSelect,
+  to,
 }: {
   member: Member;
   move: number;
-  onSelect?: (member: Member) => void;
+  to?: string;
 }): React.JSX.Element {
   // Opacity carries the size of the move and the hue carries its
   // direction, so a strong fall and a weak one are told apart without
@@ -114,11 +120,13 @@ function Tile({
     </>
   );
 
-  if (onSelect === undefined) {
+  const title = `${member.name} ${formatPercent(member.change_percent)}`;
+
+  if (to === undefined) {
     return (
       <div
         role="listitem"
-        title={`${member.name} ${formatPercent(member.change_percent)}`}
+        title={title}
         className="rounded px-2 py-1.5"
         style={{ backgroundColor: background }}
       >
@@ -128,17 +136,14 @@ function Tile({
   }
 
   return (
-    <button
-      type="button"
+    <Link
       role="listitem"
-      title={`${member.name} ${formatPercent(member.change_percent)}`}
-      onClick={() => {
-        onSelect(member);
-      }}
+      to={to}
+      title={title}
       className="rounded px-2 py-1.5 text-left transition-transform hover:scale-[1.04]"
       style={{ backgroundColor: background }}
     >
       {content}
-    </button>
+    </Link>
   );
 }

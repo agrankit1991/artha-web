@@ -1,8 +1,8 @@
 /** Tests for the population heatmap. */
 
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { MemoryRouter } from "react-router-dom";
+import { describe, expect, it } from "vitest";
 
 import { Heatmap } from "./Heatmap";
 import { member } from "@/test/support";
@@ -67,19 +67,22 @@ describe("Heatmap", () => {
     expect(screen.getByText("Nothing counted for this population")).toBeInTheDocument();
   });
 
-  it("stays flat when choosing a company would do nothing", () => {
+  it("stays flat when a company has nowhere to lead", () => {
     render(<Heatmap members={movers("2")} />);
 
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
-  it("reports the company that was chosen", async () => {
-    const chosen = vi.fn();
-    render(<Heatmap members={movers("2")} onSelect={chosen} />);
+  it("leads from a tile to that company's own page", () => {
+    // A reader who has just spotted the darkest tile on the grid wants
+    // the company behind it, and the tile is what they are looking at.
+    render(
+      <MemoryRouter>
+        <Heatmap members={movers("2")} linkTo={(one) => `/company/${one.symbol}`} />
+      </MemoryRouter>,
+    );
 
-    await userEvent.click(screen.getByRole("listitem"));
-
-    expect(chosen).toHaveBeenCalledWith(expect.objectContaining({ symbol: "SYM0" }));
+    expect(screen.getByRole("listitem")).toHaveAttribute("href", "/company/SYM0");
   });
 
   it("leaves a company that did not move uncoloured", () => {

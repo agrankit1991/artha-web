@@ -47,7 +47,7 @@ describe("Breadth", () => {
 
     renderPage(<Breadth />);
 
-    await screen.findByText("Session by session");
+    await screen.findByText("Daily Breadth");
     const history = screen.getByRole("region", { name: "Session history" });
     const [, firstRow] = within(history).getAllByRole("row");
     expect(within(firstRow as HTMLElement).getByText(/^18 Sept? 2026$/)).toBeInTheDocument();
@@ -56,7 +56,7 @@ describe("Breadth", () => {
   it("re-counts for whichever population is chosen", async () => {
     const fetchMock = stubEverything();
     renderPage(<Breadth />);
-    await screen.findByText("Session by session");
+    await screen.findByText("Daily Breadth");
 
     await userEvent.click(screen.getByRole("button", { name: "Nifty 50" }));
 
@@ -71,7 +71,7 @@ describe("Breadth", () => {
   it("asks for a longer run when a longer window is chosen", async () => {
     const fetchMock = stubEverything();
     renderPage(<Breadth />);
-    await screen.findByText("Session by session");
+    await screen.findByText("Daily Breadth");
 
     await userEvent.click(screen.getByRole("button", { name: "5Y" }));
 
@@ -133,7 +133,7 @@ describe("Breadth", () => {
       },
     });
     renderPage(<Breadth />);
-    await screen.findByText("Session by session");
+    await screen.findByText("Daily Breadth");
     const table = within(screen.getByRole("region", { name: "Session history" })).getByRole(
       "table",
     );
@@ -173,7 +173,7 @@ describe("Breadth", () => {
     });
 
     renderPage(<Breadth />);
-    await screen.findByText("Session by session");
+    await screen.findByText("Daily Breadth");
     const table = within(screen.getByRole("region", { name: "Session history" })).getByRole(
       "table",
     );
@@ -212,7 +212,7 @@ describe("Breadth", () => {
 
     renderPage(<Breadth />);
 
-    expect(await screen.findByText("Where the market is working")).toBeInTheDocument();
+    expect(await screen.findByText("Sector & Index Breadth")).toBeInTheDocument();
     expect(screen.getByText("IT - Software")).toBeInTheDocument();
     expect(screen.getByText("Pharmaceuticals")).toBeInTheDocument();
   });
@@ -220,7 +220,7 @@ describe("Breadth", () => {
   it("lays the indices out on the same question", async () => {
     const fetchMock = stubEverything();
     renderPage(<Breadth />);
-    await screen.findByText("Where the market is working");
+    await screen.findByText("Sector & Index Breadth");
 
     // "Indices" names both a whole population to count and a kind to lay
     // out, so the query has to say which control it means.
@@ -243,7 +243,7 @@ describe("Breadth", () => {
     // which leads away to the sector's own page instead.
     const fetchMock = stubEverything();
     renderPage(<Breadth />);
-    await screen.findByText("Where the market is working");
+    await screen.findByText("Sector & Index Breadth");
 
     const cells = within(
       screen.getByText("Pharmaceuticals").closest("tr") as HTMLElement,
@@ -265,7 +265,7 @@ describe("Breadth", () => {
     // "show me this sector", not "count it here".
     stubEverything();
     renderPage(<Breadth />);
-    await screen.findByText("Where the market is working");
+    await screen.findByText("Sector & Index Breadth");
 
     expect(screen.getByRole("link", { name: /Pharmaceuticals/ })).toHaveAttribute(
       "href",
@@ -282,8 +282,8 @@ describe("Breadth", () => {
 
     // Named in two places on this page -- as a column of the history and
     // as a line on this chart -- so the chart is asked for by its own region.
-    await screen.findByText("Session by session");
-    const drawn = screen.getByRole("region", { name: "Participation over time" });
+    await screen.findByText("Daily Breadth");
+    const drawn = screen.getByRole("region", { name: "Advance–Decline Trend" });
     expect(within(drawn).getByText("Net advancing")).toBeInTheDocument();
     expect(within(drawn).getByText("McClellan oscillator")).toBeInTheDocument();
   });

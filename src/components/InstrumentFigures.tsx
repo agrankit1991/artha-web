@@ -54,7 +54,7 @@ export function InstrumentFigures({
   const { day, returns, year_range: range, trend, volume, momentum } = overview;
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-      <Group title="Latest session" note={formatDay(overview.as_of)}>
+      <Group title="Latest Session" note={formatDay(overview.as_of)}>
         <Line label="Close" value={formatPrice(day.close)} />
         <Line label="Change" delta={day.change_percent} />
         <Line label="Open" value={formatPrice(day.open)} />
@@ -70,7 +70,7 @@ export function InstrumentFigures({
         <Line label="This year" delta={returns.year_to_date} />
       </Group>
 
-      <Group title="Its own year">
+      <Group title="52-Week Range">
         <Line
           label="52-week high"
           value={formatPrice(range.high)}
@@ -82,7 +82,7 @@ export function InstrumentFigures({
         <Line label="Deepest fall" delta={range.max_drawdown_percent} />
       </Group>
 
-      <Group title="How it is trading">
+      <Group title="Trend & Volume">
         <Line label="From 200-day" delta={trend.from_sma_200_percent} />
         <Line
           label="Sessions above it"

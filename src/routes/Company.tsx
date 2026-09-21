@@ -198,7 +198,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 id="price-heading" className="text-lg font-semibold">
-                How it is doing
+                Price & Performance
               </h2>
               <p className="text-sm text-muted-foreground">
                 {view === "compare"
@@ -239,7 +239,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
       {found?.performance != null && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">How far ahead, and of what</CardTitle>
+            <CardTitle className="text-base">Relative Performance</CardTitle>
             <CardDescription>
               In percentage points. Its own trade first: a company beating the market while trailing
               every rival in its sector is doing worse than the market comparison alone suggests.
@@ -253,7 +253,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Reported figures</CardTitle>
+          <CardTitle className="text-base">Financial Statements</CardTitle>
         </CardHeader>
         <CardContent>
           <Financials statements={statements.data} loading={statements.loading} />
@@ -262,7 +262,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Who owns it</CardTitle>
+          <CardTitle className="text-base">Shareholding Pattern</CardTitle>
           <CardDescription>
             The shareholding pattern as filed each quarter, in per cent of the company.
           </CardDescription>
@@ -279,7 +279,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Corporate actions</CardTitle>
+          <CardTitle className="text-base">Corporate Actions</CardTitle>
           <CardDescription>
             Dividends, bonuses and splits. A price chart that looks broken on a date is usually
             explained here.
@@ -293,7 +293,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
       {found !== null && found.indices.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">In these indices</CardTitle>
+            <CardTitle className="text-base">Index Membership</CardTitle>
             <CardDescription>
               {found.indices.length} {found.indices.length === 1 ? "index" : "indices"} currently
               hold it, which says what size band it is in as plainly as any label would.
@@ -314,7 +314,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
       {found !== null && found.peers.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Who it competes with</CardTitle>
+            <CardTitle className="text-base">Peer Companies</CardTitle>
           </CardHeader>
           <CardContent>
             <Peers peers={found.peers} loading={company.loading} />
@@ -324,7 +324,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
 
       <section className="space-y-3" aria-labelledby="news-heading">
         <h2 id="news-heading" className="text-lg font-semibold">
-          What is being written about it
+          Company News
         </h2>
         <NewsFeed items={news.data?.items ?? null} loading={news.loading} />
         {found !== null && (news.data?.total ?? 0) > HEADLINES && (

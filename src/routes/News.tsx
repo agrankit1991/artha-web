@@ -101,7 +101,7 @@ export function News(): React.JSX.Element {
         <div>
           <h1 className="flex items-center gap-2 text-xl font-semibold">
             <Newspaper className="h-5 w-5 text-primary" />
-            Market news
+            Market News
           </h1>
           <p className="text-sm text-muted-foreground">
             Everything the platform has collected, and what it was published about.

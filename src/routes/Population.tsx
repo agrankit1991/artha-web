@@ -152,7 +152,7 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 id="price-heading" className="text-lg font-semibold">
-                How it is doing
+                Price & Performance
               </h2>
               <p className="text-sm text-muted-foreground">
                 {view === "compare"
@@ -196,14 +196,14 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
         <>
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">How the day went</CardTitle>
+              <CardTitle className="text-base">Performance Heatmap</CardTitle>
               <CardDescription>
                 Every company counting once, coloured by its move — the same reading the breadth
                 counts above are taken from.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Heatmap members={members} />
+              <Heatmap members={members} linkTo={(one) => companyPath(one.instrument_key)} />
             </CardContent>
           </Card>
 

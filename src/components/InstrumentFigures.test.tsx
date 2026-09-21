@@ -12,10 +12,10 @@ describe("InstrumentFigures", () => {
     // scan the other fifteen figures to find it.
     render(<InstrumentFigures overview={overview()} />);
 
-    expect(screen.getByText("Latest session")).toBeInTheDocument();
+    expect(screen.getByText("Latest Session")).toBeInTheDocument();
     expect(screen.getByText("Returns")).toBeInTheDocument();
-    expect(screen.getByText("Its own year")).toBeInTheDocument();
-    expect(screen.getByText("How it is trading")).toBeInTheDocument();
+    expect(screen.getByText("52-Week Range")).toBeInTheDocument();
+    expect(screen.getByText("Trend & Volume")).toBeInTheDocument();
   });
 
   it("dates the high and the low, because when matters as much as what", () => {

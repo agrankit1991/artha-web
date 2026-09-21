@@ -17,6 +17,7 @@ import { useMemo } from "react";
 import type { Statement } from "@/api/client";
 import { type Column, DataTable } from "@/components/DataTable";
 import { ABSENT, formatDay, formatPercent, formatPrice, toNumber } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 interface StatementTableProps {
   statement: Statement | null;
@@ -49,9 +50,10 @@ export function StatementTable({
   statement,
   loading = false,
   empty = "Nothing reported",
-  label = "Reported figures",
+  label = "Financial Statements",
 }: StatementTableProps): React.JSX.Element {
   const lines = useMemo(() => linesOf(statement), [statement]);
+  const periods = useMemo(() => statement?.periods ?? [], [statement]);
 
   const columns = useMemo<Column<Line>[]>(
     () => [
@@ -61,15 +63,23 @@ export function StatementTable({
         accessorFn: (row) => row.lineItem,
         cell: ({ row }) => <span className="font-medium">{readable(row.original.lineItem)}</span>,
       },
-      ...(statement?.periods ?? []).map((period): Column<Line> => ({
+      ...periods.map((period, position): Column<Line> => ({
         id: period.period_end,
         header: heading(period.period_end),
         accessorFn: (row) => toNumber(row.reported[period.period_end] ?? null) ?? 0,
-        cell: ({ row }) => written(row.original.reported[period.period_end], row.original.units),
+        cell: ({ row }) => (
+          <Figure
+            value={row.original.reported[period.period_end]}
+            // The periods run newest first, so the next one along the
+            // list is the one before this in time.
+            before={row.original.reported[periods[position + 1]?.period_end ?? ""]}
+            units={row.original.units}
+          />
+        ),
         meta: { align: "right" },
       })),
     ],
-    [statement],
+    [periods],
   );
 
   return (
@@ -114,16 +124,78 @@ function linesOf(statement: Statement | null): Line[] {
 }
 
 /**
+ * One reported figure, with how it moved from the period before.
+ *
+ * The figure alone says what was reported; the movement says whether the
+ * business is going anywhere, which is what anybody reads a run of periods
+ * to find out. Colour is never the only carrier -- the sign is printed.
+ */
+function Figure({
+  value,
+  before,
+  units,
+}: {
+  value: string | undefined;
+  before: string | undefined;
+  units: string;
+}): React.JSX.Element {
+  if (value === undefined) {
+    return <span className="text-muted-foreground">{ABSENT}</span>;
+  }
+  const moved = movement(value, before, units);
+  return (
+    <div className="leading-tight">
+      <div>{written(value, units)}</div>
+      {moved !== null && (
+        <div className={cn("text-xs", moved.startsWith("-") ? "text-loss" : "text-gain")}>
+          {moved}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * How a figure moved from the period before it.
+ *
+ * In percentage points for a share of something, because a holding that
+ * went from 50% to 55% rose five points and not ten per cent -- the second
+ * is arithmetically true and nobody means it. In per cent for the rest.
+ *
+ * @param value - What was reported this period.
+ * @param before - What was reported the period before, if anything was.
+ * @param units - What the value is in.
+ * @returns The movement, or null when there is no period before it, or
+ *   when the earlier figure was nought -- which is not a base anything can
+ *   have grown from by a measurable amount.
+ */
+function movement(value: string, before: string | undefined, units: string): string | null {
+  const now = toNumber(value);
+  const then = toNumber(before ?? null);
+  if (now === null || then === null) {
+    return null;
+  }
+  if (units === "percent") {
+    const points = now - then;
+    return `${points > 0 ? "+" : ""}${points.toFixed(2)} pp`;
+  }
+  if (then === 0) {
+    return null;
+  }
+  // Against the size of the earlier figure rather than the figure itself,
+  // so a loss that shrank reads as an improvement and not as a fall.
+  const change = ((now - then) / Math.abs(then)) * 100;
+  return `${change > 0 ? "+" : ""}${change.toFixed(1)}%`;
+}
+
+/**
  * Write a figure the way its own units are read.
  *
- * @param value - What was reported, if anything was.
+ * @param value - What was reported.
  * @param units - What the value is in.
- * @returns The figure, or a dash.
+ * @returns The figure.
  */
-function written(value: string | undefined, units: string): string {
-  if (value === undefined) {
-    return ABSENT;
-  }
+function written(value: string, units: string): string {
   return units === "percent" ? formatPercent(value) : formatPrice(value);
 }
 

@@ -67,13 +67,13 @@ describe("Fund", () => {
 
     renderPage(<Fund schemeCode="120503" />);
 
-    expect(await screen.findByText("Value per unit")).toBeInTheDocument();
+    expect(await screen.findByText("Net Asset Value")).toBeInTheDocument();
   });
 
   it("asks for more history when a longer span is chosen", async () => {
     const fetchMock = stubPlatform({ "/api/funds/120503": { body: fund() } });
     renderPage(<Fund schemeCode="120503" />);
-    await screen.findByText("Value over time");
+    await screen.findByText("NAV History");
 
     await userEvent.click(screen.getByRole("button", { name: "10Y" }));
 

@@ -97,7 +97,7 @@ describe("Company", () => {
 
     renderPage(<Company instrumentKey={KEY} />);
 
-    await screen.findByText("How it is doing");
+    await screen.findByText("Price & Performance");
     expect(screen.getByRole("tab", { name: "Relative strength" })).toHaveAttribute(
       "aria-selected",
       "true",
@@ -107,7 +107,7 @@ describe("Company", () => {
   it("draws its own sessions when that tab is chosen", async () => {
     stubEverything();
     renderPage(<Company instrumentKey={KEY} />);
-    await screen.findByText("How it is doing");
+    await screen.findByText("Price & Performance");
 
     await userEvent.click(screen.getByRole("tab", { name: "Price" }));
     expect(await screen.findByLabelText("Series drawn")).toBeInTheDocument();
@@ -145,7 +145,7 @@ describe("Company", () => {
     // Awaited inside: the table is drawn before its figures arrive, so a
     // query that resolves on the table alone runs against an empty one.
     expect(await screen.findByText("Revenue")).toBeInTheDocument();
-    const table = screen.getByRole("table", { name: "Reported figures" });
+    const table = screen.getByRole("table", { name: "Financial Statements" });
     expect(within(table).getByText("Profit After Tax")).toBeInTheDocument();
   });
 
@@ -261,7 +261,7 @@ describe("Company", () => {
   it("asks for more history when a longer range is chosen", async () => {
     const fetchMock = stubEverything();
     renderPage(<Company instrumentKey={KEY} />);
-    await screen.findByText("How it is doing");
+    await screen.findByText("Price & Performance");
 
     await userEvent.click(screen.getByRole("button", { name: "5Y" }));
 
@@ -297,7 +297,7 @@ describe("Company", () => {
     });
 
     renderPage(<Company instrumentKey={KEY} />);
-    await screen.findByText("How it is doing");
+    await screen.findByText("Price & Performance");
 
     await userEvent.click(screen.getByRole("tab", { name: "Price" }));
 
@@ -338,8 +338,8 @@ describe("Company", () => {
     renderPage(<Company instrumentKey={KEY} />);
 
     await screen.findByText("Reliance Industries");
-    expect(screen.queryByText("Who it competes with")).not.toBeInTheDocument();
-    expect(screen.queryByText("In these indices")).not.toBeInTheDocument();
+    expect(screen.queryByText("Peer Companies")).not.toBeInTheDocument();
+    expect(screen.queryByText("Index Membership")).not.toBeInTheDocument();
   });
 
   it("still draws the page for a company with no performance stored", async () => {
@@ -350,6 +350,6 @@ describe("Company", () => {
     renderPage(<Company instrumentKey={KEY} />);
 
     await screen.findByText("Reliance Industries");
-    expect(screen.queryByText("How far ahead, and of what")).not.toBeInTheDocument();
+    expect(screen.queryByText("Relative Performance")).not.toBeInTheDocument();
   });
 });
