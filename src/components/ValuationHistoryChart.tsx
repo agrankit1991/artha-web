@@ -11,7 +11,7 @@
  *
  * The ratios stand on the annual standalone statements rather than the
  * trailing quarters the headline tiles use, because the annual series is
- * fifteen years deep and the quarterly four quarters. The platform says so
+ * four broad years deep and the quarterly four quarters. The platform says so
  * in its response; this component says so under the chart.
  */
 
@@ -32,12 +32,16 @@ interface ValuationHistoryChartProps {
   onYears: (years: number) => void;
 }
 
-/** How far back the run may be asked to reach. Keyed as the chooser keys, by name. */
+/**
+ * How far back the run may be asked to reach. Keyed as the chooser keys,
+ * by name. Five years covers every annual statement held for nearly every
+ * company; the platform allows fifteen for the few that go back further.
+ */
 export const SPANS: { key: string; label: string }[] = [
+  { key: "1", label: "1Y" },
   { key: "3", label: "3Y" },
   { key: "5", label: "5Y" },
   { key: "10", label: "10Y" },
-  { key: "15", label: "15Y" },
 ];
 
 /**
@@ -79,11 +83,12 @@ export function ValuationHistoryChart({
         paneHeight={110}
       />
       <p className="text-xs text-muted-foreground">
-        Against each financial year&rsquo;s standalone earnings and book value per share, applied
-        from sixty days after the year-end, which is the deadline for audited results. The headline
-        tiles above use the trailing four quarters instead; the annual statements reach back fifteen
-        years where the quarters reach back one. A loss-making year has no price to earnings and
-        leaves a gap.
+        Against each financial year&rsquo;s standalone profit and shareholders&rsquo; funds, spread
+        over today&rsquo;s share count so that they sit on the same footing as the bonus- and
+        split-adjusted prices, and applied from sixty days after the year-end, which is the deadline
+        for audited results. The headline tiles above use the trailing four quarters instead; the
+        annual statements are held broadly from the year to March 2022, the quarters for one year. A
+        loss-making year has no price to earnings and leaves a gap.
       </p>
     </div>
   );

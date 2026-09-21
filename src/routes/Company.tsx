@@ -69,8 +69,8 @@ interface CompanyProps {
 
 const DEFAULT_RANGE = 250;
 
-/** Ten years: long enough for a cycle, short enough that the company is the same one. */
-const DEFAULT_SPAN = 10;
+/** Three years: the annual statements are broadly held for four, and the run starts when the first became public. */
+const DEFAULT_SPAN = 3;
 
 /** How many articles the page shows before sending a reader to the feed. */
 const HEADLINES = 6;

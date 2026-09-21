@@ -38,7 +38,7 @@ export const CADENCES: { key: Cadence; label: string }[] = [
 /** What each series can and cannot say, said once above the chart. */
 const NOTES: Record<Cadence, string> = {
   annual:
-    "Year on year, over every March year-end reported since 2011. Growth is taken over the companies present in both years.",
+    "Year on year, over every March year-end held. The statements are broad from the year to March 2022 and reach further back for a hundred-odd companies. Growth is taken over the companies present in both years.",
   quarterly:
     "Quarter on quarter over the quarters held. The provider keeps four quarters per company, so year on year appears only where the year-ago quarter is held.",
 };

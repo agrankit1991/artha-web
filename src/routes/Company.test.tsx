@@ -288,11 +288,11 @@ describe("Company", () => {
     expect(
       await within(history).findByRole("meter", { name: "Price to earnings" }),
     ).toHaveAttribute("aria-valuenow", "38.27");
-    await userEvent.click(within(history).getByRole("button", { name: "3Y" }));
+    await userEvent.click(within(history).getByRole("button", { name: "1Y" }));
 
     await waitFor(() => {
       const asked = fetchMock.mock.calls.map((call) => String(call[0]));
-      expect(asked.some((path) => path.includes("/valuation/history?years=3"))).toBe(true);
+      expect(asked.some((path) => path.includes("/valuation/history?years=1"))).toBe(true);
     });
   });
 

@@ -62,9 +62,9 @@ describe("ValuationHistoryChart", () => {
     const onYears = vi.fn();
     renderPage(<ValuationHistoryChart history={valuationHistory()} years={10} onYears={onYears} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "3Y" }));
+    await userEvent.click(screen.getByRole("button", { name: "1Y" }));
 
-    expect(onYears).toHaveBeenCalledWith(3);
+    expect(onYears).toHaveBeenCalledWith(1);
   });
 
   it("holds the meters while loading and when nothing has a reading", () => {
