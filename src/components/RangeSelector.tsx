@@ -7,8 +7,7 @@
  * a year of prices are worth different amounts -- so they are passed in.
  */
 
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Chooser } from "@/components/Chooser";
 
 /** One span on offer, and how many sessions it comes to. */
 export interface Range {
@@ -53,6 +52,9 @@ interface RangeSelectorProps {
 /**
  * Offer the spans.
  *
+ * A span is chosen by its label and applied as a number of sessions, so
+ * the chooser stays a chooser of labels and this translates.
+ *
  * @param props - The spans, which one is showing, and what to call.
  * @returns The selector.
  */
@@ -63,21 +65,19 @@ export function RangeSelector({
   label = "Range",
   className,
 }: RangeSelectorProps): React.JSX.Element {
+  const chosen = ranges.find((range) => range.sessions === sessions);
   return (
-    <div className={cn("flex gap-1", className)} role="group" aria-label={label}>
-      {ranges.map((range) => (
-        <Button
-          key={range.label}
-          size="sm"
-          variant={range.sessions === sessions ? "secondary" : "ghost"}
-          aria-pressed={range.sessions === sessions}
-          onClick={() => {
-            onChange(range.sessions);
-          }}
-        >
-          {range.label}
-        </Button>
-      ))}
-    </div>
+    <Chooser
+      options={ranges.map((range) => ({ key: range.label, label: range.label }))}
+      chosen={chosen?.label ?? ""}
+      onChange={(key) => {
+        const picked = ranges.find((range) => range.label === key);
+        if (picked !== undefined) {
+          onChange(picked.sessions);
+        }
+      }}
+      label={label}
+      {...(className === undefined ? {} : { className })}
+    />
   );
 }

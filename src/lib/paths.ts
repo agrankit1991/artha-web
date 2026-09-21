@@ -1,0 +1,61 @@
+/**
+ * Where every screen lives.
+ *
+ * One module, so no path is spelled out twice and nothing has to import
+ * the application shell to link to a page -- which would make every page
+ * that links anywhere depend on the thing that renders all of them.
+ *
+ * Keys carry bars and spaces (`NSE_INDEX|Nifty 50`, `NSE_EQ|INE002A01018`),
+ * so they are encoded into a path rather than laid into it raw.
+ */
+
+/** The screens reachable from the navigation. */
+export const PATHS = {
+  overview: "/",
+  breadth: "/breadth",
+  news: "/news",
+  profile: "/profile",
+} as const;
+
+/**
+ * Where a population's own page is.
+ *
+ * @param kind - Whether it is an index or a sector.
+ * @param key - Which one.
+ * @returns The path.
+ */
+export function populationPath(kind: "index" | "sector", key: string): string {
+  return `/${kind}/${encodeURIComponent(key)}`;
+}
+
+/**
+ * Where a company's own page is.
+ *
+ * @param instrumentKey - Either exchange's listing; both reach one page.
+ * @returns The path.
+ */
+export function companyPath(instrumentKey: string): string {
+  return `/company/${encodeURIComponent(instrumentKey)}`;
+}
+
+/**
+ * Where the news feed is, filtered to one company when asked.
+ *
+ * The symbol travels with the key because the feed shows what it is
+ * filtered to, and a page arriving with only a key would either print the
+ * key at a reader or fetch a whole list of companies to name one.
+ *
+ * @param instrumentKey - The company to filter to, if any.
+ * @param symbol - What that company is called.
+ * @returns The path.
+ */
+export function newsPath(instrumentKey?: string, symbol?: string): string {
+  if (instrumentKey === undefined) {
+    return PATHS.news;
+  }
+  const query = new URLSearchParams({ instrument: instrumentKey });
+  if (symbol !== undefined) {
+    query.set("symbol", symbol);
+  }
+  return `${PATHS.news}?${query.toString()}`;
+}

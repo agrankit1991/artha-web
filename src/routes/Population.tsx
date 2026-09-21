@@ -28,6 +28,8 @@ import { Tabs } from "@/components/Tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useResource } from "@/hooks/useResource";
+import { coloured } from "@/lib/chartPalette";
+import { companyPath } from "@/lib/paths";
 import { formatPrice, formatVolume, toNumber } from "@/lib/format";
 
 interface PopulationProps {
@@ -37,9 +39,6 @@ interface PopulationProps {
 }
 
 const DEFAULT_RANGE = 250;
-
-/** The colours the comparison draws each line in, in benchmark order. */
-const LINE_COLOURS = ["#2563eb", "#71717a", "#0ea5e9", "#d97706", "#a855f7"];
 
 /** What the chart section can show. */
 const VIEWS = [
@@ -85,15 +84,15 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
       ...(subject === undefined || subject === null
         ? []
         : [{ instrumentKey: subject, label: population.data?.name ?? subject }]),
-      ...benchmarks.map((one) => ({ instrumentKey: one.instrument_key, label: one.label })),
+      ...benchmarks.flatMap((one) =>
+        one.instrument_key === null
+          ? []
+          : [{ instrumentKey: one.instrument_key, label: one.label }],
+      ),
     ];
-    return drawn.map((one, position) => ({
-      ...one,
-      colour: LINE_COLOURS[position % LINE_COLOURS.length] ?? "#71717a",
-      // Everything after the subject is a benchmark: there to be read
-      // against rather than read.
-      subdued: position > 0,
-    }));
+    // Everything after the subject is a benchmark: there to be read
+    // against rather than read.
+    return coloured(drawn).map((one, position) => ({ ...one, subdued: position > 0 }));
   }, [population.data]);
 
   // Every instrument the charts draw, asked about once, so each carries
@@ -283,6 +282,7 @@ function Members({ members, loading }: { members: Member[]; loading: boolean }):
       placeholderRows={8}
       label="Constituents"
       full
+      linkTo={(row) => companyPath(row.instrument_key)}
     />
   );
 }

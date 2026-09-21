@@ -1,12 +1,18 @@
 /** Tests for the market breadth page. */
 
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Breadth } from "./Breadth";
-import { ThemeProvider } from "@/lib/theme";
-import { breadth, breadthGrid, breadthSession, scopeOptions, stubPlatform } from "@/test/support";
+import {
+  breadth,
+  breadthGrid,
+  breadthSession,
+  renderPage,
+  scopeOptions,
+  stubPlatform,
+} from "@/test/support";
 
 vi.mock("lightweight-charts", async () => (await import("@/test/chartStub")).chartModule());
 
@@ -26,11 +32,7 @@ describe("Breadth", () => {
   it("shows every headline measure with what it means", async () => {
     stubEverything();
 
-    render(
-      <ThemeProvider>
-        <Breadth />
-      </ThemeProvider>,
-    );
+    renderPage(<Breadth />);
 
     const measures = await screen.findByRole("region", { name: "Headline measures" });
     expect(within(measures).getByText("McClellan oscillator")).toBeInTheDocument();
@@ -43,11 +45,7 @@ describe("Breadth", () => {
     // The depth a glance on the overview cannot hold.
     stubEverything();
 
-    render(
-      <ThemeProvider>
-        <Breadth />
-      </ThemeProvider>,
-    );
+    renderPage(<Breadth />);
 
     await screen.findByText("Session by session");
     const history = screen.getByRole("region", { name: "Session history" });
@@ -57,11 +55,7 @@ describe("Breadth", () => {
 
   it("re-counts for whichever population is chosen", async () => {
     const fetchMock = stubEverything();
-    render(
-      <ThemeProvider>
-        <Breadth />
-      </ThemeProvider>,
-    );
+    renderPage(<Breadth />);
     await screen.findByText("Session by session");
 
     await userEvent.click(screen.getByRole("button", { name: "Nifty 50" }));
@@ -76,11 +70,7 @@ describe("Breadth", () => {
 
   it("asks for a longer run when a longer window is chosen", async () => {
     const fetchMock = stubEverything();
-    render(
-      <ThemeProvider>
-        <Breadth />
-      </ThemeProvider>,
-    );
+    renderPage(<Breadth />);
     await screen.findByText("Session by session");
 
     await userEvent.click(screen.getByRole("button", { name: "5Y" }));
@@ -94,11 +84,7 @@ describe("Breadth", () => {
   it("asks for a year to begin with", async () => {
     const fetchMock = stubEverything();
 
-    render(
-      <ThemeProvider>
-        <Breadth />
-      </ThemeProvider>,
-    );
+    renderPage(<Breadth />);
 
     await waitFor(() => {
       const asked = fetchMock.mock.calls.map((call) => String(call[0]));
@@ -113,11 +99,7 @@ describe("Breadth", () => {
       "/api/breadth": { status: 500, body: { detail: "the counts are being rebuilt" } },
     });
 
-    render(
-      <ThemeProvider>
-        <Breadth />
-      </ThemeProvider>,
-    );
+    renderPage(<Breadth />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("the counts are being rebuilt");
   });
@@ -129,11 +111,7 @@ describe("Breadth", () => {
       "/api/breadth": { body: breadth({ sessions: [], latest: null }) },
     });
 
-    render(
-      <ThemeProvider>
-        <Breadth />
-      </ThemeProvider>,
-    );
+    renderPage(<Breadth />);
 
     expect(await screen.findByText("No sessions counted for this population")).toBeInTheDocument();
   });
@@ -154,11 +132,7 @@ describe("Breadth", () => {
         }),
       },
     });
-    render(
-      <ThemeProvider>
-        <Breadth />
-      </ThemeProvider>,
-    );
+    renderPage(<Breadth />);
     await screen.findByText("Session by session");
     const table = within(screen.getByRole("region", { name: "Session history" })).getByRole(
       "table",
@@ -198,11 +172,7 @@ describe("Breadth", () => {
       },
     });
 
-    render(
-      <ThemeProvider>
-        <Breadth />
-      </ThemeProvider>,
-    );
+    renderPage(<Breadth />);
     await screen.findByText("Session by session");
     const table = within(screen.getByRole("region", { name: "Session history" })).getByRole(
       "table",
@@ -220,11 +190,7 @@ describe("Breadth", () => {
   it("names the regime rather than leaving a share to be interpreted", async () => {
     stubEverything();
 
-    render(
-      <ThemeProvider>
-        <Breadth />
-      </ThemeProvider>,
-    );
+    renderPage(<Breadth />);
 
     expect(await screen.findByText("Risk-on")).toBeInTheDocument();
   });
@@ -234,11 +200,7 @@ describe("Breadth", () => {
     // population, and the figure alone cannot say which.
     stubEverything();
 
-    render(
-      <ThemeProvider>
-        <Breadth />
-      </ThemeProvider>,
-    );
+    renderPage(<Breadth />);
 
     // Printed twice on purpose: once as the headline regime and once
     // under the meter the share belongs to.
@@ -248,11 +210,7 @@ describe("Breadth", () => {
   it("lays every sector out, strongest first", async () => {
     stubEverything();
 
-    render(
-      <ThemeProvider>
-        <Breadth />
-      </ThemeProvider>,
-    );
+    renderPage(<Breadth />);
 
     expect(await screen.findByText("Where the market is working")).toBeInTheDocument();
     expect(screen.getByText("IT - Software")).toBeInTheDocument();
@@ -261,11 +219,7 @@ describe("Breadth", () => {
 
   it("lays the indices out on the same question", async () => {
     const fetchMock = stubEverything();
-    render(
-      <ThemeProvider>
-        <Breadth />
-      </ThemeProvider>,
-    );
+    renderPage(<Breadth />);
     await screen.findByText("Where the market is working");
 
     // "Indices" names both a whole population to count and a kind to lay
@@ -285,16 +239,16 @@ describe("Breadth", () => {
 
   it("counts a population chosen from the grid", async () => {
     // The grid says which sector is working; the next question is always
-    // that sector's own breadth.
+    // that sector's own breadth. Asked of the row rather than its name,
+    // which leads away to the sector's own page instead.
     const fetchMock = stubEverything();
-    render(
-      <ThemeProvider>
-        <Breadth />
-      </ThemeProvider>,
-    );
+    renderPage(<Breadth />);
     await screen.findByText("Where the market is working");
 
-    await userEvent.click(screen.getByText("Pharmaceuticals"));
+    const cells = within(
+      screen.getByText("Pharmaceuticals").closest("tr") as HTMLElement,
+    ).getAllByRole("cell");
+    await userEvent.click(cells[cells.length - 1] as HTMLElement);
 
     await waitFor(() => {
       const asked = fetchMock.mock.calls.map((call) => String(call[0]));
@@ -306,16 +260,25 @@ describe("Breadth", () => {
     });
   });
 
+  it("leads from a population's name to its own page", async () => {
+    // Two things to do with a row, and the name is the one that means
+    // "show me this sector", not "count it here".
+    stubEverything();
+    renderPage(<Breadth />);
+    await screen.findByText("Where the market is working");
+
+    expect(screen.getByRole("link", { name: /Pharmaceuticals/ })).toHaveAttribute(
+      "href",
+      "/sector/Pharmaceuticals",
+    );
+  });
+
   it("draws the participation measures against their dates", async () => {
     // A cumulative line is read for its direction and an oscillator for
     // where it crosses nought; neither is readable without the dates.
     stubEverything();
 
-    render(
-      <ThemeProvider>
-        <Breadth />
-      </ThemeProvider>,
-    );
+    renderPage(<Breadth />);
 
     // Named in two places on this page -- as a column of the history and
     // as a line on this chart -- so the chart is asked for by its own region.

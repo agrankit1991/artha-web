@@ -299,9 +299,13 @@ export interface Member {
   as_of: string | null;
 }
 
-/** How a population did against one benchmark. */
+/** How something did against one population it is measured by. */
 export interface Comparison {
-  instrument_key: string;
+  /** The index standing for it, or null for a sector, which does not trade. */
+  instrument_key: string | null;
+  /** Which kind of population, so its own page can be reached. */
+  scope_kind: ScopeKind;
+  scope_key: string;
   label: string;
   role: string;
   returns: TrailingReturns;
@@ -706,4 +710,112 @@ export async function fetchExternalSymbols(
  */
 export function fetchPopulation(kind: "index" | "sector", key: string): Promise<Population> {
   return request<Population>(`/api/populations/${kind}/${encodeURIComponent(key)}`);
+}
+
+/** One exchange a company trades on. */
+export interface Listing {
+  instrument_key: string;
+  exchange: string;
+  symbol: string;
+}
+
+/** An index a company currently belongs to. */
+export interface Membership {
+  instrument_key: string;
+  name: string;
+}
+
+/** One company, and everything a page about it opens with. */
+export interface Company {
+  instrument_key: string;
+  isin: string;
+  symbol: string;
+  name: string;
+  description: string | null;
+  sector: string | null;
+  listings: Listing[];
+  indices: Membership[];
+  performance: Performance | null;
+  peers: Member[];
+}
+
+/** Which statement a reported figure belongs to. */
+export type StatementKind = "INCOME_STATEMENT" | "BALANCE_SHEET" | "CASH_FLOW" | "SHAREHOLDING";
+
+/** Whether figures cover the group or the parent company alone. */
+export type ReportingBasis = "CONSOLIDATED" | "STANDALONE" | "NOT_APPLICABLE";
+
+/** The length of the period a figure covers. */
+export type ReportingFrequency = "YEARLY" | "QUARTERLY";
+
+/** One reported figure. */
+export interface Figure {
+  line_item: string;
+  value: string;
+  units: string;
+}
+
+/** One reporting period, and every figure reported for it. */
+export interface Period {
+  period_end: string;
+  figures: Figure[];
+}
+
+/** One statement over the periods it was reported for. */
+export interface Statement {
+  statement: StatementKind;
+  basis: ReportingBasis;
+  frequency: ReportingFrequency;
+  /** Every line item, in the order the statement reads. */
+  line_items: string[];
+  /** The periods, most recent first. */
+  periods: Period[];
+}
+
+/** What kind of corporate event. */
+export type CorporateActionKind = "DIVIDEND" | "BONUS" | "SPLIT" | "RIGHTS" | "OTHER";
+
+/** One corporate event. */
+export interface CorporateAction {
+  kind: CorporateActionKind;
+  label: string;
+  ex_date: string;
+  record_date: string | null;
+  announced_on: string | null;
+  amount: string | null;
+  ratio: string | null;
+}
+
+/**
+ * Fetch one company: what it is, how it reads, and who it competes with.
+ *
+ * @param instrumentKey - Either exchange's listing. Both reach the same
+ *   company, so a link built from a BSE row and one built from an NSE row
+ *   land on one page.
+ * @returns The company.
+ */
+export function fetchCompany(instrumentKey: string): Promise<Company> {
+  return request<Company>(`/api/companies/${encodeURIComponent(instrumentKey)}`);
+}
+
+/**
+ * Fetch what a company has reported.
+ *
+ * @param instrumentKey - The company's listing.
+ * @returns One entry per statement, basis and frequency that has figures.
+ */
+export function fetchFundamentals(instrumentKey: string): Promise<Statement[]> {
+  return request<Statement[]>(`/api/companies/${encodeURIComponent(instrumentKey)}/fundamentals`);
+}
+
+/**
+ * Fetch a company's corporate events.
+ *
+ * @param instrumentKey - The company's listing.
+ * @returns The events, most recent ex-date first.
+ */
+export function fetchCorporateActions(instrumentKey: string): Promise<CorporateAction[]> {
+  return request<CorporateAction[]>(
+    `/api/companies/${encodeURIComponent(instrumentKey)}/corporate-actions`,
+  );
 }

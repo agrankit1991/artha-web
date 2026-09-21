@@ -21,7 +21,8 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ChevronRight, ChevronsUpDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useState } from "react";
 
 import {
@@ -82,17 +83,16 @@ interface DataTableProps<Row extends RowData> {
   /** How tall a full list grows before it scrolls. */
   maxHeight?: string;
   /**
-   * What to do when a row's details are asked for. Given one, a column of
-   * chevrons is added at the end, which is a plainer invitation than a
-   * clickable row and survives a row that also selects something.
+   * Where a row's own page is, if it has one. Given this, the first
+   * column -- which is what a row is called -- becomes the link to it.
+   *
+   * The name rather than a chevron at the far end of a dozen columns. A
+   * reader looking for a company looks at its name, and putting the way
+   * in somewhere else means crossing the whole row to reach it, on a
+   * table that scrolls sideways. It is also what a link looks like
+   * everywhere else: the words for the thing.
    */
-  onOpen?: (row: Row) => void;
-  /**
-   * What a row is called, for the details button. Without it every button
-   * in the column announces itself identically, which is no use to
-   * anybody reading the page rather than looking at it.
-   */
-  nameOf?: (row: Row) => string;
+  linkTo?: (row: Row) => string;
 }
 
 /**
@@ -111,8 +111,7 @@ export function DataTable<Row extends RowData>({
   label,
   full = false,
   maxHeight = "max-h-[70vh]",
-  onOpen,
-  nameOf,
+  linkTo,
 }: DataTableProps<Row>): React.JSX.Element {
   const [sorting, setSorting] = useState<SortingState>([]);
   const table = useReactTable({
@@ -159,11 +158,6 @@ export function DataTable<Row extends RowData>({
                 </TableHead>
               );
             })}
-            {onOpen && (
-              <TableHead className={cn("w-12", full && "sticky top-0 z-30 bg-card")}>
-                <span className="sr-only">Details</span>
-              </TableHead>
-            )}
           </TableRow>
         ))}
       </TableHeader>
@@ -172,10 +166,7 @@ export function DataTable<Row extends RowData>({
           <LoadingRows columns={columns.length} rows={placeholderRows} />
         ) : table.getRowModel().rows.length === 0 ? (
           <TableRow>
-            <TableCell
-              colSpan={columns.length + (onOpen ? 1 : 0)}
-              className="h-24 text-center text-muted-foreground"
-            >
+            <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
               {empty}
             </TableCell>
           </TableRow>
@@ -192,34 +183,34 @@ export function DataTable<Row extends RowData>({
               }
               className={cn(onSelect && "cursor-pointer")}
             >
-              {row.getVisibleCells().map((cell, position) => (
-                <TableCell
-                  key={cell.id}
-                  className={cn(
-                    alignmentOf(cell.column.columnDef) === "right" && "text-right tabular",
-                    full && position === 0 && cn(STICKY_COLUMN, "bg-card"),
-                  )}
-                >
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </TableCell>
-              ))}
-              {onOpen && (
-                <TableCell className="text-right">
-                  <button
-                    type="button"
-                    aria-label={nameOf ? `Open ${nameOf(row.original)}` : "Open details"}
-                    className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-                    onClick={(event) => {
-                      // Choosing a row and opening it are separate
-                      // intentions, and a row may already do the first.
-                      event.stopPropagation();
-                      onOpen(row.original);
-                    }}
+              {row.getVisibleCells().map((cell, position) => {
+                const drawn = flexRender(cell.column.columnDef.cell, cell.getContext());
+                return (
+                  <TableCell
+                    key={cell.id}
+                    className={cn(
+                      alignmentOf(cell.column.columnDef) === "right" && "text-right tabular",
+                      full && position === 0 && cn(STICKY_COLUMN, "bg-card"),
+                    )}
                   >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                </TableCell>
-              )}
+                    {linkTo && position === 0 ? (
+                      <Link
+                        to={linkTo(row.original)}
+                        className="block hover:text-primary hover:underline"
+                        onClick={(event) => {
+                          // Choosing a row and opening it are separate
+                          // intentions, and a row may already do the first.
+                          event.stopPropagation();
+                        }}
+                      >
+                        {drawn}
+                      </Link>
+                    ) : (
+                      drawn
+                    )}
+                  </TableCell>
+                );
+              })}
             </TableRow>
           ))
         )}

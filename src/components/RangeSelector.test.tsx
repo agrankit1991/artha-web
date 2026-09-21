@@ -57,4 +57,23 @@ describe("RangeSelector", () => {
     expect(screen.queryByRole("button", { name: "Max" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "2Y" })).toBeInTheDocument();
   });
+
+  it("presses nothing when the span showing is not one on offer", () => {
+    // A page may hold a span this selector does not list -- a chart opened
+    // at a length chosen elsewhere -- and pressing the nearest button
+    // would claim a choice nobody made.
+    render(<RangeSelector ranges={PRICE_RANGES} sessions={7} onChange={vi.fn()} />);
+
+    for (const button of screen.getAllByRole("button")) {
+      expect(button).toHaveAttribute("aria-pressed", "false");
+    }
+  });
+
+  it("takes a class from whoever placed it", () => {
+    const { container } = render(
+      <RangeSelector ranges={PRICE_RANGES} sessions={250} onChange={vi.fn()} className="ml-auto" />,
+    );
+
+    expect(container.firstChild).toHaveClass("ml-auto");
+  });
 });

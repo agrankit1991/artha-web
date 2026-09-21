@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
 import { type Column, DataTable } from "./DataTable";
@@ -136,45 +137,53 @@ describe("DataTable", () => {
     expect(container.firstChild).not.toHaveClass("overflow-auto");
   });
 
-  it("offers a way into a row's own page when there is one", async () => {
-    const opened = vi.fn();
-    render(<DataTable columns={COLUMNS} rows={[ROWS[0] as Row]} onOpen={opened} />);
-
-    await userEvent.click(screen.getByRole("button", { name: "Open details" }));
-
-    expect(opened).toHaveBeenCalled();
-  });
-
-  it("names each way in, so they are not a column of identical buttons", () => {
+  it("makes a row's own name the way into its page", () => {
+    // The name rather than a chevron at the far end of a dozen columns: a
+    // reader looking for a company looks at its name, and a table that
+    // scrolls sideways can put the far end off screen entirely.
     render(
-      <DataTable
-        columns={COLUMNS}
-        rows={[ROWS[0] as Row]}
-        onOpen={vi.fn()}
-        nameOf={(one) => one.symbol}
-      />,
+      <MemoryRouter>
+        <DataTable columns={COLUMNS} rows={[ROWS[0] as Row]} linkTo={(one) => `/x/${one.symbol}`} />
+      </MemoryRouter>,
     );
 
-    expect(screen.getByRole("button", { name: "Open TCS" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "TCS" })).toHaveAttribute("href", "/x/TCS");
+  });
+
+  it("leaves the other columns unlinked", () => {
+    // One link per row, on the thing the row is about. A price that is
+    // also a link invites a reader to think the link is about the price.
+    render(
+      <MemoryRouter>
+        <DataTable columns={COLUMNS} rows={[ROWS[0] as Row]} linkTo={() => "/x"} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getAllByRole("link")).toHaveLength(1);
   });
 
   it("opens a row without also choosing it", async () => {
     // Two separate intentions, and the row itself may already do the first.
     const chosen = vi.fn();
-    const opened = vi.fn();
     render(
-      <DataTable columns={COLUMNS} rows={[ROWS[0] as Row]} onSelect={chosen} onOpen={opened} />,
+      <MemoryRouter>
+        <DataTable
+          columns={COLUMNS}
+          rows={[ROWS[0] as Row]}
+          onSelect={chosen}
+          linkTo={() => "/x"}
+        />
+      </MemoryRouter>,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "Open details" }));
+    await userEvent.click(screen.getByRole("link", { name: "TCS" }));
 
-    expect(opened).toHaveBeenCalled();
     expect(chosen).not.toHaveBeenCalled();
   });
 
-  it("stretches the empty row across the way-in column too", () => {
-    render(<DataTable columns={COLUMNS} rows={[]} onOpen={vi.fn()} empty="Nothing here" />);
+  it("stretches the empty row across every column", () => {
+    render(<DataTable columns={COLUMNS} rows={[]} empty="Nothing here" />);
 
-    expect(screen.getByText("Nothing here")).toHaveAttribute("colspan", String(COLUMNS.length + 1));
+    expect(screen.getByText("Nothing here")).toHaveAttribute("colspan", String(COLUMNS.length));
   });
 });

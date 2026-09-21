@@ -1,11 +1,10 @@
 /** Tests for the overview page. */
 
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Overview } from "./Overview";
-import { ThemeProvider } from "@/lib/theme";
 import {
   breadth,
   chartPoints,
@@ -16,6 +15,7 @@ import {
   panel,
   priceSeries,
   scopeOptions,
+  renderPage,
   stubPlatform,
 } from "@/test/support";
 
@@ -27,11 +27,7 @@ afterEach(() => {
 
 /** Render the overview as the shell does: inside the theme it lives in. */
 function renderOverview(props: Parameters<typeof Overview>[0] = {}): void {
-  render(
-    <ThemeProvider>
-      <Overview {...props} />
-    </ThemeProvider>,
-  );
+  renderPage(<Overview {...props} />);
 }
 
 function stubEverything(): ReturnType<typeof stubPlatform> {
@@ -330,38 +326,28 @@ describe("Overview", () => {
     });
   });
 
-  it("opens an index's own page from a list of indices", async () => {
-    // A list of indices leads to each index; a list of companies does not,
-    // because a company has no page yet.
+  it("leads from an index's name to its own page", async () => {
     stubEverything();
-    const opened = vi.fn();
-    renderOverview({ onOpenIndex: opened });
+    renderOverview({ onOpenIndex: vi.fn() });
     await screen.findByText("Top gainers");
     await userEvent.click(screen.getByRole("button", { name: "Indices" }));
     await screen.findByText("Top gainers");
 
-    // The chevron rather than the row: a list of indices offers a way
-    // into each index's own page.
     const [firstPanel] = screen.getAllByRole("table");
-    const [open] = within(firstPanel as HTMLElement).getAllByRole("button", {
-      name: /^Open /,
-    });
-    await userEvent.click(open as HTMLElement);
-
-    expect(opened).toHaveBeenCalledWith("NSE_EQ|INE002A01018");
+    const [first] = within(firstPanel as HTMLElement).getAllByRole("link");
+    expect(first).toHaveAttribute("href", "/index/NSE_EQ%7CINE002A01018");
   });
 
-  it("leaves a list of companies without a way in, since there is nowhere to go", async () => {
-    // A company has no page yet, and a chevron leading nowhere is worse
-    // than none.
+  it("leads from a company's name to its own page", async () => {
+    // Every row leads somewhere now. A list of companies is a list of
+    // companies, and each of them has a page.
     stubEverything();
-    renderOverview({ onOpenIndex: vi.fn() });
+    renderOverview({});
     await screen.findByText("Top gainers");
 
     const [firstPanel] = screen.getAllByRole("table");
-    expect(
-      within(firstPanel as HTMLElement).queryByRole("button", { name: /^Open / }),
-    ).not.toBeInTheDocument();
+    const [first] = within(firstPanel as HTMLElement).getAllByRole("link");
+    expect(first).toHaveAttribute("href", "/company/NSE_EQ%7CINE002A01018");
   });
 
   it("names a chosen population by its key when nothing named it", async () => {

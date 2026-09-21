@@ -1,17 +1,17 @@
 /** Tests for one index or sector's own page. */
 
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Population } from "./Population";
-import { ThemeProvider } from "@/lib/theme";
 import {
   breadth,
   chartPoints,
   member,
   population,
   priceSeries,
+  renderPage,
   stubPlatform,
 } from "@/test/support";
 
@@ -47,11 +47,7 @@ function stubEverything(
 }
 
 function show(kind: "index" | "sector" = "index", key = "NSE_INDEX|Nifty Bank"): void {
-  render(
-    <ThemeProvider>
-      <Population kind={kind} scopeKey={key} />
-    </ThemeProvider>,
-  );
+  renderPage(<Population kind={kind} scopeKey={key} />);
 }
 
 describe("Population", () => {

@@ -6,13 +6,19 @@
  * would test the components against a fiction the platform never sends.
  */
 
+import { render } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { vi } from "vitest";
+
+import { ThemeProvider } from "@/lib/theme";
 
 import type {
   Account,
   BreadthGrid,
   ChartPoint,
+  Company,
   Comparison,
+  CorporateAction,
   Member,
   Performance,
   Population,
@@ -28,6 +34,7 @@ import type {
   PriceSeries,
   ScopeBreadth,
   ScopeOptions,
+  Statement,
   TrailingReturns,
 } from "@/api/client";
 
@@ -334,7 +341,7 @@ export function mentionedInstrument(
 }
 
 /** Build a set of trailing returns. */
-function trailing(scale = 1): TrailingReturns {
+export function trailing(scale = 1): TrailingReturns {
   return {
     one_week: String(1 * scale),
     one_month: String(2 * scale),
@@ -342,6 +349,18 @@ function trailing(scale = 1): TrailingReturns {
     six_months: String(4 * scale),
     one_year: String(5 * scale),
     year_to_date: String(6 * scale),
+  };
+}
+
+/** Trailing returns with no window computed, as a young listing has. */
+export function blankReturns(): TrailingReturns {
+  return {
+    one_week: null,
+    one_month: null,
+    three_months: null,
+    six_months: null,
+    one_year: null,
+    year_to_date: null,
   };
 }
 
@@ -370,6 +389,8 @@ export function member(overrides: Partial<Member> = {}): Member {
 export function comparison(overrides: Partial<Comparison> = {}): Comparison {
   return {
     instrument_key: "NSE_INDEX|Nifty 500",
+    scope_kind: "index",
+    scope_key: "NSE_INDEX|Nifty 500",
     label: "Nifty 500",
     role: "Whole market",
     returns: trailing(),
@@ -399,6 +420,77 @@ export function population(overrides: Partial<Population> = {}): Population {
     instrument_key: "NSE_INDEX|Nifty Bank",
     performance: performance(),
     members: [member(), member({ instrument_key: "NSE_EQ|INE467B01029", symbol: "TCS" })],
+    ...overrides,
+  };
+}
+
+/** Build one company. */
+export function company(overrides: Partial<Company> = {}): Company {
+  return {
+    instrument_key: "NSE_EQ|INE002A01018",
+    isin: "INE002A01018",
+    symbol: "RELIANCE",
+    name: "Reliance Industries",
+    description: "Refining, petrochemicals, retail and telecommunications.",
+    sector: "Refineries",
+    listings: [
+      { instrument_key: "NSE_EQ|INE002A01018", exchange: "NSE", symbol: "RELIANCE" },
+      { instrument_key: "BSE_EQ|INE002A01018", exchange: "BSE", symbol: "RELIANCE" },
+    ],
+    indices: [{ instrument_key: "NSE_INDEX|Nifty 50", name: "Nifty 50" }],
+    performance: {
+      basis: "company",
+      returns: trailing(),
+      against: [
+        comparison({
+          instrument_key: null,
+          scope_kind: "sector",
+          scope_key: "Refineries",
+          label: "Refineries",
+          role: "Its sector",
+        }),
+        comparison(),
+      ],
+    },
+    peers: [member({ instrument_key: "NSE_EQ|INE029A01011", symbol: "BPCL", name: "BPCL" })],
+    ...overrides,
+  };
+}
+
+/** Build one statement over two periods. */
+export function statement(overrides: Partial<Statement> = {}): Statement {
+  return {
+    statement: "INCOME_STATEMENT",
+    basis: "CONSOLIDATED",
+    frequency: "YEARLY",
+    line_items: ["Revenue", "Profit After Tax"],
+    periods: [
+      {
+        period_end: "2026-03-31",
+        figures: [
+          { line_item: "Revenue", value: "120.000000", units: "crore" },
+          { line_item: "Profit After Tax", value: "12.000000", units: "crore" },
+        ],
+      },
+      {
+        period_end: "2025-03-31",
+        figures: [{ line_item: "Revenue", value: "100.000000", units: "crore" }],
+      },
+    ],
+    ...overrides,
+  };
+}
+
+/** Build one corporate event. */
+export function corporateAction(overrides: Partial<CorporateAction> = {}): CorporateAction {
+  return {
+    kind: "DIVIDEND",
+    label: "Dividend - Rs 6",
+    ex_date: "2026-06-05",
+    record_date: "2026-06-06",
+    announced_on: "2026-05-01",
+    amount: "6.000000",
+    ratio: null,
     ...overrides,
   };
 }
@@ -442,4 +534,23 @@ export function priceSeries(
       return { day: day.toISOString().slice(0, 10), close: close.toFixed(6) };
     }),
   };
+}
+
+/**
+ * Render a page the way the application mounts one.
+ *
+ * Inside a router and the theme, because every page is: a table that links
+ * to a row's own page needs somewhere for the link to point, and a chart
+ * asks the theme what colour to draw its axes. A page rendered bare tests
+ * a set of conditions the application never creates.
+ *
+ * @param ui - The page.
+ * @returns What Testing Library returns.
+ */
+export function renderPage(ui: React.ReactElement): ReturnType<typeof render> {
+  return render(
+    <MemoryRouter>
+      <ThemeProvider>{ui}</ThemeProvider>
+    </MemoryRouter>,
+  );
 }

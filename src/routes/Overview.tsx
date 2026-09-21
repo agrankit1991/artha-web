@@ -34,6 +34,7 @@ import { ScopePicker } from "@/components/ScopePicker";
 import type { Scope } from "@/components/ScopeSelector";
 import { Button } from "@/components/ui/button";
 import { useResource } from "@/hooks/useResource";
+import { companyPath, populationPath } from "@/lib/paths";
 import { BENCHMARK, FEATURED_INDICES, GOLD } from "@/lib/indices";
 
 interface OverviewProps {
@@ -126,14 +127,12 @@ export function Overview({
   const chart = useResource(loadChart);
   const symbols = useResource(loadSymbols);
 
-  // A list of indices leads to each index's own page. A list of companies
-  // does not, because a company has no page yet.
-  const opens =
-    scope.kind === "indices" && onOpenIndex
-      ? (row: MoverRow) => {
-          onOpenIndex(row.instrument_key);
-        }
-      : undefined;
+  // Every row leads somewhere now: a list of indices to each index's own
+  // page, a list of companies to each company's.
+  const opens = (row: MoverRow): string =>
+    scope.kind === "indices"
+      ? populationPath("index", row.instrument_key)
+      : companyPath(row.instrument_key);
 
   const cards = useMemo(() => {
     const found = new Map(indices.data?.map((overview) => [overview.instrument_key, overview]));
@@ -278,7 +277,7 @@ export function Overview({
                 panel={panel}
                 loading={movers.loading}
                 {...(onSelect ? { onSelect } : {})}
-                {...(opens ? { onOpen: opens } : {})}
+                linkTo={opens}
               />
             ))}
           </div>

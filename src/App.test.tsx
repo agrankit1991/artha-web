@@ -271,7 +271,7 @@ describe("App", () => {
     await userEvent.click(screen.getByRole("link", { name: "Breadth" }));
     await screen.findByText("Where the market is working");
 
-    await userEvent.click(screen.getByRole("button", { name: "Open IT - Software" }));
+    await userEvent.click(screen.getByRole("link", { name: /IT - Software/ }));
 
     expect(await screen.findByText("Relative strength")).toBeInTheDocument();
   });

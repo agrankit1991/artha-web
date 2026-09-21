@@ -20,35 +20,15 @@ import type { Account } from "@/api/client";
 import { fetchAccount, fetchHello, signOut } from "@/api/client";
 import { AppShell, type Screen } from "@/components/AppShell";
 import { useResource } from "@/hooks/useResource";
+import { PATHS, populationPath } from "@/lib/paths";
 import { ThemeProvider } from "@/lib/theme";
 import { Breadth } from "@/routes/Breadth";
+import { Company } from "@/routes/Company";
 import { News } from "@/routes/News";
 import { Overview } from "@/routes/Overview";
 import { Population } from "@/routes/Population";
 import { Profile } from "@/routes/Profile";
 import { SignIn } from "@/routes/SignIn";
-
-/** Where each screen lives, so no path is spelled out twice. */
-export const PATHS = {
-  overview: "/",
-  breadth: "/breadth",
-  news: "/news",
-  profile: "/profile",
-} as const;
-
-/**
- * Where a population's own page lives.
- *
- * The key carries a bar and spaces -- `NSE_INDEX|Nifty 50` -- so it is
- * encoded into the path rather than laid into it raw.
- *
- * @param kind - Whether it is an index or a sector.
- * @param key - Which one.
- * @returns The path.
- */
-export function populationPath(kind: "index" | "sector", key: string): string {
-  return `/${kind}/${encodeURIComponent(key)}`;
-}
 
 /** The navigation, in the order the screens are meant to be read. */
 const SCREENS: Screen[] = [
@@ -163,17 +143,9 @@ function SignedIn({
             />
           }
         />
-        <Route
-          path={PATHS.breadth}
-          element={
-            <Breadth
-              onOpenPopulation={(kind, key) => {
-                onNavigate(populationPath(kind, key));
-              }}
-            />
-          }
-        />
+        <Route path={PATHS.breadth} element={<Breadth />} />
         <Route path={PATHS.news} element={<News />} />
+        <Route path="/company/:key" element={<CompanyRoute />} />
         <Route path="/index/:key" element={<PopulationRoute kind="index" />} />
         <Route path="/sector/:key" element={<PopulationRoute kind="sector" />} />
         <Route path={PATHS.profile} element={<Profile account={account} onSignOut={onSignOut} />} />
@@ -191,6 +163,16 @@ function SignedIn({
 function PopulationRoute({ kind }: { kind: "index" | "sector" }): React.JSX.Element {
   const { key } = useParams();
   return <Population kind={kind} scopeKey={key ?? ""} />;
+}
+
+/**
+ * Read the company's listing out of the path and show its page.
+ *
+ * @returns The page.
+ */
+function CompanyRoute(): React.JSX.Element {
+  const { key } = useParams();
+  return <Company instrumentKey={key ?? ""} />;
 }
 
 /** What shows while the platform is being asked who is signed in. */

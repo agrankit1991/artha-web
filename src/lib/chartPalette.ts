@@ -50,3 +50,48 @@ export const AVERAGE_COLOURS = {
  */
 export const AVERAGE_WIDTH = 1;
 export const PRICE_WIDTH = 2;
+
+/**
+ * The colours a chart of several instruments draws them in, in order.
+ *
+ * Distinct from the moving averages above: those mean a particular thing
+ * wherever they appear, while these only have to be told apart. The first
+ * is the price blue, because the first line on such a chart is the
+ * instrument the page is about.
+ */
+const SERIES_COLOURS: readonly [string, ...string[]] = [
+  PRICE_LINE,
+  "#71717a",
+  OSCILLATOR,
+  "#d97706",
+  "#a855f7",
+];
+
+/**
+ * Hand out the series colours, repeating once they run out.
+ *
+ * @param colours - The wheel to cycle.
+ * @yields Each colour in turn, for ever.
+ */
+function* cycle(colours: readonly [string, ...string[]]): Generator<string, never> {
+  for (;;) {
+    yield* colours;
+  }
+}
+
+/**
+ * Pair each thing to be drawn with the colour to draw it in.
+ *
+ * Handed out from an endless wheel rather than looked up by position,
+ * deliberately. Indexing an array is `string | undefined` under this
+ * project's compiler settings however certain the arithmetic makes us, so
+ * indexing would need a fallback colour that could never be reached --
+ * and an unreachable line is a claim about the code that is not true.
+ *
+ * @param items - What is to be drawn, in the order it should be coloured.
+ * @returns The same things, each with a colour.
+ */
+export function coloured<Item>(items: readonly Item[]): (Item & { colour: string })[] {
+  const wheel = cycle(SERIES_COLOURS);
+  return items.map((item) => ({ ...item, colour: wheel.next().value }));
+}

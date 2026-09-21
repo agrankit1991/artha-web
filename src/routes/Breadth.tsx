@@ -25,6 +25,7 @@ import { Statistic } from "@/components/Statistic";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useResource } from "@/hooks/useResource";
+import { populationPath } from "@/lib/paths";
 import { readings } from "@/lib/breadthReadings";
 import { ABSENT, formatDay, formatVolume, toNumber } from "@/lib/format";
 
@@ -41,12 +42,7 @@ const GRIDS: { kind: "sector" | "indices" | "index"; label: string }[] = [
  *
  * @returns The page.
  */
-export function Breadth({
-  onOpenPopulation,
-}: {
-  /** Where to send a reader who wants one population's own page. */
-  onOpenPopulation?: (kind: "index" | "sector", key: string) => void;
-} = {}): React.JSX.Element {
+export function Breadth(): React.JSX.Element {
   const [scope, setScope] = useState<Scope>({ kind: "companies", key: null });
   const [sessions, setSessions] = useState(DEFAULT_WINDOW);
   const [gridKind, setGridKind] = useState<"sector" | "index">("sector");
@@ -176,13 +172,7 @@ export function Breadth({
                 onSelect={(scopeKey) => {
                   setScope({ kind: gridKind, key: scopeKey });
                 }}
-                {...(onOpenPopulation
-                  ? {
-                      onOpen: (scopeKey: string) => {
-                        onOpenPopulation(gridKind, scopeKey);
-                      },
-                    }
-                  : {})}
+                linkTo={(scopeKey) => populationPath(gridKind, scopeKey)}
               />
             </CardContent>
           </Card>

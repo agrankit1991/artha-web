@@ -28,8 +28,8 @@ interface BreadthGridPanelProps {
   loading?: boolean;
   /** Called when a population is chosen, making rows clickable when given. */
   onSelect?: (scopeKey: string) => void;
-  /** Called to open a population's own page, offered as a link per row. */
-  onOpen?: (scopeKey: string) => void;
+  /** Where a population's own page is, so its name becomes the link. */
+  linkTo?: (scopeKey: string) => string;
 }
 
 /** How each band is painted as a chip. */
@@ -51,7 +51,7 @@ export function BreadthGridPanel({
   comparedWith,
   loading = false,
   onSelect,
-  onOpen,
+  linkTo,
 }: BreadthGridPanelProps): React.JSX.Element {
   const columns = useMemo<Column<ScopeBreadth>[]>(
     () => [
@@ -127,7 +127,6 @@ export function BreadthGridPanel({
       loading={loading}
       empty="Nothing counted for this kind of population"
       placeholderRows={8}
-      nameOf={(row: ScopeBreadth) => label(row.scope_key)}
       {...(onSelect
         ? {
             onSelect: (row: ScopeBreadth) => {
@@ -135,13 +134,7 @@ export function BreadthGridPanel({
             },
           }
         : {})}
-      {...(onOpen
-        ? {
-            onOpen: (row: ScopeBreadth) => {
-              onOpen(row.scope_key);
-            },
-          }
-        : {})}
+      {...(linkTo ? { linkTo: (row: ScopeBreadth) => linkTo(row.scope_key) } : {})}
     />
   );
 }

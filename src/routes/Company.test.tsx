@@ -1,0 +1,355 @@
+/** Tests for one company's own page. */
+
+import { screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { Company } from "./Company";
+import {
+  chartPoints,
+  blankReturns,
+  company,
+  comparison,
+  corporateAction,
+  member,
+  newsPage,
+  overview,
+  priceSeries,
+  renderPage,
+  statement,
+  stubPlatform,
+  trailing,
+} from "@/test/support";
+
+vi.mock("lightweight-charts", async () => (await import("@/test/chartStub")).chartModule());
+
+const KEY = "NSE_EQ|INE002A01018";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+function stubEverything(replies: Record<string, unknown> = {}): ReturnType<typeof stubPlatform> {
+  return stubPlatform({
+    "/api/companies/NSE_EQ%7CINE002A01018/fundamentals": { body: [statement()] },
+    "/api/companies/NSE_EQ%7CINE002A01018/corporate-actions": { body: [corporateAction()] },
+    "/api/companies/NSE_EQ%7CINE002A01018": { body: company() },
+    "/api/overviews": { body: [overview({ instrument_key: KEY })] },
+    "/api/figures": { body: { instrument_key: KEY, points: chartPoints(40) } },
+    "/api/series": { body: [priceSeries(KEY, [100, 101, 103])] },
+    "/api/external-symbols": {
+      body: { [KEY]: { symbol: "NSE:RELIANCE", derived: false } },
+    },
+    "/api/news": { body: newsPage() },
+    ...(replies as Record<string, { body?: unknown; status?: number }>),
+  });
+}
+
+describe("Company", () => {
+  it("opens with what the company is", async () => {
+    stubEverything();
+
+    renderPage(<Company instrumentKey={KEY} />);
+
+    expect(await screen.findByText("Reliance Industries")).toBeInTheDocument();
+    expect(screen.getByText(/INE002A01018/)).toBeInTheDocument();
+    expect(
+      screen.getByText("Refining, petrochemicals, retail and telecommunications."),
+    ).toBeInTheDocument();
+  });
+
+  it("names every exchange it trades on", async () => {
+    // Which is the only way a reader knows to look for it on the other.
+    stubEverything();
+
+    renderPage(<Company instrumentKey={KEY} />);
+
+    expect(await screen.findByText("NSE: RELIANCE")).toBeInTheDocument();
+    expect(screen.getByText("BSE: RELIANCE")).toBeInTheDocument();
+  });
+
+  it("leads from its sector to that sector's page", async () => {
+    stubEverything();
+
+    renderPage(<Company instrumentKey={KEY} />);
+
+    expect(await screen.findByRole("link", { name: "Refineries" })).toHaveAttribute(
+      "href",
+      "/sector/Refineries",
+    );
+  });
+
+  it("leads from each index holding it to that index's page", async () => {
+    stubEverything();
+
+    renderPage(<Company instrumentKey={KEY} />);
+
+    expect(await screen.findByRole("link", { name: "Nifty 50" })).toHaveAttribute(
+      "href",
+      "/index/NSE_INDEX%7CNifty%2050",
+    );
+  });
+
+  it("opens on how it reads against its sector, not on its own price", async () => {
+    // A return on its own says almost nothing, so the comparison leads and
+    // the company's own sessions are one tab away.
+    stubEverything();
+
+    renderPage(<Company instrumentKey={KEY} />);
+
+    await screen.findByText("How it is doing");
+    expect(screen.getByRole("tab", { name: "Relative strength" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
+  it("draws its own sessions when that tab is chosen", async () => {
+    stubEverything();
+    renderPage(<Company instrumentKey={KEY} />);
+    await screen.findByText("How it is doing");
+
+    await userEvent.click(screen.getByRole("tab", { name: "Price" }));
+    expect(await screen.findByLabelText("Series drawn")).toBeInTheDocument();
+
+    // And back, because a reader comparing two things looks at each in turn.
+    await userEvent.click(screen.getByRole("tab", { name: "Relative strength" }));
+
+    expect(screen.getByRole("tab", { name: "Relative strength" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
+  it("states the gap against its sector, which cannot be drawn", async () => {
+    // A sector is a grouping of companies rather than something with a
+    // price, so it has no line. Leaving it out of both would drop the one
+    // benchmark a company is most usefully read against.
+    stubEverything();
+
+    renderPage(<Company instrumentKey={KEY} />);
+
+    const table = await screen.findByRole("table", { name: "Relative strength" });
+    expect(within(table).getByText("Its sector")).toBeInTheDocument();
+    expect(within(table).getByRole("link", { name: /Refineries/ })).toHaveAttribute(
+      "href",
+      "/sector/Refineries",
+    );
+  });
+
+  it("shows what it has reported", async () => {
+    stubEverything();
+
+    renderPage(<Company instrumentKey={KEY} />);
+
+    // Awaited inside: the table is drawn before its figures arrive, so a
+    // query that resolves on the table alone runs against an empty one.
+    expect(await screen.findByText("Revenue")).toBeInTheDocument();
+    const table = screen.getByRole("table", { name: "Reported figures" });
+    expect(within(table).getByText("Profit After Tax")).toBeInTheDocument();
+  });
+
+  it("shows each corporate event in the units its own kind is measured in", async () => {
+    // A dividend is an amount per share and a bonus is a ratio, so the
+    // column cannot be a number. The order is the platform's.
+    stubEverything({
+      "/api/companies/NSE_EQ%7CINE002A01018/corporate-actions": {
+        body: [
+          corporateAction({ kind: "BONUS", label: "Bonus 1:1", ratio: "1:1", amount: null }),
+          corporateAction(),
+        ],
+      },
+    });
+
+    renderPage(<Company instrumentKey={KEY} />);
+
+    expect(await screen.findByText("Bonus")).toBeInTheDocument();
+    const table = screen.getByRole("table", { name: "Corporate actions" });
+    expect(within(table).getByText("1:1")).toBeInTheDocument();
+    expect(within(table).getByText(/6.00 per share/)).toBeInTheDocument();
+  });
+
+  it("sorts both its tables by any column", async () => {
+    // A company's rivals are read for who is ahead on a window, and its
+    // benchmarks for which it is furthest behind. Neither is answerable by
+    // reading down a name.
+    stubEverything();
+    renderPage(<Company instrumentKey={KEY} />);
+    await screen.findByRole("table", { name: "Competitors" });
+
+    for (const name of ["Relative strength", "Competitors"]) {
+      const table = screen.getByRole("table", { name });
+      for (const header of within(table).getAllByRole("button")) {
+        await userEvent.click(header);
+      }
+    }
+
+    expect(screen.getByRole("table", { name: "Competitors" })).toBeInTheDocument();
+  });
+
+  it("dashes a figure it has none of, and still sorts on that column", async () => {
+    // A company listed this month has no year, and a nought there would
+    // read as a year of going nowhere -- including when the column is
+    // sorted, where a nought would place it among the flat performers.
+    stubEverything({
+      "/api/companies/NSE_EQ%7CINE002A01018": {
+        body: company({
+          indices: [
+            { instrument_key: "NSE_INDEX|Nifty 50", name: "Nifty 50" },
+            { instrument_key: "NSE_INDEX|Nifty 500", name: "Nifty 500" },
+          ],
+          performance: {
+            basis: "company",
+            returns: trailing(),
+            against: [comparison({ relative: blankReturns() })],
+          },
+          peers: [
+            member({
+              instrument_key: "NSE_EQ|INE029A01011",
+              symbol: "BPCL",
+              close: null,
+              volume: null,
+              one_year: null,
+              change_percent: null,
+            }),
+            member({ instrument_key: "NSE_EQ|INE467B01029", symbol: "TCS" }),
+          ],
+        }),
+      },
+    });
+
+    renderPage(<Company instrumentKey={KEY} />);
+    const table = await screen.findByRole("table", { name: "Competitors" });
+    expect(within(table).getAllByText("—").length).toBeGreaterThan(1);
+
+    for (const name of ["Relative strength", "Competitors"]) {
+      for (const header of within(screen.getByRole("table", { name })).getAllByRole("button")) {
+        await userEvent.click(header);
+      }
+    }
+
+    // Two indices hold it now, so the sentence counting them agrees.
+    expect(screen.getByText(/2 indices currently/)).toBeInTheDocument();
+  });
+
+  it("leads from a competitor's name to its own page", async () => {
+    stubEverything();
+
+    renderPage(<Company instrumentKey={KEY} />);
+
+    const table = await screen.findByRole("table", { name: "Competitors" });
+    expect(within(table).getByRole("link", { name: /BPCL/ })).toHaveAttribute(
+      "href",
+      "/company/NSE_EQ%7CINE029A01011",
+    );
+  });
+
+  it("asks the platform for the company behind whichever listing it was given", async () => {
+    // Either exchange's key reaches the same company, and everything below
+    // keys off the preferred listing the platform answers with rather than
+    // the one in the address bar.
+    const fetchMock = stubEverything();
+
+    renderPage(<Company instrumentKey="BSE_EQ|INE002A01018" />);
+
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      expect(asked.some((path) => path.includes("BSE_EQ%7CINE002A01018"))).toBe(true);
+    });
+  });
+
+  it("asks for more history when a longer range is chosen", async () => {
+    const fetchMock = stubEverything();
+    renderPage(<Company instrumentKey={KEY} />);
+    await screen.findByText("How it is doing");
+
+    await userEvent.click(screen.getByRole("button", { name: "5Y" }));
+
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      expect(asked.some((path) => path.includes("sessions=1250"))).toBe(true);
+    });
+  });
+
+  it("offers the whole feed when there is more news than it shows", async () => {
+    stubEverything({ "/api/news": { body: newsPage({ total: 40 }) } });
+
+    renderPage(<Company instrumentKey={KEY} />);
+
+    expect(await screen.findByRole("link", { name: /All news for RELIANCE/ })).toHaveAttribute(
+      "href",
+      "/news?instrument=NSE_EQ%7CINE002A01018&symbol=RELIANCE",
+    );
+  });
+
+  it("still draws the page when the charts have nothing to draw", async () => {
+    // A company listed this week has a page, a description and no
+    // sessions. Every chart on it is empty, and none of that is a fault.
+    stubPlatform({
+      "/api/companies/NSE_EQ%7CINE002A01018/fundamentals": { body: [] },
+      "/api/companies/NSE_EQ%7CINE002A01018/corporate-actions": { body: [] },
+      "/api/companies/NSE_EQ%7CINE002A01018": { body: company() },
+      "/api/overviews": { body: [overview({ instrument_key: KEY })] },
+      "/api/figures": { status: 500, body: { detail: "no sessions" } },
+      "/api/series": { status: 500, body: { detail: "no sessions" } },
+      "/api/external-symbols": { status: 500, body: { detail: "not known" } },
+      "/api/news": { body: newsPage({ items: [], total: 0 }) },
+    });
+
+    renderPage(<Company instrumentKey={KEY} />);
+    await screen.findByText("How it is doing");
+
+    await userEvent.click(screen.getByRole("tab", { name: "Price" }));
+
+    expect(await screen.findByText("Reliance Industries")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /All news/ })).not.toBeInTheDocument();
+  });
+
+  it("reports a failure rather than showing an empty page", async () => {
+    stubPlatform({
+      "/api/companies/NSE_EQ%7CINE002A01018": {
+        status: 404,
+        body: { detail: "nothing stored for that company" },
+      },
+    });
+
+    renderPage(<Company instrumentKey={KEY} />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("nothing stored for that company");
+  });
+
+  it("says a company has no figures rather than drawing an empty panel", async () => {
+    // A company listed last week has a page and no history, which is a
+    // fact about the company rather than a fault.
+    stubEverything({ "/api/overviews": { body: [] } });
+
+    renderPage(<Company instrumentKey={KEY} />);
+
+    expect(
+      await screen.findByText("No figures stored for this instrument yet."),
+    ).toBeInTheDocument();
+  });
+
+  it("leaves out the competitors section when none are recorded", async () => {
+    stubEverything({
+      "/api/companies/NSE_EQ%7CINE002A01018": { body: company({ peers: [], indices: [] }) },
+    });
+
+    renderPage(<Company instrumentKey={KEY} />);
+
+    await screen.findByText("Reliance Industries");
+    expect(screen.queryByText("Who it competes with")).not.toBeInTheDocument();
+    expect(screen.queryByText("In these indices")).not.toBeInTheDocument();
+  });
+
+  it("still draws the page for a company with no performance stored", async () => {
+    stubEverything({
+      "/api/companies/NSE_EQ%7CINE002A01018": { body: company({ performance: null }) },
+    });
+
+    renderPage(<Company instrumentKey={KEY} />);
+
+    await screen.findByText("Reliance Industries");
+    expect(screen.queryByText("How far ahead, and of what")).not.toBeInTheDocument();
+  });
+});

@@ -2,6 +2,7 @@
 
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
 import { BreadthGridPanel } from "./BreadthGridPanel";
@@ -121,12 +122,20 @@ describe("BreadthGridPanel", () => {
     // Counting a population and opening its page are separate intentions,
     // and the row already does the first.
     const counted = vi.fn();
-    const opened = vi.fn();
-    render(<BreadthGridPanel scopes={breadthGrid().scopes} onSelect={counted} onOpen={opened} />);
+    render(
+      <MemoryRouter>
+        <BreadthGridPanel
+          scopes={breadthGrid().scopes}
+          onSelect={counted}
+          linkTo={(key) => `/sector/${key}`}
+        />
+      </MemoryRouter>,
+    );
 
-    await userEvent.click(screen.getByRole("button", { name: "Open IT - Software" }));
+    const link = screen.getByRole("link", { name: /IT - Software/ });
+    expect(link).toHaveAttribute("href", "/sector/IT - Software");
+    await userEvent.click(link);
 
-    expect(opened).toHaveBeenCalledWith("IT - Software");
     expect(counted).not.toHaveBeenCalled();
   });
 
