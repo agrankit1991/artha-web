@@ -1149,6 +1149,90 @@ export function fetchPopulationValuation(
   );
 }
 
+/** One figure a screen may test, from the platform's registry. */
+export interface ScreenField {
+  name: string;
+  label: string;
+  group: string;
+  unit: "price" | "percent" | "count" | "multiple" | "points";
+  /** The attributes to follow from a hit's figures to this figure. */
+  path: string[];
+}
+
+/** How a figure is compared with a value. */
+export type ScreenOperator = "gt" | "gte" | "lt" | "lte" | "eq";
+
+/** One test of one figure. */
+export interface ScreenCondition {
+  field: string;
+  operator: ScreenOperator;
+  value: string;
+}
+
+/** One company that met the conditions, with every figure it has. */
+export interface ScreenHit {
+  instrument_key: string;
+  symbol: string;
+  name: string;
+  sector: string | null;
+  figures: InstrumentOverview;
+}
+
+/** What a screen found. */
+export interface ScreenPage {
+  as_of: string | null;
+  total: number;
+  limit: number;
+  offset: number;
+  items: ScreenHit[];
+}
+
+/** What a screen asks for. */
+export interface ScreenQuery {
+  conditions: ScreenCondition[];
+  scope_kind: ScopeKind;
+  /** Which index or sector; ignored for the whole market. */
+  scope_key: string;
+  sort: string | null;
+  order: "asc" | "desc";
+  limit: number;
+  offset: number;
+}
+
+/**
+ * Fetch the figures a screen may test.
+ *
+ * @returns The fields, in the order a builder lists them.
+ */
+export function fetchScreenFields(): Promise<ScreenField[]> {
+  return request<ScreenField[]>("/api/screen/fields");
+}
+
+/**
+ * Run a screen.
+ *
+ * @param query - The conditions, the population and the ordering.
+ * @returns The page of companies that met every condition.
+ */
+export function fetchScreen(query: ScreenQuery): Promise<ScreenPage> {
+  const parameters = new URLSearchParams({
+    scope_kind: query.scope_kind,
+    order: query.order,
+    limit: String(query.limit),
+    offset: String(query.offset),
+  });
+  if (query.scope_kind !== "companies") {
+    parameters.set("scope_key", query.scope_key);
+  }
+  if (query.sort !== null) {
+    parameters.set("sort", query.sort);
+  }
+  for (const one of query.conditions) {
+    parameters.append("where", `${one.field}:${one.operator}:${one.value}`);
+  }
+  return request<ScreenPage>(`/api/screen?${parameters.toString()}`);
+}
+
 /** Where the latest reading of a ratio sits in its own history. */
 export interface RangeReading {
   /** How many sessions had the ratio. */

@@ -20,6 +20,7 @@ import {
   Newspaper,
   PiggyBank,
   Rocket,
+  SlidersHorizontal,
   Star,
   Users,
 } from "lucide-react";
@@ -54,5 +55,6 @@ export const MARKS = {
   external: ExternalLink,
   news: Newspaper,
   peers: Users,
+  screen: SlidersHorizontal,
   watchlist: Star,
 } as const satisfies Record<string, Icon>;

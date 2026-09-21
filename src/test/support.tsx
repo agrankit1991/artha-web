@@ -13,6 +13,9 @@ import { vi } from "vitest";
 import { ThemeProvider } from "@/lib/theme";
 
 import type {
+  ScreenField,
+  ScreenHit,
+  ScreenPage,
   IndexSummary,
   MemberValuation,
   PopulationValuation,
@@ -674,9 +677,12 @@ export function priceSeries(
  * @param ui - The page.
  * @returns What Testing Library returns.
  */
-export function renderPage(ui: React.ReactElement): ReturnType<typeof render> {
+export function renderPage(
+  ui: React.ReactElement,
+  { at = "/" }: { at?: string } = {},
+): ReturnType<typeof render> {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[at]}>
       <ThemeProvider>{ui}</ThemeProvider>
     </MemoryRouter>,
   );
@@ -937,6 +943,118 @@ export function populationValuation(
         moved: null,
       }),
     ],
+    ...overrides,
+  };
+}
+
+/** The screenable figures a test needs: enough to build the presets from. */
+export function screenFields(): ScreenField[] {
+  return [
+    { name: "close", label: "Close", group: "Session", unit: "price", path: ["day", "close"] },
+    {
+      name: "change_percent",
+      label: "Change",
+      group: "Session",
+      unit: "percent",
+      path: ["day", "change_percent"],
+    },
+    { name: "volume", label: "Volume", group: "Session", unit: "count", path: ["day", "volume"] },
+    {
+      name: "one_month",
+      label: "1 month",
+      group: "Returns",
+      unit: "percent",
+      path: ["returns", "one_month"],
+    },
+    {
+      name: "one_year",
+      label: "1 year",
+      group: "Returns",
+      unit: "percent",
+      path: ["returns", "one_year"],
+    },
+    {
+      name: "from_high_percent",
+      label: "From 52-week high",
+      group: "Range",
+      unit: "percent",
+      path: ["year_range", "from_high_percent"],
+    },
+    {
+      name: "from_low_percent",
+      label: "From 52-week low",
+      group: "Range",
+      unit: "percent",
+      path: ["year_range", "from_low_percent"],
+    },
+    {
+      name: "from_sma_50_percent",
+      label: "From 50-day average",
+      group: "Trend",
+      unit: "percent",
+      path: ["trend", "from_sma_50_percent"],
+    },
+    {
+      name: "from_sma_200_percent",
+      label: "From 200-day average",
+      group: "Trend",
+      unit: "percent",
+      path: ["trend", "from_sma_200_percent"],
+    },
+    {
+      name: "relative_volume",
+      label: "Relative volume",
+      group: "Volume",
+      unit: "multiple",
+      path: ["volume", "relative_to_average"],
+    },
+    {
+      name: "rsi",
+      label: "RSI (14)",
+      group: "Momentum",
+      unit: "points",
+      path: ["momentum", "rsi"],
+    },
+    {
+      name: "average_true_range",
+      label: "Average true range (14)",
+      group: "Risk",
+      unit: "price",
+      path: ["risk", "average_true_range"],
+    },
+  ];
+}
+
+/**
+ * One company that met a screen.
+ *
+ * @param overrides - Fields to change.
+ * @returns The hit.
+ */
+export function screenHit(overrides: Partial<ScreenHit> = {}): ScreenHit {
+  return {
+    instrument_key: "NSE_EQ|INE002A01018",
+    symbol: "RELIANCE",
+    name: "Reliance Industries",
+    sector: "Refineries",
+    figures: overview({ instrument_key: "NSE_EQ|INE002A01018" }),
+    ...overrides,
+  };
+}
+
+/**
+ * A page of one hit.
+ *
+ * @param overrides - Fields to change.
+ * @returns The page.
+ */
+export function screenPage(overrides: Partial<ScreenPage> = {}): ScreenPage {
+  return {
+    as_of: "2026-09-16",
+    total: 1,
+    limit: 50,
+    offset: 0,
+    items: [screenHit()],
     ...overrides,
   };
 }
