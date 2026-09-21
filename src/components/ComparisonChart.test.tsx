@@ -160,4 +160,44 @@ describe("ComparisonChart", () => {
 
     expect(screen.getAllByRole("link")).toHaveLength(1);
   });
+
+  it("draws the subject at full weight and the rest thin", () => {
+    // On a page about one index, four lines at the same weight compete
+    // and the one the page is about is whichever the reader remembers the
+    // colour of.
+    render(
+      <ThemeProvider>
+        <ComparisonChart
+          series={[priceSeries(NIFTY, [100, 110]), priceSeries(GOLD, [200, 190])]}
+          lines={[
+            { instrumentKey: NIFTY, label: "Nifty Bank", colour: "#2563eb" },
+            { instrumentKey: GOLD, label: "Nifty 500", colour: "#71717a", subdued: true },
+          ]}
+        />
+      </ThemeProvider>,
+    );
+
+    const widths = chartCalls.addSeries.mock.calls.map(
+      (call) => ((call as unknown[])[1] as { lineWidth?: number }).lineWidth,
+    );
+    expect(widths).toEqual([2, 1]);
+  });
+
+  it("leaves two lines of equal interest at equal weight", () => {
+    // A comparison of an index against gold has no subject and no
+    // benchmark; both are being read.
+    render(
+      <ThemeProvider>
+        <ComparisonChart
+          series={[priceSeries(NIFTY, [100, 110]), priceSeries(GOLD, [200, 190])]}
+          lines={LINES}
+        />
+      </ThemeProvider>,
+    );
+
+    const widths = chartCalls.addSeries.mock.calls.map(
+      (call) => ((call as unknown[])[1] as { lineWidth?: number }).lineWidth,
+    );
+    expect(widths).toEqual([2, 2]);
+  });
 });

@@ -90,6 +90,9 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
     return drawn.map((one, position) => ({
       ...one,
       colour: LINE_COLOURS[position % LINE_COLOURS.length] ?? "#71717a",
+      // Everything after the subject is a benchmark: there to be read
+      // against rather than read.
+      subdued: position > 0,
     }));
   }, [population.data]);
 

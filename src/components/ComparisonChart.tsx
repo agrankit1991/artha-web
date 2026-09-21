@@ -11,13 +11,23 @@ import { useMemo } from "react";
 
 import type { KnownSymbol, PriceSeries } from "@/api/client";
 import { Chart, type ChartInstrument, type Series } from "@/components/Chart";
+import { AVERAGE_WIDTH, PRICE_WIDTH } from "@/lib/chartPalette";
 import { rebase } from "@/lib/rebase";
 
-/** What to call each series, and what colour to draw it. */
+/** What to call each series, and how to draw it. */
 export interface ChartLine {
   instrumentKey: string;
   label: string;
   colour: string;
+  /**
+   * Draw it thin, as context rather than as the subject.
+   *
+   * On a page about one index, the benchmarks beside it are there to be
+   * read against -- drawn at the same weight, four lines compete and the
+   * one the page is about is whichever the reader remembers the colour
+   * of.
+   */
+  subdued?: boolean;
 }
 
 interface ComparisonChartProps {
@@ -49,7 +59,7 @@ export function ComparisonChart({
         kind: "line",
         label: named.get(line.instrumentKey)?.label ?? line.instrumentKey,
         colour: named.get(line.instrumentKey)?.colour ?? "#71717a",
-        width: 2,
+        width: named.get(line.instrumentKey)?.subdued === true ? AVERAGE_WIDTH : PRICE_WIDTH,
         points: line.points.map((point) => ({ time: point.day, value: point.percent })),
       })),
     [rebased, named],
