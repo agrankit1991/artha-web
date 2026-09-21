@@ -53,6 +53,7 @@ import { StatementTable } from "@/components/StatementTable";
 import { type Tab, Tabs } from "@/components/Tabs";
 import { ValuationHistoryChart } from "@/components/ValuationHistoryChart";
 import { ValuationPanel } from "@/components/ValuationPanel";
+import { ShareButton } from "@/components/ShareButton";
 import { WatchButton } from "@/components/WatchButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,7 +61,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useResource } from "@/hooks/useResource";
 import { coloured } from "@/lib/chartPalette";
 import { ENTITIES, MARKS } from "@/lib/entities";
-import { ABSENT, formatPrice, formatVolume, toNumber } from "@/lib/format";
+import {
+  ABSENT,
+  formatDay,
+  formatPercent,
+  formatPrice,
+  formatVolume,
+  toNumber,
+} from "@/lib/format";
+import { monthOfCloses } from "@/lib/sharing";
 import { companyPath, comparePath, newsPath, populationPath } from "@/lib/paths";
 
 interface CompanyProps {
@@ -227,6 +236,18 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
           found !== null &&
           key !== null && (
             <span className="flex flex-wrap items-center gap-2">
+              <ShareButton
+                facts={{
+                  title: found.name,
+                  subtitle: `${found.listings[0]?.exchange ?? "NSE"}: ${found.symbol}`,
+                  price: formatPrice(overview.data?.[0]?.day.close),
+                  changePercent: toNumber(overview.data?.[0]?.day.change_percent),
+                  changeText: formatPercent(overview.data?.[0]?.day.change_percent),
+                  asOf: `As of ${formatDay(overview.data?.[0]?.as_of)}`,
+                }}
+                loadPoints={() => monthOfCloses(key)}
+                filename={found.symbol.toLowerCase()}
+              />
               <Button variant="outline" size="sm" asChild>
                 <Link to={comparePath([key])}>
                   <MARKS.compare aria-hidden="true" className="mr-1.5 h-4 w-4" />

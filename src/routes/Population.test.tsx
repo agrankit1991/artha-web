@@ -333,4 +333,20 @@ describe("Population", () => {
     expect(await screen.findByText(/no valuation/)).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "Earnings" })).toBeInTheDocument();
   });
+
+  it("offers a share card of the index's day", async () => {
+    const fetched = stubEverything(population(), {
+      "/api/overviews": { body: [overview({ instrument_key: "NSE_INDEX|Nifty Bank" })] },
+    });
+    renderPage(<Population kind="index" scopeKey="NSE_INDEX|Nifty Bank" />);
+    await screen.findByRole("heading", { name: "The Index Itself" });
+
+    await userEvent.click(screen.getByRole("button", { name: "Share" }));
+
+    expect(await screen.findByRole("dialog", { name: "Share" })).toBeInTheDocument();
+    await waitFor(() => {
+      const asked = fetched.mock.calls.map((call) => String(call[0]));
+      expect(asked.some((path) => path.includes("/api/series?sessions=22"))).toBe(true);
+    });
+  });
 });

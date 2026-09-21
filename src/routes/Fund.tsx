@@ -22,6 +22,7 @@ import { Delta } from "@/components/Delta";
 import { FactList } from "@/components/FactList";
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
+import { ShareButton } from "@/components/ShareButton";
 import { SectionHeader } from "@/components/SectionHeader";
 import { StatTile } from "@/components/StatTile";
 import { type Tab, Tabs } from "@/components/Tabs";
@@ -60,6 +61,9 @@ const SPANS = [
 const DEFAULT_SPAN = "5";
 
 /** The four readings of one series. */
+/** A month of published values: about as many as trading sessions in one. */
+const MONTH_OF_VALUES = 22;
+
 type View = "growth" | "nav" | "drawdown" | "rolling";
 
 const VIEWS: Tab<View>[] = [
@@ -131,6 +135,24 @@ export function Fund({ schemeCode }: FundProps): React.JSX.Element {
           </>
         }
         identifiers={scheme?.category != null && <span>{scheme.category}</span>}
+        actions={
+          scheme !== null && (
+            <ShareButton
+              facts={{
+                title: scheme.name,
+                subtitle: scheme.category ?? scheme.amc ?? "Mutual fund",
+                price: formatPrice(scheme.nav),
+                changePercent: toNumber(found?.returns.one_month ?? null),
+                changeText: `${formatPercent(found?.returns.one_month ?? null)} over a month`,
+                asOf: `NAV as of ${formatDay(scheme.nav_date)}`,
+              }}
+              loadPoints={() =>
+                Promise.resolve(held.slice(-MONTH_OF_VALUES).map((one) => one.value))
+              }
+              filename={`fund-${scheme.scheme_code}`}
+            />
+          )
+        }
       />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">

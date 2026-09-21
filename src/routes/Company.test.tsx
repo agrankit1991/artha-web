@@ -455,4 +455,18 @@ describe("Company", () => {
     expect(screen.queryByText("Bonus")).not.toBeInTheDocument();
     expect(screen.getByText("Dividend")).toBeInTheDocument();
   });
+
+  it("offers a share card of the day", async () => {
+    const fetched = stubEverything();
+    renderPage(<Company instrumentKey={KEY} />);
+    await screen.findByText("Price & Performance");
+
+    await userEvent.click(screen.getByRole("button", { name: "Share" }));
+
+    expect(await screen.findByRole("dialog", { name: "Share" })).toBeInTheDocument();
+    await waitFor(() => {
+      const asked = fetched.mock.calls.map((call) => String(call[0]));
+      expect(asked.some((path) => path.includes("/api/series?sessions=22"))).toBe(true);
+    });
+  });
 });

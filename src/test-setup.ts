@@ -44,3 +44,9 @@ if (!("ResizeObserver" in globalThis)) {
     }
   };
 }
+
+// jsdom has no canvas and says so loudly on every getContext. A quiet
+// null is what the code under test expects of a browser that cannot draw;
+// a test that needs a context spies over this.
+HTMLCanvasElement.prototype.getContext = (() =>
+  null) as typeof HTMLCanvasElement.prototype.getContext;

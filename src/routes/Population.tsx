@@ -29,6 +29,7 @@ import { type Column, DataTable } from "@/components/DataTable";
 import { Delta } from "@/components/Delta";
 import { Heatmap } from "@/components/Heatmap";
 import { PriceChart } from "@/components/PriceChart";
+import { ShareButton } from "@/components/ShareButton";
 import { PRICE_RANGES, RangeSelector } from "@/components/RangeSelector";
 import { type Tab, Tabs } from "@/components/Tabs";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +41,8 @@ import { ENTITIES, MARKS } from "@/lib/entities";
 import { useResource } from "@/hooks/useResource";
 import { coloured } from "@/lib/chartPalette";
 import { companyPath } from "@/lib/paths";
-import { formatPrice, formatVolume, toNumber } from "@/lib/format";
+import { monthOfCloses } from "@/lib/sharing";
+import { formatDay, formatPercent, formatPrice, formatVolume, toNumber } from "@/lib/format";
 
 interface PopulationProps {
   kind: "index" | "sector";
@@ -178,6 +180,23 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
           </span>
         }
         description={found?.description}
+        actions={
+          ownKey !== null &&
+          found !== null && (
+            <ShareButton
+              facts={{
+                title: found.name,
+                subtitle: "Index",
+                price: formatPrice(own.data?.[0]?.day.close),
+                changePercent: toNumber(own.data?.[0]?.day.change_percent),
+                changeText: formatPercent(own.data?.[0]?.day.change_percent),
+                asOf: `As of ${formatDay(own.data?.[0]?.as_of)}`,
+              }}
+              loadPoints={() => monthOfCloses(ownKey)}
+              filename={found.name.toLowerCase().replaceAll(/\s+/g, "-")}
+            />
+          )
+        }
       />
 
       {found !== null && instrument !== null && (

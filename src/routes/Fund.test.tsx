@@ -228,4 +228,16 @@ describe("Fund", () => {
 
     expect(screen.getByText("No values published for this scheme")).toBeInTheDocument();
   });
+
+  it("offers a share card drawn from its own values", async () => {
+    stubPlatform({ "/api/funds/120503": { body: fund() }, "/api/funds?": { body: schemePage() } });
+    renderPage(<Fund schemeCode="120503" />);
+    await screen.findByText("Net Asset Value");
+
+    await userEvent.click(screen.getByRole("button", { name: "Share" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Share" });
+    // jsdom has no canvas: the card says so rather than failing quietly.
+    expect(await within(dialog).findByText(/cannot draw the card/)).toBeInTheDocument();
+  });
 });
