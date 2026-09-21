@@ -13,6 +13,7 @@ import { vi } from "vitest";
 import { ThemeProvider } from "@/lib/theme";
 
 import type {
+  InstrumentSummary,
   HeldBy,
   WatchedInstrument,
   WatchlistPage,
@@ -1155,4 +1156,21 @@ export function watchlistPage(overrides: Partial<WatchlistPage> = {}): Watchlist
  */
 export function heldBy(overrides: Partial<HeldBy> = {}): HeldBy {
   return { watchlist_id: 1, item_id: 11, ...overrides };
+}
+
+/**
+ * One instrument, named.
+ *
+ * @param overrides - Fields to change.
+ * @returns The instrument.
+ */
+export function instrumentSummary(overrides: Partial<InstrumentSummary> = {}): InstrumentSummary {
+  return {
+    instrument_key: "NSE_EQ|INE002A01018",
+    symbol: "RELIANCE",
+    name: "Reliance Industries",
+    kind: "EQUITY",
+    exchange: "NSE",
+    ...overrides,
+  };
 }

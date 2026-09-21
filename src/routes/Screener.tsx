@@ -18,7 +18,6 @@ import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import type {
-  InstrumentOverview,
   ScopeKind,
   ScreenCondition,
   ScreenField,
@@ -39,6 +38,7 @@ import { Input } from "@/components/ui/input";
 import { useDebounced } from "@/hooks/useDebounced";
 import { useResource } from "@/hooks/useResource";
 import { ABSENT, formatDay, formatPrice, formatWhole, toNumber } from "@/lib/format";
+import { figureAt, writtenFigure } from "@/lib/figures";
 import { companyPath } from "@/lib/paths";
 
 /** How many hits a page carries, and grows by. */
@@ -466,43 +466,6 @@ function suffix(field: ScreenField): string {
   }
 }
 
-/**
- * Read one figure off a hit's figures by the path the registry gave.
- *
- * The figures are typed, but which one a column shows is decided at run
- * time by name, so the walk is over the plain object shape.
- */
-export function figureAt(figures: InstrumentOverview, path: string[]): string | number | null {
-  let at: unknown = figures;
-  for (const step of path) {
-    if (at === null || typeof at !== "object") {
-      return null;
-    }
-    at = (at as Record<string, unknown>)[step];
-  }
-  return typeof at === "string" || typeof at === "number" ? at : null;
-}
-
-/** A figure written by its unit. */
-function written(field: ScreenField, value: string | number | null): React.ReactNode {
-  if (value === null) {
-    return ABSENT;
-  }
-  const text = String(value);
-  switch (field.unit) {
-    case "percent":
-      return <Delta value={text} />;
-    case "price":
-      return formatPrice(text);
-    case "count":
-      return formatWhole(Number(text));
-    case "multiple":
-      return `${(toNumber(text) ?? 0).toFixed(2)}×`;
-    case "points":
-      return (toNumber(text) ?? 0).toFixed(2);
-  }
-}
-
 /** The fixed columns, then one per figure the screen is about. */
 function columnsFor(fields: ScreenField[]): Column<ScreenHit>[] {
   return [
@@ -542,7 +505,7 @@ function columnsFor(fields: ScreenField[]): Column<ScreenHit>[] {
       header: field.label,
       accessorFn: (row) =>
         toNumber(String(figureAt(row.figures, field.path) ?? "")) ?? Number.NEGATIVE_INFINITY,
-      cell: ({ row }) => written(field, figureAt(row.original.figures, field.path)),
+      cell: ({ row }) => writtenFigure(field, figureAt(row.original.figures, field.path)),
       meta: { align: "right" },
     })),
   ];

@@ -17,6 +17,7 @@ export const PATHS = {
   earnings: "/earnings",
   indices: "/indices",
   screen: "/screen",
+  compare: "/compare",
   watchlists: "/watchlists",
   sectors: "/sectors",
   ipos: "/ipos",
@@ -118,4 +119,18 @@ export function ipoPath(ipoId: string): string {
  */
 export function watchlistPath(watchlistId: number): string {
   return `${PATHS.watchlists}?list=${String(watchlistId)}`;
+}
+
+/**
+ * A comparison with these instruments already on it.
+ *
+ * @param keys - The instrument keys, in the order to draw them.
+ * @returns The path.
+ */
+export function comparePath(keys: string[]): string {
+  const parameters = new URLSearchParams();
+  for (const key of keys) {
+    parameters.append("keys", key);
+  }
+  return `${PATHS.compare}?${parameters.toString()}`;
 }

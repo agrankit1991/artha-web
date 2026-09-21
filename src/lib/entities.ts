@@ -12,6 +12,7 @@ import {
   BarChart3,
   Building2,
   Calendar,
+  GitCompareArrows,
   ExternalLink,
   FileText,
   Globe,
@@ -48,6 +49,7 @@ export const ENTITIES: Record<EntityKind, { icon: Icon; label: string }> = {
  */
 export const MARKS = {
   breadth: Activity,
+  compare: GitCompareArrows,
   dates: Calendar,
   documents: FileText,
   earnings: BarChart3,

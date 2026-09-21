@@ -61,7 +61,7 @@ import { useResource } from "@/hooks/useResource";
 import { coloured } from "@/lib/chartPalette";
 import { ENTITIES, MARKS } from "@/lib/entities";
 import { ABSENT, formatPrice, formatVolume, toNumber } from "@/lib/format";
-import { companyPath, newsPath, populationPath } from "@/lib/paths";
+import { companyPath, comparePath, newsPath, populationPath } from "@/lib/paths";
 
 interface CompanyProps {
   /** The company's listing on either exchange. Both reach this page. */
@@ -225,7 +225,17 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
         description={found?.description}
         actions={
           found !== null &&
-          key !== null && <WatchButton instrumentKey={key} symbol={found.symbol} />
+          key !== null && (
+            <span className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" asChild>
+                <Link to={comparePath([key])}>
+                  <MARKS.compare aria-hidden="true" className="mr-1.5 h-4 w-4" />
+                  Compare
+                </Link>
+              </Button>
+              <WatchButton instrumentKey={key} symbol={found.symbol} />
+            </span>
+          )
         }
       />
 

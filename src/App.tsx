@@ -25,6 +25,7 @@ import { PATHS, populationPath } from "@/lib/paths";
 import { ThemeProvider } from "@/lib/theme";
 import { Breadth } from "@/routes/Breadth";
 import { Company } from "@/routes/Company";
+import { Compare } from "@/routes/Compare";
 import { EarningsPage } from "@/routes/Earnings";
 import { Indices } from "@/routes/Indices";
 import { Screener } from "@/routes/Screener";
@@ -50,6 +51,7 @@ const SCREENS: Screen[] = [
   { path: PATHS.news, label: "News", icon: MARKS.news, group: "Markets" },
   { path: PATHS.funds, label: "Funds", icon: ENTITIES.fund.icon, group: "Research" },
   { path: PATHS.screen, label: "Screener", icon: MARKS.screen, group: "Research" },
+  { path: PATHS.compare, label: "Compare", icon: MARKS.compare, group: "Research" },
   { path: PATHS.ipos, label: "IPOs", icon: ENTITIES.ipo.icon, group: "Research" },
   { path: PATHS.watchlists, label: "Watchlists", icon: MARKS.watchlist, group: "Mine" },
   { path: PATHS.profile, label: "Profile", icon: User, group: "Mine" },
@@ -166,6 +168,7 @@ function SignedIn({
         <Route path={PATHS.indices} element={<Indices />} />
         <Route path={PATHS.sectors} element={<Sectors />} />
         <Route path={PATHS.screen} element={<Screener />} />
+        <Route path={PATHS.compare} element={<Compare />} />
         <Route path={PATHS.watchlists} element={<Watchlists />} />
         <Route path={PATHS.ipos} element={<Ipos />} />
         <Route path="/ipo/:id" element={<IpoRoute />} />

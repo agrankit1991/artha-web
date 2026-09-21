@@ -1368,6 +1368,30 @@ export async function removeWatchlistItem(watchlistId: number, itemId: number): 
   });
 }
 
+/** One instrument, named. */
+export interface InstrumentSummary {
+  instrument_key: string;
+  symbol: string;
+  name: string;
+  /** EQUITY, INDEX or FUTURE. */
+  kind: string;
+  exchange: string;
+}
+
+/**
+ * Name the instruments behind a set of keys.
+ *
+ * @param keys - The keys, up to fifty.
+ * @returns One summary per key that names something, in the order asked.
+ */
+export function fetchInstruments(keys: string[]): Promise<InstrumentSummary[]> {
+  const parameters = new URLSearchParams();
+  for (const key of keys) {
+    parameters.append("keys", key);
+  }
+  return request<InstrumentSummary[]>(`/api/instruments?${parameters.toString()}`);
+}
+
 /** Where the latest reading of a ratio sits in its own history. */
 export interface RangeReading {
   /** How many sessions had the ratio. */
