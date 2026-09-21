@@ -33,7 +33,7 @@ import { RotateCcw } from "lucide-react";
 
 import { TradingViewLink } from "@/components/TradingViewLink";
 import { AVERAGE_WIDTH, CANDLE_DOWN, CANDLE_UP, PRICE_WIDTH, THRESHOLD } from "@/lib/chartPalette";
-import { formatDay, formatPrice } from "@/lib/format";
+import { formatCount, formatDay, formatPrice } from "@/lib/format";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -81,6 +81,9 @@ export type Series =
   | (Common & { kind: "area"; colour: string; points: Point[] })
   | (Common & { kind: "bars"; points: Point[] });
 
+/** What a chart's figures are, which decides how they are written. */
+export type Scale = "price" | "percent" | "count";
+
 /** What the crosshair is over, what each series was worth, and where it is. */
 interface Hovered {
   day: string;
@@ -107,8 +110,12 @@ interface ChartProps {
   loading?: boolean;
   /** What to say when there is nothing to draw. */
   empty?: string;
-  /** Show percentages rather than prices on the axis. */
-  asPercent?: boolean;
+  /**
+   * What the figures are, which decides how the axis and the crosshair
+   * reading are written. A count is written whole: two decimal places on
+   * a number of companies is noise pretending to be precision.
+   */
+  scale?: Scale;
   /** How tall each pane past the first is drawn. */
   paneHeight?: number;
   height?: number;
@@ -143,7 +150,7 @@ export function Chart({
   readings = [],
   loading = false,
   empty = "Nothing to draw",
-  asPercent = false,
+  scale = "price",
   paneHeight = DEFAULT_PANE_HEIGHT,
   height = DEFAULT_HEIGHT,
   className,
@@ -204,7 +211,7 @@ export function Chart({
     // library hands back the series it drew, not the label we gave it.
     const named = new Map<ISeriesApi<SeriesType>, Series>();
     for (const one of drawable) {
-      named.set(draw(created, one, asPercent), one);
+      named.set(draw(created, one, scale), one);
     }
 
     // Panes past the first are given a fixed band rather than an equal
@@ -282,7 +289,7 @@ export function Chart({
     // `drawable` is rebuilt on every render; `series` is what a caller
     // actually changes, and is what this should redraw for.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [series, height, appearance, asPercent, hasBars, paneHeight]);
+  }, [series, height, appearance, scale, hasBars, paneHeight]);
 
   const reset = useCallback(() => {
     const frame = opening.current;
@@ -385,11 +392,7 @@ export function Chart({
                   style={{ backgroundColor: figure.colour }}
                 />
                 <span className="text-muted-foreground">{figure.label}</span>
-                <span className="tabular ml-auto font-medium">
-                  {asPercent
-                    ? `${figure.value > 0 ? "+" : ""}${figure.value.toFixed(2)}%`
-                    : formatPrice(String(figure.value))}
-                </span>
+                <span className="tabular ml-auto font-medium">{written(figure.value, scale)}</span>
               </div>
             ))}
           </div>
@@ -415,9 +418,9 @@ export function Chart({
  * @param series - What to draw.
  * @param asPercent - Whether the axis shows percentages.
  */
-function draw(chart: IChartApi, series: Series, asPercent: boolean): ISeriesApi<SeriesType> {
+function draw(chart: IChartApi, series: Series, scale: Scale): ISeriesApi<SeriesType> {
   const pane = series.pane ?? 0;
-  const drawn = add(chart, series, asPercent, pane);
+  const drawn = add(chart, series, scale, pane);
   for (const threshold of series.thresholds ?? []) {
     drawn.createPriceLine({
       price: threshold.value,
@@ -465,7 +468,7 @@ function colourOf(series: Series): string {
 function add(
   chart: IChartApi,
   series: Series,
-  asPercent: boolean,
+  scale: Scale,
   pane: number,
 ): ReturnType<IChartApi["addSeries"]> {
   if (series.kind === "candles") {
@@ -502,7 +505,7 @@ function add(
         topColor: `${series.colour}55`,
         bottomColor: `${series.colour}05`,
         lineWidth: PRICE_WIDTH,
-        ...(asPercent ? { priceFormat: { type: "percent" as const } } : {}),
+        ...priceFormat(scale),
       },
       pane,
     );
@@ -517,7 +520,7 @@ function add(
       lineWidth: series.width === PRICE_WIDTH ? PRICE_WIDTH : AVERAGE_WIDTH,
       lastValueVisible: false,
       priceLineVisible: false,
-      ...(asPercent ? { priceFormat: { type: "percent" as const } } : {}),
+      ...priceFormat(scale),
     },
     pane,
   );
@@ -565,4 +568,31 @@ function placed(at: Hovered["at"]): React.CSSProperties {
     top: past.bottom ? undefined : at.y + READING_GAP,
     bottom: past.bottom ? at.height - at.y + READING_GAP : undefined,
   };
+}
+
+/**
+ * How the axis should format a scale.
+ *
+ * @param scale - What the figures are.
+ * @returns The options to pass the library, which are none for a price --
+ *   its own default.
+ */
+function priceFormat(scale: Scale): { priceFormat?: { type: "percent"; precision?: number } } {
+  return scale === "percent" ? { priceFormat: { type: "percent" as const } } : {};
+}
+
+/**
+ * Write one figure the way its scale is read.
+ *
+ * @param value - The figure.
+ * @param scale - What it is.
+ * @returns The figure, written.
+ */
+function written(value: number, scale: Scale): string {
+  if (scale === "percent") {
+    return `${value > 0 ? "+" : ""}${value.toFixed(2)}%`;
+  }
+  // A count is whole: two decimal places on a number of companies is
+  // noise pretending to be precision.
+  return scale === "count" ? formatCount(Math.round(value)) : formatPrice(String(value));
 }

@@ -373,7 +373,7 @@ describe("Chart", () => {
   });
 
   it("reads percentages as percentages where the axis is one", () => {
-    draw([LINE], { asPercent: true });
+    draw([LINE], { scale: "percent" });
 
     act(() => {
       moveCrosshair("2026-09-02", [10]);

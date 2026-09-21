@@ -14,6 +14,7 @@ import { useCallback, useMemo, useState } from "react";
 import type { BreadthSession } from "@/api/client";
 import { fetchBreadth, fetchBreadthGrid, fetchScopes } from "@/api/client";
 import { BreadthGridPanel } from "@/components/BreadthGridPanel";
+import { BreadthChart } from "@/components/BreadthChart";
 import { BreadthPanel } from "@/components/BreadthPanel";
 import { type Column, DataTable } from "@/components/DataTable";
 import { RegimeBanner } from "@/components/RegimeBanner";
@@ -120,6 +121,23 @@ export function Breadth({
           </section>
 
           <BreadthPanel breadth={breadth.data} loading={breadth.loading} />
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Activity className="h-4 w-4 text-muted-foreground" />
+                Participation over time
+              </CardTitle>
+              <CardDescription>
+                The advance–decline line, and the McClellan oscillator in a band of its own. Both
+                are read for their shape: the line for its direction, the oscillator for where it
+                crosses nought.
+              </CardDescription>
+            </CardHeader>
+            <CardContent role="region" aria-label="Participation over time">
+              <BreadthChart sessions={breadth.data?.sessions ?? []} loading={breadth.loading} />
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>

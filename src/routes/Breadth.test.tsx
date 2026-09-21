@@ -5,7 +5,10 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Breadth } from "./Breadth";
+import { ThemeProvider } from "@/lib/theme";
 import { breadth, breadthGrid, breadthSession, scopeOptions, stubPlatform } from "@/test/support";
+
+vi.mock("lightweight-charts", async () => (await import("@/test/chartStub")).chartModule());
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -23,7 +26,11 @@ describe("Breadth", () => {
   it("shows every headline measure with what it means", async () => {
     stubEverything();
 
-    render(<Breadth />);
+    render(
+      <ThemeProvider>
+        <Breadth />
+      </ThemeProvider>,
+    );
 
     const measures = await screen.findByRole("region", { name: "Headline measures" });
     expect(within(measures).getByText("McClellan oscillator")).toBeInTheDocument();
@@ -36,7 +43,11 @@ describe("Breadth", () => {
     // The depth a glance on the overview cannot hold.
     stubEverything();
 
-    render(<Breadth />);
+    render(
+      <ThemeProvider>
+        <Breadth />
+      </ThemeProvider>,
+    );
 
     await screen.findByText("Session by session");
     const history = screen.getByRole("region", { name: "Session history" });
@@ -46,7 +57,11 @@ describe("Breadth", () => {
 
   it("re-counts for whichever population is chosen", async () => {
     const fetchMock = stubEverything();
-    render(<Breadth />);
+    render(
+      <ThemeProvider>
+        <Breadth />
+      </ThemeProvider>,
+    );
     await screen.findByText("Session by session");
 
     await userEvent.click(screen.getByRole("button", { name: "Nifty 50" }));
@@ -61,7 +76,11 @@ describe("Breadth", () => {
 
   it("asks for a longer run when a longer window is chosen", async () => {
     const fetchMock = stubEverything();
-    render(<Breadth />);
+    render(
+      <ThemeProvider>
+        <Breadth />
+      </ThemeProvider>,
+    );
     await screen.findByText("Session by session");
 
     await userEvent.click(screen.getByRole("button", { name: "5Y" }));
@@ -75,7 +94,11 @@ describe("Breadth", () => {
   it("asks for a year to begin with", async () => {
     const fetchMock = stubEverything();
 
-    render(<Breadth />);
+    render(
+      <ThemeProvider>
+        <Breadth />
+      </ThemeProvider>,
+    );
 
     await waitFor(() => {
       const asked = fetchMock.mock.calls.map((call) => String(call[0]));
@@ -90,7 +113,11 @@ describe("Breadth", () => {
       "/api/breadth": { status: 500, body: { detail: "the counts are being rebuilt" } },
     });
 
-    render(<Breadth />);
+    render(
+      <ThemeProvider>
+        <Breadth />
+      </ThemeProvider>,
+    );
 
     expect(await screen.findByRole("alert")).toHaveTextContent("the counts are being rebuilt");
   });
@@ -102,7 +129,11 @@ describe("Breadth", () => {
       "/api/breadth": { body: breadth({ sessions: [], latest: null }) },
     });
 
-    render(<Breadth />);
+    render(
+      <ThemeProvider>
+        <Breadth />
+      </ThemeProvider>,
+    );
 
     expect(await screen.findByText("No sessions counted for this population")).toBeInTheDocument();
   });
@@ -123,7 +154,11 @@ describe("Breadth", () => {
         }),
       },
     });
-    render(<Breadth />);
+    render(
+      <ThemeProvider>
+        <Breadth />
+      </ThemeProvider>,
+    );
     await screen.findByText("Session by session");
     const table = within(screen.getByRole("region", { name: "Session history" })).getByRole(
       "table",
@@ -163,7 +198,11 @@ describe("Breadth", () => {
       },
     });
 
-    render(<Breadth />);
+    render(
+      <ThemeProvider>
+        <Breadth />
+      </ThemeProvider>,
+    );
     await screen.findByText("Session by session");
     const table = within(screen.getByRole("region", { name: "Session history" })).getByRole(
       "table",
@@ -181,7 +220,11 @@ describe("Breadth", () => {
   it("names the regime rather than leaving a share to be interpreted", async () => {
     stubEverything();
 
-    render(<Breadth />);
+    render(
+      <ThemeProvider>
+        <Breadth />
+      </ThemeProvider>,
+    );
 
     expect(await screen.findByText("Risk-on")).toBeInTheDocument();
   });
@@ -191,7 +234,11 @@ describe("Breadth", () => {
     // population, and the figure alone cannot say which.
     stubEverything();
 
-    render(<Breadth />);
+    render(
+      <ThemeProvider>
+        <Breadth />
+      </ThemeProvider>,
+    );
 
     // Printed twice on purpose: once as the headline regime and once
     // under the meter the share belongs to.
@@ -201,7 +248,11 @@ describe("Breadth", () => {
   it("lays every sector out, strongest first", async () => {
     stubEverything();
 
-    render(<Breadth />);
+    render(
+      <ThemeProvider>
+        <Breadth />
+      </ThemeProvider>,
+    );
 
     expect(await screen.findByText("Where the market is working")).toBeInTheDocument();
     expect(screen.getByText("IT - Software")).toBeInTheDocument();
@@ -210,7 +261,11 @@ describe("Breadth", () => {
 
   it("lays the indices out on the same question", async () => {
     const fetchMock = stubEverything();
-    render(<Breadth />);
+    render(
+      <ThemeProvider>
+        <Breadth />
+      </ThemeProvider>,
+    );
     await screen.findByText("Where the market is working");
 
     // "Indices" names both a whole population to count and a kind to lay
@@ -232,7 +287,11 @@ describe("Breadth", () => {
     // The grid says which sector is working; the next question is always
     // that sector's own breadth.
     const fetchMock = stubEverything();
-    render(<Breadth />);
+    render(
+      <ThemeProvider>
+        <Breadth />
+      </ThemeProvider>,
+    );
     await screen.findByText("Where the market is working");
 
     await userEvent.click(screen.getByText("Pharmaceuticals"));
@@ -245,5 +304,24 @@ describe("Breadth", () => {
         ),
       ).toBe(true);
     });
+  });
+
+  it("draws the participation measures against their dates", async () => {
+    // A cumulative line is read for its direction and an oscillator for
+    // where it crosses nought; neither is readable without the dates.
+    stubEverything();
+
+    render(
+      <ThemeProvider>
+        <Breadth />
+      </ThemeProvider>,
+    );
+
+    // Named in two places on this page -- as a column of the history and
+    // as a line on this chart -- so the chart is asked for by its own region.
+    await screen.findByText("Session by session");
+    const drawn = screen.getByRole("region", { name: "Participation over time" });
+    expect(within(drawn).getByText("Advance–decline line")).toBeInTheDocument();
+    expect(within(drawn).getByText("McClellan oscillator")).toBeInTheDocument();
   });
 });

@@ -87,7 +87,7 @@ export function ComparisonChart({
       readings={readings}
       loading={loading}
       empty="No overlapping history to compare"
-      asPercent
+      scale="percent"
     />
   );
 }
