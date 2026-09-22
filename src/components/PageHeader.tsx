@@ -11,6 +11,7 @@
 
 import type { EntityKind } from "@/lib/entities";
 import { ENTITIES } from "@/lib/entities";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 interface PageHeaderProps {
@@ -29,6 +30,8 @@ interface PageHeaderProps {
   actions?: React.ReactNode;
   /** What it is, in the publisher's own words. */
   description?: string | null | undefined;
+  /** How many things the page lists, as the previous project's badge said, e.g. `217 indices`. */
+  count?: string | undefined;
   className?: string;
 }
 
@@ -45,6 +48,7 @@ export function PageHeader({
   badges,
   actions,
   description,
+  count,
   className,
 }: PageHeaderProps): React.JSX.Element {
   const Mark = kind === undefined ? null : ENTITIES[kind].icon;
@@ -61,6 +65,11 @@ export function PageHeader({
             <h1 className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
               {title}
             </h1>
+            {count !== undefined && (
+              <Badge variant="secondary" className="text-sm">
+                {count}
+              </Badge>
+            )}
             {badges}
           </div>
           {identifiers !== undefined && (

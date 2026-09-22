@@ -70,4 +70,11 @@ describe("preferences", () => {
     writePreferences({ range: 21 });
     expect(readPreferences().range).toBe(21);
   });
+
+  it("keeps each page's layout, and only layouts that exist", () => {
+    const read = parse({ views: { indices: "grouped", movers: "table", watchlists: 3 } });
+
+    expect(read.views).toEqual({ indices: "grouped" });
+    expect(parse({ views: "grouped" }).views).toEqual({});
+  });
 });

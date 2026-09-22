@@ -45,13 +45,17 @@ describe("Indices", () => {
     expect(nifty).toHaveAttribute("href", "/index/nifty-50");
     expect(within(table).getByText("Broad market")).toBeInTheDocument();
     expect(within(table).getByText("Sectoral")).toBeInTheDocument();
-    // Never described and never counted: the symbol stands in, and a dash.
+    // Never described and never counted: its exchange still shows, its
+    // category says N/A as the previous project did, and a dash stands for
+    // the count.
     const sensex = within(table)
       .getByRole("link", { name: /Sensex/ })
       .closest("tr");
-    expect(sensex).toHaveTextContent("SENSEX");
+    expect(sensex).toHaveTextContent("BSE");
+    expect(sensex).toHaveTextContent("N/A");
     expect(sensex).toHaveTextContent("—");
     expect(screen.getByText("3 of 3")).toBeInTheDocument();
+    expect(screen.getByText("3 indices")).toBeInTheDocument();
   });
 
   it("narrows by kind and by typed letters", async () => {
@@ -77,7 +81,9 @@ describe("Indices", () => {
     await within(table).findByRole("link", { name: /Nifty 50/ });
 
     for (const name of [
-      /^Index/,
+      /^Name/,
+      /^Exchange/,
+      /^Category/,
       /^Companies/,
       /^Level/,
       /^1W/,
@@ -108,5 +114,53 @@ describe("Indices", () => {
     stubPlatform({ "/api/indices": { status: 500, body: { detail: "indices broke" } } });
     renderPage(<Indices />);
     expect(await screen.findByText(/indices broke/)).toBeInTheDocument();
+  });
+
+  it("narrows by exchange", async () => {
+    stubPlatform({ "/api/indices": { body: THREE } });
+    renderPage(<Indices />);
+    await screen.findByRole("link", { name: /Nifty 50/ });
+
+    await userEvent.click(screen.getByRole("button", { name: "BSE" }));
+
+    expect(screen.getByRole("link", { name: /Sensex/ })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Nifty 50/ })).not.toBeInTheDocument();
+  });
+
+  it("groups the indices into a table per category, and remembers the layout", async () => {
+    stubPlatform({ "/api/indices": { body: THREE } });
+    const { unmount } = renderPage(<Indices />);
+    await screen.findByRole("link", { name: /Nifty 50/ });
+
+    await userEvent.click(screen.getByRole("button", { name: "Grouped" }));
+
+    expect(screen.getByRole("table", { name: "Broad market" })).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Sectoral" })).toBeInTheDocument();
+    // Never categorised comes last, whatever its size.
+    const headings = screen.getAllByRole("heading", { level: 2 }).map((one) => one.textContent);
+    expect(headings.at(-1)).toMatch(/^Uncategorised/);
+    expect(
+      within(screen.getByRole("navigation", { name: "Categories" })).getByRole("link", {
+        name: /Sectoral/,
+      }),
+    ).toHaveAttribute("href", "#sectoral");
+
+    unmount();
+    renderPage(<Indices />);
+    expect(await screen.findByRole("table", { name: "Sectoral" })).toBeInTheDocument();
+  });
+
+  it("lays the indices out as cards, each leading to its page", async () => {
+    stubPlatform({ "/api/indices": { body: THREE } });
+    renderPage(<Indices />);
+    await screen.findByRole("link", { name: /Nifty 50/ });
+
+    await userEvent.click(screen.getByRole("button", { name: "Cards" }));
+
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Nifty 50/ })).toHaveAttribute(
+      "href",
+      "/index/nifty-50",
+    );
   });
 });

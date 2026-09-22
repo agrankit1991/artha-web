@@ -131,6 +131,7 @@ describe("Profile", () => {
       chartStyle: "candles",
       overlays: ["sma_50", "sma_200", "volume", "rsi"],
       range: 1250,
+      views: {},
     });
     await userEvent.click(screen.getByRole("button", { name: "Forget my preferences" }));
     expect(readPreferences()).toEqual(DEFAULT_PREFERENCES);

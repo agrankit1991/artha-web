@@ -21,6 +21,12 @@ import type { ChartStyle, Overlay } from "@/components/ChartControls";
 import type { ScopeKind } from "@/api/client";
 
 /** The reader's standing choices. */
+/** The layouts a list page can be shown in: one table, a table per category, or cards. */
+export type ViewMode = "list" | "grouped" | "cards";
+
+/** Every layout, in the order a page offers them. */
+export const VIEW_MODES: readonly ViewMode[] = ["list", "grouped", "cards"];
+
 export interface Preferences {
   /** The population the overview opens on. */
   scope: { kind: ScopeKind; key: string | null };
@@ -30,6 +36,8 @@ export interface Preferences {
   overlays: Overlay[];
   /** How many sessions a chart reaches back by default. */
   range: number;
+  /** The layout each list page was last left in, by page. */
+  views: Partial<Record<string, ViewMode>>;
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -37,6 +45,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   chartStyle: "line",
   overlays: ["sma_20", "sma_50", "sma_200", "volume"],
   range: 250,
+  views: {},
 };
 
 const STORAGE_KEY = "artha.preferences";
@@ -133,6 +142,7 @@ export function parse(stored: unknown): Preferences {
   const chartStyle = record["chartStyle"];
   const overlays = record["overlays"];
   const range = record["range"];
+  const views = record["views"];
   return {
     scope:
       typeof kind === "string" && (SCOPE_KINDS as readonly string[]).includes(kind)
@@ -149,6 +159,18 @@ export function parse(stored: unknown): Preferences {
         )
       : DEFAULT_PREFERENCES.overlays,
     range: typeof range === "number" && RANGES.includes(range) ? range : DEFAULT_PREFERENCES.range,
+    // Only layouts that exist, so a choice from a later version -- or a
+    // hand-edited one -- falls back to a list rather than to nothing.
+    views:
+      typeof views === "object" && views !== null
+        ? Object.fromEntries(
+            Object.entries(views as Record<string, unknown>).filter(
+              (entry): entry is [string, ViewMode] =>
+                typeof entry[1] === "string" &&
+                (VIEW_MODES as readonly string[]).includes(entry[1]),
+            ),
+          )
+        : DEFAULT_PREFERENCES.views,
   };
 }
 
