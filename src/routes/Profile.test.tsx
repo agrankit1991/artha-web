@@ -135,4 +135,58 @@ describe("Profile", () => {
     await userEvent.click(screen.getByRole("button", { name: "Forget my preferences" }));
     expect(readPreferences()).toEqual(DEFAULT_PREFERENCES);
   });
+
+  it("lets the owner make an invitation link and copy it", async () => {
+    const written = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: written },
+      configurable: true,
+    });
+    const fetched = stubPlatform({
+      "/api/invitations": {
+        status: 201,
+        body: { code: "abc123", expires_at: "2026-09-29T12:00:00+05:30" },
+      },
+    });
+    renderPage(<Profile account={ACCOUNT} onSignOut={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "30 days" }));
+    await userEvent.click(screen.getByRole("button", { name: "Create invitation link" }));
+
+    const link = await screen.findByLabelText("Invitation link");
+    expect(link).toHaveTextContent(/\/\?invite=abc123$/);
+    const call = fetched.mock.calls.find(([path]) => String(path) === "/api/invitations") as
+      [string, RequestInit] | undefined;
+    expect(JSON.parse(call?.[1].body as string)).toEqual({ days: 30 });
+    await userEvent.click(screen.getByRole("button", { name: "Copy" }));
+    expect(written).toHaveBeenCalledWith(expect.stringContaining("?invite=abc123"));
+    expect(screen.getByRole("button", { name: "Copied" })).toBeInTheDocument();
+  });
+
+  it("says why an invitation or the clipboard failed, and hides the card from members", async () => {
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: () => Promise.reject(new Error("no")) },
+      configurable: true,
+    });
+    stubPlatform({
+      "/api/invitations": { status: 403, body: { detail: "only the owner may invite" } },
+    });
+    const owner = renderPage(<Profile account={ACCOUNT} onSignOut={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Create invitation link" }));
+    expect(await screen.findByText(/only the owner may invite/)).toBeInTheDocument();
+    owner.unmount();
+
+    vi.unstubAllGlobals();
+    stubPlatform({
+      "/api/invitations": { status: 201, body: { code: "c", expires_at: "2026-09-29T12:00:00Z" } },
+    });
+    const again = renderPage(<Profile account={ACCOUNT} onSignOut={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Create invitation link" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Copy" }));
+    expect(await screen.findByText(/refused the clipboard/)).toBeInTheDocument();
+    again.unmount();
+
+    renderPage(<Profile account={{ ...ACCOUNT, is_owner: false }} onSignOut={vi.fn()} />);
+    expect(screen.queryByText("Invite a friend")).not.toBeInTheDocument();
+  });
 });

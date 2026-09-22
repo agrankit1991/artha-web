@@ -62,3 +62,66 @@ describe("SignIn", () => {
     });
   });
 });
+
+describe("SignIn with an invitation", () => {
+  afterEach(() => {
+    window.history.replaceState(null, "", "/");
+    vi.unstubAllGlobals();
+  });
+
+  it("opens the sign-up form from an invitation link and spends the code", async () => {
+    window.history.replaceState(null, "", "/?invite=abc123");
+    const fetchMock = stubPlatform({ "/api/register": { status: 201, body: ACCOUNT } });
+    const onSignedIn = vi.fn();
+    render(<SignIn onSignedIn={onSignedIn} />);
+
+    expect(screen.getByLabelText("Invitation code")).toHaveValue("abc123");
+    await userEvent.type(screen.getByLabelText("Your name"), "Friend");
+    await userEvent.type(screen.getByLabelText("Email"), "friend@example.com");
+    await userEvent.type(screen.getByLabelText("Password"), "a long enough passphrase");
+    await userEvent.click(screen.getByRole("button", { name: "Create account" }));
+
+    await waitFor(() => {
+      expect(onSignedIn).toHaveBeenCalledWith(ACCOUNT);
+    });
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual({
+      invitation: "abc123",
+      email: "friend@example.com",
+      display_name: "Friend",
+      password: "a long enough passphrase",
+    });
+    expect(window.location.search).toBe("");
+  });
+
+  it("says a password is too short before asking the platform", async () => {
+    const fetchMock = stubPlatform({});
+    render(<SignIn onSignedIn={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: /Have an invitation/ }));
+    await userEvent.type(screen.getByLabelText("Invitation code"), "abc");
+    await userEvent.type(screen.getByLabelText("Your name"), "F");
+    await userEvent.type(screen.getByLabelText("Email"), "f@example.com");
+    await userEvent.type(screen.getByLabelText("Password"), "short");
+    await userEvent.click(screen.getByRole("button", { name: "Create account" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("at least 12 characters");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("shows the platform's refusal of a spent code, and switches back to sign-in", async () => {
+    stubPlatform({
+      "/api/register": { status: 403, body: { detail: "that invitation is not valid" } },
+    });
+    render(<SignIn onSignedIn={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: /Have an invitation/ }));
+    await userEvent.type(screen.getByLabelText("Invitation code"), "used");
+    await userEvent.type(screen.getByLabelText("Your name"), "F");
+    await userEvent.type(screen.getByLabelText("Email"), "f@example.com");
+    await userEvent.type(screen.getByLabelText("Password"), "a long enough passphrase");
+    await userEvent.click(screen.getByRole("button", { name: "Create account" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("that invitation is not valid");
+    await userEvent.click(screen.getByRole("button", { name: /Already have an account/ }));
+    expect(screen.queryByLabelText("Invitation code")).not.toBeInTheDocument();
+  });
+});

@@ -7,11 +7,22 @@
  * one that admits there is nothing to show.
  */
 
-import { Check, LogOut, Monitor, Moon, Palette, SlidersHorizontal, Sun, User } from "lucide-react";
-import { useCallback } from "react";
+import {
+  Check,
+  Copy,
+  LogOut,
+  Monitor,
+  Moon,
+  Palette,
+  SlidersHorizontal,
+  Sun,
+  User,
+  UserPlus,
+} from "lucide-react";
+import { useCallback, useState } from "react";
 
 import type { Account } from "@/api/client";
-import { fetchScopes } from "@/api/client";
+import { createInvitation, fetchScopes } from "@/api/client";
 import { OVERLAYS } from "@/components/ChartControls";
 import { Chooser } from "@/components/Chooser";
 import { PRICE_RANGES } from "@/components/RangeSelector";
@@ -161,6 +172,7 @@ export function Profile({ account, onSignOut }: ProfileProps): React.JSX.Element
         </CardContent>
       </Card>
       <PreferencesCard />
+      {account.is_owner && <InviteCard />}
     </div>
   );
 }
@@ -253,6 +265,117 @@ function PreferencesCard(): React.JSX.Element {
         <Button variant="outline" size="sm" onClick={resetPreferences}>
           Forget my preferences
         </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Mint an invitation link for a friend. Owner only.
+ *
+ * The link opens the sign-up form with the code filled in. The code is
+ * single-use and shown only here, once: the platform keeps its fingerprint,
+ * so a lost link is replaced by minting another.
+ */
+function InviteCard(): React.JSX.Element {
+  const [days, setDays] = useState("7");
+  const [link, setLink] = useState<{ url: string; expires: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const mint = (): void => {
+    setBusy(true);
+    setProblem(null);
+    setCopied(false);
+    createInvitation(Number(days))
+      .then((invitation) => {
+        setLink({
+          url: `${window.location.origin}/?invite=${encodeURIComponent(invitation.code)}`,
+          expires: new Date(invitation.expires_at).toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          }),
+        });
+      })
+      .catch((error: unknown) => {
+        setProblem(error instanceof Error ? error.message : "could not create an invitation");
+      })
+      .finally(() => {
+        setBusy(false);
+      });
+  };
+
+  const copy = (url: string): void => {
+    navigator.clipboard.writeText(url).then(
+      () => {
+        setCopied(true);
+      },
+      () => {
+        setProblem("the browser refused the clipboard; select the link and copy it");
+      },
+    );
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <UserPlus aria-hidden="true" className="h-4 w-4 text-primary" />
+          Invite a friend
+        </CardTitle>
+        <CardDescription>
+          There is no open sign-up. Make a link, send it to one person; it creates one account and
+          then stops working.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <Chooser
+            options={[
+              { key: "1", label: "1 day" },
+              { key: "7", label: "7 days" },
+              { key: "30", label: "30 days" },
+            ]}
+            chosen={days}
+            onChange={setDays}
+            label="Valid for"
+          />
+          <Button size="sm" disabled={busy} onClick={mint}>
+            {busy ? "Creating…" : "Create invitation link"}
+          </Button>
+        </div>
+        {link !== null && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <code
+                className="min-w-0 flex-1 truncate rounded bg-muted px-2 py-1.5 text-xs"
+                aria-label="Invitation link"
+              >
+                {link.url}
+              </code>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  copy(link.url);
+                }}
+              >
+                {copied ? (
+                  <Check aria-hidden="true" className="mr-1.5 h-4 w-4" />
+                ) : (
+                  <Copy aria-hidden="true" className="mr-1.5 h-4 w-4" />
+                )}
+                {copied ? "Copied" : "Copy"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Works once, until {link.expires}. It is shown only now.
+            </p>
+          </div>
+        )}
+        {problem !== null && <p className="text-sm text-loss">{problem}</p>}
       </CardContent>
     </Card>
   );

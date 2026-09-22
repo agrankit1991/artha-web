@@ -501,6 +501,43 @@ export function signIn(email: string, password: string): Promise<Account> {
  *
  * @returns Nothing, once the session has been ended.
  */
+/**
+ * Create an account with an invitation, and sign it in.
+ *
+ * @param details - The code, the address, a display name and a password.
+ * @returns The account, signed in.
+ */
+export function register(details: {
+  invitation: string;
+  email: string;
+  display_name: string;
+  password: string;
+}): Promise<Account> {
+  return request<Account>("/api/register", {
+    method: "POST",
+    body: JSON.stringify(details),
+  });
+}
+
+/** A freshly minted invitation: the code is shown this once. */
+export interface Invitation {
+  code: string;
+  expires_at: string;
+}
+
+/**
+ * Mint a single-use invitation. Only the owner may.
+ *
+ * @param days - How long it stays open, one to thirty.
+ * @returns The code and when it expires.
+ */
+export function createInvitation(days = 7): Promise<Invitation> {
+  return request<Invitation>("/api/invitations", {
+    method: "POST",
+    body: JSON.stringify({ days }),
+  });
+}
+
 export function signOut(): Promise<undefined> {
   return request<undefined>("/api/logout", { method: "POST" });
 }
