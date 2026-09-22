@@ -84,7 +84,7 @@ export function Future({ instrumentKey }: FutureProps): React.JSX.Element {
                 variant="outline"
                 className={
                   found.contract.days_to_expiry <= 7
-                    ? "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-500"
+                    ? "border-caution/40 bg-caution/10 text-caution"
                     : ""
                 }
               >

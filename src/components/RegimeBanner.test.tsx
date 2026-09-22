@@ -20,7 +20,7 @@ describe("RegimeBanner", () => {
     // neither green nor red.
     render(<RegimeBanner regime="over-extended" share={82} rank={97} sessions={6621} />);
 
-    expect(screen.getByText("Over-extended")).toHaveClass("text-amber-600");
+    expect(screen.getByText("Over-extended")).toHaveClass("text-caution");
     expect(screen.getByText(/rotates out of risk/)).toBeInTheDocument();
   });
 

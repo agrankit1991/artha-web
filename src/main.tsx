@@ -3,6 +3,12 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+// Self-hosted rather than from Google Fonts: the typeface is part of the
+// build, so it cannot fail to load and no reader's visit is reported to a
+// third party.
+import "@fontsource-variable/geist";
+import "@fontsource-variable/geist-mono";
+
 import { App } from "./App";
 import "./index.css";
 

@@ -80,7 +80,7 @@ export function IndexCard({ name, overview, symbol, onSelect }: IndexCardProps):
                 the same day. */}
             <div className="text-xs text-muted-foreground/70">{formatDay(overview.as_of)}</div>
           </div>
-          <Delta value={day.change_percent} arrow className="text-xs font-medium" />
+          <Delta value={day.change_percent} className="text-xs font-medium" />
         </div>
 
         <div className="flex items-end justify-between gap-3">

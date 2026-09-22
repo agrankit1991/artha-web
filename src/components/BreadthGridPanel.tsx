@@ -36,7 +36,7 @@ interface BreadthGridPanelProps {
 const CHIPS = {
   good: "border-gain/40 bg-gain/10 text-gain",
   bad: "border-loss/40 bg-loss/10 text-loss",
-  warn: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-500",
+  warn: "border-caution/40 bg-caution/10 text-caution",
   neutral: "border-border bg-muted text-muted-foreground",
 } as const;
 

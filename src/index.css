@@ -57,11 +57,14 @@
   --layout-accent: hsl(210 40% 92%);
   --layout-border: hsl(214.3 31.8% 86%);
 
-  /* Indian market convention, and the one most readers here expect: green
-     for a rise. Chosen at a chroma that stays distinguishable for the most
-     common form of colour blindness, which red and green alone do not. */
-  --gain: oklch(0.58 0.15 149);
+  /* Indian market convention: green for a rise. The exact green-600 and
+     red-600 of the previous project, whose figures the owner preferred;
+     colour is never the only signal, since every change also carries an
+     arrow and a sign. `--caution` is amber-600: streaks, "near 52-week"
+     and stale data -- things worth a look that are neither up nor down. */
+  --gain: oklch(0.627 0.194 149.214);
   --loss: oklch(0.577 0.245 27.325);
+  --caution: oklch(0.666 0.179 58.318);
 }
 
 .dark {
@@ -90,11 +93,11 @@
   --layout-accent: oklch(0.269 0 0);
   --layout-border: oklch(1 0 0 / 10%);
 
-  /* Lifted for a dark surface: the light-mode green reads nearly black
-     against it, which is the usual reason a dashboard's dark theme is
-     harder to read than its light one. */
-  --gain: oklch(0.72 0.17 149);
-  --loss: oklch(0.704 0.191 22.216);
+  /* Lifted to green-500 / red-500 / amber-500 for a dark surface, as the
+     previous project did: the light-mode shades read nearly black on it. */
+  --gain: oklch(0.723 0.219 149.579);
+  --loss: oklch(0.637 0.237 25.331);
+  --caution: oklch(0.769 0.188 70.08);
 }
 
 [data-accent="blue"] {
@@ -269,6 +272,10 @@
   --color-ring: var(--ring);
   --color-gain: var(--gain);
   --color-loss: var(--loss);
+  --color-caution: var(--caution);
+
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SFMono-Regular", monospace;
   --color-layout: var(--layout);
   --color-layout-foreground: var(--layout-foreground);
   --color-layout-accent: var(--layout-accent);

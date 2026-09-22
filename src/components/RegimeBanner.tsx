@@ -31,14 +31,14 @@ interface RegimeBannerProps {
 const PAINT = {
   good: "border-gain/40 bg-gain/10",
   bad: "border-loss/40 bg-loss/10",
-  warn: "border-amber-500/40 bg-amber-500/10",
+  warn: "border-caution/40 bg-caution/10",
   neutral: "border-border bg-muted/40",
 } as const;
 
 const TEXT = {
   good: "text-gain",
   bad: "text-loss",
-  warn: "text-amber-600 dark:text-amber-500",
+  warn: "text-caution",
   neutral: "text-foreground",
 } as const;
 

@@ -30,14 +30,21 @@ describe("Delta", () => {
     expect(screen.getByText("—")).toHaveClass("text-muted-foreground");
   });
 
-  it("adds an arrow only where one is asked for and means something", () => {
-    const { rerender } = render(<Delta value="1.2" arrow />);
-    expect(screen.getByText(/▲/)).toBeInTheDocument();
+  it("draws the direction arrow by default, and none for no move", () => {
+    const { rerender } = render(<Delta value="1.2" />);
+    expect(screen.getByTestId("arrow-up")).toBeInTheDocument();
 
-    rerender(<Delta value="-1.2" arrow />);
-    expect(screen.getByText(/▼/)).toBeInTheDocument();
+    rerender(<Delta value="-1.2" />);
+    expect(screen.getByTestId("arrow-down")).toBeInTheDocument();
 
-    rerender(<Delta value="0" arrow />);
-    expect(screen.queryByText(/▲|▼/)).not.toBeInTheDocument();
+    rerender(<Delta value="0" />);
+    expect(screen.queryByTestId(/arrow-/)).not.toBeInTheDocument();
+  });
+
+  it("leaves the arrow out where the caller says the colour already carries it", () => {
+    render(<Delta value="1.2" arrow={false} />);
+
+    expect(screen.getByText("+1.20%")).toHaveClass("text-gain");
+    expect(screen.queryByTestId(/arrow-/)).not.toBeInTheDocument();
   });
 });

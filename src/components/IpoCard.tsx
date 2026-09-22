@@ -56,7 +56,7 @@ export const STATUSES: Record<
   CLOSED: {
     label: "Closed",
     icon: XCircle,
-    tint: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-500",
+    tint: "border-caution/40 bg-caution/10 text-caution",
   },
   LISTED: {
     label: "Listed",
@@ -129,10 +129,7 @@ export function IpoCard({
                 </Badge>
               )}
               {left !== null && (
-                <Badge
-                  variant="outline"
-                  className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-500"
-                >
+                <Badge variant="outline" className="border-caution/40 bg-caution/10 text-caution">
                   {left === 0
                     ? "Last day to bid"
                     : `${String(left)} ${left === 1 ? "day" : "days"} left`}

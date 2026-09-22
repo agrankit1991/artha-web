@@ -105,7 +105,7 @@ export function WatchButton({
         {...(className === undefined ? {} : { className })}
         triggerClassName={cn(
           "inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm font-medium hover:bg-accent",
-          watched && "border-amber-500/40 text-amber-600 dark:text-amber-400",
+          watched && "border-caution/40 text-caution",
         )}
         trigger={
           <>

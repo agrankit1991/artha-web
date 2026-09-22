@@ -32,7 +32,7 @@ interface StatisticProps {
 const TONES: Record<Tone, string> = {
   good: "text-gain",
   bad: "text-loss",
-  warn: "text-amber-600 dark:text-amber-500",
+  warn: "text-caution",
   neutral: "text-foreground",
 };
 
