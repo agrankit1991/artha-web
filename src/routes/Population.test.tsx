@@ -373,4 +373,32 @@ describe("Population", () => {
       expect(asked.some((path) => path.includes("Nifty 50?as_of=2026-09-15"))).toBe(true);
     });
   });
+
+  it("says who led the index's move, weighed by capitalisation", async () => {
+    stubEverything(population(), {
+      "/api/overviews": { body: [overview({ instrument_key: "NSE_INDEX|Nifty Bank" })] },
+    });
+    show();
+
+    expect(await screen.findByText("Leading the Move")).toBeInTheDocument();
+    // RELIANCE: 16,78,254 of 20,00,000 crore, up 1.5%, on a previous close of 24,659.
+    const table = screen.getByRole("table", { name: "Constituents" });
+    const reliance = (await within(table).findByRole("link", { name: "RELIANCE" })).closest("tr");
+    expect(reliance).toHaveTextContent("83.91");
+    expect(reliance).toHaveTextContent("+310.38");
+    expect(within(table).getByRole("button", { name: /^Contribution pts/ })).toBeInTheDocument();
+    expect(screen.getByText(/not free float/)).toBeInTheDocument();
+  });
+
+  it("measures a sector's contributions in percentage points, having no level", async () => {
+    stubEverything(
+      population({ scope_kind: "sector", scope_key: "Refineries", instrument_key: null }),
+    );
+    show("sector", "Refineries");
+
+    const table = await screen.findByRole("table", { name: "Constituents" });
+    expect(
+      await within(table).findByRole("button", { name: /^Contribution %/ }),
+    ).toBeInTheDocument();
+  });
 });

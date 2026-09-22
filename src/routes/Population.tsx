@@ -8,7 +8,7 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import type { Cadence, KnownSymbol, Member } from "@/api/client";
 import {
@@ -48,7 +48,16 @@ import { readPreferences, writePreferences } from "@/lib/preferences";
 import { coloured } from "@/lib/chartPalette";
 import { companyPath } from "@/lib/paths";
 import { monthOfCloses } from "@/lib/sharing";
-import { formatDay, formatPercent, formatPrice, formatVolume, toNumber } from "@/lib/format";
+import { type Contribution, contributions } from "@/lib/contribution";
+import {
+  ABSENT,
+  formatDay,
+  formatPercent,
+  formatPrice,
+  formatSignedPrice,
+  formatVolume,
+  toNumber,
+} from "@/lib/format";
 
 interface PopulationProps {
   kind: "index" | "sector";
@@ -136,6 +145,13 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
   const chart = useResource(loadChart);
 
   const members = useMemo(() => population.data?.members ?? [], [population.data]);
+  // Each member's part in the day's move, weighed by capitalisation; in
+  // index points where the population has a level, in per cent where not.
+  const previousLevel = toNumber(own.data?.[0]?.day.previous_close);
+  const parts = useMemo(
+    () => contributions(valuation.data?.members ?? [], kind === "index" ? previousLevel : null),
+    [valuation.data, kind, previousLevel],
+  );
 
   // The subject and every benchmark it was measured against, so the chart
   // shows the same comparison the table above it states.
@@ -353,12 +369,21 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
             </CardContent>
           </Card>
 
+          {parts.size > 0 && (
+            <LeadingTheMove members={members} parts={parts} inPoints={kind === "index"} />
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Constituents</CardTitle>
             </CardHeader>
             <CardContent>
-              <Members members={members} loading={population.loading} />
+              <Members
+                members={members}
+                loading={population.loading}
+                parts={parts}
+                inPoints={kind === "index"}
+              />
             </CardContent>
           </Card>
         </>
@@ -375,7 +400,17 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
  * rows scroll under it, because a list of five hundred companies with a
  * dozen columns is unreadable without both.
  */
-function Members({ members, loading }: { members: Member[]; loading: boolean }): React.JSX.Element {
+function Members({
+  members,
+  loading,
+  parts,
+  inPoints,
+}: {
+  members: Member[];
+  loading: boolean;
+  parts: Map<string, Contribution>;
+  inPoints: boolean;
+}): React.JSX.Element {
   const columns = useMemo<Column<Member>[]>(
     () => [
       symbolColumn((row) => row),
@@ -388,6 +423,30 @@ function Members({ members, loading }: { members: Member[]; loading: boolean }):
         meta: { align: "right" },
       },
       change("change", "Change", (row) => row.change_percent),
+      {
+        id: "weight",
+        header: "Weight %",
+        accessorFn: (row) => parts.get(row.instrument_key)?.weight ?? Number.NEGATIVE_INFINITY,
+        cell: ({ row }) => {
+          const weight = parts.get(row.original.instrument_key)?.weight;
+          return weight === undefined ? ABSENT : weight.toFixed(2);
+        },
+        meta: { align: "right" },
+      },
+      {
+        id: "contribution",
+        header: inPoints ? "Contribution pts" : "Contribution %",
+        accessorFn: (row) =>
+          partOf(parts.get(row.instrument_key), inPoints) ?? Number.NEGATIVE_INFINITY,
+        cell: ({ row }) => (
+          <Delta
+            value={toText(partOf(parts.get(row.original.instrument_key), inPoints))}
+            format={formatSignedPrice}
+            arrow={false}
+          />
+        ),
+        meta: { align: "right" },
+      },
       change("one_week", "1W", (row) => row.one_week),
       change("one_month", "1M", (row) => row.one_month),
       change("three_months", "3M", (row) => row.three_months),
@@ -403,7 +462,7 @@ function Members({ members, loading }: { members: Member[]; loading: boolean }):
         meta: { align: "right" },
       },
     ],
-    [],
+    [parts, inPoints],
   );
 
   return (
@@ -440,3 +499,91 @@ function change(id: string, header: string, of: (row: Member) => string | null):
 
 /** The previous project's tint for the badges that say where and what an index is. */
 const TINTED = "bg-primary/10 text-primary";
+
+/** A member's part in the move, in index points or percentage points. */
+function partOf(part: Contribution | undefined, inPoints: boolean): number | null {
+  if (part === undefined) {
+    return null;
+  }
+  return inPoints ? part.points : part.percent;
+}
+
+/** A computed figure as the text the formatters read. */
+function toText(value: number | null): string | null {
+  return value === null ? null : value.toFixed(2);
+}
+
+/** How many members each side of "Leading the move" names. */
+const LEADERS = 5;
+
+/**
+ * The members that did most to move the population today, each way.
+ *
+ * Weighted by market capitalisation, not the free float an exchange uses,
+ * so the figures are close rather than exact, and the card says so.
+ */
+function LeadingTheMove({
+  members,
+  parts,
+  inPoints,
+}: {
+  members: Member[];
+  parts: Map<string, Contribution>;
+  inPoints: boolean;
+}): React.JSX.Element {
+  const ranked = members
+    .flatMap((one) => {
+      const value = partOf(parts.get(one.instrument_key), inPoints);
+      return value === null ? [] : [{ member: one, value }];
+    })
+    .sort((first, second) => second.value - first.value);
+  const lifted = ranked.filter((one) => one.value > 0).slice(0, LEADERS);
+  const dragged = ranked
+    .filter((one) => one.value < 0)
+    .reverse()
+    .slice(0, LEADERS);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Leading the Move</CardTitle>
+        <CardDescription>
+          Each company's weight times its move,{" "}
+          {inPoints ? "in index points" : "in percentage points"}. Weights are by market
+          capitalisation, not free float, so these are close rather than exact.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-6 sm:grid-cols-2">
+        {(
+          [
+            ["Lifted by", lifted],
+            ["Dragged by", dragged],
+          ] as const
+        ).map(([title, rows]) => (
+          <div key={title} className="space-y-2">
+            <h3 className="text-xs font-medium uppercase text-muted-foreground">{title}</h3>
+            {rows.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nobody today</p>
+            ) : (
+              <ol className="space-y-1.5">
+                {rows.map(({ member, value }) => (
+                  <li
+                    key={member.instrument_key}
+                    className="flex items-baseline justify-between gap-3 text-sm"
+                  >
+                    <Link
+                      to={companyPath(member.instrument_key, member.symbol)}
+                      className="truncate font-medium text-primary hover:underline"
+                    >
+                      {member.symbol}
+                    </Link>
+                    <Delta value={toText(value)} format={formatSignedPrice} arrow={false} />
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
