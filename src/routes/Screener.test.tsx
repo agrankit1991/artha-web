@@ -41,7 +41,7 @@ describe("Screener", () => {
     const table = await screen.findByRole("table", { name: "Screen results" });
     expect(await within(table).findByRole("link", { name: /RELIANCE/ })).toHaveAttribute(
       "href",
-      "/company/NSE_EQ%7CINE002A01018",
+      "/company/RELIANCE",
     );
     expect(within(table).getByText("Refineries")).toBeInTheDocument();
     expect(within(table).getByRole("button", { name: /RSI \(14\)/ })).toBeInTheDocument();

@@ -54,7 +54,7 @@ describe("Movers", () => {
 
     const table = await screen.findByRole("table", { name: "Top gainers" });
     const tcs = await within(table).findByRole("link", { name: /TCS/ });
-    expect(tcs).toHaveAttribute("href", "/company/NSE_EQ%7CINE467B01029");
+    expect(tcs).toHaveAttribute("href", "/company/TCS");
     expect(within(table).getByRole("button", { name: /^Name/ })).toBeInTheDocument();
     expect(screen.getByText(/2 instruments/)).toBeInTheDocument();
     await waitFor(() => {

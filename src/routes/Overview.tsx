@@ -152,7 +152,7 @@ export function Overview({
   const opens = (row: MoverRow): string =>
     scope.kind === "indices"
       ? populationPath("index", row.instrument_key)
-      : companyPath(row.instrument_key);
+      : companyPath(row.instrument_key, row.symbol);
 
   const cards = useMemo(() => {
     const found = new Map(indices.data?.map((overview) => [overview.instrument_key, overview]));
@@ -413,7 +413,10 @@ function MarketBand({
       {gainer !== undefined && (
         <span className="flex items-baseline gap-2">
           <span className="text-muted-foreground">Led by</span>
-          <Link to={companyPath(gainer.instrument_key)} className="font-medium hover:underline">
+          <Link
+            to={companyPath(gainer.instrument_key, gainer.symbol)}
+            className="font-medium hover:underline"
+          >
             {gainer.symbol}
           </Link>
           <Delta value={gainer.value} />
@@ -422,7 +425,10 @@ function MarketBand({
       {loser !== undefined && (
         <span className="flex items-baseline gap-2">
           <span className="text-muted-foreground">Dragged by</span>
-          <Link to={companyPath(loser.instrument_key)} className="font-medium hover:underline">
+          <Link
+            to={companyPath(loser.instrument_key, loser.symbol)}
+            className="font-medium hover:underline"
+          >
             {loser.symbol}
           </Link>
           <Delta value={loser.value} />

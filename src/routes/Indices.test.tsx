@@ -42,7 +42,7 @@ describe("Indices", () => {
 
     const table = await screen.findByRole("table", { name: "Indices" });
     const nifty = await within(table).findByRole("link", { name: /Nifty 50/ });
-    expect(nifty).toHaveAttribute("href", "/index/NSE_INDEX%7CNifty%2050");
+    expect(nifty).toHaveAttribute("href", "/index/nifty-50");
     expect(within(table).getByText("Broad market")).toBeInTheDocument();
     expect(within(table).getByText("Sectoral")).toBeInTheDocument();
     // Never described and never counted: the symbol stands in, and a dash.

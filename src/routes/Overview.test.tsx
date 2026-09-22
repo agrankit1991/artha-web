@@ -338,7 +338,7 @@ describe("Overview", () => {
 
     const [firstPanel] = screen.getAllByRole("table");
     const [first] = within(firstPanel as HTMLElement).getAllByRole("link");
-    expect(first).toHaveAttribute("href", "/index/NSE_EQ%7CINE002A01018");
+    expect(first).toHaveAttribute("href", "/index/ine002a01018");
   });
 
   it("leads from a company's name to its own page", async () => {
@@ -350,7 +350,7 @@ describe("Overview", () => {
 
     const [firstPanel] = screen.getAllByRole("table");
     const [first] = within(firstPanel as HTMLElement).getAllByRole("link");
-    expect(first).toHaveAttribute("href", "/company/NSE_EQ%7CINE002A01018");
+    expect(first).toHaveAttribute("href", "/company/RELIANCE");
   });
 
   it("names a chosen population by its key when nothing named it", async () => {
@@ -396,10 +396,7 @@ describe("Overview", () => {
     renderPage(<Overview />);
     expect(await screen.findByText("Dragged by")).toBeInTheDocument();
     const band = await screen.findByRole("region", { name: "What moved today" });
-    expect(within(band).getByRole("link", { name: "TCS" })).toHaveAttribute(
-      "href",
-      "/company/NSE_EQ%7CINE467B01029",
-    );
+    expect(within(band).getByRole("link", { name: "TCS" })).toHaveAttribute("href", "/company/TCS");
 
     expect(within(band).getByText(/up$/)).toBeInTheDocument();
     expect(within(band).getByRole("link", { name: "All movers →" })).toHaveAttribute(

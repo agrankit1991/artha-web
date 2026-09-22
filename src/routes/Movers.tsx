@@ -120,7 +120,7 @@ export function Movers(): React.JSX.Element {
               placeholderRows={12}
               label={MOVER_LISTS[name].title}
               full
-              linkTo={(row) => companyPath(row.instrument_key)}
+              linkTo={(row) => companyPath(row.instrument_key, row.symbol)}
             />
           </div>
         )}

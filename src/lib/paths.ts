@@ -28,24 +28,54 @@ export const PATHS = {
 } as const;
 
 /**
- * Where a population's own page is.
+ * Where a population's own page is: a slug of its name, as in the
+ * previous project, never the provider's key.
  *
  * @param kind - Whether it is an index or a sector.
- * @param key - Which one.
- * @returns The path.
+ * @param key - The index's instrument key, or the sector's name.
+ * @returns Something like `/index/nifty-50` or `/sector/it-software`.
  */
 export function populationPath(kind: "index" | "sector", key: string): string {
-  return `/${kind}/${encodeURIComponent(key)}`;
+  // An index's key carries its name after the segment (`NSE_INDEX|Nifty 50`);
+  // a sector's key is its name.
+  const name = kind === "index" ? key.slice(key.lastIndexOf("|") + 1) : key;
+  return `/${kind}/${slug(name)}`;
 }
 
 /**
- * Where a company's own page is.
+ * Where a company's own page is: its trading symbol, as in the previous
+ * project, never the provider's key.
  *
  * @param instrumentKey - Either exchange's listing; both reach one page.
- * @returns The path.
+ * @param symbol - The listing's trading symbol.
+ * @returns Something like `/company/RELIANCE`, or `/company/INE…` for a
+ *   company that trades only on the BSE.
  */
-export function companyPath(instrumentKey: string): string {
-  return `/company/${encodeURIComponent(instrumentKey)}`;
+export function companyPath(instrumentKey: string, symbol: string): string {
+  // The NSE symbol where the company trades there. A BSE-only company goes by
+  // its ISIN, which its key carries, because seven BSE symbols belong to a
+  // different company on the NSE and the platform resolves a bare symbol to
+  // the NSE one.
+  const reference = instrumentKey.startsWith("NSE_EQ|")
+    ? symbol
+    : instrumentKey.slice(instrumentKey.lastIndexOf("|") + 1);
+  return `/company/${encodeURIComponent(reference)}`;
+}
+
+/**
+ * Write a name as an address segment: lower case, words joined by hyphens.
+ *
+ * The platform matches only the letters and digits, in order, so this can
+ * change its punctuation without breaking an address already shared.
+ *
+ * @param name - An index's or a sector's name.
+ * @returns Something like `nifty-50` or `it-software`.
+ */
+export function slug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 /**
@@ -86,20 +116,25 @@ export function fundPath(schemeCode: string): string {
  * Stated once beside the other paths so a search result and a table row
  * lead to the same page for the same thing.
  *
- * @param kind - What kind of thing it is.
- * @param key - What its page is reached by.
+ * @param hit - What was found: its kind, its key, and its label, which
+ *   for a company is its symbol.
  * @returns The path.
  */
-export function hitPath(kind: "company" | "index" | "sector" | "fund", key: string): string {
-  switch (kind) {
+export function hitPath(hit: {
+  kind: "company" | "index" | "sector" | "fund";
+  key: string;
+  label: string;
+}): string {
+  switch (hit.kind) {
     case "company":
-      return companyPath(key);
+      // A company hit is labelled with its symbol.
+      return companyPath(hit.key, hit.label);
     case "index":
-      return populationPath("index", key);
+      return populationPath("index", hit.key);
     case "sector":
-      return populationPath("sector", key);
+      return populationPath("sector", hit.key);
     case "fund":
-      return fundPath(key);
+      return fundPath(hit.key);
   }
 }
 

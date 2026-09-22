@@ -269,7 +269,7 @@ describe("Breadth", () => {
 
     expect(screen.getByRole("link", { name: /Pharmaceuticals/ })).toHaveAttribute(
       "href",
-      "/sector/Pharmaceuticals",
+      "/sector/pharmaceuticals",
     );
   });
 

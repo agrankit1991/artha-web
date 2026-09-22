@@ -78,7 +78,7 @@ describe("EarningsPage", () => {
 
     const table = await screen.findByRole("table", { name: "Sectors by earnings growth" });
     const link = await within(table).findByRole("link", { name: /IT - Software/ });
-    expect(link).toHaveAttribute("href", "/sector/IT%20-%20Software");
+    expect(link).toHaveAttribute("href", "/sector/it-software");
     expect(within(table).getByText("92 companies")).toBeInTheDocument();
     expect(within(table).getByText("1 company")).toBeInTheDocument();
     // Growth from a loss is not a percentage; the absent comparison is a dash.

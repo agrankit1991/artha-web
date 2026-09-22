@@ -157,7 +157,7 @@ function MoverList({
             <li key={member.instrument_key} className="text-sm">
               <div className="flex items-baseline justify-between gap-3">
                 <Link
-                  to={companyPath(member.instrument_key)}
+                  to={companyPath(member.instrument_key, member.symbol)}
                   className="min-w-0 truncate font-medium hover:text-primary hover:underline"
                 >
                   {member.symbol}

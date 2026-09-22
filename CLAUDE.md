@@ -258,13 +258,24 @@ call site.
   Markets: `/` overview, `/breadth`, `/indices`, `/sectors`, `/futures`,
   `/movers/:list`, `/earnings`, `/news`. Research: `/screen`, `/compare`,
   `/ipos`, `/funds`. Mine: `/watchlists`, `/profile`. Entity pages:
-  `/company/:key`, `/index/:key`, `/sector/:key`, `/fund/:code`,
-  `/ipo/:id`, `/future/:key`. Pages that are a _question_ keep their
+  `/company/:ref`, `/index/:ref`, `/sector/:ref`, `/fund/:code`,
+  `/ipo/:id`, `/future/:key`.
+
+  **Company, index and sector addresses are readable** (owner's choice,
+  2026-09-23): `/company/RELIANCE`, `/index/nifty-50`,
+  `/sector/it-software`, built only by `companyPath`/`populationPath` in
+  `src/lib/paths.ts`. `ReferencedPage` asks `/api/references/{kind}/{ref}`
+  what the address names and draws the page for the resolved key. A
+  BSE-only company goes by its ISIN, because seven BSE symbols belong to a
+  different NSE company. The platform matches an index or sector slug on
+  letters and digits only, so `slug()` may change punctuation freely.
+  Addresses holding an instrument key still resolve, so old bookmarks work. Pages that are a _question_ keep their
   state in the URL (`useSearchParams`): the screener's conditions, the
   comparison's set, the movers list and scope, a watchlist's `?list=`,
   and `?as_of=` on the company and population pages. These are places a
   reader bookmarks and presses Back out of. Caddy serves the SPA
   fallback, so a deep link works.
+
 - **The overview** (`src/routes/Overview.tsx`) -- the eight headline
   indices as cards, the benchmark against gold, every mover list for
   whichever population is chosen, and the news feed. One request brings all

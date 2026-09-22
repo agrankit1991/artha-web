@@ -42,7 +42,7 @@ describe("Sectors", () => {
 
     const table = await screen.findByRole("table", { name: "Sectors" });
     const software = await within(table).findByRole("link", { name: /IT - Software/ });
-    expect(software).toHaveAttribute("href", "/sector/IT%20-%20Software");
+    expect(software).toHaveAttribute("href", "/sector/it-software");
     expect(within(table).getByText(/92 companies, 90 with figures/)).toBeInTheDocument();
     expect(within(table).getByText(/^1 company$/)).toBeInTheDocument();
     expect(

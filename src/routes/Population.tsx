@@ -330,7 +330,10 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Heatmap members={members} linkTo={(one) => companyPath(one.instrument_key)} />
+              <Heatmap
+                members={members}
+                linkTo={(one) => companyPath(one.instrument_key, one.symbol)}
+              />
             </CardContent>
           </Card>
 
@@ -396,7 +399,7 @@ function Members({ members, loading }: { members: Member[]; loading: boolean }):
       placeholderRows={8}
       label="Constituents"
       full
-      linkTo={(row) => companyPath(row.instrument_key)}
+      linkTo={(row) => companyPath(row.instrument_key, row.symbol)}
     />
   );
 }

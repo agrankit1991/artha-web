@@ -426,7 +426,7 @@ function Items({
       placeholderRows={4}
       label="Watched instruments"
       full
-      linkTo={(row) => companyPath(row.instrument_key)}
+      linkTo={(row) => companyPath(row.instrument_key, row.symbol)}
     />
   );
 }
@@ -838,7 +838,10 @@ function ItemDialog({
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          <Link to={companyPath(item?.instrument_key ?? "")} className="underline">
+          <Link
+            to={companyPath(item?.instrument_key ?? "", item?.symbol ?? "")}
+            className="underline"
+          >
             Open the company page
           </Link>
         </p>

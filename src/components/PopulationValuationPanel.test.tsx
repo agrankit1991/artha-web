@@ -17,7 +17,7 @@ describe("PopulationValuationPanel", () => {
     const added = screen.getByRole("heading", { name: /Added the most/ }).parentElement;
     expect(within(added as HTMLElement).getByRole("link", { name: "RELIANCE" })).toHaveAttribute(
       "href",
-      "/company/NSE_EQ%7CINE002A01018",
+      "/company/RELIANCE",
     );
     expect(added).toHaveTextContent("₹24,800 cr");
     const taken = screen.getByRole("heading", { name: /Took away the most/ }).parentElement;

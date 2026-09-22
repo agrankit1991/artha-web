@@ -324,7 +324,7 @@ export function Screener(): React.JSX.Element {
               placeholderRows={10}
               label="Screen results"
               full
-              linkTo={(row) => companyPath(row.instrument_key)}
+              linkTo={(row) => companyPath(row.instrument_key, row.symbol)}
             />
             {hits.data !== null && (
               <LoadMore

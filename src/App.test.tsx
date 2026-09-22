@@ -49,6 +49,20 @@ const DATA = {
     },
   },
   "/api/figures": { body: { instrument_key: "NSE_INDEX|Nifty 50", points: [] } },
+  // Every readable address names the fixture the rest of these replies
+  // describe, as the platform's resolver would.
+  "/api/references": {
+    bodyFor: (path: string) => {
+      const [kind = "", reference = ""] = path.split("/").slice(3);
+      if (kind === "company") {
+        return { kind, key: "NSE_EQ|INE002A01018", name: "Reliance Industries" };
+      }
+      if (kind === "index") {
+        return { kind, key: "NSE_INDEX|Nifty 50", name: "Nifty 50" };
+      }
+      return { kind, key: decodeURIComponent(reference), name: decodeURIComponent(reference) };
+    },
+  },
 };
 
 describe("App", () => {

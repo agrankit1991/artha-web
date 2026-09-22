@@ -362,10 +362,11 @@ function Returns({ rows, loading }: { rows: Compared[]; loading: boolean }): Rea
       label="Returns compared"
       full
       linkTo={(row) =>
-        hitPath(
-          row.instrument.kind === "INDEX" ? "index" : "company",
-          row.instrument.instrument_key,
-        )
+        hitPath({
+          kind: row.instrument.kind === "INDEX" ? "index" : "company",
+          key: row.instrument.instrument_key,
+          label: row.instrument.symbol,
+        })
       }
     />
   );

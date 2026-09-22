@@ -74,7 +74,7 @@ describe("Compare", () => {
     const returns = screen.getByRole("table", { name: "Returns compared" });
     expect(await within(returns).findByRole("link", { name: /RELIANCE/ })).toHaveAttribute(
       "href",
-      "/company/NSE_EQ%7CINE002A01018",
+      "/company/RELIANCE",
     );
     const matrix = screen.getByRole("table", { name: "Figures compared" });
     expect(within(matrix).getByRole("rowheader", { name: "RSI (14)" })).toBeInTheDocument();

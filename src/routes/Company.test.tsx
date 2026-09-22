@@ -90,7 +90,7 @@ describe("Company", () => {
 
     expect(await screen.findByRole("link", { name: "Refineries" })).toHaveAttribute(
       "href",
-      "/sector/Refineries",
+      "/sector/refineries",
     );
   });
 
@@ -101,7 +101,7 @@ describe("Company", () => {
 
     expect(await screen.findByRole("link", { name: "Nifty 50" })).toHaveAttribute(
       "href",
-      "/index/NSE_INDEX%7CNifty%2050",
+      "/index/nifty-50",
     );
   });
 
@@ -150,7 +150,7 @@ describe("Company", () => {
     expect(within(table).getByText("Its sector")).toBeInTheDocument();
     expect(within(table).getByRole("link", { name: /Refineries/ })).toHaveAttribute(
       "href",
-      "/sector/Refineries",
+      "/sector/refineries",
     );
   });
 
@@ -259,7 +259,7 @@ describe("Company", () => {
     const table = await screen.findByRole("table", { name: "Competitors" });
     expect(within(table).getByRole("link", { name: /BPCL/ })).toHaveAttribute(
       "href",
-      "/company/NSE_EQ%7CINE029A01011",
+      "/company/BPCL",
     );
   });
 

@@ -834,6 +834,31 @@ export interface CorporateAction {
   ratio: string | null;
 }
 
+/** The kinds of page a readable address can name. */
+export type ReferenceKind = "company" | "index" | "sector";
+
+/** What a readable address names. */
+export interface Reference {
+  kind: ReferenceKind;
+  /** What every other request asks for it by: an instrument key, or a sector's name. */
+  key: string;
+  name: string;
+}
+
+/**
+ * Ask the platform what a readable address names.
+ *
+ * @param kind - The kind of page the address is for.
+ * @param reference - The address's last segment: a symbol, an ISIN, a
+ *   slug, or an instrument key from an address bookmarked before readable
+ *   ones existed.
+ * @returns What it names.
+ * @throws {ApiError} 404 when it names nothing listed today.
+ */
+export function fetchReference(kind: ReferenceKind, reference: string): Promise<Reference> {
+  return request<Reference>(`/api/references/${kind}/${encodeURIComponent(reference)}`);
+}
+
 /**
  * Fetch one company: what it is, how it reads, and who it competes with.
  *

@@ -70,7 +70,7 @@ describe("SearchBox", () => {
     await userEvent.keyboard("{ArrowDown}{Enter}");
 
     await waitFor(() => {
-      expect(screen.getByTestId("where")).toHaveTextContent("/index/NSE_INDEX%7CNifty%2050");
+      expect(screen.getByTestId("where")).toHaveTextContent("/index/nifty-50");
     });
   });
 
@@ -198,7 +198,7 @@ describe("SearchBox", () => {
     await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowUp}{Enter}");
 
     await waitFor(() => {
-      expect(screen.getByTestId("where")).toHaveTextContent("/index/NSE_INDEX%7CNifty%2050");
+      expect(screen.getByTestId("where")).toHaveTextContent("/index/nifty-50");
     });
   });
 

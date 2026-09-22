@@ -634,7 +634,7 @@ function Peers({ peers, loading }: { peers: Member[]; loading: boolean }): React
       empty="No competitors recorded for this company"
       placeholderRows={5}
       label="Competitors"
-      linkTo={(row) => companyPath(row.instrument_key)}
+      linkTo={(row) => companyPath(row.instrument_key, row.symbol)}
     />
   );
 }

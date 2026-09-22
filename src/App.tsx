@@ -19,6 +19,7 @@ import { BrowserRouter, Route, Routes, useNavigate, useParams } from "react-rout
 import type { Account } from "@/api/client";
 import { fetchAccount, fetchHello, signOut } from "@/api/client";
 import { AppShell, type Screen } from "@/components/AppShell";
+import { ReferencedPage } from "@/components/ReferencedPage";
 import { useResource } from "@/hooks/useResource";
 import { ENTITIES, MARKS } from "@/lib/entities";
 import { PATHS, populationPath } from "@/lib/paths";
@@ -182,24 +183,34 @@ function SignedIn({
         <Route path={PATHS.futures} element={<Futures />} />
         <Route path="/future/:key" element={<FutureRoute />} />
         <Route path="/fund/:code" element={<FundRoute />} />
-        <Route path="/company/:key" element={<CompanyRoute />} />
-        <Route path="/index/:key" element={<PopulationRoute kind="index" />} />
-        <Route path="/sector/:key" element={<PopulationRoute kind="sector" />} />
+        <Route
+          path="/company/:ref"
+          element={
+            <ReferencedPage kind="company">
+              {(key) => <Company instrumentKey={key} />}
+            </ReferencedPage>
+          }
+        />
+        <Route
+          path="/index/:ref"
+          element={
+            <ReferencedPage kind="index">
+              {(key) => <Population kind="index" scopeKey={key} />}
+            </ReferencedPage>
+          }
+        />
+        <Route
+          path="/sector/:ref"
+          element={
+            <ReferencedPage kind="sector">
+              {(key) => <Population kind="sector" scopeKey={key} />}
+            </ReferencedPage>
+          }
+        />
         <Route path={PATHS.profile} element={<Profile account={account} onSignOut={onSignOut} />} />
       </Routes>
     </AppShell>
   );
-}
-
-/**
- * Read the population key out of the path and show its page.
- *
- * @param props - Which kind of population the route is for.
- * @returns The page.
- */
-function PopulationRoute({ kind }: { kind: "index" | "sector" }): React.JSX.Element {
-  const { key } = useParams();
-  return <Population kind={kind} scopeKey={key ?? ""} />;
 }
 
 /**
@@ -220,16 +231,6 @@ function IpoRoute(): React.JSX.Element {
 function FundRoute(): React.JSX.Element {
   const { code } = useParams();
   return <Fund schemeCode={code ?? ""} />;
-}
-
-/**
- * Read the company's listing out of the path and show its page.
- *
- * @returns The page.
- */
-function CompanyRoute(): React.JSX.Element {
-  const { key } = useParams();
-  return <Company instrumentKey={key ?? ""} />;
 }
 
 function FutureRoute(): React.JSX.Element {
