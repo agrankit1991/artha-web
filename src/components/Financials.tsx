@@ -18,7 +18,9 @@ import { useMemo, useState } from "react";
 
 import type { ReportingBasis, ReportingFrequency, Statement, StatementKind } from "@/api/client";
 import { Chooser, type Option } from "@/components/Chooser";
+import { Delta } from "@/components/Delta";
 import { StatementTable } from "@/components/StatementTable";
+import { growthOf } from "@/lib/growth";
 
 interface FinancialsProps {
   statements: Statement[] | null;
@@ -117,6 +119,9 @@ export function Financials({ statements, loading = false }: FinancialsProps): Re
         loading={loading}
         empty="No statements filed for this company"
       />
+      {showing?.statement === "INCOME_STATEMENT" && showing.frequency === "YEARLY" && (
+        <GrowthBlock statement={showing} />
+      )}
       <p className="text-xs text-muted-foreground">
         Figures in crore, except earnings per share, which is in rupees. As reported, and as they
         were known today — a later restatement is recorded beside the original rather than replacing
@@ -138,4 +143,53 @@ function offered<Key extends string>(found: Key[], names: Record<Key, string>): 
   return (Object.keys(names) as Key[])
     .filter((key) => present.has(key))
     .map((key) => ({ key, label: names[key] }));
+}
+
+/** The figures whose growth the block states, as the income statement names them. */
+const GROWN: readonly { lineItem: string; label: string }[] = [
+  { lineItem: "Revenue", label: "Revenue" },
+  { lineItem: "Profit After Tax", label: "Profit after tax" },
+  { lineItem: "EPS - Basic", label: "Earnings per share" },
+];
+
+/**
+ * Screener's compounded-growth tables, as far as the statements reach: each
+ * figure's yearly rate over the periods held, and its latest year's growth.
+ */
+function GrowthBlock({ statement }: { statement: Statement }): React.JSX.Element | null {
+  const rows = GROWN.flatMap((one) => {
+    const found = growthOf(statement, one.lineItem);
+    return found === null ? [] : [{ ...one, found }];
+  });
+  if (rows.length === 0) {
+    return null;
+  }
+  return (
+    <div className="grid gap-3 sm:grid-cols-3" role="group" aria-label="Compounded growth">
+      {rows.map(({ lineItem, label, found }) => (
+        <div key={lineItem} className="rounded-lg border p-3">
+          <div className="text-xs font-medium text-muted-foreground">{label}</div>
+          <dl className="mt-1 space-y-0.5 text-sm">
+            <div className="flex justify-between gap-2">
+              <dt className="text-muted-foreground">{found.years}-year compounded</dt>
+              <dd>
+                <Delta value={text(found.compounded)} arrow={false} />
+              </dd>
+            </div>
+            <div className="flex justify-between gap-2">
+              <dt className="text-muted-foreground">Last year</dt>
+              <dd>
+                <Delta value={text(found.lastYear)} arrow={false} />
+              </dd>
+            </div>
+          </dl>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** A computed rate as the text Delta reads. */
+function text(value: number | null): string | null {
+  return value === null ? null : value.toFixed(2);
 }

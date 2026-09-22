@@ -164,8 +164,8 @@ describe("Company", () => {
 
     // Awaited inside: the table is drawn before its figures arrive, so a
     // query that resolves on the table alone runs against an empty one.
-    expect(await screen.findByText("Revenue")).toBeInTheDocument();
     const table = screen.getByRole("table", { name: "Financial Statements" });
+    expect(await within(table).findByText("Revenue")).toBeInTheDocument();
     expect(within(table).getByText("Profit After Tax")).toBeInTheDocument();
   });
 

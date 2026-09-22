@@ -93,6 +93,41 @@ describe("Financials", () => {
 
     expect(screen.getByText("No statements filed for this company")).toBeInTheDocument();
   });
+  it("states compounded growth under the yearly income statement, over the years held", () => {
+    const periods = [
+      ["2026-03-31", "1331", "-50"],
+      ["2025-03-31", "1210", "40"],
+      ["2024-03-31", "1100", "30"],
+      ["2023-03-31", "1000", "20"],
+    ] as const;
+    const yearly: Statement = {
+      statement: "INCOME_STATEMENT",
+      basis: "CONSOLIDATED",
+      frequency: "YEARLY",
+      line_items: ["Revenue", "Profit After Tax"],
+      periods: periods.map(([end, revenue, profit]) => ({
+        period_end: end,
+        figures: [
+          { line_item: "Revenue", value: revenue, units: "crore" },
+          { line_item: "Profit After Tax", value: profit, units: "crore" },
+        ],
+      })),
+    };
+    draw([yearly]);
+
+    const growth = screen.getByRole("group", { name: "Compounded growth" });
+    expect(within(growth).getByText("Revenue").parentElement).toHaveTextContent(
+      "3-year compounded+10.00%",
+    );
+    // A year that ends in a loss has no compound rate to state.
+    expect(within(growth).getByText("Profit after tax").parentElement).toHaveTextContent("—");
+  });
+
+  it("states no growth beside a quarterly statement", () => {
+    draw([statement({ statement: "INCOME_STATEMENT", frequency: "QUARTERLY" })]);
+
+    expect(screen.queryByRole("group", { name: "Compounded growth" })).not.toBeInTheDocument();
+  });
 });
 
 /** One period reporting one figure. */
