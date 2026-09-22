@@ -1111,6 +1111,10 @@ export function watchedInstrument(overrides: Partial<WatchedInstrument> = {}): W
     to_target_percent: "20.97",
     to_stop_percent: "-11.29",
     as_of: "2026-09-16",
+    featured: false,
+    added_close: "1200.00",
+    since_added_percent: "3.33",
+    volume: 9296079,
     ...overrides,
   };
 }

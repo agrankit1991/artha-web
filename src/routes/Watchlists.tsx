@@ -12,7 +12,7 @@
  * The chosen list lives in the address, so a list is a link.
  */
 
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { AlertCircle, Pencil, Plus, Star, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
@@ -34,7 +34,7 @@ import {
   updateWatchlistItem,
 } from "@/api/client";
 import { type Column, DataTable } from "@/components/DataTable";
-import { nameColumn, symbolColumn } from "@/components/identityColumns";
+import { symbolColumn } from "@/components/identityColumns";
 import { Delta } from "@/components/Delta";
 import { Dialog } from "@/components/Dialog";
 import { Empty } from "@/components/Empty";
@@ -46,7 +46,7 @@ import { Input } from "@/components/ui/input";
 import { useDebounced } from "@/hooks/useDebounced";
 import { useResource } from "@/hooks/useResource";
 import { ENTITIES, MARKS } from "@/lib/entities";
-import { ABSENT, formatDay, formatPrice, toNumber } from "@/lib/format";
+import { ABSENT, formatDay, formatPrice, formatVolume, toNumber } from "@/lib/format";
 import { companyPath } from "@/lib/paths";
 import { cn } from "@/lib/utils";
 
@@ -245,6 +245,18 @@ export function Watchlists(): React.JSX.Element {
                 onRemove={(item) => {
                   setDialog({ kind: "remove", item });
                 }}
+                onStar={(item) => {
+                  if (chosenId === null) {
+                    return; // Unreachable: items are drawn only for a chosen list.
+                  }
+                  void updateWatchlistItem(chosenId, item.item_id, {
+                    notes: item.notes,
+                    target_price: item.target_price,
+                    stop_loss: item.stop_loss,
+                    tags: item.tags,
+                    featured: !item.featured,
+                  }).then(refresh);
+                }}
               />
             )}
           </section>
@@ -323,16 +335,50 @@ function Items({
   loading,
   onEdit,
   onRemove,
+  onStar,
 }: {
   items: WatchedInstrument[];
   loading: boolean;
   onEdit: (item: WatchedInstrument) => void;
   onRemove: (item: WatchedInstrument) => void;
+  onStar: (item: WatchedInstrument) => void;
 }): React.JSX.Element {
   const columns = useMemo<Column<WatchedInstrument>[]>(
     () => [
-      symbolColumn((row) => row),
-      nameColumn((row) => row),
+      symbolColumn((row) => row, {
+        // The previous watchlist's two marks before the name: the star the
+        // reader sets, and a warning when the price nears a level.
+        lead: (row) => (
+          <>
+            <StarButton item={row} onStar={onStar} />
+            <NearLevel item={row} />
+          </>
+        ),
+      }),
+      {
+        id: "name",
+        header: "Name",
+        accessorFn: (row) => row.name,
+        cell: ({ row }) => (
+          <div className="min-w-0 max-w-[18rem]">
+            <div className="truncate">{row.original.name}</div>
+            {row.original.notes !== null && (
+              <div className="truncate text-xs text-muted-foreground" title={row.original.notes}>
+                {row.original.notes}
+              </div>
+            )}
+            {row.original.tags.length > 0 && (
+              <div className="mt-1 flex flex-wrap gap-1">
+                {row.original.tags.map((one) => (
+                  <Badge key={one} variant="outline" className="px-1 text-xs">
+                    {one}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+        ),
+      },
       {
         id: "close",
         header: "Price",
@@ -340,9 +386,22 @@ function Items({
         cell: ({ row }) => formatPrice(row.original.close),
         meta: { align: "right" },
       },
-      change("change", "Change", (row) => row.change_percent),
-      change("one_month", "1M", (row) => row.one_month),
-      change("one_year", "1Y", (row) => row.one_year),
+      {
+        id: "volume",
+        header: "Volume",
+        accessorFn: (row) => row.volume ?? 0,
+        cell: ({ row }) => formatVolume(row.original.volume),
+        meta: { align: "right" },
+      },
+      change("change", "Today", (row) => row.change_percent),
+      change("since_added", "Since added", (row) => row.since_added_percent),
+      {
+        id: "added_close",
+        header: "Added at",
+        accessorFn: (row) => toNumber(row.added_close) ?? 0,
+        cell: ({ row }) => formatPrice(row.original.added_close),
+        meta: { align: "right" },
+      },
       level(
         "target",
         "Target",
@@ -356,35 +415,13 @@ function Items({
         (row) => row.to_stop_percent,
       ),
       {
-        id: "tags",
-        header: "Tags",
-        accessorFn: (row) => row.tags.join(" "),
-        cell: ({ row }) => (
-          <span className="flex flex-wrap gap-1">
-            {row.original.tags.map((one) => (
-              <Badge key={one} variant="secondary">
-                {one}
-              </Badge>
-            ))}
-          </span>
-        ),
-      },
-      {
-        id: "notes",
-        header: "Notes",
-        accessorFn: (row) => row.notes ?? "",
-        cell: ({ row }) => (
-          <span className="block max-w-[16rem] truncate" title={row.original.notes ?? undefined}>
-            {row.original.notes ?? ABSENT}
-          </span>
-        ),
-      },
-      {
         id: "added_on",
         header: "Added",
         accessorFn: (row) => row.added_on,
         cell: ({ row }) => formatDay(row.original.added_on),
       },
+      change("one_month", "1M", (row) => row.one_month),
+      change("one_year", "1Y", (row) => row.one_year),
       {
         id: "actions",
         header: "",
@@ -415,7 +452,7 @@ function Items({
         ),
       },
     ],
-    [onEdit, onRemove],
+    [onEdit, onRemove, onStar],
   );
   return (
     <DataTable
@@ -748,6 +785,8 @@ function ItemDialog({
         .split(",")
         .map((one) => one.trim())
         .filter((one) => one !== ""),
+      // A change replaces the whole item, so the star goes along unchanged.
+      featured: item.featured,
     };
     try {
       await updateWatchlistItem(watchlistId, item.item_id, draft);
@@ -848,4 +887,59 @@ function ItemDialog({
       </form>
     </Dialog>
   );
+}
+
+/** How close the price must come to a level for the row to warn, in per cent. */
+const NEAR_LEVEL_PERCENT = 3;
+
+/** The star that keeps an item at the top of its list. */
+function StarButton({
+  item,
+  onStar,
+}: {
+  item: WatchedInstrument;
+  onStar: (item: WatchedInstrument) => void;
+}): React.JSX.Element {
+  return (
+    <button
+      type="button"
+      aria-label={item.featured ? `Unstar ${item.symbol}` : `Star ${item.symbol}`}
+      aria-pressed={item.featured}
+      onClick={(event) => {
+        // The row is a link; starring must not also open the company.
+        event.preventDefault();
+        event.stopPropagation();
+        onStar(item);
+      }}
+      className="rounded-full p-0.5 hover:bg-muted"
+    >
+      <Star
+        aria-hidden="true"
+        className={cn(
+          "h-4 w-4",
+          item.featured ? "fill-yellow-500 text-yellow-500" : "text-muted-foreground",
+        )}
+      />
+    </button>
+  );
+}
+
+/**
+ * A warning when the price is within a few per cent of the reader's
+ * target (green: nearly there) or stop (red: nearly out).
+ */
+function NearLevel({ item }: { item: WatchedInstrument }): React.JSX.Element | null {
+  const toTarget = toNumber(item.to_target_percent);
+  const toStop = toNumber(item.to_stop_percent);
+  const near = (value: number | null): boolean =>
+    value !== null && Math.abs(value) <= NEAR_LEVEL_PERCENT;
+  if (near(toTarget)) {
+    return (
+      <AlertCircle role="img" aria-label="Near target" className="h-4 w-4 shrink-0 text-gain" />
+    );
+  }
+  if (near(toStop)) {
+    return <AlertCircle role="img" aria-label="Near stop" className="h-4 w-4 shrink-0 text-loss" />;
+  }
+  return null;
 }

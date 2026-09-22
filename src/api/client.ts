@@ -1335,6 +1335,8 @@ export interface WatchlistItemDraft {
   target_price?: string | null;
   stop_loss?: string | null;
   tags?: string[];
+  /** Whether it is starred; sent with every change, since a change replaces the item. */
+  featured?: boolean;
 }
 
 /** One instrument on a watchlist, with the reader's levels against its price. */
@@ -1356,6 +1358,12 @@ export interface WatchedInstrument {
   to_target_percent: string | null;
   to_stop_percent: string | null;
   as_of: string | null;
+  /** Starred by the reader; the platform lists starred items first. */
+  featured: boolean;
+  /** The close on the day it was added, or the last session before. */
+  added_close: string | null;
+  since_added_percent: string | null;
+  volume: number | null;
 }
 
 /** One watchlist read whole. */

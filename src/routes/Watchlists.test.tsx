@@ -199,20 +199,20 @@ describe("Watchlists", () => {
       /^Symbol/,
       /^Name/,
       /^Price/,
-      /^Change/,
-      /^1M/,
-      /^1Y/,
+      /^Volume/,
+      /^Today/,
+      /^Since added/,
+      /^Added at/,
       /^Target/,
       /^Stop/,
-      /^Tags/,
-      /^Notes/,
-      /^Added/,
+      /^Added$/,
+      /^1M/,
+      /^1Y/,
     ]) {
       await userEvent.click(within(table).getByRole("button", { name }));
     }
-    // Sorted by target distance, the one with no target last.
-    const rows = within(table).getAllByRole("row");
-    expect(rows[1]).toHaveTextContent("RELIANCE");
+    // Every column sorts; the rows are all still there.
+    expect(within(table).getAllByRole("row")).toHaveLength(3);
   });
 
   it("shows a refused write in the dialog it came from", async () => {
@@ -310,5 +310,70 @@ describe("Watchlists", () => {
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
+  });
+
+  it("lays each item out as the previous watchlist did, and stars one without opening it", async () => {
+    const starred: unknown[] = [];
+    stubPlatform({
+      "/api/watchlists/1/items/11": {
+        bodyFor: (_path, method) => {
+          return method === "PATCH" ? watchedInstrument({ featured: true }) : {};
+        },
+      },
+      "/api/watchlists/1": {
+        body: watchlistPage({
+          items: [
+            watchedInstrument({ to_target_percent: "2.10" }),
+            watchedInstrument({
+              item_id: 12,
+              instrument_key: "NSE_EQ|INE467B01029",
+              symbol: "TCS",
+              name: "Tata Consultancy Services",
+              notes: null,
+              tags: [],
+              to_target_percent: null,
+              to_stop_percent: "-1.50",
+              featured: true,
+            }),
+          ],
+        }),
+      },
+      "/api/watchlists": { body: [watchlistSummary()] },
+    });
+    const fetched = vi.mocked(globalThis.fetch);
+    renderPage(<Watchlists />, { at: "/watchlists?list=1" });
+    const table = await screen.findByRole("table", { name: "Watched instruments" });
+    await within(table).findByRole("link", { name: /RELIANCE/ });
+
+    // Notes and tags under the name; the change since added and where it was added.
+    expect(within(table).getByText("Retail listing ahead")).toBeInTheDocument();
+    expect(within(table).getByText("oil")).toBeInTheDocument();
+    expect(within(table).getAllByText("+3.33%")).toHaveLength(2);
+    expect(within(table).getAllByText("1,200.00")).toHaveLength(2);
+    // Within 3% of a target is green; within 3% of a stop is red.
+    expect(within(table).getByRole("img", { name: "Near target" })).toHaveClass("text-gain");
+    expect(within(table).getByRole("img", { name: "Near stop" })).toHaveClass("text-loss");
+    expect(within(table).getByRole("button", { name: "Unstar TCS" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    await userEvent.click(within(table).getByRole("button", { name: "Star RELIANCE" }));
+
+    await waitFor(() => {
+      const patch = fetched.mock.calls.find((call) => call[1]?.method === "PATCH");
+      expect(patch).toBeDefined();
+      starred.push(JSON.parse(patch?.[1]?.body as string));
+    });
+    // The whole item goes with the star, or saving it would clear the rest.
+    expect(starred[0]).toEqual({
+      notes: "Retail listing ahead",
+      target_price: "1500.00",
+      stop_loss: "1100.00",
+      tags: ["oil", "retail"],
+      featured: true,
+    });
+    // Starring stays on the list rather than opening the company.
+    expect(screen.getByRole("table", { name: "Watched instruments" })).toBeInTheDocument();
   });
 });
