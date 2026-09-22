@@ -432,6 +432,18 @@ the working plan with the reasoning is `docs/REDESIGN-PLAN.md`
   `count` badge ("217 indices"); `SectionHeader` is `text-2xl` with an
   `h-6` icon; list pages offer `ViewModeToggle` (List · Grouped · Cards),
   remembered per page through `useViewMode(page)` in preferences.
+- **A signed amount is a `Delta` too:** pass `format` (e.g. `formatSignedPrice`)
+  for points or crore that read up or down the way a percentage does -- the
+  instrument header's point move, FII/DII nets, index contributions. Never
+  colour a figure by hand.
+- **Bar strips without axes are inline SVG** (`FlowBars` for nets either
+  side of nought, the delivery bars in the accent): `Chart`'s bar series is
+  a volume overlay squeezed under the price and cannot draw them.
+- **Index contribution is approximate:** `lib/contribution.ts` weighs by
+  market capitalisation, which the platform holds, not the free float an
+  exchange uses, and every screen showing it says so.
+- **Keyboard:** `/` or Ctrl+K searches, `?` lists shortcuts, `g` then a letter
+  jumps (`KeyboardShortcuts`, `JUMPS`); none fire while typing in a field.
 - **Search rows:** name, then an outline Mono badge per exchange a company
   or index trades on (our BSE listings carry alphabetic symbols, so there
   is no numeric scrip code to show), an index's category, the kind unless
@@ -461,11 +473,10 @@ the working plan with the reasoning is `docs/REDESIGN-PLAN.md`
 
 ## What remains
 
-The redesign in `docs/REDESIGN-PLAN.md` §9 is under way: steps 1–5 and
-the indices list of step 6 have landed (fonts and tokens, identity columns,
-readable addresses, search rows, the overview, the indices list). Next are
-the index page, the company page, sectors, movers and breadth, then the new
-datasets (FII/DII, deals, delivery) and scans. Registration by invitation
-is built (`/?invite=`). Earlier open items from `../UI-PLAN.md` (median-
-multiple history, movers as of a day, saved screens, continuous futures,
-alerts) are folded into that plan.
+The redesign in `docs/REDESIGN-PLAN.md` is largely built; its Context block
+lists every commit. Remaining: market-cap buckets and a momentum score,
+named scans and fundamentals in the screener -- all waiting on a valuation
+cache in the platform -- index membership changes, and participant-wise
+open interest. Registration by invitation is built (`/?invite=`). Earlier
+open items from `../UI-PLAN.md` (median-multiple history, movers as of a
+day, saved screens, continuous futures, alerts) are folded into that plan.
