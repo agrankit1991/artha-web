@@ -115,7 +115,9 @@ jobs:
         # The workflow's own token, piped over SSH, logs the host's Docker in
         # for as long as this run lives: the pull happens now, restarts use
         # the images already on disk, and no long-lived registry token ever
-        # sits on the host. deploy.sh lives on the host, in the checked-out
+        # sits on the host. The login goes to a throwaway Docker config
+        # directory, removed when the deploy ends, so not even the expired
+        # token is left on disk. deploy.sh lives on the host, in the checked-out
         # platform repository, so the steps a deploy takes are versioned.
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -125,5 +127,7 @@ jobs:
             -o ConnectTimeout=30 \
             -p "${{ secrets.DEPLOY_PORT }}" \
             "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            "docker login ghcr.io -u '${{ github.actor }}' --password-stdin >/dev/null \
-             && /opt/artha/deploy/deploy.sh web ${{ github.sha }}"
+            "export DOCKER_CONFIG=\$(mktemp -d); trap 'rm -rf \$DOCKER_CONFIG' EXIT; \
+             docker login ghcr.io -u '${{ github.actor }}' --password-stdin >/dev/null 2>&1 \
+               || { echo 'GHCR login failed' >&2; exit 1; }; \
+             /opt/artha/deploy/deploy.sh web ${{ github.sha }}"
