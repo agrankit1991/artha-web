@@ -129,4 +129,43 @@ describe("Movers", () => {
     }
     expect(within(table).getAllByRole("row")).toHaveLength(3);
   });
+
+  it("leads each row of a list of indices to that index's page", async () => {
+    stubPlatform({
+      "/api/movers/scopes": { body: scopeOptions() },
+      "/api/movers/": {
+        body: panel({
+          rows: [
+            moverRow({
+              instrument_key: "NSE_INDEX|Nifty Bank",
+              symbol: "NIFTY BANK",
+              name: "Nifty Bank",
+            }),
+          ],
+        }),
+      },
+    });
+    renderPage(page(), { at: "/movers/top-gainers?scope_kind=indices" });
+
+    const table = await screen.findByRole("table", { name: "Top gainers" });
+    expect(await within(table).findByRole("link", { name: /NIFTY BANK/ })).toHaveAttribute(
+      "href",
+      "/index/nifty-bank",
+    );
+  });
+
+  it("lays a list out as cards, each with its place and the figure it was ranked by", async () => {
+    stubEverything();
+    renderPage(page(), { at: "/movers/top-gainers?scope_kind=companies" });
+    await screen.findByRole("table", { name: "Top gainers" });
+
+    await userEvent.click(screen.getByRole("button", { name: "Cards" }));
+
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    const tcs = screen.getByRole("link", { name: /TCS/ });
+    expect(tcs).toHaveAttribute("href", "/company/TCS");
+    expect(tcs).toHaveTextContent("#2");
+    expect(tcs).toHaveTextContent("3d");
+    expect(tcs).toHaveTextContent("Change");
+  });
 });
