@@ -276,10 +276,14 @@ call site.
   reader bookmarks and presses Back out of. Caddy serves the SPA
   fallback, so a deep link works.
 
-- **The overview** (`src/routes/Overview.tsx`) -- the eight headline
-  indices as cards, the benchmark against gold, every mover list for
-  whichever population is chosen, and the news feed. One request brings all
-  seven lists, so that section arrives whole.
+- **The overview** (`src/routes/Overview.tsx`) -- under a centred
+  "Market Overview" title, the eight headline indices as cards in the
+  previous project's layout, the benchmark against gold, every mover list
+  for whichever population is chosen (each titled with its own coloured
+  icon, from `MOVER_LISTS`), and the news feed. One request brings all
+  seven lists, so that section arrives whole. The global market overview
+  widget was removed at the owner's request (21 Sep 2026); do not bring it
+  back with the rest of the old layout.
 - **News** (`src/routes/News.tsx`) -- the whole feed, paged, with three
   filters that compose: words, one company, a window. Read downwards and
   grown by "Load more" rather than paged -- replacing the batch a reader is
@@ -288,8 +292,8 @@ call site.
   twelve of the latest filtered afterwards. The companies offered as
   filters are the ones actually written about, because a reader wanting
   one company's news should not have to spell its symbol.
-- **A population** (`src/routes/Population.tsx`) at `/index/:key` and
-  `/sector/:key` -- one page for both, because an index and a sector are
+- **A population** (`src/routes/Population.tsx`) at `/index/:ref` and
+  `/sector/:ref` -- one page for both, because an index and a sector are
   the same question asked of a different set of companies. What it is,
   how it is doing against the market and the size bands, its own price,
   its breadth, a heatmap of its companies and the full list of them. A
@@ -402,46 +406,36 @@ call site.
   the CSS disagree, which is exactly how the first attempt shipped looking
   like it worked.
 
-- **Card grids are three across, never four.** Every count asked for is a
-  multiple of three -- six headlines on the overview, twelve to a news
-  batch -- so the last row is always full. The news page asks for
-  thirteen first, because the lead article is shown above the grid rather
-  than in it.
-- **Breadth wording** in `src/lib/breadthReadings.ts`: every phrase that
-  turns a breadth figure into something readable lives here, so two screens
-  cannot describe the same reading differently. Note the `warn` tone --
-  a market with nearly everything above its long average is neither good
-  news nor bad, and painting it green says the opposite of what it has
-  historically meant.
-- **The featured indices** in `src/lib/indices.ts`: which indices the
-  overview draws and the breadth page pins, in a settled order, in one
-  place. India VIX is among them as a card and is filtered out as a
-  population -- it has no constituents to count or rank, and the platform
-  reports as much, so the filter follows the platform rather than a second
-  hardcoded list.
-- **Gold** is the exchange-traded fund, not an MCX contract. A contract
-  expires: the longest single gold contract stored is 226 sessions, and
-  stitching several needs a declared roll rule that does not exist. The
-  reasoning is in `indices.ts` beside the key.
-- **Debouncing** in `src/hooks/useDebounced.ts`: a search box that requests
-  on every keystroke races its own answers, and the reply for "rel" can
-  arrive after the reply for "relian" and leave the wrong results up.
-- **Theme** in `src/lib/theme.tsx`, on two axes. Light, dark or following
-  the system decides the lightness; the accent (neutral, blue, green,
-  orange -- the four the previous project had) decides the hue. Stored
-  apart, because changing one must never reset the other, and both work
-  when storage is blocked; they are just forgotten between visits.
+## Design conventions (redesign, 2026-09-23)
 
-  **An accent is a hue, not a highlight colour.** `src/index.css` derives
-  every surface, border and muted tone from `--hue` and `--tint`, so
-  choosing one tints the whole page. The first attempt moved `--primary`
-  and `--ring` alone, which in this interface is a few icons and the
-  sidebar highlight: applying it changed almost nothing visible and read
-  as a switch that did not work. `--gain` and `--loss` are never derived
-  from the hue -- green has to mean "up" on every theme.
-  `src/lib/accents.test.ts` pins both invariants against the stylesheet,
-  because nothing else in the build notices when the accent list and the
-  CSS disagree.
+The owner prefers the previous project's interface
+(`../old-service/web-ui`) for its attention to detail. These are settled;
+the working plan with the reasoning is `docs/REDESIGN-PLAN.md`
+(git-ignored, local only).
+
+- **Type:** Geist Sans and Geist Mono, self-hosted through
+  `@fontsource-variable` in `main.tsx`. Figures use `.tabular`.
+- **A change is a `Delta`:** lucide `ArrowUpRight`/`ArrowDownRight` by
+  default, a signed two-decimal percent, `text-gain`/`text-loss`
+  (green-600/red-600, 500 in dark), ASCII hyphen for a fall because a
+  U+2212 minus breaks pasting into a spreadsheet. `badge` draws the tinted
+  pill the index cards use; `arrow={false}` only where colour already says
+  it (a tile, a pill beside a big arrow).
+- **`--caution`** (amber) for streaks, "near 52-week" and stale data. Never
+  write amber classes by hand.
+- **Badge or column:** a label that classifies a row (category, type,
+  exchange in search, tag, streak) is a badge; anything a reader sorts or
+  compares by is a column. Index tables show the index's _name_, the
+  exchange as plain text and the category as an outline badge (`N/A` when
+  unknown).
+- **Page furniture:** `PageHeader` has the gradient title and an optional
+  `count` badge ("217 indices"); `SectionHeader` is `text-2xl` with an
+  `h-6` icon; list pages offer `ViewModeToggle` (List · Grouped · Cards),
+  remembered per page through `useViewMode(page)` in preferences.
+- **Search rows:** name, then an outline Mono badge per exchange a company
+  or index trades on (our BSE listings carry alphabetic symbols, so there
+  is no numeric scrip code to show), an index's category, the kind unless
+  it is a company, and the close with its `Delta` on the right.
 
 ## Test conventions learnt the hard way
 
@@ -467,8 +461,11 @@ call site.
 
 ## What remains
 
-Every slice in `../UI-PLAN.md` has landed; the open items are gathered
-there under "What remains" (contributors, median-multiple history,
-movers as of a day, watch buttons on rows and other entity pages, saved
-screens, continuous futures, alerts). Registration by invitation and
-localisation were never part of the plan.
+The redesign in `docs/REDESIGN-PLAN.md` §9 is under way: steps 1–5 and
+the indices list of step 6 have landed (fonts and tokens, identity columns,
+readable addresses, search rows, the overview, the indices list). Next are
+the index page, the company page, sectors, movers and breadth, then the new
+datasets (FII/DII, deals, delivery) and scans. Registration by invitation
+is built (`/?invite=`). Earlier open items from `../UI-PLAN.md` (median-
+multiple history, movers as of a day, saved screens, continuous futures,
+alerts) are folded into that plan.
