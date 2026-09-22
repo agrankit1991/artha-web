@@ -15,7 +15,6 @@
  * whole set is a page's worth of text.
  */
 
-import { LayoutGrid, List } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import type { IpoStatus, IssueType, Offering } from "@/api/client";
@@ -27,6 +26,7 @@ import { Failed } from "@/components/Failed";
 import { BOARDS, IpoCard, STATUSES, minimumInvestment, priceBand } from "@/components/IpoCard";
 import { PageHeader } from "@/components/PageHeader";
 import { type Tab, Tabs } from "@/components/Tabs";
+import { ViewModeToggle, useViewMode } from "@/components/ViewModeToggle";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -39,7 +39,6 @@ import {
 import { useResource } from "@/hooks/useResource";
 import { ABSENT, formatDay, formatMultiple, formatPrice, toNumber } from "@/lib/format";
 import { ipoPath } from "@/lib/paths";
-import { cn } from "@/lib/utils";
 
 /** What each list is for. */
 const HINTS: Record<IpoStatus, string> = {
@@ -62,15 +61,31 @@ const BOARD_OPTIONS = [
 /** What the lists can be ordered by. */
 type Order = "date" | "size" | "subscription" | "name";
 
-const ORDERS: { key: Order; label: string }[] = [
-  { key: "date", label: "By date" },
-  { key: "size", label: "By size" },
-  { key: "subscription", label: "By subscription" },
-  { key: "name", label: "By name" },
-];
+/**
+ * What the date order is called, and so what it means, on each list -- the
+ * previous project's per-tab orders. An open offering is read by when it
+ * closes and an upcoming one by when it opens, soonest first; a listed or
+ * closed one by how recently it did so.
+ */
+const DATE_ORDERS: Record<IpoStatus, string> = {
+  OPEN: "Closing soon",
+  UPCOMING: "Opening soon",
+  LISTED: "Recently listed",
+  CLOSED: "Recently closed",
+};
 
-/** How the offerings are laid out. */
-type Layout = "cards" | "table";
+/** The orders a list offers, the date one named for that list. */
+function ordersFor(status: IpoStatus): { key: Order; label: string }[] {
+  return [
+    { key: "date", label: DATE_ORDERS[status] },
+    { key: "size", label: "By size" },
+    { key: "subscription", label: "By subscription" },
+    { key: "name", label: "By name" },
+  ];
+}
+
+/** Offerings read as cards or as one table; there is no category to group by. */
+const LAYOUTS = ["cards", "list"] as const;
 
 const ANY = "all";
 
@@ -88,7 +103,7 @@ export function Ipos({ today = new Date() }: { today?: Date }): React.JSX.Elemen
   const [board, setBoard] = useState<"all" | IssueType>("all");
   const [industry, setIndustry] = useState(ANY);
   const [order, setOrder] = useState<Order>("date");
-  const [layout, setLayout] = useState<Layout>("cards");
+  const [layout, setLayout] = useViewMode("ipos", "cards");
 
   const all = useMemo(() => offerings.data ?? [], [offerings.data]);
 
@@ -131,6 +146,7 @@ export function Ipos({ today = new Date() }: { today?: Date }): React.JSX.Elemen
       sorted(
         matching.filter((one) => one.status === showing),
         order,
+        showing,
       ),
     [matching, showing, order],
   );
@@ -183,31 +199,19 @@ export function Ipos({ today = new Date() }: { today?: Date }): React.JSX.Elemen
         label="Offerings"
         aside={
           <div className="flex flex-wrap items-center gap-3">
-            <Chooser options={ORDERS} chosen={order} onChange={setOrder} label="Order" />
-            <div className="flex gap-1" role="group" aria-label="Layout">
-              <LayoutButton
-                active={layout === "cards"}
-                onClick={() => {
-                  setLayout("cards");
-                }}
-                label="Cards"
-                icon={LayoutGrid}
-              />
-              <LayoutButton
-                active={layout === "table"}
-                onClick={() => {
-                  setLayout("table");
-                }}
-                label="Table"
-                icon={List}
-              />
-            </div>
+            <Chooser
+              options={ordersFor(showing)}
+              chosen={order}
+              onChange={setOrder}
+              label="Order"
+            />
+            <ViewModeToggle mode={layout} onChange={setLayout} modes={LAYOUTS} />
           </div>
         }
       >
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">{HINTS[showing]}</p>
-          {layout === "table" ? (
+          {layout === "list" ? (
             <OfferingsTable offerings={shown} loading={offerings.loading} status={showing} />
           ) : offerings.loading && shown.length === 0 ? (
             <div className="grid gap-4 xl:grid-cols-2">
@@ -237,34 +241,6 @@ export function Ipos({ today = new Date() }: { today?: Date }): React.JSX.Elemen
   );
 }
 
-/** One of the two layout buttons. */
-function LayoutButton({
-  active,
-  onClick,
-  label,
-  icon: Icon,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-}): React.JSX.Element {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      aria-pressed={active}
-      onClick={onClick}
-      className={cn(
-        "rounded-md p-1.5 transition-colors",
-        active ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-accent",
-      )}
-    >
-      <Icon className="h-4 w-4" />
-    </button>
-  );
-}
-
 /**
  * Order a list of offerings.
  *
@@ -274,11 +250,13 @@ function LayoutButton({
  *   sorts last rather than first, where an absent value would otherwise
  *   put it.
  */
-function sorted(offerings: Offering[], order: Order): Offering[] {
+function sorted(offerings: Offering[], order: Order, status: IpoStatus): Offering[] {
+  // Soonest first where the date is still to come; latest first where it has passed.
+  const ahead = status === "OPEN" || status === "UPCOMING";
   const figure = (one: Offering): number | string | null => {
     switch (order) {
       case "date":
-        return one.bidding_start;
+        return datedBy(one, status);
       case "size":
         return toNumber(one.issue_size);
       case "subscription":
@@ -300,8 +278,8 @@ function sorted(offerings: Offering[], order: Order): Offering[] {
       return -1;
     }
     if (typeof left === "string" && typeof right === "string") {
-      // Dates read newest first, names A to Z.
-      return order === "name" ? left.localeCompare(right) : right.localeCompare(left);
+      // Names A to Z; dates ahead soonest first, dates past latest first.
+      return order === "name" || ahead ? left.localeCompare(right) : right.localeCompare(left);
     }
     return Number(right) - Number(left);
   });
@@ -441,4 +419,18 @@ function OfferingsTable({
       linkTo={(row) => ipoPath(row.ipo_id)}
     />
   );
+}
+
+/** The date an offering is ordered by on a list: the one that list is about. */
+function datedBy(offering: Offering, status: IpoStatus): string | null {
+  switch (status) {
+    case "OPEN":
+      return offering.bidding_end;
+    case "UPCOMING":
+      return offering.bidding_start;
+    case "LISTED":
+      return offering.listing_date;
+    case "CLOSED":
+      return offering.bidding_end;
+  }
 }

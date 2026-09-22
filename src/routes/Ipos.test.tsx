@@ -15,7 +15,7 @@ afterEach(() => {
 });
 
 async function asTable(): Promise<HTMLElement> {
-  await userEvent.click(screen.getByRole("button", { name: "Table" }));
+  await userEvent.click(screen.getByRole("button", { name: "List" }));
   return screen.getByRole("table", { name: "Offerings" });
 }
 
@@ -285,12 +285,14 @@ describe("Ipos", () => {
             ipo_id: "a",
             name: "Alpha IPO",
             bidding_start: null,
+            bidding_end: null,
             total_subscription: null,
           }),
           offering({
             ipo_id: "b",
             name: "Beta IPO",
             bidding_start: null,
+            bidding_end: null,
             total_subscription: "2.00",
           }),
           offering({ ipo_id: "c", name: "Gamma IPO", total_subscription: "9.00" }),
@@ -311,5 +313,79 @@ describe("Ipos", () => {
       expect.stringContaining("Beta IPO"),
       expect.stringContaining("Alpha IPO"),
     ]);
+  });
+
+  it("names the date order for each list, and reads the upcoming soonest first", async () => {
+    stubPlatform({
+      "/api/ipos": {
+        body: [
+          offering({
+            ipo_id: "late",
+            name: "Later IPO",
+            status: "UPCOMING",
+            bidding_start: "2099-02-01",
+          }),
+          offering({
+            ipo_id: "soon",
+            name: "Sooner IPO",
+            status: "UPCOMING",
+            bidding_start: "2099-01-01",
+          }),
+        ],
+      },
+    });
+    renderPage(<Ipos today={TODAY} />);
+    expect(await screen.findByRole("button", { name: "Closing soon" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("tab", { name: /Upcoming/ }));
+
+    expect(screen.getByRole("button", { name: "Opening soon" })).toBeInTheDocument();
+    const names = screen.getAllByRole("heading", { level: 3 }).map((one) => one.textContent);
+    expect(names[0]).toContain("Sooner IPO");
+    expect(names[1]).toContain("Later IPO");
+  });
+
+  it("reads listed and closed offerings latest first", async () => {
+    stubPlatform({
+      "/api/ipos": {
+        body: [
+          offering({
+            ipo_id: "l1",
+            name: "Old Listing",
+            status: "LISTED",
+            listing_date: "2026-01-10",
+          }),
+          offering({
+            ipo_id: "l2",
+            name: "New Listing",
+            status: "LISTED",
+            listing_date: "2026-09-10",
+          }),
+          offering({
+            ipo_id: "c1",
+            name: "Old Close",
+            status: "CLOSED",
+            bidding_end: "2026-02-01",
+          }),
+          offering({
+            ipo_id: "c2",
+            name: "New Close",
+            status: "CLOSED",
+            bidding_end: "2026-09-01",
+          }),
+        ],
+      },
+    });
+    renderPage(<Ipos today={TODAY} />);
+    const firstOf = (): string | null =>
+      screen.getAllByRole("heading", { level: 3 })[0]?.textContent ?? null;
+
+    await userEvent.click(await screen.findByRole("tab", { name: /Listed/ }));
+    expect(screen.getByRole("button", { name: "Recently listed" })).toBeInTheDocument();
+    expect(firstOf()).toContain("New Listing");
+
+    await userEvent.click(screen.getByRole("tab", { name: /Closed/ }));
+    expect(screen.getByRole("button", { name: "Recently closed" })).toBeInTheDocument();
+    expect(firstOf()).toContain("New Close");
   });
 });

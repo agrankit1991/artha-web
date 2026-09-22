@@ -78,10 +78,15 @@ export function ViewModeToggle({
  * The layout a page was last left in, and a way to change it.
  *
  * @param page - Which page's choice this is, such as `indices`.
- * @returns The current layout and its setter; `list` until one is chosen.
+ * @param fallback - The layout before one is chosen; a list unless the page
+ *   reads better another way, as offerings do as cards.
+ * @returns The current layout and its setter.
  */
-export function useViewMode(page: string): [ViewMode, (mode: ViewMode) => void] {
-  const mode = usePreferences().views[page] ?? "list";
+export function useViewMode(
+  page: string,
+  fallback: ViewMode = "list",
+): [ViewMode, (mode: ViewMode) => void] {
+  const mode = usePreferences().views[page] ?? fallback;
   const choose = (next: ViewMode): void => {
     writePreferences({ views: { ...readPreferences().views, [page]: next } });
   };
