@@ -8,13 +8,15 @@
  * read against, which is how the previous incarnation of this card had it.
  */
 
+import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+
 import type { InstrumentOverview, KnownSymbol } from "@/api/client";
 import { Delta } from "@/components/Delta";
 import { MiniCandlestick } from "@/components/MiniCandlestick";
 import { TradingViewLink } from "@/components/TradingViewLink";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatDay, formatPrice } from "@/lib/format";
+import { direction, formatDay, formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 interface IndexCardProps {
@@ -52,7 +54,7 @@ export function IndexCard({ name, overview, symbol, onSelect }: IndexCardProps):
 
   return (
     <Card
-      className={cn(chosen && "cursor-pointer transition-colors hover:bg-muted/50")}
+      className={cn("transition-shadow hover:shadow-md", chosen && "cursor-pointer")}
       {...(chosen
         ? {
             role: "button",
@@ -70,32 +72,31 @@ export function IndexCard({ name, overview, symbol, onSelect }: IndexCardProps):
         : {})}
     >
       <CardContent className="space-y-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <div className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {name}
-            </div>
-            {/* Indices do not all publish on the same schedule, so two
-                cards can show different sessions. Unlabelled, they read as
-                the same day. */}
-            <div className="text-xs text-muted-foreground/70">{formatDay(overview.as_of)}</div>
+        {/* The previous project's card: the name in plain case with the
+            day's move as a tinted badge beside it, the previous close under
+            it, then the level with the session's candle and direction. */}
+        <div className="space-y-0.5">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="min-w-0 truncate text-lg font-semibold">{name}</h3>
+            <Delta value={day.change_percent} arrow={false} badge />
           </div>
-          <Delta value={day.change_percent} className="text-xs font-medium" />
+          {/* Indices do not all publish on the same schedule, so two cards
+              can show different sessions. Unlabelled, they read as the
+              same day. */}
+          <p className="text-sm text-muted-foreground">
+            Previous close {formatPrice(day.previous_close)} · {formatDay(overview.as_of)}
+          </p>
         </div>
 
-        <div className="flex items-end justify-between gap-3">
-          <div className="min-w-0">
-            <div className="truncate text-2xl font-semibold tabular">{formatPrice(day.close)}</div>
-            <div className="text-xs text-muted-foreground">
-              Previous close {formatPrice(day.previous_close)}
-            </div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="truncate text-2xl font-bold tabular">{formatPrice(day.close)}</div>
+          <div className="flex shrink-0 items-center gap-2">
+            <MiniCandlestick open={day.open} high={day.high} low={day.low} close={day.close} />
+            <Direction value={day.change_percent} />
           </div>
-          <MiniCandlestick open={day.open} high={day.high} low={day.low} close={day.close} />
         </div>
 
-        {/* The large figure above says where the session ended. This says
-            it again beside the three prices it means nothing without. */}
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 border-t pt-3 text-sm">
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
           <Price label="Open" value={day.open} />
           <Price label="High" value={day.high} align="right" />
           <Price label="Low" value={day.low} />
@@ -135,8 +136,26 @@ function Price({
 }): React.JSX.Element {
   return (
     <div className={cn("flex min-w-0 items-baseline gap-1.5", align === "right" && "justify-end")}>
-      <dt className="text-muted-foreground">{label}</dt>
+      <dt className="text-muted-foreground">{label}:</dt>
       <dd className="truncate tabular font-medium">{formatPrice(value)}</dd>
     </div>
+  );
+}
+
+/**
+ * The session's direction as the previous project drew it: a large arrow
+ * beside the level, where the eye already is.
+ *
+ * @param props - The day's change.
+ * @returns The arrow, or nothing for a flat or unknown session.
+ */
+function Direction({ value }: { value: string | null }): React.JSX.Element | null {
+  const way = direction(value);
+  if (way === "flat") {
+    return null;
+  }
+  const Arrow = way === "up" ? ArrowUpRight : ArrowDownRight;
+  return (
+    <Arrow aria-hidden="true" className={cn("h-5 w-5", way === "up" ? "text-gain" : "text-loss")} />
   );
 }

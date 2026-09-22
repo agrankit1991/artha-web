@@ -21,7 +21,7 @@ describe("IndexCard", () => {
     // again beside the three prices it means nothing without.
     render(<IndexCard name="Nifty 50" overview={overview()} />);
 
-    expect(screen.getByText("Close")).toBeInTheDocument();
+    expect(screen.getByText("Close:")).toBeInTheDocument();
     // Once as the headline figure, once in the grid.
     expect(screen.getAllByText("24,812.40")).toHaveLength(2);
   });
@@ -31,9 +31,9 @@ describe("IndexCard", () => {
     // one that gave back everything it made.
     render(<IndexCard name="Nifty 50" overview={overview()} />);
 
-    expect(screen.getByText("Open")).toBeInTheDocument();
-    expect(screen.getByText("High")).toBeInTheDocument();
-    expect(screen.getByText("Low")).toBeInTheDocument();
+    expect(screen.getByText("Open:")).toBeInTheDocument();
+    expect(screen.getByText("High:")).toBeInTheDocument();
+    expect(screen.getByText("Low:")).toBeInTheDocument();
     expect(screen.getByText("24,700.00")).toBeInTheDocument();
     expect(screen.getByText("24,850.00")).toBeInTheDocument();
     expect(screen.getByText("24,690.00")).toBeInTheDocument();
@@ -123,5 +123,20 @@ describe("IndexCard", () => {
     await userEvent.click(screen.getByRole("link"));
 
     expect(chosen).not.toHaveBeenCalled();
+  });
+
+  it("points the level's arrow the way the session went, and draws none for a flat one", () => {
+    const moved = (change: string): ReturnType<typeof overview> => {
+      const base = overview();
+      return { ...base, day: { ...base.day, change_percent: change } };
+    };
+    const { container, rerender } = render(<IndexCard name="Nifty 50" overview={moved("0.62")} />);
+    expect(container.querySelector("svg.text-gain")).not.toBeNull();
+
+    rerender(<IndexCard name="Nifty 50" overview={moved("-1.10")} />);
+    expect(container.querySelector("svg.text-loss")).not.toBeNull();
+
+    rerender(<IndexCard name="Nifty 50" overview={moved("0")} />);
+    expect(container.querySelector("svg.text-gain, svg.text-loss")).toBeNull();
   });
 });

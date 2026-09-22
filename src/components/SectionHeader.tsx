@@ -39,8 +39,8 @@ export function SectionHeader({
   return (
     <div className={cn("flex flex-wrap items-start justify-between gap-3", className)}>
       <div className="min-w-0">
-        <h2 id={id} className="flex items-center gap-2 text-lg font-semibold">
-          {Mark !== undefined && <Mark aria-hidden="true" className="h-5 w-5 text-primary" />}
+        <h2 id={id} className="flex items-center gap-2 text-2xl font-semibold">
+          {Mark !== undefined && <Mark aria-hidden="true" className="h-6 w-6 text-primary" />}
           {title}
         </h2>
         {description !== undefined && (

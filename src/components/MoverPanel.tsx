@@ -7,6 +7,15 @@
  * instrument here.
  */
 
+import {
+  Activity,
+  AlertTriangle,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Flame,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 
@@ -15,6 +24,8 @@ import { type Column, DataTable } from "@/components/DataTable";
 import { nameColumn, symbolColumn } from "@/components/identityColumns";
 import { Delta } from "@/components/Delta";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Icon } from "@/lib/entities";
+import { cn } from "@/lib/utils";
 import {
   formatDay,
   formatMultiple,
@@ -27,42 +38,63 @@ import {
 /** How each list is titled, and how the figure it ranks should be read. */
 export const MOVER_LISTS: Record<
   MoverListName,
-  { title: string; measure: string; render: (row: MoverRow) => React.ReactNode }
+  {
+    title: string;
+    measure: string;
+    render: (row: MoverRow) => React.ReactNode;
+    /** The list's mark and its colour, the pairs the previous project used. */
+    icon: Icon;
+    tint: string;
+  }
 > = {
   "top-gainers": {
     title: "Top gainers",
     measure: "Change",
     render: (row) => <Delta value={row.value} />,
+    icon: TrendingUp,
+    tint: "text-gain",
   },
   "top-losers": {
     title: "Top losers",
     measure: "Change",
     render: (row) => <Delta value={row.value} />,
+    icon: TrendingDown,
+    tint: "text-loss",
   },
   "most-active": {
     title: "Most active",
     measure: "Volume",
     render: (row) => formatVolume(row.value),
+    icon: Activity,
+    tint: "text-blue-600 dark:text-blue-400",
   },
   "most-volatile": {
     title: "Most volatile",
     measure: "Range",
     render: (row) => formatPercent(row.value),
+    icon: Flame,
+    tint: "text-purple-600 dark:text-purple-400",
   },
   "unusual-volume": {
     title: "Unusual volume",
     measure: "vs average",
     render: (row) => formatMultiple(row.value),
+    icon: AlertTriangle,
+    tint: "text-orange-500",
   },
   "near-52wk-high": {
     title: "Near 52-week high",
     measure: "From high",
     render: (row) => <Delta value={row.value} />,
+    icon: ArrowUpFromLine,
+    tint: "text-green-700 dark:text-green-500",
   },
   "near-52wk-low": {
     title: "Near 52-week low",
     measure: "From low",
     render: (row) => <Delta value={row.value} />,
+    icon: ArrowDownToLine,
+    tint: "text-red-700 dark:text-red-500",
   },
 };
 
@@ -98,7 +130,7 @@ export function MoverPanelCard({
   linkTo,
   href,
 }: MoverPanelProps): React.JSX.Element {
-  const { title, measure, render } = MOVER_LISTS[panel.name];
+  const { title, measure, render, icon: Mark, tint } = MOVER_LISTS[panel.name];
 
   const columns = useMemo<Column<MoverRow>[]>(
     () => [
@@ -130,7 +162,10 @@ export function MoverPanelCard({
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
           <div>
-            <CardTitle className="text-base">{title}</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Mark aria-hidden="true" className={cn("h-5 w-5", tint)} />
+              {title}
+            </CardTitle>
             <CardDescription>
               {panel.as_of === null ? "No session ranked yet" : formatDay(panel.as_of)}
             </CardDescription>

@@ -161,6 +161,18 @@ export function Overview({
 
   return (
     <div className="space-y-8">
+      {/* The previous project's title: centred, with the accent fading in
+          and out beneath it. */}
+      <header className="pb-2 text-center">
+        <h1 className="relative inline-block text-4xl font-bold">
+          Market Overview
+          <span
+            aria-hidden="true"
+            className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent"
+          />
+        </h1>
+      </header>
+
       <MarketBand
         benchmark={indices.data?.find((one) => one.instrument_key === BENCHMARK.key) ?? null}
         breadth={breadth.data?.latest ?? null}
@@ -208,8 +220,8 @@ export function Overview({
       <section className="space-y-3" aria-labelledby="comparison-heading">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 id="comparison-heading" className="flex items-center gap-2 text-lg font-semibold">
-              <LineChart className="h-5 w-5 text-primary" />
+            <h2 id="comparison-heading" className="flex items-center gap-2 text-2xl font-semibold">
+              <LineChart aria-hidden="true" className="h-6 w-6 text-primary" />
               Index vs Gold
             </h2>
             <p className="text-sm text-muted-foreground">
@@ -256,8 +268,8 @@ export function Overview({
 
       <section className="space-y-4" aria-labelledby="movers-heading">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 id="movers-heading" className="flex items-center gap-2 text-lg font-semibold">
-            <Activity className="h-5 w-5 text-primary" />
+          <h2 id="movers-heading" className="flex items-center gap-2 text-2xl font-semibold">
+            <Activity aria-hidden="true" className="h-6 w-6 text-primary" />
             Market Movers
           </h2>
           <div className="flex flex-wrap items-center gap-3">

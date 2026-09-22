@@ -21,6 +21,11 @@ interface DeltaProps {
    * heatmap tile.
    */
   arrow?: boolean;
+  /**
+   * Draw it as a tinted pill, as the previous project's index cards showed
+   * the day's move beside the name, rather than as coloured text.
+   */
+  badge?: boolean;
   className?: string;
 }
 
@@ -35,7 +40,12 @@ interface DeltaProps {
  * @param props - The figure and how to show it.
  * @returns The rendered figure.
  */
-export function Delta({ value, arrow = true, className }: DeltaProps): React.JSX.Element {
+export function Delta({
+  value,
+  arrow = true,
+  badge = false,
+  className,
+}: DeltaProps): React.JSX.Element {
   const way = direction(value);
   const Arrow = way === "up" ? ArrowUpRight : way === "down" ? ArrowDownRight : null;
   return (
@@ -45,6 +55,9 @@ export function Delta({ value, arrow = true, className }: DeltaProps): React.JSX
         way === "up" && "text-gain",
         way === "down" && "text-loss",
         way === "flat" && "text-muted-foreground",
+        badge && "rounded-md border px-1.5 py-0.5 text-xs font-medium",
+        badge && way === "up" && "border-gain/30 bg-gain/5",
+        badge && way === "down" && "border-loss/30 bg-loss/5",
         className,
       )}
     >

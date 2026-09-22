@@ -47,4 +47,10 @@ describe("Delta", () => {
     expect(screen.getByText("+1.20%")).toHaveClass("text-gain");
     expect(screen.queryByTestId(/arrow-/)).not.toBeInTheDocument();
   });
+
+  it("draws as a tinted pill where a card shows the move beside a name", () => {
+    render(<Delta value="-0.56" badge />);
+
+    expect(screen.getByText("-0.56%")).toHaveClass("text-loss", "border-loss/30", "bg-loss/5");
+  });
 });
