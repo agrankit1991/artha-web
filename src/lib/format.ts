@@ -211,3 +211,18 @@ export function formatSince(value: string | null | undefined, now: Date = new Da
     ? `${String(days)}d ago`
     : moment.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
+
+/**
+ * Today's date on the Indian markets' calendar.
+ *
+ * Not the browser's UTC date: between midnight and half past five in the
+ * morning, India's today is UTC's tomorrow, and an ex-date compared with
+ * the wrong one is called past on the day it happens.
+ *
+ * @param now - The moment to read; injected so a test is not dependent on
+ *   when it runs.
+ * @returns The ISO date, such as `2026-09-23`.
+ */
+export function todayInIndia(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(now);
+}

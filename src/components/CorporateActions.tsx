@@ -17,6 +17,8 @@ import { ABSENT, formatDay, formatPrice } from "@/lib/format";
 interface CorporateActionsProps {
   actions: CorporateAction[] | null;
   loading?: boolean;
+  /** How the table is named for a screen reader. */
+  label?: string;
 }
 
 /** What each kind is called, and how it is tinted. */
@@ -37,6 +39,7 @@ const KINDS: Record<CorporateActionKind, { label: string; className: string }> =
 export function CorporateActions({
   actions,
   loading = false,
+  label = "Corporate actions",
 }: CorporateActionsProps): React.JSX.Element {
   const columns = useMemo<Column<CorporateAction>[]>(
     () => [
@@ -96,7 +99,7 @@ export function CorporateActions({
       loading={loading}
       empty="No corporate events recorded for this company"
       placeholderRows={4}
-      label="Corporate actions"
+      label={label}
     />
   );
 }
@@ -110,9 +113,14 @@ export function CorporateActions({
  * @param action - The event.
  * @returns The figure, or a dash.
  */
-function detail(action: CorporateAction): string {
+function detail(action: CorporateAction): React.ReactNode {
   if (action.amount !== null) {
-    return `${formatPrice(action.amount)} per share`;
+    // The previous project's green badge: money coming to the holder.
+    return (
+      <Badge variant="outline" className="border-gain/30 bg-gain/10 text-gain">
+        ₹{formatPrice(action.amount)} per share
+      </Badge>
+    );
   }
   return action.ratio ?? ABSENT;
 }

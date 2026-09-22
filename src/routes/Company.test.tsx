@@ -537,4 +537,28 @@ describe("Company", () => {
     expect(await screen.findByText("Near 52W low")).toBeInTheDocument();
     expect(screen.queryByText("Near 52W high")).not.toBeInTheDocument();
   });
+
+  it("sets what is still to come above the history, soonest first", async () => {
+    stubEverything({
+      "/api/companies/NSE_EQ%7CINE002A01018/corporate-actions": {
+        body: [
+          corporateAction({ ex_date: "2099-03-01", kind: "BONUS", amount: null, ratio: "1:1" }),
+          corporateAction({ ex_date: "2020-01-01" }),
+          corporateAction({ ex_date: "2099-01-15", kind: "OTHER", amount: null, ratio: null }),
+        ],
+      },
+    });
+    renderPage(<Company instrumentKey={KEY} />);
+    await userEvent.click(await screen.findByRole("tab", { name: /Corporate actions/i }));
+
+    const upcoming = await screen.findByRole("table", { name: "Upcoming corporate actions" });
+    const rows = within(upcoming).getAllByRole("row").slice(1);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent("Other");
+    expect(rows[1]).toHaveTextContent("Bonus");
+
+    await userEvent.click(screen.getByRole("button", { name: "Other" }));
+    const history = screen.getByRole("table", { name: "Corporate actions" });
+    expect(within(history).getAllByRole("row").slice(1)).toHaveLength(1);
+  });
 });

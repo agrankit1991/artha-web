@@ -15,6 +15,7 @@ import {
   formatStreak,
   formatVolume,
   formatWhole,
+  todayInIndia,
   toNumber,
 } from "./format";
 
@@ -129,5 +130,11 @@ describe("formatWhole", () => {
     expect(formatSignedPrice("312.45")).toBe("+312.45");
     expect(formatSignedPrice("-1234.5")).toBe("-1,234.50");
     expect(formatSignedPrice(null)).toBe("—");
+  });
+
+  it("reads today on India's calendar, not UTC's", () => {
+    // 20:00 UTC on the 22nd is 01:30 on the 23rd in India.
+    expect(todayInIndia(new Date("2026-09-22T20:00:00Z"))).toBe("2026-09-23");
+    expect(todayInIndia(new Date("2026-09-22T10:00:00Z"))).toBe("2026-09-22");
   });
 });

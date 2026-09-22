@@ -75,6 +75,7 @@ import {
   formatPrice,
   formatVolume,
   toNumber,
+  todayInIndia,
 } from "@/lib/format";
 import { monthOfCloses } from "@/lib/sharing";
 import { companyPath, comparePath, newsPath, populationPath } from "@/lib/paths";
@@ -502,6 +503,7 @@ const KINDS: { key: "ALL" | CorporateActionKind; label: string }[] = [
   { key: "BONUS", label: "Bonuses" },
   { key: "SPLIT", label: "Splits" },
   { key: "RIGHTS", label: "Rights" },
+  { key: "OTHER", label: "Other" },
 ];
 
 /**
@@ -524,6 +526,14 @@ function ActionsByKind({
     () => (actions ?? []).filter((one) => kind === "ALL" || one.kind === kind),
     [actions, kind],
   );
+  // What is still to come, soonest first: the part of this a holder has
+  // to act on, which the table below lists among a year of history.
+  const upcoming = useMemo(() => {
+    const today = todayInIndia();
+    return (actions ?? [])
+      .filter((one) => one.ex_date >= today)
+      .sort((first, second) => first.ex_date.localeCompare(second.ex_date));
+  }, [actions]);
   return (
     <div className="space-y-3">
       <SectionHeader
@@ -532,6 +542,19 @@ function ActionsByKind({
         description="Dividends, bonuses, splits and rights. A price chart that looks broken on a date is usually explained here."
         actions={<Chooser options={KINDS} chosen={kind} onChange={setKind} label="Kind" />}
       />
+      {upcoming.length > 0 && (
+        <Card className="border-primary/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <MARKS.dates aria-hidden="true" className="h-4 w-4 text-primary" />
+              Upcoming
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CorporateActions actions={upcoming} label="Upcoming corporate actions" />
+          </CardContent>
+        </Card>
+      )}
       <CorporateActions actions={shown} loading={loading} />
     </div>
   );
