@@ -287,4 +287,34 @@ describe("Breadth", () => {
     expect(within(drawn).getByText("Net advancing")).toBeInTheDocument();
     expect(within(drawn).getByText("McClellan oscillator")).toBeInTheDocument();
   });
+
+  it("draws the headline indices' participation over time, against the average chosen", async () => {
+    stubEverything();
+    renderPage(<Breadth />);
+
+    expect(
+      await screen.findByRole("table", { name: "Share above the 50-day average" }),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "200-day" }));
+
+    expect(
+      screen.getByRole("table", { name: "Share above the 200-day average" }),
+    ).toBeInTheDocument();
+  });
+
+  it("says so when the headline indices' history cannot be read", async () => {
+    stubPlatform({
+      "/api/movers/scopes": { body: scopeOptions() },
+      "/api/breadth/grid": { body: breadthGrid() },
+      "/api/breadth": {
+        bodyFor: (path: string) =>
+          path.includes("scope_kind=index") ? { detail: "breadth broke" } : breadth(),
+        statusFor: (path: string) => (path.includes("scope_kind=index") ? 500 : 200),
+      },
+    });
+    renderPage(<Breadth />);
+
+    expect(await screen.findByText("breadth broke")).toBeInTheDocument();
+  });
 });

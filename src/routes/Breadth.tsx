@@ -8,12 +8,14 @@
  * index and its participants is visible over months and invisible in a day.
  */
 
-import { Activity, LayoutGrid, Table as TableIcon } from "lucide-react";
+import { Activity, Grid3x3, LayoutGrid, Table as TableIcon } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import type { BreadthSession } from "@/api/client";
 import { fetchBreadth, fetchBreadthGrid, fetchScopes } from "@/api/client";
 import { BreadthGridPanel } from "@/components/BreadthGridPanel";
+import { type BreadthMeasure, BreadthHeatmap, type HeatmapRow } from "@/components/BreadthHeatmap";
+import { Chooser } from "@/components/Chooser";
 import { BreadthChart } from "@/components/BreadthChart";
 import { BreadthPanel } from "@/components/BreadthPanel";
 import { type Column, DataTable } from "@/components/DataTable";
@@ -27,6 +29,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
 import { useResource } from "@/hooks/useResource";
+import { FEATURED_INDICES } from "@/lib/indices";
 import { populationPath } from "@/lib/paths";
 import { readings } from "@/lib/breadthReadings";
 import { ABSENT, formatDay, formatVolume, toNumber } from "@/lib/format";
@@ -60,6 +63,26 @@ export function Breadth(): React.JSX.Element {
   const scopes = useResource(loadScopes);
   const breadth = useResource(loadBreadth);
   const grid = useResource(loadGrid);
+
+  // The headline indices' last fifty sessions each, for the heatmap. One
+  // request apiece, side by side: the endpoint already answers per population.
+  const [measure, setMeasure] = useState<BreadthMeasure>("above_sma_50");
+  const loadHeatmap = useCallback(
+    () =>
+      Promise.all(
+        FEATURED_INDICES.map(async (index): Promise<HeatmapRow> => {
+          const found = await fetchBreadth("index", index.key, HEATMAP_SESSIONS);
+          return {
+            key: index.key,
+            label: index.name,
+            href: populationPath("index", index.key),
+            sessions: found.sessions,
+          };
+        }),
+      ),
+    [],
+  );
+  const heatmap = useResource(loadHeatmap);
 
   const measures = useMemo(() => readings(breadth.data), [breadth.data]);
   // Newest first: a table is read from the top, and the top of this one is
@@ -112,6 +135,41 @@ export function Breadth(): React.JSX.Element {
           </section>
 
           <BreadthPanel breadth={breadth.data} loading={breadth.loading} />
+
+          <Card>
+            <CardHeader>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Grid3x3 aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
+                    Participation Over Time
+                  </CardTitle>
+                  <CardDescription>
+                    Each headline index's last {HEATMAP_SESSIONS} sessions: how much of it stood
+                    above its moving average, day by day.
+                  </CardDescription>
+                </div>
+                <Chooser
+                  options={MEASURES}
+                  chosen={measure}
+                  onChange={setMeasure}
+                  label="Moving average"
+                />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {heatmap.error !== null ? (
+                <Failed message={heatmap.error} />
+              ) : (
+                <BreadthHeatmap
+                  rows={heatmap.data ?? []}
+                  measure={measure}
+                  measureLabel={MEASURES.find((one) => one.key === measure)?.label ?? ""}
+                  loading={heatmap.loading}
+                />
+              )}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>
@@ -281,3 +339,13 @@ function percent(value: string | null): string {
   const parsed = toNumber(value);
   return parsed === null ? ABSENT : `${parsed.toFixed(0)}%`;
 }
+
+/** How many sessions the heatmap spans: about ten weeks, as StockEdge's does. */
+const HEATMAP_SESSIONS = 50;
+
+/** The averages the heatmap can measure against. */
+const MEASURES: readonly { key: BreadthMeasure; label: string }[] = [
+  { key: "above_sma_20", label: "20-day" },
+  { key: "above_sma_50", label: "50-day" },
+  { key: "above_sma_200", label: "200-day" },
+];
