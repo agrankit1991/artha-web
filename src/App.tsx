@@ -19,6 +19,7 @@ import { BrowserRouter, Route, Routes, useNavigate, useParams } from "react-rout
 import type { Account } from "@/api/client";
 import { fetchAccount, fetchHello, signOut } from "@/api/client";
 import { AppShell, type Screen } from "@/components/AppShell";
+import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { ReferencedPage } from "@/components/ReferencedPage";
 import { useResource } from "@/hooks/useResource";
 import { ENTITIES, MARKS } from "@/lib/entities";
@@ -150,6 +151,7 @@ function SignedIn({
       }}
       onSignOut={onSignOut}
     >
+      <KeyboardShortcuts />
       <Routes>
         <Route
           path={PATHS.overview}
