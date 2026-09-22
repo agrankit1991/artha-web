@@ -1556,6 +1556,51 @@ export function fetchOverviewHistory(key: string, sessions = 60): Promise<Instru
   return request<InstrumentOverview[]>(`/api/overviews/history?${parameters.toString()}`);
 }
 
+/** Who is buying or selling: foreign or domestic institutions. */
+export type Participant = "FII" | "DII";
+
+/** Which market the flow is in. DII is published for the cash market only. */
+export type FlowSegment =
+  "CASH" | "INDEX_FUTURES" | "STOCK_FUTURES" | "INDEX_OPTIONS" | "STOCK_OPTIONS";
+
+/** A session's flows, or a month's. */
+export type FlowPeriod = "DAY" | "MONTH";
+
+/** One participant's buying and selling in one segment over one session or month. */
+export interface InstitutionalFlow {
+  participant: Participant;
+  segment: FlowSegment;
+  period: FlowPeriod;
+  /** The session, or the first of the month. */
+  day: string;
+  /** Rupees crore, as every flow figure is. */
+  buy_amount: string;
+  sell_amount: string;
+  net_amount: string;
+  /** Contract counts; null for the cash market, which trades no contracts. */
+  buy_contracts: number | null;
+  sell_contracts: number | null;
+  oi_contracts: number | null;
+  oi_amount: string | null;
+  long_contracts: number | null;
+  short_contracts: number | null;
+}
+
+/**
+ * Fetch institutional flows, newest first.
+ *
+ * @param period - Sessions or months.
+ * @param sessions - How many distinct days to return at most.
+ * @returns Every participant's every segment for each of those days.
+ */
+export function fetchFlows(
+  period: FlowPeriod = "DAY",
+  sessions = 60,
+): Promise<InstitutionalFlow[]> {
+  const parameters = new URLSearchParams({ period, sessions: String(sessions) });
+  return request<InstitutionalFlow[]>(`/api/flows?${parameters.toString()}`);
+}
+
 /** One session the platform holds figures for. */
 export interface SessionSummary {
   day: string;

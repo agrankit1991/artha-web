@@ -26,6 +26,12 @@ interface DeltaProps {
    * the day's move beside the name, rather than as coloured text.
    */
   badge?: boolean;
+  /**
+   * How to write the figure; a signed percentage unless it is a move of
+   * something else -- points, or crore of net buying -- that reads up or
+   * down the same way.
+   */
+  format?: (value: string | null | undefined) => string;
   className?: string;
 }
 
@@ -44,6 +50,7 @@ export function Delta({
   value,
   arrow = true,
   badge = false,
+  format = formatPercent,
   className,
 }: DeltaProps): React.JSX.Element {
   const way = direction(value);
@@ -68,7 +75,7 @@ export function Delta({
           className="h-[1.1em] w-[1.1em] shrink-0"
         />
       )}
-      {formatPercent(value)}
+      {format(value)}
     </span>
   );
 }

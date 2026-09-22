@@ -11,9 +11,8 @@
 
 import { RangeMeter } from "@/components/RangeMeter";
 import { Delta } from "@/components/Delta";
-import { direction, formatDay, formatPrice, formatSignedPrice, toNumber } from "@/lib/format";
+import { formatDay, formatPrice, formatSignedPrice, toNumber } from "@/lib/format";
 import type { InstrumentOverview } from "@/api/client";
-import { cn } from "@/lib/utils";
 
 interface InstrumentHeaderProps {
   /** What it is called. */
@@ -94,21 +93,16 @@ export function InstrumentHeader({
 
 /** The latest level, its move in points and per cent, and the session it is from. */
 function Level({ overview }: { overview: InstrumentOverview }): React.JSX.Element {
-  const way = direction(overview.day.change);
   return (
     <div className="text-left lg:text-right">
       <div className="text-3xl font-bold tabular">{formatPrice(overview.day.close)}</div>
       <div className="flex items-center gap-2 text-sm lg:justify-end">
-        <span
-          className={cn(
-            "tabular font-medium",
-            way === "up" && "text-gain",
-            way === "down" && "text-loss",
-            way === "flat" && "text-muted-foreground",
-          )}
-        >
-          {formatSignedPrice(overview.day.change)}
-        </span>
+        <Delta
+          value={overview.day.change}
+          format={formatSignedPrice}
+          arrow={false}
+          className="font-medium"
+        />
         <Delta value={overview.day.change_percent} className="font-medium" />
       </div>
       <div className="text-xs text-muted-foreground">As of {formatDay(overview.as_of)}</div>

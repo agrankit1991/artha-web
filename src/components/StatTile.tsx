@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 interface StatTileProps {
   label: string;
   /** The figure, already formatted. */
-  value: string;
+  value: React.ReactNode;
   /** A percentage change to show beside the figure, signed and coloured. */
   delta?: string | null;
   /** What qualifies the figure: when it was, what it is against. */

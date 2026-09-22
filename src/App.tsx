@@ -28,6 +28,7 @@ import { Breadth } from "@/routes/Breadth";
 import { Company } from "@/routes/Company";
 import { Compare } from "@/routes/Compare";
 import { EarningsPage } from "@/routes/Earnings";
+import { Flows } from "@/routes/Flows";
 import { Indices } from "@/routes/Indices";
 import { Screener } from "@/routes/Screener";
 import { Watchlists } from "@/routes/Watchlists";
@@ -49,6 +50,7 @@ import { SignIn } from "@/routes/SignIn";
 const SCREENS: Screen[] = [
   { path: PATHS.overview, label: "Overview", icon: LayoutDashboard, group: "Markets", exact: true },
   { path: PATHS.breadth, label: "Breadth", icon: MARKS.breadth, group: "Markets" },
+  { path: PATHS.flows, label: "FII / DII", icon: MARKS.flows, group: "Markets" },
   { path: PATHS.indices, label: "Indices", icon: ENTITIES.index.icon, group: "Markets" },
   { path: PATHS.sectors, label: "Sectors", icon: ENTITIES.sector.icon, group: "Markets" },
   { path: PATHS.movers, label: "Movers", icon: MARKS.breadth, group: "Markets" },
@@ -169,6 +171,7 @@ function SignedIn({
           }
         />
         <Route path={PATHS.breadth} element={<Breadth />} />
+        <Route path={PATHS.flows} element={<Flows />} />
         <Route path={PATHS.news} element={<News />} />
         <Route path="/movers/:list" element={<Movers />} />
         <Route path={PATHS.earnings} element={<EarningsPage />} />

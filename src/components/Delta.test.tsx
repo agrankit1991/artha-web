@@ -53,4 +53,10 @@ describe("Delta", () => {
 
     expect(screen.getByText("-0.56%")).toHaveClass("text-loss", "border-loss/30", "bg-loss/5");
   });
+
+  it("writes a move of something other than a percentage the same way up or down", () => {
+    render(<Delta value="-3809.99" format={(value) => `${value ?? ""} Cr`} arrow={false} />);
+
+    expect(screen.getByText("-3809.99 Cr")).toHaveClass("text-loss");
+  });
 });
