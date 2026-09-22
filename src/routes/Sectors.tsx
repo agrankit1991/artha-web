@@ -10,6 +10,7 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 import type { SectorSummary } from "@/api/client";
 import { fetchSectors } from "@/api/client";
@@ -18,6 +19,8 @@ import { Delta } from "@/components/Delta";
 import { Failed } from "@/components/Failed";
 import { Hint } from "@/components/Hint";
 import { PageHeader } from "@/components/PageHeader";
+import { ViewModeToggle, useViewMode } from "@/components/ViewModeToggle";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useResource } from "@/hooks/useResource";
 import { ABSENT, formatCount, toNumber } from "@/lib/format";
@@ -32,6 +35,7 @@ export function Sectors(): React.JSX.Element {
   const load = useCallback(() => fetchSectors(), []);
   const sectors = useResource(load);
   const [typed, setTyped] = useState("");
+  const [mode, setMode] = useViewMode("sectors");
 
   const shown = useMemo(() => {
     const letters = typed.trim().toLowerCase();
@@ -46,17 +50,24 @@ export function Sectors(): React.JSX.Element {
         id: "sector",
         header: "Sector",
         accessorFn: (row) => row.sector,
+        cell: ({ row }) => <span className="font-medium">{row.original.sector}</span>,
+      },
+      {
+        id: "companies",
+        header: "Companies",
+        accessorFn: (row) => row.companies,
         cell: ({ row }) => (
-          <div className="min-w-0">
-            <div className="truncate font-medium">{row.original.sector}</div>
-            <div className="text-xs text-muted-foreground">
-              {formatCount(row.original.companies)}{" "}
-              {row.original.companies === 1 ? "company" : "companies"}
-              {row.original.measured < row.original.companies &&
-                `, ${String(row.original.measured)} with figures`}
-            </div>
-          </div>
+          <span
+            title={
+              row.original.measured < row.original.companies
+                ? `${String(row.original.measured)} with figures`
+                : undefined
+            }
+          >
+            {formatCount(row.original.companies)}
+          </span>
         ),
+        meta: { align: "right" },
       },
       {
         id: "split",
@@ -89,6 +100,7 @@ export function Sectors(): React.JSX.Element {
     <div className="space-y-6">
       <PageHeader
         title="Sectors"
+        count={sectors.data === null ? undefined : `${String(sectors.data.length)} sectors`}
         description="Every sector, as its companies' figures with every company counting once: how many rose and fell today, and what the typical member returned. Each leads to its own page."
       />
       <div className="flex flex-wrap items-center gap-3">
@@ -106,17 +118,26 @@ export function Sectors(): React.JSX.Element {
           {String(shown.length)} of {String(sectors.data?.length ?? 0)}
         </span>
         <Hint text="Returns are the median company's, not a weighted index's. A sector whose largest company rose while forty small ones fell reads as falling here." />
+        <ViewModeToggle mode={mode} onChange={setMode} modes={LAYOUTS} className="ml-auto" />
       </div>
-      <DataTable
-        columns={columns}
-        rows={shown}
-        loading={sectors.loading}
-        empty="No sector matches"
-        placeholderRows={12}
-        label="Sectors"
-        full
-        linkTo={(row) => populationPath("sector", row.sector)}
-      />
+      {mode === "cards" ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {shown.map((one) => (
+            <SectorCard key={one.sector} sector={one} />
+          ))}
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={shown}
+          loading={sectors.loading}
+          empty="No sector matches"
+          placeholderRows={12}
+          label="Sectors"
+          full
+          linkTo={(row) => populationPath("sector", row.sector)}
+        />
+      )}
     </div>
   );
 }
@@ -167,4 +188,41 @@ function change(
     cell: ({ row }) => <Delta value={of(row.original)} />,
     meta: { align: "right" },
   };
+}
+
+/** A sector has no category to group by, so the page offers a list or cards. */
+const LAYOUTS = ["list", "cards"] as const;
+
+/** One sector as a card: its typical move first, then its split and trailing returns. */
+function SectorCard({ sector }: { sector: SectorSummary }): React.JSX.Element {
+  return (
+    <Link to={populationPath("sector", sector.sector)} className="block">
+      <Card className="transition-shadow hover:shadow-md">
+        <CardContent className="space-y-3">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="min-w-0 truncate text-lg font-semibold">{sector.sector}</h3>
+            <Delta value={sector.median_change_percent} arrow={false} badge />
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {formatCount(sector.companies)} {sector.companies === 1 ? "company" : "companies"}
+          </div>
+          <Split sector={sector} />
+          <dl className="grid grid-cols-2 gap-2 text-xs">
+            <div>
+              <dt className="text-muted-foreground">1M</dt>
+              <dd>
+                <Delta value={sector.returns.one_month} />
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">1Y</dt>
+              <dd>
+                <Delta value={sector.returns.one_year} />
+              </dd>
+            </div>
+          </dl>
+        </CardContent>
+      </Card>
+    </Link>
+  );
 }

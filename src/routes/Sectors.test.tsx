@@ -43,8 +43,13 @@ describe("Sectors", () => {
     const table = await screen.findByRole("table", { name: "Sectors" });
     const software = await within(table).findByRole("link", { name: /IT - Software/ });
     expect(software).toHaveAttribute("href", "/sector/it-software");
-    expect(within(table).getByText(/92 companies, 90 with figures/)).toBeInTheDocument();
-    expect(within(table).getByText(/^1 company$/)).toBeInTheDocument();
+    // A count is a column a reader sorts by; the sample it rests on is its title.
+    expect(within(table).getByText("92")).toHaveAttribute("title", "90 with figures");
+    // A sector whose every company has figures needs no note.
+    for (const one of within(table).getAllByText("1")) {
+      expect(one).not.toHaveAttribute("title");
+    }
+    expect(screen.getByText(/\d+ sectors/)).toBeInTheDocument();
     expect(
       within(table).getByRole("meter", { name: "60 up, 25 down, 5 unchanged" }),
     ).toHaveAttribute("aria-valuenow", "60");
@@ -72,7 +77,17 @@ describe("Sectors", () => {
     const table = await screen.findByRole("table", { name: "Sectors" });
     await within(table).findByRole("link", { name: /IT - Software/ });
 
-    for (const name of [/^Sector/, /^Median change/, /^1W/, /^1M/, /^3M/, /^6M/, /^1Y/, /^YTD/]) {
+    for (const name of [
+      /^Sector/,
+      /^Companies/,
+      /^Median change/,
+      /^1W/,
+      /^1M/,
+      /^3M/,
+      /^6M/,
+      /^1Y/,
+      /^YTD/,
+    ]) {
       await userEvent.click(within(table).getByRole("button", { name }));
     }
     await userEvent.click(within(table).getByRole("button", { name: /^Up \/ down today/ }));
@@ -86,5 +101,20 @@ describe("Sectors", () => {
     renderPage(<Sectors />);
 
     expect(await screen.findByText(/sectors broke/)).toBeInTheDocument();
+  });
+
+  it("lays the sectors out as cards, each leading to its page", async () => {
+    stubPlatform({ "/api/sectors": { body: THREE } });
+    renderPage(<Sectors />);
+    await screen.findByRole("table", { name: "Sectors" });
+
+    await userEvent.click(screen.getByRole("button", { name: "Cards" }));
+
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Grouped" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /IT - Software/ })).toHaveAttribute(
+      "href",
+      "/sector/it-software",
+    );
   });
 });
