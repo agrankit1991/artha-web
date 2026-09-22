@@ -4,3 +4,6 @@ dist/
 .env
 !.env.example
 coverage/
+
+# Working documents: plans and research, not shipped.
+docs/
