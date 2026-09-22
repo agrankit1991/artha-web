@@ -23,6 +23,7 @@ import {
   fetchExternalSymbols,
   fetchFigures,
   fetchMovers,
+  fetchFlows,
   fetchNews,
   fetchOverviews,
   fetchScopes,
@@ -42,6 +43,7 @@ import type { Scope } from "@/components/ScopeSelector";
 import { Button } from "@/components/ui/button";
 import { Delta } from "@/components/Delta";
 import { Failed } from "@/components/Failed";
+import { FlowsGlance } from "@/components/FlowsGlance";
 import { SectionHeader } from "@/components/SectionHeader";
 import { ENTITIES, MARKS } from "@/lib/entities";
 import { useResource } from "@/hooks/useResource";
@@ -126,6 +128,7 @@ export function Overview({
   const loadMovers = useCallback(() => fetchMovers(scope.kind, scope.key), [scope]);
   const loadBreadth = useCallback(() => fetchBreadth(scope.kind, scope.key), [scope]);
   const loadNews = useCallback(() => fetchNews({ limit: HEADLINES }), []);
+  const loadFlows = useCallback(() => fetchFlows("DAY", FLOW_SESSIONS), []);
   // Every instrument this page draws, asked about once: eight cards and
   // two chart lines is ten round trips otherwise, to render ten links.
   const loadSymbols = useCallback(
@@ -143,6 +146,7 @@ export function Overview({
   const movers = useResource(loadMovers);
   const breadth = useResource(loadBreadth);
   const news = useResource(loadNews);
+  const flows = useResource(loadFlows);
   const comparison = useResource(loadComparison);
   const chart = useResource(loadChart);
   const symbols = useResource(loadSymbols);
@@ -194,6 +198,9 @@ export function Overview({
           ))}
         </div>
       </section>
+
+      {/* A failure here is the flows' own: the rest of the page stands. */}
+      {flows.error === null && <FlowsGlance flows={flows.data} loading={flows.loading} />}
 
       <section className="space-y-3" aria-labelledby="heatmap-heading">
         <SectionHeader id="heatmap-heading" icon={PieChart} title="Market Heatmap" />
@@ -455,3 +462,6 @@ function MarketBand({
     </section>
   );
 }
+
+/** How many sessions of flows the overview asks for: the glance's month, with room. */
+const FLOW_SESSIONS = 25;
