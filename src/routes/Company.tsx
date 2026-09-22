@@ -17,9 +17,11 @@ import { useCallback, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import type {
+  Company as CompanyDetail,
   Comparison,
   CorporateAction,
   CorporateActionKind,
+  InstrumentOverview,
   KnownSymbol,
   Member,
 } from "@/api/client";
@@ -47,7 +49,7 @@ import { Financials } from "@/components/Financials";
 import { GrowthChart, ShareholdingChart } from "@/components/FundamentalsChart";
 import { InstrumentFigures } from "@/components/InstrumentFigures";
 import { NewsFeed } from "@/components/NewsFeed";
-import { PageHeader } from "@/components/PageHeader";
+import { InstrumentHeader } from "@/components/InstrumentHeader";
 import { PriceChart } from "@/components/PriceChart";
 import { PRICE_RANGES, RangeSelector } from "@/components/RangeSelector";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -59,6 +61,7 @@ import { SessionPicker } from "@/components/SessionPicker";
 import { ShareButton } from "@/components/ShareButton";
 import { WatchButton } from "@/components/WatchButton";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useResource } from "@/hooks/useResource";
@@ -234,26 +237,25 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        kind="company"
-        title={found?.name ?? instrumentKey}
+      <InstrumentHeader
+        name={found?.name ?? instrumentKey}
         badges={
-          <>
-            {found?.listings.map((listing) => (
-              <Badge key={listing.instrument_key} variant="outline">
-                {listing.exchange}: {listing.symbol}
-              </Badge>
-            ))}
-            {found?.sector != null && (
-              <Link to={populationPath("sector", found.sector)}>
-                <Badge variant="secondary" className="hover:bg-secondary/70">
-                  {found.sector}
-                </Badge>
-              </Link>
-            )}
-          </>
+          found !== null && <CompanyBadges company={found} overview={overview.data?.[0] ?? null} />
         }
-        identifiers={found !== null && <span>ISIN {found.isin}</span>}
+        subline={
+          found !== null && (
+            <>
+              <span className="font-mono">ISIN {found.isin}</span>
+              {found.sector != null && (
+                <>
+                  <span aria-hidden="true">•</span>
+                  <span>{found.sector}</span>
+                </>
+              )}
+            </>
+          )
+        }
+        overview={overview.data?.[0]}
         description={found?.description}
         actions={
           found !== null &&
@@ -652,4 +654,69 @@ function move(
       row.original[field] === null ? ABSENT : <Delta value={row.original[field]} />,
     meta: { align: "right" },
   };
+}
+
+/** How close to a 52-week extreme a close must be for the header to say so. */
+const NEAR_EXTREME_PERCENT = 2;
+
+/** The previous project's tint for the badges that say where a company trades. */
+const TINTED = "bg-primary/10 text-primary";
+
+/** How many of the indices holding a company are named before "+N more". */
+const INDICES_SHOWN = 2;
+
+/**
+ * Where a company trades and what it belongs to, as header badges: each
+ * listing, its sector, the first indices holding it, and whether it sits at
+ * a 52-week extreme.
+ */
+function CompanyBadges({
+  company,
+  overview,
+}: {
+  company: CompanyDetail;
+  overview: InstrumentOverview | null;
+}): React.JSX.Element {
+  const shown = company.indices.slice(0, INDICES_SHOWN);
+  const rest = company.indices.slice(INDICES_SHOWN);
+  const fromHigh = toNumber(overview?.year_range.from_high_percent);
+  const fromLow = toNumber(overview?.year_range.from_low_percent);
+  return (
+    <>
+      {company.listings.map((listing) => (
+        <Badge key={listing.instrument_key} variant="outline" className={cn(TINTED, "font-mono")}>
+          {listing.exchange}: {listing.symbol}
+        </Badge>
+      ))}
+      {company.sector != null && (
+        <Link to={populationPath("sector", company.sector)}>
+          <Badge variant="outline" className="hover:bg-muted">
+            {company.sector}
+          </Badge>
+        </Link>
+      )}
+      {shown.map((one) => (
+        <Link key={one.instrument_key} to={populationPath("index", one.instrument_key)}>
+          <Badge variant="secondary" className="hover:bg-secondary/70">
+            {one.name}
+          </Badge>
+        </Link>
+      ))}
+      {rest.length > 0 && (
+        <Badge variant="secondary" title={rest.map((one) => one.name).join(", ")}>
+          +{rest.length} more
+        </Badge>
+      )}
+      {fromHigh !== null && fromHigh >= -NEAR_EXTREME_PERCENT && (
+        <Badge variant="outline" className="border-caution/40 bg-caution/10 text-caution">
+          Near 52W high
+        </Badge>
+      )}
+      {fromLow !== null && fromLow <= NEAR_EXTREME_PERCENT && (
+        <Badge variant="outline" className="border-loss/40 bg-loss/10 text-loss">
+          Near 52W low
+        </Badge>
+      )}
+    </>
+  );
 }

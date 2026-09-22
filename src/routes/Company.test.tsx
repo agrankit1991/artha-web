@@ -99,10 +99,12 @@ describe("Company", () => {
 
     renderPage(<Company instrumentKey={KEY} />);
 
-    expect(await screen.findByRole("link", { name: "Nifty 50" })).toHaveAttribute(
-      "href",
-      "/index/nifty-50",
-    );
+    // Named in the header's badges and in the full list, and both lead there.
+    const links = await screen.findAllByRole("link", { name: "Nifty 50" });
+    expect(links.length).toBeGreaterThan(0);
+    for (const link of links) {
+      expect(link).toHaveAttribute("href", "/index/nifty-50");
+    }
   });
 
   it("opens on how it reads against its sector, not on its own price", async () => {
@@ -495,5 +497,44 @@ describe("Company", () => {
       expect(asked.some((path) => path.includes("/api/overviews?as_of=2026-09-15"))).toBe(true);
     });
     expect(screen.getByText(/Read as it stood on/)).toBeInTheDocument();
+  });
+
+  it("badges where it trades, the indices holding it, and a 52-week extreme", async () => {
+    // The fixture's close sits 1.15% under its yearly high.
+    const names = ["Nifty 50", "Nifty 100", "Nifty 200", "Nifty 500"];
+    stubEverything({
+      "/api/companies/NSE_EQ%7CINE002A01018": {
+        body: company({
+          indices: names.map((name) => ({ instrument_key: `NSE_INDEX|${name}`, name })),
+        }),
+      },
+    });
+
+    renderPage(<Company instrumentKey={KEY} />);
+
+    expect(await screen.findByText("NSE: RELIANCE")).toBeInTheDocument();
+    expect(screen.getByText("BSE: RELIANCE")).toBeInTheDocument();
+    expect(await screen.findByText("+2 more")).toHaveAttribute("title", "Nifty 200, Nifty 500");
+    expect(await screen.findByText("Near 52W high")).toBeInTheDocument();
+    expect(screen.queryByText("Near 52W low")).not.toBeInTheDocument();
+  });
+
+  it("badges a close near its 52-week low", async () => {
+    const base = overview({ instrument_key: KEY });
+    stubEverything({
+      "/api/overviews": {
+        body: [
+          {
+            ...base,
+            year_range: { ...base.year_range, from_high_percent: "-30.0", from_low_percent: "1.2" },
+          },
+        ],
+      },
+    });
+
+    renderPage(<Company instrumentKey={KEY} />);
+
+    expect(await screen.findByText("Near 52W low")).toBeInTheDocument();
+    expect(screen.queryByText("Near 52W high")).not.toBeInTheDocument();
   });
 });
