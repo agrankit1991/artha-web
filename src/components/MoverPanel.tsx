@@ -12,6 +12,7 @@ import { Link } from "react-router-dom";
 
 import type { MoverListName, MoverPanel as Panel, MoverRow } from "@/api/client";
 import { type Column, DataTable } from "@/components/DataTable";
+import { nameColumn, symbolColumn } from "@/components/identityColumns";
 import { Delta } from "@/components/Delta";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -19,7 +20,6 @@ import {
   formatMultiple,
   formatPercent,
   formatPrice,
-  formatStreak,
   formatVolume,
   toNumber,
 } from "@/lib/format";
@@ -102,17 +102,11 @@ export function MoverPanelCard({
 
   const columns = useMemo<Column<MoverRow>[]>(
     () => [
-      {
-        id: "symbol",
-        header: "Symbol",
-        accessorFn: (row) => row.symbol,
-        cell: ({ row }) => (
-          <div className="min-w-0">
-            <div className="truncate font-medium">{row.original.symbol}</div>
-            <div className="truncate text-xs text-muted-foreground">{row.original.name}</div>
-          </div>
-        ),
-      },
+      symbolColumn((row) => row),
+      nameColumn(
+        (row) => row,
+        (row) => row.streak,
+      ),
       {
         id: "close",
         header: "Price",
@@ -125,22 +119,6 @@ export function MoverPanelCard({
         header: measure,
         accessorFn: (row) => toNumber(row.value) ?? 0,
         cell: ({ row }) => render(row.original),
-        meta: { align: "right" },
-      },
-      {
-        id: "streak",
-        // Short, because the column is narrow and the tooltip carries the
-        // rest: this is the answer to "how long has it been doing that".
-        header: "Run",
-        accessorFn: (row) => row.streak,
-        cell: ({ row }) => (
-          <span
-            className="text-muted-foreground"
-            title={`In this list for ${String(row.original.streak)} sessions running`}
-          >
-            {formatStreak(row.original.streak)}
-          </span>
-        ),
         meta: { align: "right" },
       },
     ],

@@ -28,6 +28,7 @@ import { EarningsPanel } from "@/components/EarningsPanel";
 import { InstrumentFigures } from "@/components/InstrumentFigures";
 import { PopulationValuationPanel } from "@/components/PopulationValuationPanel";
 import { type Column, DataTable } from "@/components/DataTable";
+import { nameColumn, symbolColumn } from "@/components/identityColumns";
 import { Delta } from "@/components/Delta";
 import { Heatmap } from "@/components/Heatmap";
 import { PriceChart } from "@/components/PriceChart";
@@ -358,17 +359,8 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
 function Members({ members, loading }: { members: Member[]; loading: boolean }): React.JSX.Element {
   const columns = useMemo<Column<Member>[]>(
     () => [
-      {
-        id: "symbol",
-        header: "Company",
-        accessorFn: (row) => row.symbol,
-        cell: ({ row }) => (
-          <div className="min-w-0">
-            <div className="truncate font-medium">{row.original.symbol}</div>
-            <div className="truncate text-xs text-muted-foreground">{row.original.name}</div>
-          </div>
-        ),
-      },
+      symbolColumn((row) => row),
+      nameColumn((row) => row),
       {
         id: "close",
         header: "Price",

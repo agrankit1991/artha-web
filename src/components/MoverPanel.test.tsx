@@ -52,7 +52,7 @@ describe("MoverPanelCard", () => {
     // The half of a mover list that a single session cannot tell you.
     render(<MoverPanelCard panel={panel({ rows: [moverRow({ streak: 6 })] })} />);
 
-    expect(screen.getByText("6d")).toHaveAttribute("title", "In this list for 6 sessions running");
+    expect(screen.getByText("6d")).toHaveAttribute("title", "On this list for 6 sessions running");
   });
 
   it("shows both what an instrument is called and what it is", () => {
@@ -114,9 +114,6 @@ describe("MoverPanelCard", () => {
     expect(first()).toContain("TCS");
 
     await userEvent.click(screen.getByRole("button", { name: /Change/ }));
-    expect(first()).toContain("INFY");
-
-    await userEvent.click(screen.getByRole("button", { name: /Run/ }));
     expect(first()).toContain("INFY");
 
     // A name sorts A to Z first, where a figure sorts largest first. Both

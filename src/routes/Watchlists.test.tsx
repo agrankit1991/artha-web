@@ -196,7 +196,8 @@ describe("Watchlists", () => {
     await within(table).findByRole("link", { name: /RELIANCE/ });
 
     for (const name of [
-      /^Company/,
+      /^Symbol/,
+      /^Name/,
       /^Price/,
       /^Change/,
       /^1M/,

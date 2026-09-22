@@ -48,14 +48,14 @@ function asked(fetched: ReturnType<typeof stubPlatform>): string[] {
 }
 
 describe("Movers", () => {
-  it("shows a list in full with the streak column, each row leading to the company", async () => {
+  it("shows a list in full with each streak beside the name, each row leading to the company", async () => {
     const fetched = stubEverything();
     renderPage(page(), { at: "/movers/top-gainers?scope_kind=companies" });
 
     const table = await screen.findByRole("table", { name: "Top gainers" });
     const tcs = await within(table).findByRole("link", { name: /TCS/ });
     expect(tcs).toHaveAttribute("href", "/company/NSE_EQ%7CINE467B01029");
-    expect(within(table).getByRole("button", { name: /^Streak/ })).toBeInTheDocument();
+    expect(within(table).getByRole("button", { name: /^Name/ })).toBeInTheDocument();
     expect(screen.getByText(/2 instruments/)).toBeInTheDocument();
     await waitFor(() => {
       expect(
@@ -124,7 +124,7 @@ describe("Movers", () => {
     renderPage(page(), { at: "/movers/unusual-volume" });
     const table = await screen.findByRole("table", { name: "Unusual volume" });
     await within(table).findByRole("link", { name: /TCS/ });
-    for (const name of [/^#/, /^Instrument/, /^Price/, /^Change/, /^vs average/, /^Streak/]) {
+    for (const name of [/^#/, /^Symbol/, /^Name/, /^Price/, /^Change/, /^vs average/]) {
       await userEvent.click(within(table).getByRole("button", { name }));
     }
     expect(within(table).getAllByRole("row")).toHaveLength(3);

@@ -34,6 +34,7 @@ import {
   updateWatchlistItem,
 } from "@/api/client";
 import { type Column, DataTable } from "@/components/DataTable";
+import { nameColumn, symbolColumn } from "@/components/identityColumns";
 import { Delta } from "@/components/Delta";
 import { Dialog } from "@/components/Dialog";
 import { Empty } from "@/components/Empty";
@@ -330,17 +331,8 @@ function Items({
 }): React.JSX.Element {
   const columns = useMemo<Column<WatchedInstrument>[]>(
     () => [
-      {
-        id: "symbol",
-        header: "Company",
-        accessorFn: (row) => row.symbol,
-        cell: ({ row }) => (
-          <div className="min-w-0">
-            <div className="truncate font-medium">{row.original.symbol}</div>
-            <div className="truncate text-xs text-muted-foreground">{row.original.name}</div>
-          </div>
-        ),
-      },
+      symbolColumn((row) => row),
+      nameColumn((row) => row),
       {
         id: "close",
         header: "Price",

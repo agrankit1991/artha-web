@@ -218,7 +218,8 @@ describe("Screener", () => {
     expect(within(table).getByRole("button", { name: /Average true range/ })).toBeInTheDocument();
     // Every column sorts, the fixed ones and the ones the screen is about.
     for (const name of [
-      /^Company/,
+      /^Symbol/,
+      /^Name/,
       /^Sector/,
       /^Price/,
       /^Change/,

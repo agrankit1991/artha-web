@@ -395,12 +395,12 @@ describe("Overview", () => {
     });
     renderPage(<Overview />);
     expect(await screen.findByText("Dragged by")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "TCS" })).toHaveAttribute(
+    const band = await screen.findByRole("region", { name: "What moved today" });
+    expect(within(band).getByRole("link", { name: "TCS" })).toHaveAttribute(
       "href",
       "/company/NSE_EQ%7CINE467B01029",
     );
 
-    const band = await screen.findByRole("region", { name: "What moved today" });
     expect(within(band).getByText(/up$/)).toBeInTheDocument();
     expect(within(band).getByRole("link", { name: "All movers →" })).toHaveAttribute(
       "href",

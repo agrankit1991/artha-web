@@ -40,6 +40,7 @@ import { Chooser } from "@/components/Chooser";
 import { type ChartLine, ComparisonChart } from "@/components/ComparisonChart";
 import { CorporateActions } from "@/components/CorporateActions";
 import { type Column, DataTable } from "@/components/DataTable";
+import { nameColumn, symbolColumn } from "@/components/identityColumns";
 import { Delta } from "@/components/Delta";
 import { Failed } from "@/components/Failed";
 import { Financials } from "@/components/Financials";
@@ -600,17 +601,8 @@ function gap(window: keyof Comparison["relative"], header: string): Column<Compa
 function Peers({ peers, loading }: { peers: Member[]; loading: boolean }): React.JSX.Element {
   const columns = useMemo<Column<Member>[]>(
     () => [
-      {
-        id: "symbol",
-        header: "Company",
-        accessorFn: (row) => row.symbol,
-        cell: ({ row }) => (
-          <div className="min-w-0">
-            <div className="truncate font-medium">{row.original.symbol}</div>
-            <div className="truncate text-xs text-muted-foreground">{row.original.name}</div>
-          </div>
-        ),
-      },
+      symbolColumn((row) => row),
+      nameColumn((row) => row),
       {
         id: "close",
         header: "Price",

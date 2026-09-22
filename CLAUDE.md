@@ -206,6 +206,13 @@ on and which column they are in. `linkTo` makes the first column the
 link to a row's own page; the trailing chevron it once had is gone,
 because the user wanted the name itself to be the way through.
 
+**A company in a table is two columns, `Symbol` and `Name`,** built by
+`symbolColumn` and `nameColumn` in `src/components/identityColumns.tsx`.
+This is the previous project's layout, which the owner chose over a stacked
+symbol-over-name cell (2026-09-23): the symbol in the accent colour as the
+way through, the name beside it with the streak badge (`StreakBadge`,
+shown from a second session) where the table is a ranked list.
+
 **Wherever anything with a page appears in a list, its name leads there.**
 Companies, indices, sectors, funds, offerings, futures contracts and
 mover rows all link through `DataTable`'s `linkTo`, which makes the first

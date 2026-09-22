@@ -26,6 +26,7 @@ import type {
 } from "@/api/client";
 import { fetchScopes, fetchScreen, fetchScreenFields } from "@/api/client";
 import { type Column, DataTable } from "@/components/DataTable";
+import { nameColumn, symbolColumn } from "@/components/identityColumns";
 import { Delta } from "@/components/Delta";
 import { Failed } from "@/components/Failed";
 import { Hint } from "@/components/Hint";
@@ -469,17 +470,8 @@ function suffix(field: ScreenField): string {
 /** The fixed columns, then one per figure the screen is about. */
 function columnsFor(fields: ScreenField[]): Column<ScreenHit>[] {
   return [
-    {
-      id: "symbol",
-      header: "Company",
-      accessorFn: (row) => row.symbol,
-      cell: ({ row }) => (
-        <div className="min-w-0">
-          <div className="truncate font-medium">{row.original.symbol}</div>
-          <div className="truncate text-xs text-muted-foreground">{row.original.name}</div>
-        </div>
-      ),
-    },
+    symbolColumn((row) => row),
+    nameColumn((row) => row),
     {
       id: "sector",
       header: "Sector",

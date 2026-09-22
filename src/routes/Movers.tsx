@@ -14,6 +14,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { MoverListName, MoverRow } from "@/api/client";
 import { fetchMoverList, fetchScopes } from "@/api/client";
 import { type Column, DataTable } from "@/components/DataTable";
+import { nameColumn, symbolColumn } from "@/components/identityColumns";
 import { Delta } from "@/components/Delta";
 import { Empty } from "@/components/Empty";
 import { Failed } from "@/components/Failed";
@@ -23,7 +24,7 @@ import { ScopePicker } from "@/components/ScopePicker";
 import type { Scope } from "@/components/ScopeSelector";
 import { type Tab, Tabs } from "@/components/Tabs";
 import { useResource } from "@/hooks/useResource";
-import { formatDay, formatPrice, formatStreak, toNumber } from "@/lib/format";
+import { formatDay, formatPrice, toNumber } from "@/lib/format";
 import { companyPath, moversPath } from "@/lib/paths";
 
 /** How deep a list is read: as deep as the platform keeps it. */
@@ -132,24 +133,11 @@ export function Movers(): React.JSX.Element {
 function columnsFor(name: MoverListName): Column<MoverRow>[] {
   const list = MOVER_LISTS[name];
   return [
-    {
-      id: "symbol",
-      header: "Instrument",
-      accessorFn: (row) => row.symbol,
-      cell: ({ row }) => (
-        <div className="flex min-w-0 items-baseline gap-2">
-          <span className="w-6 shrink-0 text-right text-xs tabular text-muted-foreground">
-            {row.original.rank}
-          </span>
-          <span className="min-w-0">
-            <span className="block truncate font-medium">{row.original.symbol}</span>
-            <span className="block truncate text-xs text-muted-foreground">
-              {row.original.name}
-            </span>
-          </span>
-        </div>
-      ),
-    },
+    symbolColumn((row) => row),
+    nameColumn(
+      (row) => row,
+      (row) => row.streak,
+    ),
     {
       id: "rank",
       header: "#",
@@ -176,17 +164,6 @@ function columnsFor(name: MoverListName): Column<MoverRow>[] {
       header: list.measure,
       accessorFn: (row) => toNumber(row.value) ?? Number.NEGATIVE_INFINITY,
       cell: ({ row }) => list.render(row.original),
-      meta: { align: "right" },
-    },
-    {
-      id: "streak",
-      header: "Streak",
-      accessorFn: (row) => row.streak,
-      cell: ({ row }) => (
-        <span title={`On this list for ${String(row.original.streak)} sessions running`}>
-          {formatStreak(row.original.streak)}
-        </span>
-      ),
       meta: { align: "right" },
     },
   ];

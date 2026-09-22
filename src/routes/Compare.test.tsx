@@ -173,6 +173,7 @@ describe("Compare", () => {
 
     for (const name of [
       /^Instrument/,
+      /^Name/,
       /^Price/,
       /^Change/,
       /^1W/,

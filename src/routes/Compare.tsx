@@ -26,6 +26,7 @@ import {
 } from "@/api/client";
 import { type ChartLine, ComparisonChart } from "@/components/ComparisonChart";
 import { type Column, DataTable } from "@/components/DataTable";
+import { nameColumn, symbolColumn } from "@/components/identityColumns";
 import { Delta } from "@/components/Delta";
 import { Empty } from "@/components/Empty";
 import { Failed } from "@/components/Failed";
@@ -316,26 +317,17 @@ function Adder({
 function Returns({ rows, loading }: { rows: Compared[]; loading: boolean }): React.JSX.Element {
   const columns = useMemo<Column<Compared>[]>(
     () => [
-      {
-        id: "symbol",
+      symbolColumn((row) => row.instrument, {
         header: "Instrument",
-        accessorFn: (row) => row.instrument.symbol,
-        cell: ({ row }) => (
-          <span className="flex min-w-0 items-center gap-2">
-            <span
-              aria-hidden="true"
-              className="h-2.5 w-2.5 shrink-0 rounded-full"
-              style={{ backgroundColor: row.original.colour }}
-            />
-            <span className="min-w-0">
-              <span className="block truncate font-medium">{row.original.instrument.symbol}</span>
-              <span className="block truncate text-xs text-muted-foreground">
-                {row.original.instrument.name}
-              </span>
-            </span>
-          </span>
+        lead: (row) => (
+          <span
+            aria-hidden="true"
+            className="h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{ backgroundColor: row.colour }}
+          />
         ),
-      },
+      }),
+      nameColumn((row) => row.instrument),
       {
         id: "close",
         header: "Price",
