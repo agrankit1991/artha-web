@@ -34,6 +34,8 @@ afterEach(() => {
 function stubEverything(replies: Record<string, unknown> = {}): ReturnType<typeof stubPlatform> {
   return stubPlatform({
     "/api/companies/NSE_EQ%7CINE002A01018/fundamentals": { body: [statement()] },
+    "/api/companies/NSE_EQ%7CINE002A01018/delivery": { body: [] },
+    "/api/deals": { body: [] },
     "/api/companies/NSE_EQ%7CINE002A01018/corporate-actions": { body: [corporateAction()] },
     "/api/companies/NSE_EQ%7CINE002A01018/valuation": { body: valuation() },
     "/api/companies/NSE_EQ%7CINE002A01018/valuation/history": { body: valuationHistory() },
@@ -341,6 +343,8 @@ describe("Company", () => {
       "/api/companies/NSE_EQ%7CINE002A01018/fundamentals": { body: [] },
       "/api/companies/NSE_EQ%7CINE002A01018/corporate-actions": { body: [] },
       "/api/companies/NSE_EQ%7CINE002A01018/valuation": { body: null },
+      "/api/companies/NSE_EQ%7CINE002A01018/delivery": { body: [] },
+      "/api/deals": { body: [] },
       "/api/companies/NSE_EQ%7CINE002A01018": { body: company() },
       "/api/overviews": { body: [overview({ instrument_key: KEY })] },
       "/api/figures": { status: 500, body: { detail: "no sessions" } },
@@ -560,5 +564,53 @@ describe("Company", () => {
     await userEvent.click(screen.getByRole("button", { name: "Other" }));
     const history = screen.getByRole("table", { name: "Corporate actions" });
     expect(within(history).getAllByRole("row").slice(1)).toHaveLength(1);
+  });
+
+  it("shows how much traded for delivery and the deals disclosed in it", async () => {
+    stubEverything({
+      "/api/companies/NSE_EQ%7CINE002A01018/delivery": {
+        body: [
+          {
+            session_date: "2026-09-22",
+            traded_quantity: 1000000,
+            delivered_quantity: 600000,
+            delivery_percent: "60.00",
+          },
+          {
+            session_date: "2026-09-21",
+            traded_quantity: 1000000,
+            delivered_quantity: 400000,
+            delivery_percent: "40.00",
+          },
+        ],
+      },
+      "/api/deals": {
+        body: [
+          {
+            kind: "BULK",
+            session_date: "2026-09-22",
+            symbol: "RELIANCE",
+            security_name: "Reliance Industries",
+            client_name: "SOME FUND LLP",
+            side: "SELL",
+            quantity: 2500000,
+            price: "1240.00",
+            value_crore: "310.00",
+            instrument_key: KEY,
+          },
+        ],
+      },
+    });
+
+    renderPage(<Company instrumentKey={KEY} />);
+
+    expect(await screen.findByText("60.00%")).toBeInTheDocument();
+    // Averaged over both sessions: (60 + 40) / 2.
+    expect(screen.getByText("50.00%")).toBeInTheDocument();
+    expect(screen.getByText("1.20×")).toBeInTheDocument();
+    const deals = await screen.findByRole("table", { name: "Company deals" });
+    expect(within(deals).getByText("SOME FUND LLP")).toBeInTheDocument();
+    expect(within(deals).getByText("Sell")).toHaveClass("text-loss");
+    expect(within(deals).getByText("310.00")).toBeInTheDocument();
   });
 });

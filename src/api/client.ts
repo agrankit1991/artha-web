@@ -1601,6 +1601,71 @@ export function fetchFlows(
   return request<InstitutionalFlow[]>(`/api/flows?${parameters.toString()}`);
 }
 
+/** One session's delivery for a company: how much of what traded changed hands for good. */
+export interface DeliveryDay {
+  session_date: string;
+  traded_quantity: number;
+  /** Null where the exchange published none, as for trade-for-trade shares. */
+  delivered_quantity: number | null;
+  delivery_percent: string | null;
+}
+
+/**
+ * Fetch a company's delivery figures, newest first.
+ *
+ * @param instrumentKey - The company's listing.
+ * @param sessions - How many sessions.
+ * @returns One entry per session NSE published.
+ */
+export function fetchDelivery(instrumentKey: string, sessions = 60): Promise<DeliveryDay[]> {
+  return request<DeliveryDay[]>(
+    `/api/companies/${encodeURIComponent(instrumentKey)}/delivery?sessions=${String(sessions)}`,
+  );
+}
+
+/** A bulk deal crosses half a per cent of a company's shares; a block deal is a single large trade. */
+export type DealKind = "BULK" | "BLOCK";
+
+/** One disclosed deal. */
+export interface Deal {
+  kind: DealKind;
+  session_date: string;
+  symbol: string;
+  security_name: string;
+  client_name: string;
+  side: "BUY" | "SELL";
+  quantity: number;
+  price: string;
+  /** Quantity times price, in rupees crore. */
+  value_crore: string;
+  /** The listing the symbol maps to, or null when it maps to none. */
+  instrument_key: string | null;
+}
+
+/** What to narrow disclosed deals to. */
+export interface DealQuery {
+  kind?: DealKind;
+  days?: number;
+  instrumentKey?: string;
+}
+
+/**
+ * Fetch disclosed deals, newest first.
+ *
+ * @param query - Which kind, how far back, and for which company.
+ * @returns The deals.
+ */
+export function fetchDeals(query: DealQuery = {}): Promise<Deal[]> {
+  const parameters = new URLSearchParams({ days: String(query.days ?? 30) });
+  if (query.kind !== undefined) {
+    parameters.set("kind", query.kind);
+  }
+  if (query.instrumentKey !== undefined) {
+    parameters.set("instrument_key", query.instrumentKey);
+  }
+  return request<Deal[]>(`/api/deals?${parameters.toString()}`);
+}
+
 /** One session the platform holds figures for. */
 export interface SessionSummary {
   day: string;

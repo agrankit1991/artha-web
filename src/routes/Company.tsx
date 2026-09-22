@@ -28,6 +28,8 @@ import type {
 import {
   fetchCompany,
   fetchCorporateActions,
+  fetchDeals,
+  fetchDelivery,
   fetchExternalSymbols,
   fetchFigures,
   fetchFundamentals,
@@ -49,6 +51,8 @@ import { Financials } from "@/components/Financials";
 import { GrowthChart, ShareholdingChart } from "@/components/FundamentalsChart";
 import { InstrumentFigures } from "@/components/InstrumentFigures";
 import { NewsFeed } from "@/components/NewsFeed";
+import { DealsTable } from "@/components/DealsTable";
+import { DeliveryCard } from "@/components/DeliveryCard";
 import { InstrumentHeader } from "@/components/InstrumentHeader";
 import { PriceChart } from "@/components/PriceChart";
 import { PRICE_RANGES, RangeSelector } from "@/components/RangeSelector";
@@ -188,6 +192,17 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
   const statements = useResource(loadStatements);
   const actions = useResource(loadActions);
   const news = useResource(loadNews);
+  const loadDelivery = useCallback(
+    () => (key === null ? Promise.resolve([]) : fetchDelivery(key, DELIVERY_SESSIONS)),
+    [key],
+  );
+  const delivery = useResource(loadDelivery);
+  const loadDeals = useCallback(
+    () =>
+      key === null ? Promise.resolve([]) : fetchDeals({ instrumentKey: key, days: DEAL_DAYS }),
+    [key],
+  );
+  const deals = useResource(loadDeals);
 
   const lines = useMemo<ChartLine[]>(() => {
     const found = company.data;
@@ -295,6 +310,23 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
               loading={overview.loading}
               history={figureHistory.data ?? []}
             />
+
+            {/* Each shown only when it has something: most companies have no deals in a year. */}
+            <DeliveryCard days={delivery.data ?? []} />
+            {(deals.data ?? []).length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <MARKS.deals aria-hidden="true" className="h-4 w-4 text-primary" />
+                    Bulk & Block Deals
+                  </CardTitle>
+                  <CardDescription>Disclosed in the last year.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <DealsTable deals={deals.data ?? []} forCompany label="Company deals" />
+                </CardContent>
+              </Card>
+            )}
 
             <section className="space-y-3" aria-labelledby="valuation-heading">
               <SectionHeader
@@ -743,3 +775,9 @@ function CompanyBadges({
     </>
   );
 }
+
+/** How many sessions of delivery the page reads. */
+const DELIVERY_SESSIONS = 60;
+
+/** How far back the page lists a company's deals, in days. */
+const DEAL_DAYS = 365;

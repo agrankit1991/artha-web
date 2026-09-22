@@ -16,6 +16,7 @@ export const PATHS = {
   news: "/news",
   earnings: "/earnings",
   flows: "/flows",
+  deals: "/deals",
   indices: "/indices",
   screen: "/screen",
   compare: "/compare",

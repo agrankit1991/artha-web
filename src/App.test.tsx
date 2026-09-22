@@ -289,6 +289,8 @@ describe("App", () => {
       "/api/me": { body: ACCOUNT },
       ...DATA,
       "/api/companies/NSE_EQ%7CINE002A01018/fundamentals": { body: [] },
+      "/api/companies/NSE_EQ%7CINE002A01018/delivery": { body: [] },
+      "/api/deals": { body: [] },
       "/api/companies/NSE_EQ%7CINE002A01018/corporate-actions": { body: [] },
       "/api/companies/NSE_EQ%7CINE002A01018/valuation": { body: null },
       "/api/companies": { body: company() },
