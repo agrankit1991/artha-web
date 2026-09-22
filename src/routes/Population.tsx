@@ -39,10 +39,11 @@ import { type Tab, Tabs } from "@/components/Tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Failed } from "@/components/Failed";
-import { PageHeader } from "@/components/PageHeader";
+import { InstrumentHeader } from "@/components/InstrumentHeader";
 import { SectionHeader } from "@/components/SectionHeader";
 import { ENTITIES, MARKS } from "@/lib/entities";
 import { useResource } from "@/hooks/useResource";
+import { categoryLabel } from "@/lib/indices";
 import { readPreferences, writePreferences } from "@/lib/preferences";
 import { coloured } from "@/lib/chartPalette";
 import { companyPath } from "@/lib/paths";
@@ -187,22 +188,37 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        kind={kind}
-        title={found?.name ?? scopeKey}
+      <InstrumentHeader
+        name={found?.name ?? scopeKey}
         badges={
           <>
-            {found?.category != null && (
-              <Badge variant="secondary">{readable(found.category)}</Badge>
+            {ownKey !== null && (
+              <Badge variant="outline" className={TINTED}>
+                {ownKey.replace("_INDEX|", ":")}
+              </Badge>
             )}
-            <Badge variant="outline">{ENTITIES[kind].label}</Badge>
+            {found?.category != null && (
+              <Badge variant="outline" className={TINTED}>
+                {categoryLabel(found.category)}
+              </Badge>
+            )}
+            <Badge variant="secondary">{ENTITIES[kind].label}</Badge>
           </>
         }
-        identifiers={
-          <span>
-            {members.length} {members.length === 1 ? "company" : "companies"}
-          </span>
+        subline={
+          <>
+            {ownKey !== null && (
+              <>
+                <span className="font-medium">{ownKey.split("_")[0]}</span>
+                <span aria-hidden="true">•</span>
+              </>
+            )}
+            <span>
+              {members.length} {members.length === 1 ? "company" : "companies"}
+            </span>
+          </>
         }
+        overview={own.data?.[0]}
         description={found?.description}
         actions={
           ownKey !== null &&
@@ -422,13 +438,5 @@ function change(id: string, header: string, of: (row: Member) => string | null):
   };
 }
 
-/**
- * Turn an exchange's own classification into something readable.
- *
- * @param category - The classification, as the exchange publishes it.
- * @returns The same thing in words.
- */
-function readable(category: string): string {
-  const words = category.toLowerCase().split("_").join(" ");
-  return words.charAt(0).toUpperCase() + words.slice(1);
-}
+/** The previous project's tint for the badges that say where and what an index is. */
+const TINTED = "bg-primary/10 text-primary";

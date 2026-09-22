@@ -10,6 +10,7 @@ import {
   formatMultiple,
   formatPercent,
   formatPrice,
+  formatSignedPrice,
   formatSince,
   formatStreak,
   formatVolume,
@@ -122,5 +123,11 @@ describe("formatWhole", () => {
     expect(formatWhole(1678254.4)).toBe("16,78,254");
     expect(formatWhole(-8250)).toBe("-8,250");
     expect(formatWhole(0.4)).toBe("0");
+  });
+
+  it("signs a move in points, and leaves absence a dash", () => {
+    expect(formatSignedPrice("312.45")).toBe("+312.45");
+    expect(formatSignedPrice("-1234.5")).toBe("-1,234.50");
+    expect(formatSignedPrice(null)).toBe("—");
   });
 });

@@ -46,6 +46,21 @@ export function formatPrice(value: string | null | undefined): string {
 }
 
 /**
+ * Render a move in price or points, signed, as a header shows it beside
+ * the percentage: `+312.45`.
+ *
+ * @param value - The move.
+ * @returns The move with its sign, grouped, or a dash.
+ */
+export function formatSignedPrice(value: string | null | undefined): string {
+  const parsed = toNumber(value);
+  if (parsed === null) {
+    return ABSENT;
+  }
+  return `${parsed > 0 ? "+" : ""}${formatPrice(value)}`;
+}
+
+/**
  * Render a percentage, signed.
  *
  * The sign is always shown, including for a rise: a column of percentages

@@ -91,7 +91,11 @@ describe("Population", () => {
       "aria-selected",
       "true",
     );
-    expect(await screen.findByRole("tabpanel")).toHaveTextContent("Nifty 500");
+    // The benchmark's line arrives after the panel does.
+    const panel = await screen.findByRole("tabpanel");
+    await waitFor(() => {
+      expect(panel).toHaveTextContent("Nifty 500");
+    });
   });
 
   it("counts how many companies it holds", async () => {
