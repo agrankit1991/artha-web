@@ -9,10 +9,30 @@ import { SearchBox } from "./SearchBox";
 import type { SearchHit } from "@/api/client";
 import { stubPlatform } from "@/test/support";
 
+/** A hit with nothing beside its name, for the fields a test does not care about. */
+const PLAIN = { exchanges: [], category: null, close: null, change_percent: null };
+
 const HITS: SearchHit[] = [
-  { kind: "company", key: "NSE_EQ|INE002A01018", label: "RELIANCE", detail: "Reliance Industries" },
-  { kind: "index", key: "NSE_INDEX|Nifty 50", label: "Nifty 50", detail: null },
-  { kind: "fund", key: "120503", label: "Axis Bluechip Fund", detail: "Axis" },
+  {
+    kind: "company",
+    key: "NSE_EQ|INE002A01018",
+    label: "RELIANCE",
+    detail: "Reliance Industries",
+    exchanges: ["NSE", "BSE"],
+    category: null,
+    close: "1294.90",
+    change_percent: "-0.56",
+  },
+  {
+    kind: "index",
+    key: "NSE_INDEX|Nifty 50",
+    label: "Nifty 50",
+    detail: null,
+    ...PLAIN,
+    exchanges: ["NSE"],
+    category: "BROAD_MARKET",
+  },
+  { kind: "fund", key: "120503", label: "Axis Bluechip Fund", detail: "Axis", ...PLAIN },
 ];
 
 /** Where the router has been sent, for a test to read. */
@@ -241,5 +261,38 @@ describe("SearchBox", () => {
       expect(screen.getByTestId("where")).toHaveTextContent("/company/");
     });
     setItem.mockRestore();
+  });
+
+  it("lays each result out as the previous project did: badges, then the close", async () => {
+    stubPlatform({ "/api/search": { body: HITS } });
+    draw();
+
+    await userEvent.type(screen.getByRole("combobox"), "re");
+
+    const [company, index, fund] = await screen.findAllByRole("option");
+    expect(company).toHaveTextContent("RELIANCE");
+    expect(company).toHaveTextContent("NSE");
+    expect(company).toHaveTextContent("BSE");
+    expect(company).toHaveTextContent("1,294.90");
+    expect(company).toHaveTextContent("-0.56%");
+    // A company is known by its exchange badges; anything else says what it is.
+    expect(company).not.toHaveTextContent("Company");
+    expect(index).toHaveTextContent("Broad market");
+    expect(index).toHaveTextContent("Index");
+    expect(fund).toHaveTextContent("Fund");
+    expect(fund).not.toHaveTextContent("%");
+  });
+
+  it("fills out a hit remembered before results carried badges", async () => {
+    window.localStorage.setItem(
+      "artha.search.recent",
+      JSON.stringify([{ kind: "company", key: "NSE_EQ|INE467B01029", label: "TCS", detail: null }]),
+    );
+    stubPlatform({});
+    draw();
+
+    await userEvent.click(screen.getByRole("combobox"));
+
+    expect(await screen.findByRole("option", { name: /TCS/ })).toBeInTheDocument();
   });
 });

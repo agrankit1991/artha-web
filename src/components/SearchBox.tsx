@@ -17,9 +17,13 @@ import { useNavigate } from "react-router-dom";
 
 import type { SearchHit } from "@/api/client";
 import { fetchSearch } from "@/api/client";
+import { Delta } from "@/components/Delta";
+import { Badge } from "@/components/ui/badge";
 import { useDebounced } from "@/hooks/useDebounced";
 import { useResource } from "@/hooks/useResource";
 import { ENTITIES } from "@/lib/entities";
+import { formatPrice } from "@/lib/format";
+import { categoryLabel } from "@/lib/indices";
 import { hitPath } from "@/lib/paths";
 import { cn } from "@/lib/utils";
 
@@ -133,7 +137,7 @@ export function SearchBox(): React.JSX.Element {
         }
         aria-autocomplete="list"
         autoComplete="off"
-        placeholder="Search companies, indices, sectors, funds  ( / )"
+        placeholder="Search by company name, symbol or ISIN  ( / )"
         value={typed}
         onChange={(event) => {
           setTyped(event.target.value);
@@ -192,17 +196,7 @@ export function SearchBox(): React.JSX.Element {
                   )}
                 >
                   <Mark aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{hit.label}</span>
-                    {hit.detail !== null && (
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {hit.detail}
-                      </span>
-                    )}
-                  </span>
-                  <span className="shrink-0 text-[0.65rem] uppercase tracking-wider text-muted-foreground">
-                    {ENTITIES[hit.kind].label}
-                  </span>
+                  <HitRow hit={hit} />
                 </li>
               );
             })
@@ -223,10 +217,75 @@ export function SearchBox(): React.JSX.Element {
 function remembered(): SearchHit[] {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw === null ? [] : (JSON.parse(raw) as SearchHit[]);
+    // Filled out to the current shape: a hit remembered before the badges
+    // and prices existed carries none of them.
+    return raw === null
+      ? []
+      : (JSON.parse(raw) as Partial<SearchHit>[]).map((one) => ({
+          kind: one.kind ?? "company",
+          key: one.key ?? "",
+          label: one.label ?? "",
+          detail: one.detail ?? null,
+          exchanges: one.exchanges ?? [],
+          category: one.category ?? null,
+          close: one.close ?? null,
+          change_percent: one.change_percent ?? null,
+        }));
   } catch {
     return [];
   }
+}
+
+/**
+ * One result, laid out as the previous project's search did: the name,
+ * then the badges that say what and where it is, then how it last closed.
+ *
+ * A company shows its symbol and full name with a badge per exchange it
+ * trades on; an index its category; everything its kind. The close is
+ * shown for whatever has one, so a reader can often stop at the result
+ * without opening the page.
+ *
+ * @param props - The hit.
+ * @returns The row's content.
+ */
+function HitRow({ hit }: { hit: SearchHit }): React.JSX.Element {
+  return (
+    <>
+      <span className="min-w-0 flex-1">
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className="truncate font-medium">{hit.label}</span>
+          {hit.exchanges.map((exchange) => (
+            <Badge
+              key={exchange}
+              variant="outline"
+              className="h-4 shrink-0 bg-primary/5 px-1 py-0 font-mono text-[0.65rem]"
+            >
+              {exchange}
+            </Badge>
+          ))}
+          {hit.category !== null && (
+            <Badge variant="outline" className="h-4 shrink-0 px-1 py-0 text-[0.65rem]">
+              {categoryLabel(hit.category)}
+            </Badge>
+          )}
+          {hit.kind !== "company" && (
+            <Badge variant="secondary" className="h-4 shrink-0 px-1 py-0 text-[0.65rem]">
+              {ENTITIES[hit.kind].label}
+            </Badge>
+          )}
+        </span>
+        {hit.detail !== null && (
+          <span className="block truncate text-xs text-muted-foreground">{hit.detail}</span>
+        )}
+      </span>
+      {hit.close !== null && (
+        <span className="flex shrink-0 flex-col items-end text-xs">
+          <span className="tabular font-medium">{formatPrice(hit.close)}</span>
+          <Delta value={hit.change_percent} />
+        </span>
+      )}
+    </>
+  );
 }
 
 /**

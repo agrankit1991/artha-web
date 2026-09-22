@@ -52,3 +52,22 @@ export const BENCHMARK = FEATURED_INDICES[0] as FeaturedIndex;
  * the months this comparison covers, that is invisible.
  */
 export const GOLD: FeaturedIndex = { key: "NSE_EQ|INF204KB17I5", name: "Gold (GOLDBEES)" };
+
+/** What each category an exchange files an index under is called on a page. */
+const CATEGORY_LABELS: Record<string, string> = {
+  BROAD_MARKET: "Broad market",
+  SECTORAL: "Sectoral",
+  THEMATIC: "Thematic",
+  STRATEGY: "Strategy",
+  FIXED_INCOME: "Fixed income",
+};
+
+/**
+ * Name an index's category for a reader.
+ *
+ * @param category - The platform's code, such as `BROAD_MARKET`.
+ * @returns Its label, or the code itself when it is one not yet named.
+ */
+export function categoryLabel(category: string): string {
+  return CATEGORY_LABELS[category] ?? category;
+}

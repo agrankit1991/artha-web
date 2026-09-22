@@ -20,19 +20,11 @@ import { PageHeader } from "@/components/PageHeader";
 import { Input } from "@/components/ui/input";
 import { useResource } from "@/hooks/useResource";
 import { ABSENT, formatCount, formatDay, formatPrice, toNumber } from "@/lib/format";
+import { categoryLabel } from "@/lib/indices";
 import { populationPath } from "@/lib/paths";
 
 /** Every kind. */
 const ANY = "ANY";
-
-/** What each category is called on the page. */
-const CATEGORY_LABELS: Record<string, string> = {
-  BROAD_MARKET: "Broad market",
-  SECTORAL: "Sectoral",
-  THEMATIC: "Thematic",
-  STRATEGY: "Strategy",
-  FIXED_INCOME: "Fixed income",
-};
 
 /**
  * Render the page.
@@ -51,7 +43,7 @@ export function Indices(): React.JSX.Element {
     );
     return [
       { key: ANY, label: "All kinds" },
-      ...[...found].sort().map((key) => ({ key, label: labelOf(key) })),
+      ...[...found].sort().map((key) => ({ key, label: categoryLabel(key) })),
     ];
   }, [indices.data]);
 
@@ -78,7 +70,7 @@ export function Indices(): React.JSX.Element {
             <div className="truncate text-xs text-muted-foreground">
               {row.original.category === null
                 ? row.original.symbol
-                : labelOf(row.original.category)}
+                : categoryLabel(row.original.category)}
             </div>
           </div>
         ),
@@ -168,9 +160,4 @@ function change(
     cell: ({ row }) => <Delta value={of(row.original)} />,
     meta: { align: "right" },
   };
-}
-
-/** What a category is called, or the code when it is one not yet named. */
-function labelOf(category: string): string {
-  return CATEGORY_LABELS[category] ?? category;
 }

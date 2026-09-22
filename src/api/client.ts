@@ -1069,6 +1069,12 @@ export interface SearchHit {
   key: string;
   label: string;
   detail: string | null;
+  /** Where a company or an index trades, preferred first; empty otherwise. */
+  exchanges: string[];
+  /** How an index's exchange classifies it, when it has said. */
+  category: string | null;
+  close: string | null;
+  change_percent: string | null;
 }
 
 /**
