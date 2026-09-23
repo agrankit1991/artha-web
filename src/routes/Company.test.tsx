@@ -109,37 +109,36 @@ describe("Company", () => {
     }
   });
 
-  it("opens on how it reads against its sector, not on its own price", async () => {
-    // A return on its own says almost nothing, so the comparison leads and
-    // the company's own sessions are one tab away.
+  it("opens on its own price, set above its valuation", async () => {
+    // The owner reads a company's price first (2026-09-23); the comparison
+    // with its sector and the market is one tab away.
     stubEverything();
 
     renderPage(<Company instrumentKey={KEY} />);
 
-    await screen.findByText("Price & Performance");
-    expect(screen.getByRole("tab", { name: "Relative strength" })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
+    const price = await screen.findByRole("region", { name: "Price & Performance" });
+    expect(screen.getByRole("tab", { name: "Price" })).toHaveAttribute("aria-selected", "true");
+    expect(await within(price).findByLabelText("Series drawn")).toBeInTheDocument();
+    const valuation = screen.getByRole("region", { name: "Valuation" });
+    expect(
+      price.compareDocumentPosition(valuation) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
-  it("draws its own sessions when that tab is chosen", async () => {
+  it("turns to relative strength and back", async () => {
     stubEverything();
     renderPage(<Company instrumentKey={KEY} />);
     await screen.findByText("Price & Performance");
 
-    await userEvent.click(screen.getByRole("tab", { name: "Price" }));
-    // Scoped to its section: the valuation history is a chart of its own.
-    const price = screen.getByRole("region", { name: "Price & Performance" });
-    expect(await within(price).findByLabelText("Series drawn")).toBeInTheDocument();
-
-    // And back, because a reader comparing two things looks at each in turn.
     await userEvent.click(screen.getByRole("tab", { name: "Relative strength" }));
-
     expect(screen.getByRole("tab", { name: "Relative strength" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
+
+    // And back, because a reader comparing two things looks at each in turn.
+    await userEvent.click(screen.getByRole("tab", { name: "Price" }));
+    expect(screen.getByRole("tab", { name: "Price" })).toHaveAttribute("aria-selected", "true");
   });
 
   it("states the gap against its sector, which cannot be drawn", async () => {

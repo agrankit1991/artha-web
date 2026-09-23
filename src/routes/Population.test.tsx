@@ -91,17 +91,16 @@ describe("Population", () => {
     expect(screen.getByText("Sectoral")).toBeInTheDocument();
   });
 
-  it("opens on how it is doing against the market", async () => {
-    // The reason the page exists: a return on its own says almost nothing,
-    // and its own price is one tab away.
+  it("opens on its own price, with the market one tab away", async () => {
     stubEverything();
 
     show();
 
-    expect(await screen.findByRole("tab", { name: "Relative strength" })).toHaveAttribute(
+    expect(await screen.findByRole("tab", { name: "Price" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
+    await userEvent.click(screen.getByRole("tab", { name: "Relative strength" }));
     // The benchmark's line arrives after the panel does.
     const panel = await screen.findByRole("tabpanel");
     await waitFor(() => {

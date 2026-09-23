@@ -99,8 +99,8 @@ const HEADLINES = 6;
 type View = "compare" | "price";
 
 const VIEWS: Tab<View>[] = [
-  { key: "compare", label: "Relative strength" },
   { key: "price", label: "Price" },
+  { key: "compare", label: "Relative strength" },
 ];
 
 /** The parts of the page. */
@@ -126,7 +126,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
     setSessionsOnly(next);
     writePreferences({ range: next });
   };
-  const [view, setView] = useState<View>("compare");
+  const [view, setView] = useState<View>("price");
   const [part, setPart] = useState<Part>("overview");
   // The session the page is read as of, kept in the address; null is the latest.
   const [params, setParams] = useSearchParams();
@@ -328,35 +328,6 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
               </Card>
             )}
 
-            <section className="space-y-3" aria-labelledby="valuation-heading">
-              <SectionHeader
-                id="valuation-heading"
-                icon={ENTITIES.company.icon}
-                title="Valuation"
-                description="What the company is worth against what it earns, owns and pays — worked out from the stored price, statements and dividends when the page is read."
-              />
-              <ValuationPanel valuation={valuation.data} loading={valuation.loading} />
-            </section>
-
-            <section className="space-y-3" aria-labelledby="valuation-history-heading">
-              <SectionHeader
-                id="valuation-history-heading"
-                icon={MARKS.earnings}
-                title="Valuation History"
-                description="Price to earnings and price to book over its own sessions, and where today sits in that run."
-              />
-              {valuationHistory.error !== null ? (
-                <Failed message={valuationHistory.error} />
-              ) : (
-                <ValuationHistoryChart
-                  history={valuationHistory.data}
-                  loading={valuationHistory.loading}
-                  years={span}
-                  onYears={setSpan}
-                />
-              )}
-            </section>
-
             {found !== null && key !== null && (
               <section className="space-y-3" aria-labelledby="price-heading">
                 <SectionHeader
@@ -399,6 +370,35 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
                 </Tabs>
               </section>
             )}
+
+            <section className="space-y-3" aria-labelledby="valuation-heading">
+              <SectionHeader
+                id="valuation-heading"
+                icon={ENTITIES.company.icon}
+                title="Valuation"
+                description="What the company is worth against what it earns, owns and pays — worked out from the stored price, statements and dividends when the page is read."
+              />
+              <ValuationPanel valuation={valuation.data} loading={valuation.loading} />
+            </section>
+
+            <section className="space-y-3" aria-labelledby="valuation-history-heading">
+              <SectionHeader
+                id="valuation-history-heading"
+                icon={MARKS.earnings}
+                title="Valuation History"
+                description="Price to earnings and price to book over its own sessions, and where today sits in that run."
+              />
+              {valuationHistory.error !== null ? (
+                <Failed message={valuationHistory.error} />
+              ) : (
+                <ValuationHistoryChart
+                  history={valuationHistory.data}
+                  loading={valuationHistory.loading}
+                  years={span}
+                  onYears={setSpan}
+                />
+              )}
+            </section>
 
             {found?.performance != null && (
               <Card>

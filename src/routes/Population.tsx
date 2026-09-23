@@ -72,8 +72,8 @@ type View = "compare" | "price";
 
 /** What the chart section can show. */
 const VIEWS: Tab<View>[] = [
-  { key: "compare", label: "Relative strength" },
   { key: "price", label: "Price" },
+  { key: "compare", label: "Relative strength" },
 ];
 
 /**
@@ -88,9 +88,9 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
     setSessionsOnly(next);
     writePreferences({ range: next });
   };
-  // The comparison first: how it is doing against the market is the
-  // question this page is opened with, and its own price is one tab away.
-  const [view, setView] = useState<View>("compare");
+  // Its own price first, as the owner reads a page (2026-09-23); how it is
+  // doing against the market is one tab away.
+  const [view, setView] = useState<View>("price");
 
   // The session the page is read as of, kept in the address; null is the latest.
   const [params, setParams] = useSearchParams();
