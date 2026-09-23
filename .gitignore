@@ -7,3 +7,6 @@ coverage/
 
 # Working documents: plans and research, not shipped.
 docs/
+
+# Agent worktrees: temporary checkouts, never part of the repository.
+.claude/worktrees/
