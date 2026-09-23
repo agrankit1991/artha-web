@@ -19,6 +19,7 @@ import { Delta } from "@/components/Delta";
 import { Failed } from "@/components/Failed";
 import { Hint } from "@/components/Hint";
 import { PageHeader } from "@/components/PageHeader";
+import { MomentumChip } from "@/components/Standing";
 import { ViewModeToggle, useViewMode } from "@/components/ViewModeToggle";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -80,6 +81,13 @@ export function Sectors(): React.JSX.Element {
         header: "Median change",
         accessorFn: (row) => toNumber(row.median_change_percent) ?? Number.NEGATIVE_INFINITY,
         cell: ({ row }) => <Delta value={row.original.median_change_percent} />,
+        meta: { align: "right" },
+      },
+      {
+        id: "momentum",
+        header: "Momentum",
+        accessorFn: (row) => toNumber(row.median_momentum) ?? Number.NEGATIVE_INFINITY,
+        cell: ({ row }) => <MomentumChip score={toNumber(row.original.median_momentum)} />,
         meta: { align: "right" },
       },
       change("one_week", "1W", (row) => row.returns.one_week),
@@ -207,6 +215,7 @@ function SectorCard({ sector }: { sector: SectorSummary }): React.JSX.Element {
             {formatCount(sector.companies)} {sector.companies === 1 ? "company" : "companies"}
           </div>
           <Split sector={sector} />
+          <MomentumChip score={toNumber(sector.median_momentum)} />
           <dl className="grid grid-cols-2 gap-2 text-xs">
             <div>
               <dt className="text-muted-foreground">1M</dt>

@@ -783,6 +783,11 @@ export interface Company {
   sector: string | null;
   listings: Listing[];
   indices: Membership[];
+  /** Its place by market capitalisation, 1 the largest; null before the nightly snapshot has it. */
+  size_rank: number | null;
+  size_bucket: SizeBucket | null;
+  /** Nought to a hundred; null without a year of returns. */
+  momentum_score: number | null;
   performance: Performance | null;
   peers: Member[];
 }
@@ -1167,6 +1172,8 @@ export interface SectorSummary {
   declining: number;
   unchanged: number;
   returns: TrailingReturns;
+  /** The middle momentum score among its companies that have one. */
+  median_momentum: string | null;
 }
 
 /**

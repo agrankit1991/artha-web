@@ -54,6 +54,7 @@ import { NewsFeed } from "@/components/NewsFeed";
 import { DealsTable } from "@/components/DealsTable";
 import { DeliveryCard } from "@/components/DeliveryCard";
 import { InstrumentHeader } from "@/components/InstrumentHeader";
+import { MomentumChip, SizeBadge } from "@/components/Standing";
 import { PriceChart } from "@/components/PriceChart";
 import { PRICE_RANGES, RangeSelector } from "@/components/RangeSelector";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -743,6 +744,8 @@ function CompanyBadges({
           {listing.exchange}: {listing.symbol}
         </Badge>
       ))}
+      <SizeBadge bucket={company.size_bucket} rank={company.size_rank} />
+      <MomentumChip score={company.momentum_score} />
       {company.sector != null && (
         <Link to={populationPath("sector", company.sector)}>
           <Badge variant="outline" className="hover:bg-muted">

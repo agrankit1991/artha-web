@@ -468,6 +468,9 @@ export function company(overrides: Partial<Company> = {}): Company {
       { instrument_key: "BSE_EQ|INE002A01018", exchange: "BSE", symbol: "RELIANCE" },
     ],
     indices: [{ instrument_key: "NSE_INDEX|Nifty 50", name: "Nifty 50" }],
+    size_rank: 1,
+    size_bucket: "LARGE",
+    momentum_score: 72,
     performance: {
       basis: "company",
       returns: trailing(),
@@ -886,6 +889,7 @@ export function sectorSummary(overrides: Partial<SectorSummary> = {}): SectorSum
     declining: 25,
     unchanged: 5,
     returns: trailing(),
+    median_momentum: "55",
     ...overrides,
   };
 }

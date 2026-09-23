@@ -82,6 +82,8 @@ describe("Company", () => {
     renderPage(<Company instrumentKey={KEY} />);
 
     expect(await screen.findByText("NSE: RELIANCE")).toBeInTheDocument();
+    expect(screen.getByText("Large cap")).toHaveTextContent("Large cap#1");
+    expect(screen.getByText("Momentum 72")).toHaveClass("text-gain");
     expect(screen.getByText("BSE: RELIANCE")).toBeInTheDocument();
   });
 
