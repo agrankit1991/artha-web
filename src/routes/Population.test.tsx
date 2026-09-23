@@ -25,6 +25,19 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/**
+ * Answer every request under one population's address: its valuation, its
+ * membership changes (none), and otherwise the population itself. One
+ * prefix for all, because a longer one for the valuation would also catch a
+ * sector's population request.
+ */
+function populationsReply(body: ReturnType<typeof population>): Reply {
+  return {
+    bodyFor: (path) =>
+      path.endsWith("/valuation") ? populationValuation() : path.endsWith("/changes") ? [] : body,
+  };
+}
+
 function stubEverything(
   body: ReturnType<typeof population> = population(),
   extra: Record<string, Reply> = {},
@@ -32,9 +45,7 @@ function stubEverything(
   return stubPlatform({
     // One prefix for the population and its valuation: a longer prefix for
     // the valuation would also capture a sector's population request.
-    "/api/populations": {
-      bodyFor: (path) => (path.endsWith("/valuation") ? populationValuation() : body),
-    },
+    "/api/populations": populationsReply(body),
     "/api/overviews": { body: [] },
     "/api/overviews/history": { body: [] },
     "/api/sessions": {
@@ -270,9 +281,7 @@ describe("Population", () => {
   it("offers no way out when TradingView does not know the instrument", async () => {
     // A link to the wrong chart is worse than none.
     stubPlatform({
-      "/api/populations": {
-        bodyFor: (path) => (path.endsWith("/valuation") ? populationValuation() : population()),
-      },
+      "/api/populations": populationsReply(population()),
       "/api/breadth": { body: breadth() },
       "/api/external-symbols": { body: [] },
       "/api/figures": {
@@ -292,9 +301,7 @@ describe("Population", () => {
     // The page draws before the fetch lands, and a heading that is blank
     // for a moment reads as a page that has lost its subject.
     stubPlatform({
-      "/api/populations": {
-        bodyFor: (path) => (path.endsWith("/valuation") ? populationValuation() : population()),
-      },
+      "/api/populations": populationsReply(population()),
       "/api/breadth": { body: breadth() },
       "/api/external-symbols": { body: [] },
       "/api/figures": { body: { instrument_key: null, points: [] } },
@@ -400,5 +407,40 @@ describe("Population", () => {
     expect(
       await within(table).findByRole("button", { name: /^Contribution %/ }),
     ).toBeInTheDocument();
+  });
+
+  it("lists who joined and left the index, each leading to its company", async () => {
+    stubEverything(population(), {
+      "/api/populations/index/NSE_INDEX%7CNifty%20Bank/changes": {
+        body: [
+          {
+            day: "2026-09-22",
+            kind: "REMOVED",
+            isin: "INE1",
+            instrument_key: null,
+            symbol: "GONE",
+            name: "Gone Ltd",
+          },
+          {
+            day: "2026-09-22",
+            kind: "ADDED",
+            isin: "INE2",
+            instrument_key: "NSE_EQ|INE467B01029",
+            symbol: "TCS",
+            name: "Tata Consultancy",
+          },
+        ],
+      },
+    });
+    show();
+
+    expect(await screen.findByText("Index Changes")).toBeInTheDocument();
+    expect(screen.getByText("Removed")).toHaveClass("text-loss");
+    expect(screen.getByText("Added")).toHaveClass("text-gain");
+    expect(screen.queryByRole("link", { name: "GONE" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "TCS" }).at(-1)).toHaveAttribute(
+      "href",
+      "/company/TCS",
+    );
   });
 });

@@ -14,6 +14,7 @@ import type { Cadence, KnownSymbol, Member } from "@/api/client";
 import {
   fetchBreadth,
   fetchEarnings,
+  fetchIndexChanges,
   fetchExternalSymbols,
   fetchOverviewHistory,
   fetchOverviews,
@@ -39,6 +40,7 @@ import { type Tab, Tabs } from "@/components/Tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Failed } from "@/components/Failed";
+import { IndexChanges } from "@/components/IndexChanges";
 import { InstrumentHeader } from "@/components/InstrumentHeader";
 import { SectionHeader } from "@/components/SectionHeader";
 import { ENTITIES, MARKS } from "@/lib/entities";
@@ -125,6 +127,12 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
     [kind, scopeKey],
   );
   const valuation = useResource(loadValuation);
+  // Only an index is reconstituted; a sector's membership is its companies' profiles.
+  const loadChanges = useCallback(
+    () => (kind === "index" ? fetchIndexChanges(scopeKey) : Promise.resolve([])),
+    [kind, scopeKey],
+  );
+  const changes = useResource(loadChanges);
   const ownKey = population.data?.instrument_key ?? null;
   const loadOwn = useCallback(
     () => (ownKey === null ? Promise.resolve([]) : fetchOverviews([ownKey], asOf)),
@@ -368,6 +376,8 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
               />
             </CardContent>
           </Card>
+
+          <IndexChanges changes={changes.data ?? []} />
 
           {parts.size > 0 && (
             <LeadingTheMove members={members} parts={parts} inPoints={kind === "index"} />

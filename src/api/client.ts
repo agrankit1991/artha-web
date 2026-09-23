@@ -1666,6 +1666,28 @@ export function fetchDeals(query: DealQuery = {}): Promise<Deal[]> {
   return request<Deal[]>(`/api/deals?${parameters.toString()}`);
 }
 
+/** One company joining or leaving an index. */
+export interface IndexChange {
+  /** The first session it was a member, or the first it no longer was. */
+  day: string;
+  kind: "ADDED" | "REMOVED";
+  isin: string;
+  /** Its listing, or null when it no longer lists. */
+  instrument_key: string | null;
+  symbol: string;
+  name: string;
+}
+
+/**
+ * Fetch who joined and left an index since its record began, newest first.
+ *
+ * @param indexKey - The index.
+ * @returns The changes; empty when nothing has changed.
+ */
+export function fetchIndexChanges(indexKey: string): Promise<IndexChange[]> {
+  return request<IndexChange[]>(`/api/populations/index/${encodeURIComponent(indexKey)}/changes`);
+}
+
 /** One session the platform holds figures for. */
 export interface SessionSummary {
   day: string;
