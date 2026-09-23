@@ -61,12 +61,19 @@ describe("Screener", () => {
     renderPage(<Screener />);
     await screen.findByRole("table", { name: "Screen results" });
 
-    await userEvent.click(screen.getByRole("button", { name: "Oversold" }));
+    await userEvent.click(screen.getByRole("button", { name: "Oversold in an uptrend" }));
 
-    expect(screen.getByRole("combobox", { name: "Figure" })).toHaveValue("rsi");
-    expect(screen.getByRole("spinbutton", { name: "Value" })).toHaveValue(30);
+    // The scan's first condition, then its context: above the 200-day and liquid.
+    expect(screen.getAllByRole("combobox", { name: "Figure" })[0]).toHaveValue("rsi");
+    expect(screen.getAllByRole("spinbutton", { name: "Value" })[0]).toHaveValue(35);
+    expect(screen.getAllByRole("group", { name: "Condition" })).toHaveLength(3);
     await waitFor(() => {
-      expect(asked(fetched).some((path) => path.includes("where=rsi:lt:30"))).toBe(true);
+      expect(
+        asked(fetched).some(
+          (path) =>
+            path.includes("where=rsi:lt:35") && path.includes("where=from_sma_200_percent:gt:0"),
+        ),
+      ).toBe(true);
     });
     const table = screen.getByRole("table", { name: "Screen results" });
     expect(within(table).getByRole("button", { name: /RSI \(14\)/ })).toBeInTheDocument();
@@ -98,8 +105,8 @@ describe("Screener", () => {
     stubEverything();
     renderPage(<Screener />);
     await screen.findByRole("table", { name: "Screen results" });
-    await userEvent.click(screen.getByRole("button", { name: "Above 200-day and rising" }));
-    expect(screen.getAllByRole("group", { name: "Condition" })).toHaveLength(3);
+    await userEvent.click(screen.getByRole("button", { name: "Leaders near their highs" }));
+    expect(screen.getAllByRole("group", { name: "Condition" })).toHaveLength(4);
 
     await userEvent.click(screen.getByRole("button", { name: "Clear" }));
 
