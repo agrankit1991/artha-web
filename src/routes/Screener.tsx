@@ -22,6 +22,7 @@ import type {
   ScreenCondition,
   ScreenField,
   ScreenHit,
+  TrailingReturns,
   ScreenOperator,
 } from "@/api/client";
 import { fetchScopes, fetchScreen, fetchScreenFields } from "@/api/client";
@@ -59,7 +60,29 @@ export const OPERATORS: { key: ScreenOperator; label: string }[] = [
 export const PRESETS = SCANS.filter((scan) => scan.featured === true);
 
 /** The columns shown when no condition names a figure. */
-const DEFAULT_COLUMNS = ["one_month", "one_year", "from_high_percent", "rsi", "relative_volume"];
+const DEFAULT_COLUMNS = ["traded_value", "from_high_percent", "rsi", "relative_volume"];
+
+/**
+ * The returns every result shows, a column each, as a gainers list does:
+ * the day, then each trailing window. Fixed rather than chosen, so a
+ * condition on one of them does not draw it twice.
+ */
+type ReturnField = Extract<keyof TrailingReturns, string> | "change_percent";
+
+const RETURNS: readonly { field: ReturnField; header: string }[] = [
+  { field: "change_percent", header: "1D" },
+  { field: "one_week", header: "1W" },
+  { field: "one_month", header: "1M" },
+  { field: "three_months", header: "3M" },
+  { field: "six_months", header: "6M" },
+  { field: "one_year", header: "1Y" },
+  { field: "year_to_date", header: "YTD" },
+];
+
+/** A return from a hit's figures: the day's change, or a trailing window's. */
+function returnOf(hit: ScreenHit, field: ReturnField): string | null {
+  return field === "change_percent" ? hit.figures.day.change_percent : hit.figures.returns[field];
+}
 
 /**
  * Render the page.
@@ -151,7 +174,9 @@ export function Screener(): React.JSX.Element {
     const chosen = named.length === 0 ? DEFAULT_COLUMNS : named;
     return [...new Set(chosen)].flatMap((name) => {
       const field = byName.get(name);
-      return field === undefined || name === "close" || name === "change_percent" ? [] : [field];
+      return field === undefined || name === "close" || RETURNS.some((one) => one.field === name)
+        ? []
+        : [field];
     });
   }, [conditions, sort, byName]);
   const columns = useMemo(() => columnsFor(shownFields), [shownFields]);
@@ -471,13 +496,13 @@ function columnsFor(fields: ScreenField[]): Column<ScreenHit>[] {
       cell: ({ row }) => formatPrice(row.original.figures.day.close),
       meta: { align: "right" },
     },
-    {
-      id: "change",
-      header: "Change",
-      accessorFn: (row) => toNumber(row.figures.day.change_percent) ?? Number.NEGATIVE_INFINITY,
-      cell: ({ row }) => <Delta value={row.original.figures.day.change_percent} />,
+    ...RETURNS.map<Column<ScreenHit>>(({ field, header }) => ({
+      id: field,
+      header,
+      accessorFn: (row) => toNumber(returnOf(row, field)) ?? Number.NEGATIVE_INFINITY,
+      cell: ({ row }) => <Delta value={returnOf(row.original, field)} />,
       meta: { align: "right" },
-    },
+    })),
     ...fields.map<Column<ScreenHit>>((field) => ({
       id: field.name,
       header: field.label,

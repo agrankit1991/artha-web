@@ -230,7 +230,13 @@ describe("Screener", () => {
       /^Name/,
       /^Sector/,
       /^Price/,
-      /^Change/,
+      /^1D/,
+      /^1W/,
+      /^1M/,
+      /^3M/,
+      /^6M/,
+      /^1Y/,
+      /^YTD/,
       /^Volume/,
       /Relative volume/,
       /Average true range/,
@@ -310,5 +316,19 @@ describe("Screener", () => {
     const table = screen.getByRole("table", { name: "Screen results" });
     expect(await within(table).findByText("79,020")).toBeInTheDocument();
     expect(within(table).getByText("+7.10%")).toBeInTheDocument();
+  });
+
+  it("shows every return as its own column, once even when a condition names one", async () => {
+    stubEverything();
+    renderPage(<Screener />, { at: "/screen?where=one_month:gt:10" });
+    const table = await screen.findByRole("table", { name: "Screen results" });
+
+    for (const header of ["1D", "1W", "1M", "3M", "6M", "1Y", "YTD"]) {
+      expect(within(table).getAllByRole("button", { name: new RegExp(`^${header}`) })).toHaveLength(
+        1,
+      );
+    }
+    // The fixture's month: +2.40% on its figures.
+    expect(await within(table).findByText("+2.40%")).toBeInTheDocument();
   });
 });
