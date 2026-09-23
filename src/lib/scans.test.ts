@@ -22,4 +22,15 @@ describe("scans", () => {
     }
     expect(new Set(SCANS.map((scan) => scan.key)).size).toBe(SCANS.length);
   });
+
+  it("carries a scan's order into the screener", () => {
+    const growing = SCANS.find((scan) => scan.key === "profitable-growing");
+    if (growing === undefined) {
+      throw new Error("the profitable-and-growing scan is missing");
+    }
+
+    expect(scanPath(growing)).toBe(
+      "/screen?where=profit_ttm%3Agt%3A0&where=revenue_growth%3Agte%3A5&sort=traded_value&order=desc",
+    );
+  });
 });

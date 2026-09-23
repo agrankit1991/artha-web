@@ -961,20 +961,36 @@ export function populationValuation(
 /** The screenable figures a test needs: enough to build the presets from. */
 export function screenFields(): ScreenField[] {
   return [
-    { name: "close", label: "Close", group: "Session", unit: "price", path: ["day", "close"] },
+    {
+      name: "close",
+      label: "Close",
+      group: "Session",
+      unit: "price",
+      record: "figures",
+      path: ["day", "close"],
+    },
     {
       name: "change_percent",
       label: "Change",
       group: "Session",
       unit: "percent",
+      record: "figures",
       path: ["day", "change_percent"],
     },
-    { name: "volume", label: "Volume", group: "Session", unit: "count", path: ["day", "volume"] },
+    {
+      name: "volume",
+      label: "Volume",
+      group: "Session",
+      unit: "count",
+      record: "figures",
+      path: ["day", "volume"],
+    },
     {
       name: "one_month",
       label: "1 month",
       group: "Returns",
       unit: "percent",
+      record: "figures",
       path: ["returns", "one_month"],
     },
     {
@@ -982,6 +998,7 @@ export function screenFields(): ScreenField[] {
       label: "1 year",
       group: "Returns",
       unit: "percent",
+      record: "figures",
       path: ["returns", "one_year"],
     },
     {
@@ -989,6 +1006,7 @@ export function screenFields(): ScreenField[] {
       label: "From 52-week high",
       group: "Range",
       unit: "percent",
+      record: "figures",
       path: ["year_range", "from_high_percent"],
     },
     {
@@ -996,6 +1014,7 @@ export function screenFields(): ScreenField[] {
       label: "From 52-week low",
       group: "Range",
       unit: "percent",
+      record: "figures",
       path: ["year_range", "from_low_percent"],
     },
     {
@@ -1003,6 +1022,7 @@ export function screenFields(): ScreenField[] {
       label: "From 50-day average",
       group: "Trend",
       unit: "percent",
+      record: "figures",
       path: ["trend", "from_sma_50_percent"],
     },
     {
@@ -1010,6 +1030,7 @@ export function screenFields(): ScreenField[] {
       label: "From 200-day average",
       group: "Trend",
       unit: "percent",
+      record: "figures",
       path: ["trend", "from_sma_200_percent"],
     },
     {
@@ -1017,6 +1038,7 @@ export function screenFields(): ScreenField[] {
       label: "Relative volume",
       group: "Volume",
       unit: "multiple",
+      record: "figures",
       path: ["volume", "relative_to_average"],
     },
     {
@@ -1024,6 +1046,7 @@ export function screenFields(): ScreenField[] {
       label: "RSI (14)",
       group: "Momentum",
       unit: "points",
+      record: "figures",
       path: ["momentum", "rsi"],
     },
     {
@@ -1031,6 +1054,7 @@ export function screenFields(): ScreenField[] {
       label: "Average true range (14)",
       group: "Risk",
       unit: "price",
+      record: "figures",
       path: ["risk", "average_true_range"],
     },
   ];
@@ -1049,6 +1073,7 @@ export function screenHit(overrides: Partial<ScreenHit> = {}): ScreenHit {
     name: "Reliance Industries",
     sector: "Refineries",
     figures: overview({ instrument_key: "NSE_EQ|INE002A01018" }),
+    snapshot: null,
     ...overrides,
   };
 }

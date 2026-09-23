@@ -8,7 +8,7 @@
  * object on the way.
  */
 
-import type { InstrumentOverview, ScreenField } from "@/api/client";
+import type { CompanySnapshot, InstrumentOverview, ScreenField } from "@/api/client";
 import { Delta } from "@/components/Delta";
 import { ABSENT, formatPrice, formatWhole, toNumber } from "@/lib/format";
 
@@ -19,8 +19,8 @@ import { ABSENT, formatPrice, formatWhole, toNumber } from "@/lib/format";
  * @param path - The attributes to follow.
  * @returns The figure, or null where the path leads nowhere or to nothing.
  */
-export function figureAt(figures: InstrumentOverview, path: string[]): string | number | null {
-  let at: unknown = figures;
+export function figureAt(record: object | null, path: string[]): string | number | null {
+  let at: unknown = record;
   for (const step of path) {
     if (at === null || typeof at !== "object") {
       return null;
@@ -53,6 +53,30 @@ export function writtenFigure(field: ScreenField, value: string | number | null)
     case "multiple":
       return `${(toNumber(text) ?? 0).toFixed(2)}×`;
     case "points":
+    case "ratio":
       return (toNumber(text) ?? 0).toFixed(2);
+    case "crore":
+      return formatWhole(Number(text));
+    case "score":
+      return String(Math.round(Number(text)));
+    case "rank":
+      return `#${String(Math.round(Number(text)))}`;
   }
+}
+
+/**
+ * Read a field's value from whichever of a hit's records it lives in.
+ *
+ * @param field - The field, which names its record and its path.
+ * @param records - The hit's daily figures and its standing, either absent.
+ * @returns The value, or null where the record or the value is absent.
+ */
+export function valueOf(
+  field: ScreenField,
+  records: { figures: InstrumentOverview | null; snapshot?: CompanySnapshot | null },
+): string | number | null {
+  return figureAt(
+    field.record === "snapshot" ? (records.snapshot ?? null) : records.figures,
+    field.path,
+  );
 }

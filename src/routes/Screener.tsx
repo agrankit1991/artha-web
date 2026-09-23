@@ -38,9 +38,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDebounced } from "@/hooks/useDebounced";
 import { useResource } from "@/hooks/useResource";
-import { SCANS } from "@/lib/scans";
+import { SCANS, type Scan } from "@/lib/scans";
 import { ABSENT, formatDay, formatPrice, formatWhole, toNumber } from "@/lib/format";
-import { figureAt, writtenFigure } from "@/lib/figures";
+import { valueOf, writtenFigure } from "@/lib/figures";
 import { companyPath } from "@/lib/paths";
 
 /** How many hits a page carries, and grows by. */
@@ -127,6 +127,21 @@ export function Screener(): React.JSX.Element {
     });
   };
 
+  // A scan brings its order with it: "profitable and growing" reads most
+  // traded first. A scan without one keeps whatever order the page had.
+  const applyScan = (scan: Scan): void => {
+    update((query) => {
+      query.delete("where");
+      for (const one of scan.conditions) {
+        query.append("where", `${one.field}:${one.operator}:${one.value}`);
+      }
+      if (scan.sort !== undefined) {
+        query.set("sort", scan.sort);
+        query.set("order", "desc");
+      }
+    });
+  };
+
   const byName = useMemo(
     () => new Map((fields.data ?? []).map((field) => [field.name, field])),
     [fields.data],
@@ -163,7 +178,7 @@ export function Screener(): React.JSX.Element {
               variant="outline"
               size="sm"
               onClick={() => {
-                setConditions(preset.conditions);
+                applyScan(preset);
               }}
             >
               {preset.label}
@@ -427,8 +442,13 @@ function suffix(field: ScreenField): string {
       return "₹";
     case "multiple":
       return "× average";
+    case "crore":
+      return "₹ Cr";
     case "count":
     case "points":
+    case "ratio":
+    case "score":
+    case "rank":
       return "";
   }
 }
@@ -461,9 +481,8 @@ function columnsFor(fields: ScreenField[]): Column<ScreenHit>[] {
     ...fields.map<Column<ScreenHit>>((field) => ({
       id: field.name,
       header: field.label,
-      accessorFn: (row) =>
-        toNumber(String(figureAt(row.figures, field.path) ?? "")) ?? Number.NEGATIVE_INFINITY,
-      cell: ({ row }) => writtenFigure(field, figureAt(row.original.figures, field.path)),
+      accessorFn: (row) => toNumber(String(valueOf(field, row) ?? "")) ?? Number.NEGATIVE_INFINITY,
+      cell: ({ row }) => writtenFigure(field, valueOf(field, row.original)),
       meta: { align: "right" },
     })),
   ];

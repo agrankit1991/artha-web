@@ -230,7 +230,12 @@ export function Compare(): React.JSX.Element {
             {fields.error !== null ? (
               <Failed message={fields.error} />
             ) : (
-              <Matrix rows={compared} fields={fields.data ?? []} />
+              // A comparison holds each instrument's daily figures only; a
+              // company's standing would be blank beside an index's.
+              <Matrix
+                rows={compared}
+                fields={(fields.data ?? []).filter((field) => field.record === "figures")}
+              />
             )}
           </section>
         </>

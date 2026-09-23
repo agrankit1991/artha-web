@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Screener } from "./Screener";
+import type { ScreenField } from "@/api/client";
 import { figureAt } from "@/lib/figures";
 import {
   overview,
@@ -234,5 +235,73 @@ describe("Screener", () => {
     expect(figureAt(hit.figures, ["momentum", "nowhere"])).toBeNull();
     expect(figureAt(hit.figures, ["day", "close", "deeper"])).toBeNull();
     expect(figureAt(hit.figures, ["sessions"])).toBe(hit.figures.sessions);
+  });
+
+  it("applies a scan's order with its conditions, reading standing from the snapshot", async () => {
+    const fields: ScreenField[] = [
+      ...screenFields(),
+      {
+        name: "profit_ttm",
+        label: "Profit (TTM)",
+        group: "Valuation & standing",
+        unit: "crore",
+        record: "snapshot",
+        path: ["profit_ttm"],
+      },
+      {
+        name: "revenue_growth",
+        label: "Revenue growth (1Y)",
+        group: "Valuation & standing",
+        unit: "percent",
+        record: "snapshot",
+        path: ["revenue_growth"],
+      },
+      {
+        name: "traded_value",
+        label: "Value traded",
+        group: "Session",
+        unit: "crore",
+        record: "figures",
+        path: ["day", "traded_value"],
+      },
+    ];
+    const hit = screenHit({
+      snapshot: {
+        instrument_key: "NSE_EQ|INE002A01018",
+        as_of: "2026-09-22",
+        market_cap: "1678254.55",
+        pe: "24.31",
+        pb: "2.10",
+        dividend_yield: "0.40",
+        size_rank: 1,
+        size_bucket: "LARGE",
+        momentum_score: 72,
+        profit_ttm: "79020.00",
+        revenue_growth: "7.10",
+      },
+    });
+    const fetched = stubPlatform({
+      "/api/screen/fields": { body: fields },
+      "/api/screen?": { body: screenPage({ items: [hit] }) },
+    });
+    renderPage(<Screener />);
+    await screen.findByRole("table", { name: "Screen results" });
+
+    await userEvent.click(screen.getByRole("button", { name: "Profitable and growing" }));
+
+    await waitFor(() => {
+      expect(
+        asked(fetched).some(
+          (path) =>
+            path.includes("where=profit_ttm:gt:0") &&
+            path.includes("where=revenue_growth:gte:5") &&
+            path.includes("sort=traded_value") &&
+            path.includes("order=desc"),
+        ),
+      ).toBe(true);
+    });
+    const table = screen.getByRole("table", { name: "Screen results" });
+    expect(await within(table).findByText("79,020")).toBeInTheDocument();
+    expect(within(table).getByText("+7.10%")).toBeInTheDocument();
   });
 });

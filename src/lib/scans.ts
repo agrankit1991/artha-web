@@ -12,9 +12,12 @@ import type { ScreenCondition } from "@/api/client";
 import { PATHS } from "@/lib/paths";
 
 /** How the scans are grouped, in the order the page shows them. */
-export type ScanCategory = "Price" | "Trend" | "Momentum" | "Volume" | "Volatility";
+export type ScanCategory =
+  "Fundamentals" | "Size" | "Price" | "Trend" | "Momentum" | "Volume" | "Volatility";
 
 export const SCAN_CATEGORIES: readonly ScanCategory[] = [
+  "Fundamentals",
+  "Size",
   "Price",
   "Trend",
   "Momentum",
@@ -30,11 +33,73 @@ export interface Scan {
   /** What it finds, in a sentence. */
   description: string;
   conditions: ScreenCondition[];
+  /** What the results are ordered by, largest first, when the scan says. */
+  sort?: string;
   /** Offered as a chip on the screener. */
   featured?: boolean;
 }
 
 export const SCANS: readonly Scan[] = [
+  {
+    key: "profitable",
+    label: "Profitable",
+    category: "Fundamentals",
+    description: "Made a profit over the last four quarters.",
+    conditions: [{ field: "profit_ttm", operator: "gt", value: "0" }],
+  },
+  {
+    key: "profitable-growing",
+    label: "Profitable and growing",
+    category: "Fundamentals",
+    description:
+      "Profitable over the last four quarters, with revenue up 5% or more on the year before; most traded first.",
+    conditions: [
+      { field: "profit_ttm", operator: "gt", value: "0" },
+      { field: "revenue_growth", operator: "gte", value: "5" },
+    ],
+    sort: "traded_value",
+    featured: true,
+  },
+  {
+    key: "value",
+    label: "Value",
+    category: "Fundamentals",
+    description: "Profitable at a price under fifteen times its earnings.",
+    conditions: [
+      { field: "pe", operator: "gt", value: "0" },
+      { field: "pe", operator: "lt", value: "15" },
+    ],
+  },
+  {
+    key: "large-caps",
+    label: "Large caps",
+    category: "Size",
+    description: "The hundred largest companies by market capitalisation.",
+    conditions: [{ field: "size_rank", operator: "lte", value: "100" }],
+    sort: "market_cap",
+  },
+  {
+    key: "mid-caps",
+    label: "Mid caps",
+    category: "Size",
+    description: "Ranked 101st to 250th by market capitalisation.",
+    conditions: [
+      { field: "size_rank", operator: "gte", value: "101" },
+      { field: "size_rank", operator: "lte", value: "250" },
+    ],
+    sort: "market_cap",
+  },
+  {
+    key: "small-caps",
+    label: "Small caps",
+    category: "Size",
+    description: "Ranked 251st to 500th by market capitalisation.",
+    conditions: [
+      { field: "size_rank", operator: "gte", value: "251" },
+      { field: "size_rank", operator: "lte", value: "500" },
+    ],
+    sort: "market_cap",
+  },
   {
     key: "high",
     label: "Near 52-week high",
@@ -85,6 +150,13 @@ export const SCANS: readonly Scan[] = [
     featured: true,
   },
   {
+    key: "above-20-day",
+    label: "Above the 20-day average",
+    category: "Trend",
+    description: "Closed above its twenty-session average.",
+    conditions: [{ field: "from_sma_20_percent", operator: "gt", value: "0" }],
+  },
+  {
     key: "long-uptrend",
     label: "A year above the 200-day",
     category: "Trend",
@@ -118,6 +190,15 @@ export const SCANS: readonly Scan[] = [
     featured: true,
   },
   {
+    key: "strong-momentum",
+    label: "Strong momentum",
+    category: "Momentum",
+    description:
+      "A momentum score of 80 or more: among the market's strongest over one, three and six months.",
+    conditions: [{ field: "momentum_score", operator: "gte", value: "80" }],
+    sort: "momentum_score",
+  },
+  {
     key: "macd-positive",
     label: "MACD above its signal",
     category: "Momentum",
@@ -138,6 +219,14 @@ export const SCANS: readonly Scan[] = [
     category: "Volume",
     description: "Traded three times its usual volume, or more.",
     conditions: [{ field: "relative_volume", operator: "gte", value: "3" }],
+  },
+  {
+    key: "heavily-traded",
+    label: "Heavily traded",
+    category: "Volume",
+    description: "A hundred crore or more changed hands in the session; most traded first.",
+    conditions: [{ field: "traded_value", operator: "gte", value: "100" }],
+    sort: "traded_value",
   },
   {
     key: "gap-up",
@@ -172,6 +261,10 @@ export function scanPath(scan: Scan): string {
   const parameters = new URLSearchParams();
   for (const one of scan.conditions) {
     parameters.append("where", `${one.field}:${one.operator}:${one.value}`);
+  }
+  if (scan.sort !== undefined) {
+    parameters.set("sort", scan.sort);
+    parameters.set("order", "desc");
   }
   return `${PATHS.screen}?${parameters.toString()}`;
 }

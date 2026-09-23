@@ -1233,8 +1233,11 @@ export interface ScreenField {
   name: string;
   label: string;
   group: string;
-  unit: "price" | "percent" | "count" | "multiple" | "points";
-  /** The attributes to follow from a hit's figures to this figure. */
+  unit:
+    "price" | "percent" | "count" | "multiple" | "points" | "crore" | "ratio" | "score" | "rank";
+  /** Which of a hit's records the path starts from: its daily figures, or its standing. */
+  record: "figures" | "snapshot";
+  /** The attributes to follow from that record to this figure. */
   path: string[];
 }
 
@@ -1255,6 +1258,32 @@ export interface ScreenHit {
   name: string;
   sector: string | null;
   figures: InstrumentOverview;
+  /** Its valuation and standing among the rest; null before the nightly snapshot has it. */
+  snapshot: CompanySnapshot | null;
+}
+
+/** SEBI's size band, by rank of market capitalisation. */
+export type SizeBucket = "LARGE" | "MID" | "SMALL" | "MICRO";
+
+/** A company's valuation and standing among the rest, as of its latest session. */
+export interface CompanySnapshot {
+  instrument_key: string;
+  as_of: string;
+  /** Crore. */
+  market_cap: string | null;
+  pe: string | null;
+  pb: string | null;
+  /** Per cent. */
+  dividend_yield: string | null;
+  /** 1 is the largest. */
+  size_rank: number | null;
+  size_bucket: SizeBucket | null;
+  /** Nought to a hundred. */
+  momentum_score: number | null;
+  /** Crore; over nought for a profitable company. */
+  profit_ttm: string | null;
+  /** The latest year's revenue over the year before, per cent. */
+  revenue_growth: string | null;
 }
 
 /** What a screen found. */
