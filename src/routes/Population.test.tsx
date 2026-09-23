@@ -391,8 +391,12 @@ describe("Population", () => {
     // RELIANCE: 16,78,254 of 20,00,000 crore, up 1.5%, on a previous close of 24,659.
     const table = screen.getByRole("table", { name: "Constituents" });
     const reliance = (await within(table).findByRole("link", { name: "RELIANCE" })).closest("tr");
+    // The points need the index's own previous close, which arrives on its
+    // own request: wait for the row to be whole rather than catch it half-drawn.
+    await waitFor(() => {
+      expect(reliance).toHaveTextContent("+310.38");
+    });
     expect(reliance).toHaveTextContent("83.91");
-    expect(reliance).toHaveTextContent("+310.38");
     expect(within(table).getByRole("button", { name: /^Contribution pts/ })).toBeInTheDocument();
     expect(screen.getByText(/not free float/)).toBeInTheDocument();
   });
