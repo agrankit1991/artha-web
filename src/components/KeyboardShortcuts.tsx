@@ -25,6 +25,7 @@ export const JUMPS: readonly { key: string; path: string; label: string }[] = [
   { key: "m", path: PATHS.movers, label: "Movers" },
   { key: "e", path: PATHS.earnings, label: "Earnings" },
   { key: "n", path: PATHS.news, label: "News" },
+  { key: "c", path: PATHS.scans, label: "Scans" },
   { key: "w", path: PATHS.watchlists, label: "Watchlists" },
 ];
 

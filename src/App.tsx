@@ -32,6 +32,7 @@ import { Deals } from "@/routes/Deals";
 import { EarningsPage } from "@/routes/Earnings";
 import { Flows } from "@/routes/Flows";
 import { Indices } from "@/routes/Indices";
+import { Scans } from "@/routes/Scans";
 import { Screener } from "@/routes/Screener";
 import { Watchlists } from "@/routes/Watchlists";
 import { Sectors } from "@/routes/Sectors";
@@ -62,6 +63,7 @@ const SCREENS: Screen[] = [
   { path: PATHS.news, label: "News", icon: MARKS.news, group: "Markets" },
   { path: PATHS.funds, label: "Funds", icon: ENTITIES.fund.icon, group: "Research" },
   { path: PATHS.screen, label: "Screener", icon: MARKS.screen, group: "Research" },
+  { path: PATHS.scans, label: "Scans", icon: MARKS.scans, group: "Research" },
   { path: PATHS.compare, label: "Compare", icon: MARKS.compare, group: "Research" },
   { path: PATHS.ipos, label: "IPOs", icon: ENTITIES.ipo.icon, group: "Research" },
   { path: PATHS.watchlists, label: "Watchlists", icon: MARKS.watchlist, group: "Mine" },
@@ -183,6 +185,7 @@ function SignedIn({
         <Route path={PATHS.indices} element={<Indices />} />
         <Route path={PATHS.sectors} element={<Sectors />} />
         <Route path={PATHS.screen} element={<Screener />} />
+        <Route path={PATHS.scans} element={<Scans />} />
         <Route path={PATHS.compare} element={<Compare />} />
         <Route path={PATHS.watchlists} element={<Watchlists />} />
         <Route path={PATHS.ipos} element={<Ipos />} />

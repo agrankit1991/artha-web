@@ -24,6 +24,7 @@ import {
   Newspaper,
   PiggyBank,
   Rocket,
+  ScanSearch,
   SlidersHorizontal,
   Star,
   Users,
@@ -63,6 +64,7 @@ export const MARKS = {
   external: ExternalLink,
   news: Newspaper,
   peers: Users,
+  scans: ScanSearch,
   screen: SlidersHorizontal,
   watchlist: Star,
 } as const satisfies Record<string, Icon>;

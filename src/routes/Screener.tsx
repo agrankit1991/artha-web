@@ -38,6 +38,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDebounced } from "@/hooks/useDebounced";
 import { useResource } from "@/hooks/useResource";
+import { SCANS } from "@/lib/scans";
 import { ABSENT, formatDay, formatPrice, formatWhole, toNumber } from "@/lib/format";
 import { figureAt, writtenFigure } from "@/lib/figures";
 import { companyPath } from "@/lib/paths";
@@ -54,43 +55,8 @@ export const OPERATORS: { key: ScreenOperator; label: string }[] = [
   { key: "eq", label: "=" },
 ];
 
-/** The questions asked most often, one click each. */
-export const PRESETS: { key: string; label: string; conditions: ScreenCondition[] }[] = [
-  {
-    key: "rising",
-    label: "Above 200-day and rising",
-    conditions: [
-      { field: "from_sma_200_percent", operator: "gt", value: "0" },
-      { field: "from_sma_50_percent", operator: "gt", value: "0" },
-      { field: "one_month", operator: "gt", value: "0" },
-    ],
-  },
-  {
-    key: "oversold",
-    label: "Oversold",
-    conditions: [{ field: "rsi", operator: "lt", value: "30" }],
-  },
-  {
-    key: "overbought",
-    label: "Overbought",
-    conditions: [{ field: "rsi", operator: "gt", value: "70" }],
-  },
-  {
-    key: "volume",
-    label: "Unusual volume",
-    conditions: [{ field: "relative_volume", operator: "gt", value: "2" }],
-  },
-  {
-    key: "high",
-    label: "Near 52-week high",
-    conditions: [{ field: "from_high_percent", operator: "gte", value: "-5" }],
-  },
-  {
-    key: "low",
-    label: "Near 52-week low",
-    conditions: [{ field: "from_low_percent", operator: "lte", value: "5" }],
-  },
-];
+/** The scans offered as one-click chips; the rest are on the scans page. */
+export const PRESETS = SCANS.filter((scan) => scan.featured === true);
 
 /** The columns shown when no condition names a figure. */
 const DEFAULT_COLUMNS = ["one_month", "one_year", "from_high_percent", "rsi", "relative_volume"];
