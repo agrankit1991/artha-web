@@ -8,9 +8,10 @@
  * paged, because a list of twenty thousand is not a list anybody reads.
  */
 
+import type { SortingState } from "@tanstack/react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { Scheme } from "@/api/client";
+import type { FundSort, Scheme } from "@/api/client";
 import { fetchFundFilters, fetchFunds } from "@/api/client";
 import { type Column, DataTable } from "@/components/DataTable";
 import { Delta } from "@/components/Delta";
@@ -29,7 +30,7 @@ import { useDebounced } from "@/hooks/useDebounced";
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
 import { useResource } from "@/hooks/useResource";
-import { ABSENT, formatDay, formatPrice, toNumber } from "@/lib/format";
+import { ABSENT, formatDay, formatPrice } from "@/lib/format";
 import { fundPath } from "@/lib/paths";
 
 /** How many schemes a batch holds. */
@@ -49,14 +50,22 @@ export function Funds(): React.JSX.Element {
   const [amc, setAmc] = useState(ANY);
   const [offset, setOffset] = useState(0);
   const [shown, setShown] = useState<Scheme[]>([]);
+  // Sorted by the platform across every scheme, not here across the few
+  // loaded: "which fund returned most" is a question about all twenty
+  // thousand, and a page of them cannot answer it.
+  const [sorting, setSorting] = useState<SortingState>([]);
   const text = useDebounced(typed);
+  const order = sorting[0];
+  // Column ids are the platform's sort names; only sortable columns can set one.
+  const sort = order === undefined ? null : (order.id as FundSort);
+  const descending = order?.desc === true;
 
   // Any change to what is being asked for starts again at the beginning:
   // keeping what is on screen would leave a reader looking at a list that
-  // answers two questions at once.
+  // answers two questions at once. A new order is a new question too.
   useEffect(() => {
     setOffset(0);
-  }, [text, category, amc]);
+  }, [text, category, amc, sort, descending]);
 
   const loadFunds = useCallback(
     () =>
@@ -64,10 +73,12 @@ export function Funds(): React.JSX.Element {
         text,
         category: category === ANY ? null : category,
         amc: amc === ANY ? null : amc,
+        sort,
+        descending,
         limit: BATCH,
         offset,
       }),
-    [text, category, amc, offset],
+    [text, category, amc, sort, descending, offset],
   );
   const loadFilters = useCallback(() => fetchFundFilters(), []);
   const funds = useResource(loadFunds);
@@ -90,7 +101,7 @@ export function Funds(): React.JSX.Element {
       {
         id: "name",
         header: "Scheme",
-        accessorFn: (row) => row.name,
+        accessorKey: "name",
         cell: ({ row }) => (
           <div className="min-w-0">
             <div className="truncate font-medium">{row.original.name}</div>
@@ -103,13 +114,13 @@ export function Funds(): React.JSX.Element {
       {
         id: "plan",
         header: "Plan",
-        accessorFn: (row) => row.plan ?? "",
+        enableSorting: false,
         cell: ({ row }) => <PlanBadge scheme={row.original} />,
       },
       {
         id: "category",
         header: "Category",
-        accessorFn: (row) => row.category ?? "",
+        enableSorting: false,
         cell: ({ row }) => (
           <span className="text-xs text-muted-foreground">
             {shortCategory(row.original.category)}
@@ -119,7 +130,9 @@ export function Funds(): React.JSX.Element {
       {
         id: "nav",
         header: "NAV",
-        accessorFn: (row) => toNumber(row.nav) ?? 0,
+        sortDescFirst: true,
+        // Sorted by the platform; the key only makes the column sortable.
+        accessorKey: "nav",
         cell: ({ row }) => (
           <div className="leading-tight">
             <div>{formatPrice(row.original.nav)}</div>
@@ -185,6 +198,7 @@ export function Funds(): React.JSX.Element {
         label="Schemes"
         full
         linkTo={(row) => fundPath(row.scheme_code)}
+        serverSorting={{ sorting, onSortingChange: setSorting }}
       />
 
       {page !== null && (
@@ -258,7 +272,11 @@ function window(field: keyof Scheme["returns"], header: string): Column<Scheme> 
   return {
     id: field,
     header,
-    accessorFn: (row) => toNumber(row.returns[field]) ?? Number.NEGATIVE_INFINITY,
+    // Largest first on the first click: the question is almost always
+    // "which returned most".
+    sortDescFirst: true,
+    // Sorted by the platform; the key only makes the column sortable.
+    accessorKey: `returns.${field}`,
     cell: ({ row }) =>
       row.original.returns[field] === null ? (
         <span className="text-muted-foreground">{ABSENT}</span>

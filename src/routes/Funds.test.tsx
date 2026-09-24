@@ -11,7 +11,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function stubEverything(replies: Record<string, { body?: unknown }> = {}) {
+function stubEverything(replies: Parameters<typeof stubPlatform>[0] = {}) {
   return stubPlatform({
     "/api/funds/filters": {
       body: { categories: ["Equity Scheme - Large Cap"], fund_houses: ["Axis Mutual Fund"] },
@@ -221,11 +221,64 @@ describe("Funds", () => {
     expect(within(table).getByText("+12.30%")).toHaveClass("text-gain");
     expect(within(table).getByText("-3.00%")).toHaveClass("text-loss");
     expect(within(table).getByRole("button", { name: /3Y p.a./ })).toBeInTheDocument();
+  });
 
-    // A numeric column sorts widest-first, so the better year leads.
+  it("orders every scheme at the platform, not only the batch on screen", async () => {
+    // Twenty-five rows of twenty thousand cannot say which fund returned
+    // most; the platform orders them all and the table shows its order,
+    // even where sorting the rows on screen would have put them otherwise.
+    const worst = fundScheme({
+      scheme_code: "118989",
+      name: "HDFC Liquid",
+      returns: { ...fundScheme().returns, one_year: "-3.00" },
+    });
+    const fetchMock = stubEverything({
+      "/api/funds": {
+        bodyFor: (path: string) =>
+          schemePage({
+            total: 2,
+            items: path.includes("sort=one_year") ? [worst, fundScheme()] : [fundScheme(), worst],
+          }),
+      },
+    });
+    renderPage(<Funds />);
+    const table = await screen.findByRole("table", { name: "Schemes" });
+
     await userEvent.click(within(table).getByRole("button", { name: /^1Y/ }));
-    const [, first] = within(table).getAllByRole("row");
-    expect(first).toHaveTextContent("+12.30%");
+
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      expect(
+        asked.some(
+          (path) =>
+            path.includes("sort=one_year") &&
+            path.includes("order=desc") &&
+            path.includes("offset=0"),
+        ),
+      ).toBe(true);
+    });
+    await waitFor(() => {
+      const [, first] = within(table).getAllByRole("row");
+      expect(first).toHaveTextContent("HDFC Liquid");
+    });
+
+    await userEvent.click(within(table).getByRole("button", { name: /^1Y/ }));
+
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      expect(
+        asked.some((path) => path.includes("sort=one_year") && path.includes("order=asc")),
+      ).toBe(true);
+    });
+  });
+
+  it("does not offer to sort what the platform cannot order by", async () => {
+    stubEverything();
+    renderPage(<Funds />);
+    const table = await screen.findByRole("table", { name: "Schemes" });
+
+    expect(within(table).queryByRole("button", { name: /^Plan/ })).not.toBeInTheDocument();
+    expect(within(table).queryByRole("button", { name: /^Category/ })).not.toBeInTheDocument();
   });
 
   it("names the plan plainly and explains what it costs", async () => {

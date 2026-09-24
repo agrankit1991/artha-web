@@ -998,10 +998,16 @@ export interface Fund {
 }
 
 /** Which schemes a reader is asking for. */
+/** What the scheme list can be ordered by, across every scheme, on the platform. */
+export type FundSort =
+  "name" | "nav" | "one_month" | "three_months" | "one_year" | "three_years" | "five_years";
+
 export interface FundQuery {
   text?: string | null;
   category?: string | null;
   amc?: string | null;
+  sort?: FundSort | null;
+  descending?: boolean;
   limit?: number;
   offset?: number;
 }
@@ -1040,6 +1046,10 @@ export function fetchFunds(query: FundQuery = {}): Promise<SchemePage> {
   }
   if (query.amc) {
     parameters.set("amc", query.amc);
+  }
+  if (query.sort) {
+    parameters.set("sort", query.sort);
+    parameters.set("order", query.descending === true ? "desc" : "asc");
   }
   return request<SchemePage>(`/api/funds?${parameters.toString()}`);
 }

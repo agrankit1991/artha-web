@@ -186,4 +186,27 @@ describe("DataTable", () => {
 
     expect(screen.getByText("Nothing here")).toHaveAttribute("colspan", String(COLUMNS.length));
   });
+  it("leaves the order to the caller when it sorts on the server", async () => {
+    // A list that arrives a page at a time is ordered by the platform;
+    // reordering the page here would disagree with the next one.
+    const onSortingChange = vi.fn();
+    render(
+      <DataTable
+        columns={COLUMNS}
+        rows={ROWS}
+        serverSorting={{ sorting: [{ id: "close", desc: true }], onSortingChange }}
+      />,
+    );
+
+    expect(symbols()).toEqual(["TCS", "RELIANCE", "INFY"]);
+    expect(screen.getByRole("columnheader", { name: /Price/ })).toHaveAttribute(
+      "aria-sort",
+      "descending",
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Symbol/ }));
+
+    expect(onSortingChange).toHaveBeenCalledTimes(1);
+    expect(symbols()).toEqual(["TCS", "RELIANCE", "INFY"]);
+  });
 });

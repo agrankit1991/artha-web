@@ -14,6 +14,7 @@
 
 import {
   type ColumnDef,
+  type OnChangeFn,
   type RowData,
   type SortingState,
   flexRender,
@@ -93,6 +94,20 @@ interface DataTableProps<Row extends RowData> {
    * everywhere else: the words for the thing.
    */
   linkTo?: (row: Row) => string;
+  /**
+   * Sort on the server rather than in the browser.
+   *
+   * For a list that arrives a page at a time, sorting what has arrived
+   * orders twenty-five rows of twenty thousand and says nothing about the
+   * rest. Given this, the table shows the rows in the order they came, draws
+   * the header marks from `sorting`, and reports a click to
+   * `onSortingChange` so the caller can ask the platform for the list in
+   * that order.
+   */
+  serverSorting?: {
+    sorting: SortingState;
+    onSortingChange: OnChangeFn<SortingState>;
+  };
 }
 
 /**
@@ -112,13 +127,15 @@ export function DataTable<Row extends RowData>({
   full = false,
   maxHeight = "max-h-[70vh]",
   linkTo,
+  serverSorting,
 }: DataTableProps<Row>): React.JSX.Element {
   const [sorting, setSorting] = useState<SortingState>([]);
   const table = useReactTable({
     data: rows,
     columns,
-    state: { sorting },
-    onSortingChange: setSorting,
+    state: { sorting: serverSorting?.sorting ?? sorting },
+    onSortingChange: serverSorting?.onSortingChange ?? setSorting,
+    manualSorting: serverSorting !== undefined,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
@@ -134,6 +151,10 @@ export function DataTable<Row extends RowData>({
               return (
                 <TableHead
                   key={header.id}
+                  // The arrow is a shape; this is what it says to a screen reader.
+                  {...(sorted === false
+                    ? {}
+                    : { "aria-sort": sorted === "asc" ? "ascending" : "descending" })}
                   className={cn(
                     alignment === "right" && "text-right",
                     full && "sticky top-0 z-30 bg-card",
