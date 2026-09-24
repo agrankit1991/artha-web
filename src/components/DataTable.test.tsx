@@ -70,6 +70,21 @@ describe("DataTable", () => {
     expect(cells?.[1]?.className).toContain("text-right");
   });
 
+  it("tints a column that asks for emphasis, and only that one", () => {
+    const columns: Column<Row>[] = [
+      COLUMNS[0] as Column<Row>,
+      { ...(COLUMNS[1] as Column<Row>), meta: { align: "right", emphasis: true } },
+    ];
+    render(<DataTable columns={columns} rows={ROWS} />);
+
+    const [symbolHeader, priceHeader] = screen.getAllByRole("columnheader");
+    expect(priceHeader).toHaveClass("text-primary");
+    expect(symbolHeader).not.toHaveClass("text-primary");
+    const [symbolCell, priceCell] = screen.getAllByRole("cell");
+    expect(priceCell).toHaveClass("bg-primary/5");
+    expect(symbolCell).not.toHaveClass("bg-primary/5");
+  });
+
   it("says when there is nothing, in the caller's own words", () => {
     // "Nothing in this list" and "no companies match" are different facts,
     // and a table that says only "no data" reports neither.

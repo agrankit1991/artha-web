@@ -7,13 +7,17 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { Screener } from "./Screener";
 import type { ScreenField } from "@/api/client";
 import { figureAt } from "@/lib/figures";
+import { type Scan, SCANS, scanPath } from "@/lib/scans";
 import {
+  companySnapshot,
+  niftyFifty,
   overview,
   renderPage,
   scopeOptions,
   screenFields,
   screenHit,
   screenPage,
+  strategyFields,
   stubPlatform,
 } from "@/test/support";
 
@@ -27,6 +31,25 @@ function stubEverything(page = screenPage()): ReturnType<typeof stubPlatform> {
     "/api/screen?": { body: page },
     "/api/movers/scopes": { body: scopeOptions() },
   });
+}
+
+/** The platform with the strategies' figures, and the Nifty 50 above its 150-day average. */
+function stubStrategies(page = screenPage()): ReturnType<typeof stubPlatform> {
+  return stubPlatform({
+    "/api/screen/fields": { body: [...screenFields(), ...strategyFields()] },
+    "/api/screen?": { body: page },
+    "/api/movers/scopes": { body: scopeOptions() },
+    "/api/overviews": { body: [niftyFifty("3.10")] },
+  });
+}
+
+/** A scan from the catalogue by key. */
+function scanNamed(key: string): Scan {
+  const found = SCANS.find((one) => one.key === key);
+  if (found === undefined) {
+    throw new Error(`the ${key} scan is missing from the catalogue`);
+  }
+  return found;
 }
 
 /** The paths the platform was asked for, decoded. */
@@ -278,21 +301,7 @@ describe("Screener", () => {
         path: ["day", "traded_value"],
       },
     ];
-    const hit = screenHit({
-      snapshot: {
-        instrument_key: "NSE_EQ|INE002A01018",
-        as_of: "2026-09-22",
-        market_cap: "1678254.55",
-        pe: "24.31",
-        pb: "2.10",
-        dividend_yield: "0.40",
-        size_rank: 1,
-        size_bucket: "LARGE",
-        momentum_score: 72,
-        profit_ttm: "79020.00",
-        revenue_growth: "7.10",
-      },
-    });
+    const hit = screenHit({ snapshot: companySnapshot() });
     const fetched = stubPlatform({
       "/api/screen/fields": { body: fields },
       "/api/screen?": { body: screenPage({ items: [hit] }) },
@@ -330,5 +339,221 @@ describe("Screener", () => {
     }
     // The fixture's month: +2.40% on its figures.
     expect(await within(table).findByText("+2.40%")).toBeInTheDocument();
+  });
+
+  it("opens a strategy's screen with the strategy above its rows", async () => {
+    const fetched = stubStrategies();
+    renderPage(<Screener />, { at: scanPath(scanNamed("momentum-12-1-near-high")) });
+
+    const panel = screen.getByRole("region", { name: "Strategy" });
+    expect(
+      within(panel).getByRole("heading", { name: "12-1 momentum near the 52-week high" }),
+    ).toBeInTheDocument();
+    expect(within(panel).getByText("S0010")).toBeInTheDocument();
+    expect(within(panel).getByText(/still close to their 52-week high/)).toBeInTheDocument();
+    expect(
+      within(panel).getByText(
+        "While the market switch is on, the 20 with the highest 12-1 momentum on a re-pick day. While it is off, none of them: it holds gold.",
+      ),
+    ).toBeInTheDocument();
+    expect(await within(panel).findByRole("group", { name: "Market switch" })).toHaveTextContent(
+      "On: invested",
+    );
+    expect(within(panel).getByText("Picks")).toBeInTheDocument();
+    expect(within(panel).getByRole("link", { name: /tested record and caveats/ })).toHaveAttribute(
+      "href",
+      "/scans",
+    );
+    expect(within(panel).queryByRole("status")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        asked(fetched).some(
+          (path) =>
+            path.includes("where=from_high_percent:gte:-15") &&
+            path.includes("where=traded_value_average_20:gte:10") &&
+            path.includes("sort=momentum_12_1") &&
+            path.includes("order=desc"),
+        ),
+      ).toBe(true);
+    });
+  });
+
+  it("keeps the panel when a condition changes, says so, and restores the strategy's screen", async () => {
+    const fetched = stubStrategies();
+    renderPage(<Screener />, { at: scanPath(scanNamed("momentum-12-1-near-high")) });
+    const panel = screen.getByRole("region", { name: "Strategy" });
+
+    // A condition with no value is not sent, so the screen is still the strategy's.
+    await userEvent.click(screen.getByRole("button", { name: /Add condition/ }));
+    expect(within(panel).queryByRole("status")).not.toBeInTheDocument();
+
+    const nearness = screen.getAllByRole("spinbutton", { name: "Value" })[0] as HTMLElement;
+    await userEvent.clear(nearness);
+    await userEvent.type(nearness, "-25");
+    expect(within(panel).getByRole("status")).toHaveTextContent(
+      "The screen has been changed from the strategy's, so the rows below are not its candidates.",
+    );
+    expect(within(panel).queryByText(/the 20 with the highest/)).not.toBeInTheDocument();
+
+    await userEvent.click(within(panel).getByRole("button", { name: /Restore the strategy/ }));
+
+    expect(within(panel).queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("group", { name: "Condition" })).toHaveLength(3);
+    expect(screen.getAllByRole("spinbutton", { name: "Value" })[0]).toHaveValue(-15);
+    await waitFor(() => {
+      expect(asked(fetched).at(-1)).toContain("where=from_high_percent:gte:-15");
+    });
+  });
+
+  it("calls a narrowed population or a reversed order a different screen, and restores the whole market", async () => {
+    const fetched = stubStrategies();
+    renderPage(<Screener />, { at: scanPath(scanNamed("momentum-12-1-near-high")) });
+    const panel = screen.getByRole("region", { name: "Strategy" });
+
+    await userEvent.click(screen.getByRole("button", { name: "Largest first" }));
+    expect(within(panel).getByRole("status")).toBeInTheDocument();
+    await userEvent.click(within(panel).getByRole("button", { name: /Restore the strategy/ }));
+    expect(screen.getByRole("button", { name: "Largest first" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Nifty 50" }));
+    expect(within(panel).getByRole("status")).toBeInTheDocument();
+    await userEvent.click(within(panel).getByRole("button", { name: /Restore the strategy/ }));
+
+    expect(within(panel).queryByRole("status")).not.toBeInTheDocument();
+    await waitFor(() => {
+      const last = asked(fetched).at(-1) ?? "";
+      expect(last).toContain("scope_kind=companies");
+      expect(last).not.toContain("scope_key=");
+      expect(last).toContain("order=desc");
+    });
+  });
+
+  it("names the rows it holds by their figure, so re-sorting the results changes nothing", async () => {
+    stubStrategies();
+    renderPage(<Screener />, { at: scanPath(scanNamed("momentum-12-1-near-high")) });
+    const panel = screen.getByRole("region", { name: "Strategy" });
+    await screen.findByRole("table", { name: "Screen results" });
+
+    await userEvent.click(
+      within(screen.getByRole("columnheader", { name: /1Y/ })).getByRole("button"),
+    );
+
+    expect(within(panel).getByText(/the 20 with the highest 12-1 momentum/)).toBeInTheDocument();
+    expect(within(panel).queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("brings a strategy's chip over the whole market, as its restore does", async () => {
+    const fetched = stubStrategies();
+    renderPage(<Screener />);
+    await userEvent.click(await screen.findByRole("button", { name: "Nifty 50" }));
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "12-1 momentum near the 52-week high" }),
+    );
+
+    const panel = screen.getByRole("region", { name: "Strategy" });
+    expect(within(panel).queryByRole("status")).not.toBeInTheDocument();
+    await waitFor(() => {
+      const last = asked(fetched).at(-1) ?? "";
+      expect(last).toContain("sort=momentum_12_1");
+      expect(last).toContain("scope_kind=companies");
+      expect(last).not.toContain("scope_key=");
+    });
+  });
+
+  it("says rows screened on an earlier session's delivery are not yet signals", async () => {
+    const late = screenHit({
+      figures: overview({ instrument_key: "NSE_EQ|INE002A01018", as_of: "2026-09-23" }),
+      snapshot: companySnapshot({ as_of: "2026-09-22", delivery_as_of: "2026-09-22" }),
+    });
+    stubStrategies(screenPage({ items: [late] }));
+    renderPage(<Screener />, { at: scanPath(scanNamed("volume-delivery-surge")) });
+    const panel = screen.getByRole("region", { name: "Strategy" });
+
+    const warning = await within(panel).findByRole("status");
+    expect(warning).toHaveTextContent(
+      /^The delivery figure for every row below is from 22 Sept? 2026, not the session of 23 Sept? 2026, so none of them is a signal yet\./,
+    );
+    // The rule itself still stands above the warning.
+    expect(within(panel).getByText(/Every row is a signal/)).toBeInTheDocument();
+  });
+
+  it("names the rows on another session's delivery when only some are", async () => {
+    const session = overview({ instrument_key: "NSE_EQ|INE467B01029", as_of: "2026-09-23" });
+    const current = screenHit({
+      instrument_key: "NSE_EQ|INE467B01029",
+      symbol: "TCS",
+      name: "Tata Consultancy Services",
+      figures: session,
+      snapshot: companySnapshot({ as_of: "2026-09-23", delivery_as_of: "2026-09-23" }),
+    });
+    const behind = screenHit({
+      figures: { ...session, instrument_key: "NSE_EQ|INE002A01018" },
+      snapshot: companySnapshot({ as_of: "2026-09-23", delivery_as_of: "2026-09-19" }),
+    });
+    stubStrategies(screenPage({ total: 2, items: [current, behind] }));
+    renderPage(<Screener />, { at: scanPath(scanNamed("volume-delivery-surge")) });
+
+    const warning = await within(screen.getByRole("region", { name: "Strategy" })).findByRole(
+      "status",
+    );
+    expect(warning).toHaveTextContent(
+      /^The delivery figure for RELIANCE is from 19 Sept? 2026, not the session of 23 Sept? 2026, so those rows are not signals yet\./,
+    );
+  });
+
+  it("raises nothing when each row's delivery is its own session's", async () => {
+    const hit = screenHit({
+      figures: overview({ instrument_key: "NSE_EQ|INE002A01018", as_of: "2026-09-22" }),
+      snapshot: companySnapshot(),
+    });
+    stubStrategies(screenPage({ items: [hit] }));
+    renderPage(<Screener />, { at: scanPath(scanNamed("volume-delivery-surge")) });
+
+    const table = await screen.findByRole("table", { name: "Screen results" });
+    expect(await within(table).findByText("RELIANCE")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("region", { name: "Strategy" })).queryByRole("status"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("brings the featured strategy as a preset, panel and all", async () => {
+    stubStrategies();
+    renderPage(<Screener />);
+    await screen.findByRole("table", { name: "Screen results" });
+    expect(screen.queryByRole("region", { name: "Strategy" })).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "12-1 momentum near the 52-week high" }),
+    );
+
+    const panel = screen.getByRole("region", { name: "Strategy" });
+    expect(within(panel).getByText("S0010")).toBeInTheDocument();
+    expect(within(panel).queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("says what a strategy without a market switch does with the rows, and draws no switch", async () => {
+    stubStrategies();
+    renderPage(<Screener />, { at: scanPath(scanNamed("volume-delivery-surge")) });
+    const panel = screen.getByRole("region", { name: "Strategy" });
+
+    expect(within(panel).getByText(/Every row is a signal/)).toBeInTheDocument();
+    expect(
+      within(panel).getByText("None: it never steps out of the market as a whole."),
+    ).toBeInTheDocument();
+    expect(within(panel).queryByRole("group", { name: "Market switch" })).not.toBeInTheDocument();
+    await screen.findByRole("table", { name: "Screen results" });
+  });
+
+  it("shows no strategy for a plain scan or a key no scan has", async () => {
+    stubStrategies();
+    const { unmount } = renderPage(<Screener />, { at: scanPath(scanNamed("oversold-uptrend")) });
+    await screen.findByRole("table", { name: "Screen results" });
+    expect(screen.queryByRole("region", { name: "Strategy" })).not.toBeInTheDocument();
+    unmount();
+
+    renderPage(<Screener />, { at: "/screen?scan=no-such-scan" });
+    await screen.findByRole("table", { name: "Screen results" });
+    expect(screen.queryByRole("region", { name: "Strategy" })).not.toBeInTheDocument();
   });
 });

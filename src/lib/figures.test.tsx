@@ -3,8 +3,8 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import type { CompanySnapshot, ScreenField } from "@/api/client";
-import { overview } from "@/test/support";
+import type { ScreenField } from "@/api/client";
+import { companySnapshot, overview } from "@/test/support";
 
 import { valueOf, writtenFigure } from "./figures";
 
@@ -20,19 +20,7 @@ function field(overrides: Partial<ScreenField>): ScreenField {
   };
 }
 
-const STANDING: CompanySnapshot = {
-  instrument_key: "NSE_EQ|INE002A01018",
-  as_of: "2026-09-22",
-  market_cap: "1678254.55",
-  pe: "24.31",
-  pb: "2.10",
-  dividend_yield: "0.40",
-  size_rank: 1,
-  size_bucket: "LARGE",
-  momentum_score: 72,
-  profit_ttm: "79020.00",
-  revenue_growth: "7.10",
-};
+const STANDING = companySnapshot();
 
 describe("figures", () => {
   it("reads a field from the record it names", () => {

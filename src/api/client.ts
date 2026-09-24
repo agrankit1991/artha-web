@@ -1301,6 +1301,27 @@ export interface CompanySnapshot {
   profit_ttm: string | null;
   /** The latest year's revenue over the year before, per cent. */
   revenue_growth: string | null;
+  /**
+   * Delivered as a share of traded for its NSE listing, per cent, on the
+   * session `delivery_as_of`; null when NSE does not list it, or when that
+   * session is more than five sessions behind the newest the platform's
+   * delivery data holds -- the most the strategy lab carried a figure.
+   */
+  delivery_percent: string | null;
+  /**
+   * That share's mean over its last twenty published sessions, per cent;
+   * null with fewer than twenty, and null with `delivery_percent` once it is
+   * more than five sessions old.
+   */
+  delivery_percent_average: string | null;
+  /**
+   * The latest session with a published delivery figure, which
+   * `delivery_percent` describes unless it has gone stale and is null; it
+   * is kept then, to say how old the data is. Not always `as_of` or the
+   * day's figures' session: the delivery file arrives late in the evening
+   * and is not waited for.
+   */
+  delivery_as_of: string | null;
 }
 
 /** What a screen found. */

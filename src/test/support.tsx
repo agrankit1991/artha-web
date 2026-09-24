@@ -21,6 +21,7 @@ import type {
   WatchedInstrument,
   WatchlistPage,
   WatchlistSummary,
+  CompanySnapshot,
   ScreenField,
   ScreenHit,
   ScreenPage,
@@ -1062,6 +1063,105 @@ export function screenFields(): ScreenField[] {
       path: ["risk", "average_true_range"],
     },
   ];
+}
+
+/**
+ * Some of the figures the strategy scans ask about, with the names,
+ * groups and paths the platform's registry gives them.
+ */
+export function strategyFields(): ScreenField[] {
+  return [
+    {
+      name: "momentum_12_1",
+      label: "12-1 momentum",
+      group: "Momentum",
+      unit: "percent",
+      record: "figures",
+      path: ["momentum", "momentum_12_1"],
+    },
+    {
+      name: "traded_value_average_20",
+      label: "Value traded, 20-session average (before today)",
+      group: "Volume",
+      unit: "crore",
+      record: "figures",
+      path: ["volume", "traded_value_average_20"],
+    },
+    {
+      name: "from_sma_150_percent",
+      label: "From 150-day average",
+      group: "Trend",
+      unit: "percent",
+      record: "figures",
+      path: ["trend", "from_sma_150_percent"],
+    },
+    {
+      name: "market_cap",
+      label: "Market cap",
+      group: "Valuation & standing",
+      unit: "crore",
+      record: "snapshot",
+      path: ["market_cap"],
+    },
+    {
+      name: "delivery_percent",
+      label: "Delivery %",
+      group: "Volume",
+      unit: "percent",
+      record: "snapshot",
+      path: ["delivery_percent"],
+    },
+    {
+      name: "delivery_percent_average",
+      label: "Delivery %, 20-session average",
+      group: "Volume",
+      unit: "percent",
+      record: "snapshot",
+      path: ["delivery_percent_average"],
+    },
+  ];
+}
+
+/**
+ * The Nifty 50's figures, with how far it closed from its 150-day
+ * average -- what the strategies' market switch reads.
+ *
+ * @param fromAverage - The distance, per cent, or null for none.
+ * @returns The index's overview.
+ */
+export function niftyFifty(fromAverage: string | null): InstrumentOverview {
+  const figures = overview({ instrument_key: "NSE_INDEX|Nifty 50", as_of: "2026-09-23" });
+  return {
+    ...figures,
+    trend: Object.assign({}, figures.trend, { from_sma_150_percent: fromAverage }),
+  };
+}
+
+/**
+ * A company's valuation and standing, with its delivery from the same
+ * session as its figures.
+ *
+ * @param overrides - Fields to change.
+ * @returns The snapshot.
+ */
+export function companySnapshot(overrides: Partial<CompanySnapshot> = {}): CompanySnapshot {
+  return {
+    instrument_key: "NSE_EQ|INE002A01018",
+    as_of: "2026-09-22",
+    market_cap: "1678254.55",
+    pe: "24.31",
+    pb: "2.10",
+    dividend_yield: "0.40",
+    size_rank: 1,
+    size_bucket: "LARGE",
+    momentum_score: 72,
+    profit_ttm: "79020.00",
+    revenue_growth: "7.10",
+    delivery_percent: "61.20",
+    delivery_percent_average: "55.40",
+    delivery_as_of: "2026-09-22",
+    ...overrides,
+  };
 }
 
 /**

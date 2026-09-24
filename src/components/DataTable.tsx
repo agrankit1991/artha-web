@@ -55,6 +55,11 @@ export type ColumnAlignment = "left" | "right";
 /** Extra column options this application adds to TanStack's own. */
 export interface ColumnLayout {
   align?: ColumnAlignment;
+  /**
+   * Tint the column: for the one or two a reader is meant to compare
+   * first, such as the latest years in a table of many.
+   */
+  emphasis?: boolean;
 }
 
 interface DataTableProps<Row extends RowData> {
@@ -157,6 +162,7 @@ export function DataTable<Row extends RowData>({
                     : { "aria-sort": sorted === "asc" ? "ascending" : "descending" })}
                   className={cn(
                     alignment === "right" && "text-right",
+                    emphasised(header.column.columnDef) && "text-primary",
                     full && "sticky top-0 z-30 bg-card",
                     full && position === 0 && STICKY_COLUMN,
                   )}
@@ -211,6 +217,7 @@ export function DataTable<Row extends RowData>({
                     key={cell.id}
                     className={cn(
                       alignmentOf(cell.column.columnDef) === "right" && "text-right tabular",
+                      emphasised(cell.column.columnDef) && "bg-primary/5",
                       full && position === 0 && cn(STICKY_COLUMN, "bg-card"),
                     )}
                   >
@@ -250,6 +257,12 @@ export function DataTable<Row extends RowData>({
 function alignmentOf(column: { meta?: unknown }): ColumnAlignment {
   const meta = column.meta as ColumnLayout | undefined;
   return meta?.align ?? "left";
+}
+
+/** Whether a column asked to be tinted. */
+function emphasised(column: { meta?: unknown }): boolean {
+  const meta = column.meta as ColumnLayout | undefined;
+  return meta?.emphasis === true;
 }
 
 /** The mark on a sortable header, saying whether and which way it is sorted. */

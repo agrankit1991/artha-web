@@ -20,14 +20,20 @@ export interface FeaturedIndex {
   name: string;
 }
 
+/** The Nifty 50, which the strategies' market switch also watches. */
+export const NIFTY_50: FeaturedIndex = { key: "NSE_INDEX|Nifty 50", name: "Nifty 50" };
+
+/** The Nifty 500, which the strategies' returns are measured against. */
+export const NIFTY_500: FeaturedIndex = { key: "NSE_INDEX|Nifty 500", name: "Nifty 500" };
+
 /** The headline indices, in the order they are shown. */
 export const FEATURED_INDICES: readonly FeaturedIndex[] = [
-  { key: "NSE_INDEX|Nifty 50", name: "Nifty 50" },
+  NIFTY_50,
   { key: "BSE_INDEX|SENSEX", name: "Sensex" },
   { key: "NSE_INDEX|Nifty Next 50", name: "Nifty Next 50" },
   { key: "NSE_INDEX|NIFTY MID SELECT", name: "Nifty Midcap Select" },
   { key: "NSE_INDEX|NIFTY SMLCAP 100", name: "Nifty Smallcap 100" },
-  { key: "NSE_INDEX|Nifty 500", name: "Nifty 500" },
+  NIFTY_500,
   { key: "NSE_INDEX|Nifty Bank", name: "Bank Nifty" },
   { key: "NSE_INDEX|India VIX", name: "India VIX" },
 ];
@@ -37,7 +43,7 @@ export const FEATURED_INDICES: readonly FeaturedIndex[] = [
  *
  * The broadest of the headline indices that is also the most recognised.
  */
-export const BENCHMARK = FEATURED_INDICES[0] as FeaturedIndex;
+export const BENCHMARK = NIFTY_50;
 
 /**
  * Gold, as a price series this platform actually holds continuously.

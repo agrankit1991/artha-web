@@ -79,6 +79,42 @@ export function formatPercent(value: string | null | undefined): string {
 }
 
 /**
+ * Render a percentage to one decimal place, signed: `+26.2%`.
+ *
+ * For figures published to one decimal, such as the strategy lab's
+ * returns, where a second decimal would be a digit nobody measured.
+ *
+ * @param value - The figure.
+ * @returns The percentage, or a dash.
+ */
+export function formatPercentTenths(value: string | null | undefined): string {
+  const parsed = toNumber(value);
+  if (parsed === null) {
+    return ABSENT;
+  }
+  return `${parsed > 0 ? "+" : ""}${parsed.toFixed(1)}%`;
+}
+
+/**
+ * Render a difference between two percentages, in percentage points:
+ * `+13.5 pp`.
+ *
+ * Points, not per cent: a return of 26% against 13% is thirteen points
+ * better and a hundred per cent better, and the wrong word makes the
+ * figure ambiguous.
+ *
+ * @param value - The difference, to one decimal.
+ * @returns The signed difference with its unit, or a dash.
+ */
+export function formatPercentagePoints(value: string | null | undefined): string {
+  const parsed = toNumber(value);
+  if (parsed === null) {
+    return ABSENT;
+  }
+  return `${parsed > 0 ? "+" : ""}${parsed.toFixed(1)} pp`;
+}
+
+/**
  * Render a ratio, as a multiple.
  *
  * @param value - The figure.
@@ -149,6 +185,33 @@ export function formatDay(value: string | null | undefined): string {
   return Number.isNaN(parsed.getTime())
     ? ABSENT
     : parsed.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
+
+/**
+ * Render a session date without its year, for a heading the year already
+ * stands over: `21 Sep`.
+ *
+ * @param value - An ISO date.
+ * @returns The day and the month, or a dash.
+ */
+export function formatDayMonth(value: string): string {
+  const parsed = new Date(`${value}T00:00:00`);
+  return Number.isNaN(parsed.getTime())
+    ? ABSENT
+    : parsed.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+}
+
+/**
+ * Render a calendar month: `Nov 2019`.
+ *
+ * @param value - The month, as `YYYY-MM`.
+ * @returns The month and the year, or a dash.
+ */
+export function formatMonth(value: string): string {
+  const parsed = new Date(`${value}-01T00:00:00`);
+  return Number.isNaN(parsed.getTime())
+    ? ABSENT
+    : parsed.toLocaleDateString("en-IN", { month: "short", year: "numeric" });
 }
 
 /**

@@ -7,8 +7,12 @@ import {
   direction,
   formatCount,
   formatDay,
+  formatDayMonth,
+  formatMonth,
   formatMultiple,
   formatPercent,
+  formatPercentTenths,
+  formatPercentagePoints,
   formatPrice,
   formatSignedPrice,
   formatSince,
@@ -136,5 +140,28 @@ describe("formatWhole", () => {
     // 20:00 UTC on the 22nd is 01:30 on the 23rd in India.
     expect(todayInIndia(new Date("2026-09-22T20:00:00Z"))).toBe("2026-09-23");
     expect(todayInIndia(new Date("2026-09-22T10:00:00Z"))).toBe("2026-09-22");
+  });
+});
+
+describe("the strategy lab's figures", () => {
+  it("keeps a return to the one decimal the lab printed, signed", () => {
+    expect(formatPercentTenths("26.2")).toBe("+26.2%");
+    expect(formatPercentTenths("-5")).toBe("-5.0%");
+    expect(formatPercentTenths("0")).toBe("0.0%");
+    expect(formatPercentTenths(null)).toBe(ABSENT);
+  });
+
+  it("writes an edge in percentage points, not per cent", () => {
+    expect(formatPercentagePoints("13.5")).toBe("+13.5 pp");
+    expect(formatPercentagePoints("-0.6")).toBe("-0.6 pp");
+    expect(formatPercentagePoints(undefined)).toBe(ABSENT);
+  });
+
+  it("writes a day without its year, and a month with it", () => {
+    // Node's en-IN writes September as "Sept".
+    expect(formatDayMonth("2026-09-21")).toMatch(/^21 Sept?$/);
+    expect(formatDayMonth("not a day")).toBe(ABSENT);
+    expect(formatMonth("2019-11")).toBe("Nov 2019");
+    expect(formatMonth("never")).toBe(ABSENT);
   });
 });

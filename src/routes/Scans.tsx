@@ -4,22 +4,38 @@
  * StockEdge's scan catalogue, grouped the same way. Every scan is a set of
  * screener conditions, run through the screener for its count and opened
  * in it to see the companies, so a scan and a screen never disagree.
+ *
+ * The strategies come first: scans behind a strategy the strategy lab
+ * backtested, shown with how each did year by year against the market,
+ * how it works and what to hold against its figures.
  */
 
 import { ArrowRight } from "lucide-react";
 import { useCallback } from "react";
 import { Link } from "react-router-dom";
 
-import { type ScreenField, fetchScreen, fetchScreenFields } from "@/api/client";
+import { type ScreenField, fetchScreenFields } from "@/api/client";
+import { ConditionBadges } from "@/components/ConditionBadges";
 import { Failed } from "@/components/Failed";
+import { MarketSwitch } from "@/components/MarketSwitch";
 import { PageHeader } from "@/components/PageHeader";
+import { ReturnsByYear } from "@/components/ReturnsByYear";
+import { ScanCount } from "@/components/ScanCount";
 import { SectionHeader } from "@/components/SectionHeader";
-import { Badge } from "@/components/ui/badge";
+import { StrategyCard } from "@/components/StrategyCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useResource } from "@/hooks/useResource";
-import { OPERATORS } from "@/routes/Screener";
-import { SCANS, SCAN_CATEGORIES, type Scan, scanPath } from "@/lib/scans";
+import { formatDay } from "@/lib/format";
+import {
+  SCANS,
+  SCAN_CATEGORIES,
+  STRATEGIES_DATA_THROUGH,
+  STRATEGIES_EVALUATED,
+  STRATEGY_SCANS,
+  type Scan,
+  type ScanCategory,
+  scanPath,
+} from "@/lib/scans";
 
 /**
  * Render the page.
@@ -41,64 +57,92 @@ export function Scans(): React.JSX.Element {
         count={`${String(SCANS.length)} scans`}
         description="Questions asked of the whole market often enough to name, each with how many companies answer it on the latest session. Open one to see them in the screener, where its conditions can be changed."
       />
-      {SCAN_CATEGORIES.map((category) => (
-        <section key={category} className="space-y-3" aria-label={category}>
-          <SectionHeader title={category} />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {SCANS.filter((scan) => scan.category === category).map((scan) => (
-              <ScanCard key={scan.key} scan={scan} fields={fields.data ?? []} />
-            ))}
-          </div>
-        </section>
-      ))}
+      {SCAN_CATEGORIES.map((category) =>
+        category === "Strategies" ? (
+          <StrategiesSection key={category} fields={fields.data} />
+        ) : (
+          <ScanSection key={category} category={category} fields={fields.data ?? []} />
+        ),
+      )}
     </div>
+  );
+}
+
+/**
+ * The backtested strategies: when they were tested, where the market
+ * switch stands, how each did year by year, and a card for each.
+ */
+function StrategiesSection({ fields }: { fields: ScreenField[] | null }): React.JSX.Element {
+  return (
+    <section className="space-y-4" aria-label="Strategies">
+      <SectionHeader
+        title="Strategies"
+        description="Rules backtested in the strategy lab, each with a scan that lists today's candidates."
+      />
+      <div className="max-w-3xl space-y-2 text-sm leading-relaxed text-muted-foreground">
+        <p>
+          Backtested in the strategy lab on {formatDay(STRATEGIES_EVALUATED)}, on prices to{" "}
+          {formatDay(STRATEGIES_DATA_THROUGH)}. The scan lists today&apos;s candidates; the strategy
+          holds the top 20 by the scan&apos;s order (the surge strategy buys each day&apos;s rows
+          into 20 slots). The figures stop at the evaluation and do not update with the market.
+        </p>
+        <p>
+          Every figure comes from companies still listed today, which flatters them all. Random
+          picks under the same rules share that flattery, so each card&apos;s edge over them is the
+          figure to trust.
+        </p>
+      </div>
+      <MarketSwitch fields={fields} />
+      <ReturnsByYear scans={STRATEGY_SCANS} />
+      <div className="grid gap-4 lg:grid-cols-2">
+        {STRATEGY_SCANS.map((scan) => (
+          <StrategyCard
+            key={scan.key}
+            scan={scan}
+            fields={fields ?? []}
+            // The featured strategy spans the row, which also leaves the
+            // other four filling two rows of two.
+            className={scan.featured === true ? "lg:col-span-2" : undefined}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** One category of plain scans, as a grid of cards. */
+function ScanSection({
+  category,
+  fields,
+}: {
+  category: ScanCategory;
+  fields: ScreenField[];
+}): React.JSX.Element {
+  return (
+    <section className="space-y-3" aria-label={category}>
+      <SectionHeader title={category} />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {SCANS.filter((scan) => scan.category === category).map((scan) => (
+          <ScanCard key={scan.key} scan={scan} fields={fields} />
+        ))}
+      </div>
+    </section>
   );
 }
 
 /** One scan: what it asks, how many answer, and the way into the screener. */
 function ScanCard({ scan, fields }: { scan: Scan; fields: ScreenField[] }): React.JSX.Element {
-  // Only the count is wanted: one row, and the total the screener reports.
-  const loadCount = useCallback(
-    () =>
-      fetchScreen({
-        conditions: scan.conditions,
-        scope_kind: "companies",
-        scope_key: "all",
-        sort: null,
-        order: "desc",
-        limit: 1,
-        offset: 0,
-      }),
-    [scan],
-  );
-  const found = useResource(loadCount);
   return (
     <Card className="flex flex-col">
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base">{scan.label}</CardTitle>
-          {found.loading ? (
-            <Skeleton className="h-5 w-12" />
-          ) : (
-            <Badge variant="secondary" className="shrink-0 tabular">
-              {found.data === null ? "—" : `${String(found.data.total)} stocks`}
-            </Badge>
-          )}
+          <ScanCount scan={scan} noun="stocks" />
         </div>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col justify-between gap-3">
         <p className="text-sm text-muted-foreground">{scan.description}</p>
-        <div className="flex flex-wrap gap-1">
-          {scan.conditions.map((one) => (
-            <Badge
-              key={`${one.field}:${one.operator}`}
-              variant="outline"
-              className="font-mono text-xs"
-            >
-              {describe(one.field, fields)} {operatorLabel(one.operator)} {one.value}
-            </Badge>
-          ))}
-        </div>
+        <ConditionBadges conditions={scan.conditions} fields={fields} />
         <Link
           to={scanPath(scan)}
           className="inline-flex items-center gap-1 self-start text-sm font-medium text-primary hover:underline"
@@ -109,14 +153,4 @@ function ScanCard({ scan, fields }: { scan: Scan; fields: ScreenField[] }): Reac
       </CardContent>
     </Card>
   );
-}
-
-/** A field's label, or its name before the labels have arrived. */
-function describe(field: string, fields: ScreenField[]): string {
-  return fields.find((one) => one.name === field)?.label ?? field;
-}
-
-/** How an operator is written. */
-function operatorLabel(operator: string): string {
-  return OPERATORS.find((one) => one.key === operator)?.label ?? operator;
 }

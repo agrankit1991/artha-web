@@ -11,6 +11,13 @@
  * Results show the figures the screen was about: a column for every
  * figure in a condition or the sort, beside the company, its sector,
  * price and move.
+ *
+ * An address that names a strategy's scan (`scan=`) brings the strategy
+ * above the rows: what it does, how it works, and which rows it would
+ * hold. The panel stays while the screen is changed, saying the rows are
+ * no longer the strategy's and offering its screen back. A strategy runs
+ * over the whole market, so its chip and its restore both leave any index
+ * or sector the page had.
  */
 
 import { Plus, X } from "lucide-react";
@@ -34,27 +41,27 @@ import { Hint } from "@/components/Hint";
 import { LoadMore } from "@/components/LoadMore";
 import { PageHeader } from "@/components/PageHeader";
 import { ScopePicker } from "@/components/ScopePicker";
+import { StrategyPanel } from "@/components/StrategyPanel";
 import type { Scope } from "@/components/ScopeSelector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDebounced } from "@/hooks/useDebounced";
 import { useResource } from "@/hooks/useResource";
-import { SCANS, type Scan } from "@/lib/scans";
+import {
+  SCANS,
+  type Scan,
+  findScan,
+  isStrategyScan,
+  screenMatchesScan,
+  writeScan,
+} from "@/lib/scans";
 import { ABSENT, formatDay, formatPrice, formatWhole, toNumber } from "@/lib/format";
 import { valueOf, writtenFigure } from "@/lib/figures";
+import { OPERATORS } from "@/lib/operators";
 import { companyPath } from "@/lib/paths";
 
 /** How many hits a page carries, and grows by. */
 const PAGE = 50;
-
-/** How each comparison is written on the page. */
-export const OPERATORS: { key: ScreenOperator; label: string }[] = [
-  { key: "gt", label: ">" },
-  { key: "gte", label: "≥" },
-  { key: "lt", label: "<" },
-  { key: "lte", label: "≤" },
-  { key: "eq", label: "=" },
-];
 
 /** The scans offered as one-click chips; the rest are on the scans page. */
 export const PRESETS = SCANS.filter((scan) => scan.featured === true);
@@ -151,19 +158,23 @@ export function Screener(): React.JSX.Element {
   };
 
   // A scan brings its order with it: "profitable and growing" reads most
-  // traded first. A scan without one keeps whatever order the page had.
+  // traded first. A scan without one keeps whatever order the page had;
+  // a plain scan keeps the population too, a strategy's does not.
   const applyScan = (scan: Scan): void => {
     update((query) => {
-      query.delete("where");
-      for (const one of scan.conditions) {
-        query.append("where", `${one.field}:${one.operator}:${one.value}`);
-      }
-      if (scan.sort !== undefined) {
-        query.set("sort", scan.sort);
-        query.set("order", "desc");
-      }
+      writeScan(query, scan);
     });
   };
+
+  // The strategy the address names, and whether the screen is still its own.
+  const addressed = findScan(params.get("scan"));
+  const strategyScan = addressed !== undefined && isStrategyScan(addressed) ? addressed : null;
+  const unchanged =
+    strategyScan !== null &&
+    screenMatchesScan(
+      { conditions: conditions.filter(complete), sort, order, scopeKind: scope.kind },
+      strategyScan,
+    );
 
   const byName = useMemo(
     () => new Map((fields.data ?? []).map((field) => [field.name, field])),
@@ -308,6 +319,18 @@ export function Screener(): React.JSX.Element {
           </Button>
         </div>
       </section>
+
+      {strategyScan !== null && (
+        <StrategyPanel
+          scan={strategyScan}
+          unchanged={unchanged}
+          fields={fields.data}
+          hits={hits.data?.items ?? []}
+          onRestore={() => {
+            applyScan(strategyScan);
+          }}
+        />
+      )}
 
       <section className="space-y-3" aria-label="Results">
         {hits.error !== null ? (
