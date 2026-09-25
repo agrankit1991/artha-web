@@ -14,8 +14,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { PriceChart } from "./PriceChart";
 import { forgetForTests, readPreferences } from "@/lib/preferences";
 import { chartCalls, dataFor, seriesKinds, seriesPanes } from "@/test/chartStub";
-import { AVERAGE_COLOURS, PRICE_LINE } from "@/lib/chartPalette";
-import { chartPoints } from "@/test/support";
+import { AVERAGE_COLOURS, FORECAST_MIDDLE, PRICE_LINE } from "@/lib/chartPalette";
+import { chartPoints, priceBands } from "@/test/support";
 import { ThemeProvider } from "@/lib/theme";
 
 vi.mock("lightweight-charts", async () => (await import("@/test/chartStub")).chartModule());
@@ -255,5 +255,44 @@ describe("PriceChart", () => {
     expect(readPreferences().chartStyle).toBe("line");
     window.localStorage.removeItem("artha.preferences");
     forgetForTests();
+  });
+
+  it("draws the forecast band as three dashed lines from the last close, and explains it", () => {
+    draw({ forecast: priceBands() });
+
+    const names = within(legend())
+      .getAllByRole("listitem")
+      .map((item) => item.textContent);
+    expect(names).toEqual(
+      expect.arrayContaining(["Forecast 90%", "Forecast middle", "Forecast 10%"]),
+    );
+    const dashed = chartCalls.addSeries.mock.calls
+      .map((call) => (call as unknown[])[1] as { color?: string; lineStyle?: number })
+      .filter((options) => options.lineStyle === 2);
+    expect(dashed).toHaveLength(3);
+    expect(dashed[1]?.color).toBe(FORECAST_MIDDLE);
+    expect(screen.getByTestId("forecast-note")).toHaveTextContent("80% range");
+  });
+
+  it("puts the band away when asked, and remembers that", async () => {
+    draw({ forecast: priceBands() });
+    const toggle = screen.getByRole("button", { name: "Forecast" });
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+
+    afterRedraw();
+    await userEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    expect(screen.queryByTestId("forecast-note")).not.toBeInTheDocument();
+    expect(within(legend()).queryByText("Forecast middle")).not.toBeInTheDocument();
+    expect(readPreferences().forecast).toBe(false);
+    forgetForTests();
+  });
+
+  it("offers no forecast where the instrument has none", () => {
+    draw({ forecast: null });
+
+    expect(screen.queryByRole("button", { name: "Forecast" })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("forecast-note")).not.toBeInTheDocument();
   });
 });

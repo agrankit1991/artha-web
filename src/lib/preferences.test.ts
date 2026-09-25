@@ -71,6 +71,12 @@ describe("preferences", () => {
     expect(readPreferences().range).toBe(21);
   });
 
+  it("shows the forecast band unless it was turned off", () => {
+    expect(parse({}).forecast).toBe(true);
+    expect(parse({ forecast: false }).forecast).toBe(false);
+    expect(parse({ forecast: "no" }).forecast).toBe(true);
+  });
+
   it("keeps each page's layout, and only layouts that exist", () => {
     const read = parse({ views: { indices: "grouped", movers: "table", watchlists: 3 } });
 

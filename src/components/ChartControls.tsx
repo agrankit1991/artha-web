@@ -12,7 +12,7 @@
  * mandatory.
  */
 
-import { CandlestickChart, Check, ChevronDown, LineChart, Layers } from "lucide-react";
+import { CandlestickChart, Check, ChevronDown, Layers, LineChart, TrendingUp } from "lucide-react";
 
 import { Menu, MenuItem, MenuLabel, MenuSeparator } from "@/components/Menu";
 import { cn } from "@/lib/utils";
@@ -47,6 +47,11 @@ interface ChartControlsProps {
   overlays: Overlay[];
   onStyle: (style: ChartStyle) => void;
   onOverlays: (overlays: Overlay[]) => void;
+  /**
+   * Whether the forecast band is drawn, and what to call to change that.
+   * Absent where the instrument has no forecast, and then not offered.
+   */
+  forecast?: { shown: boolean; onToggle: (shown: boolean) => void };
   className?: string;
 }
 
@@ -63,6 +68,7 @@ export function ChartControls({
   overlays,
   onStyle,
   onOverlays,
+  forecast,
   className,
 }: ChartControlsProps): React.JSX.Element {
   const showing = new Set(overlays);
@@ -174,6 +180,20 @@ export function ChartControls({
           </>
         )}
       </Menu>
+
+      {forecast && (
+        <button
+          type="button"
+          aria-pressed={forecast.shown}
+          className={cn(TRIGGER, "inline-flex items-center", forecast.shown && "bg-accent")}
+          onClick={() => {
+            forecast.onToggle(!forecast.shown);
+          }}
+        >
+          <TrendingUp className="h-4 w-4" />
+          <span>Forecast</span>
+        </button>
+      )}
     </div>
   );
 }

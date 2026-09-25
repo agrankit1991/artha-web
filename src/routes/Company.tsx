@@ -32,6 +32,7 @@ import {
   fetchDelivery,
   fetchExternalSymbols,
   fetchFigures,
+  fetchPriceBands,
   fetchFundamentals,
   fetchNews,
   fetchOverviewHistory,
@@ -168,6 +169,10 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
     () => (key === null ? Promise.resolve(null) : fetchFigures(key, sessions)),
     [key, sessions],
   );
+  const loadForecast = useCallback(
+    () => (key === null ? Promise.resolve(null) : fetchPriceBands(key)),
+    [key],
+  );
   const loadHistory = useCallback(
     () => (key === null ? Promise.resolve(null) : fetchValuationHistory(key, span)),
     [key, span],
@@ -190,6 +195,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
   const valuation = useResource(loadValuation);
   const valuationHistory = useResource(loadHistory);
   const chart = useResource(loadChart);
+  const forecast = useResource(loadForecast);
   const statements = useResource(loadStatements);
   const actions = useResource(loadActions);
   const news = useResource(loadNews);
@@ -353,6 +359,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
                   {view === "price" ? (
                     <PriceChart
                       points={chart.data?.points ?? null}
+                      forecast={forecast.data ?? null}
                       loading={chart.loading}
                       instrument={{
                         label: found.symbol,

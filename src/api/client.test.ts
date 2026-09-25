@@ -10,12 +10,20 @@ import {
   fetchMovers,
   fetchNews,
   fetchOverviews,
+  fetchPriceBands,
   fetchScopes,
   fetchSeries,
   signIn,
   signOut,
 } from "./client";
-import { ACCOUNT, moversResponse, panel, scopeOptions, stubPlatform } from "@/test/support";
+import {
+  ACCOUNT,
+  moversResponse,
+  panel,
+  priceBands,
+  scopeOptions,
+  stubPlatform,
+} from "@/test/support";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -141,5 +149,28 @@ describe("failures", () => {
     await expect(fetchAccount()).rejects.toMatchObject({ status: 401 });
     expect(new ApiError(401, "x").isUnauthorised).toBe(true);
     expect(new ApiError(500, "x").isUnauthorised).toBe(false);
+  });
+});
+
+describe("fetchPriceBands", () => {
+  it("asks for one instrument's bands by its key", async () => {
+    const fetchMock = stubPlatform({ "/api/price-bands": { body: priceBands() } });
+
+    const bands = await fetchPriceBands("NSE_EQ|INE002A01018");
+
+    expect(bands?.points).toHaveLength(2);
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain("instrument_key=NSE_EQ%7CINE002A01018");
+  });
+
+  it("answers null for an instrument with no forecast", async () => {
+    stubPlatform({ "/api/price-bands": { status: 404 } });
+
+    await expect(fetchPriceBands("NSE_EQ|X")).resolves.toBeNull();
+  });
+
+  it("still fails on anything but having no forecast", async () => {
+    stubPlatform({ "/api/price-bands": { status: 500 } });
+
+    await expect(fetchPriceBands("NSE_EQ|X")).rejects.toBeInstanceOf(ApiError);
   });
 });

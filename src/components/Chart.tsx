@@ -91,7 +91,14 @@ interface Common {
 /** Something to draw, and what to call it. */
 export type Series =
   | (Common & { kind: "candles"; points: Candle[] })
-  | (Common & { kind: "line"; colour: string; points: Point[]; width?: number })
+  | (Common & {
+      kind: "line";
+      colour: string;
+      points: Point[];
+      width?: number;
+      /** Drawn in dashes: a line that is not a record, such as a forecast. */
+      dashed?: boolean;
+    })
   | (Common & { kind: "area"; colour: string; points: Point[] })
   | (Common & { kind: "bars"; points: Point[] });
 
@@ -462,6 +469,13 @@ export function Chart({
 }
 
 /**
+ * The library's dashed line style, by value. Its `LineStyle` enum is a
+ * runtime object, and naming the number keeps the chart stub from having to
+ * carry one.
+ */
+const DASHED = 2;
+
+/**
  * Add one series to a chart.
  *
  * @param chart - The chart to add it to.
@@ -476,7 +490,7 @@ function draw(chart: IChartApi, series: Series, scale: Scale): ISeriesApi<Series
       price: threshold.value,
       color: THRESHOLD,
       lineWidth: AVERAGE_WIDTH,
-      lineStyle: 2,
+      lineStyle: DASHED,
       axisLabelVisible: true,
       title: threshold.label ?? "",
     });
@@ -568,6 +582,7 @@ function add(
     {
       color: series.colour,
       lineWidth: series.width === PRICE_WIDTH ? PRICE_WIDTH : AVERAGE_WIDTH,
+      ...(series.dashed === true ? { lineStyle: DASHED } : {}),
       lastValueVisible: false,
       priceLineVisible: false,
       ...priceFormat(scale),

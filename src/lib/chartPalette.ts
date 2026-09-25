@@ -23,6 +23,14 @@ export const VOLUME_DOWN = "rgba(220,38,38,0.35)";
 /** The price itself, when drawn as a line or an area rather than candles. */
 export const PRICE_LINE = "#2563eb";
 
+/**
+ * The forecast band: its middle, and its two edges drawn lighter. Violet,
+ * because no price, average or oscillator is, and a forecast must never be
+ * mistaken for a record of what happened.
+ */
+export const FORECAST_MIDDLE = "#8b5cf6";
+export const FORECAST_EDGE = "#c4b5fd";
+
 /** An oscillator, and the rules it is read against. */
 export const OSCILLATOR = "#0ea5e9";
 export const THRESHOLD = "#a1a1aa";

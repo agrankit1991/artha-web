@@ -717,6 +717,77 @@ export function fetchFigures(key: string, sessions = 250): Promise<ChartSeries> 
   return request<ChartSeries>(`/api/figures?${parameters.toString()}`);
 }
 
+/** Where an instrument's price may be on one future session. */
+export interface BandPoint {
+  /** How many sessions past the close. */
+  horizon: number;
+  /** The trading date that lands on; null where the calendar does not reach it. */
+  session: string | null;
+  /** The 10th percentile of the price then. */
+  low: string;
+  /** The 50th: the middle of the forecast. */
+  median: string;
+  /** The 90th. */
+  high: string;
+}
+
+/** How the model behind one horizon's band did on years it never saw. */
+export interface BandRecord {
+  horizon: number;
+  /** The kind of band: `volatility-cone`, or learnt trees (`lightgbm-band…`). */
+  method: string;
+  trained_at: string;
+  /** The first session its walk-forward test covered. */
+  tested_from: string;
+  /** Share of tested prices that ended inside the band, 0 to 1. */
+  inside_band: number;
+  below_low: number;
+  above_high: number;
+  /** Its quantile loss in the test, in percent: lower is better. */
+  pinball_loss: number;
+  /** The plain volatility band's loss in the same test, for comparison. */
+  baseline_pinball_loss: number;
+  /** How far the middle line missed on average, in percent. */
+  median_error: number;
+  /** How far "no change" missed, in percent. */
+  zero_error: number;
+}
+
+/** An instrument's latest price bands, and the record of the model that drew them. */
+export interface PriceBands {
+  instrument_key: string;
+  /** The session the bands start from. */
+  as_of: string;
+  /** That session's close, where every band starts. */
+  close: string;
+  model_version: string;
+  /** One per horizon, shortest first. */
+  points: BandPoint[];
+  records: BandRecord[];
+}
+
+/**
+ * Fetch where an instrument's price may be over the next sessions.
+ *
+ * Not every instrument has a forecast -- one too young, or of a kind no
+ * model covers -- and that is an answer, not a failure.
+ *
+ * @param key - The instrument.
+ * @returns Its bands, or null when it has none.
+ * @throws {ApiError} For any failure other than having no bands.
+ */
+export async function fetchPriceBands(key: string): Promise<PriceBands | null> {
+  const parameters = new URLSearchParams({ instrument_key: key });
+  try {
+    return await request<PriceBands>(`/api/price-bands?${parameters.toString()}`);
+  } catch (failure) {
+    if (failure instanceof ApiError && failure.status === 404) {
+      return null;
+    }
+    throw failure;
+  }
+}
+
 /**
  * Fetch what an outside service calls these instruments.
  *

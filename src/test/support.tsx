@@ -38,6 +38,8 @@ import type {
   Account,
   BreadthGrid,
   ChartPoint,
+  BandRecord,
+  PriceBands,
   Company,
   CompanyValuation,
   Comparison,
@@ -636,6 +638,40 @@ export function fund(overrides: Partial<FundResponse> = {}): FundResponse {
       { nav_date: "2026-09-17", percent: "11.90" },
       { nav_date: "2026-09-18", percent: "12.30" },
     ],
+    ...overrides,
+  };
+}
+
+/** A model's test record for one horizon: 79% inside, and a middle no better than no change. */
+export function bandRecord(overrides: Partial<BandRecord> = {}): BandRecord {
+  return {
+    horizon: 20,
+    method: "volatility-cone",
+    trained_at: "2026-09-26T03:00:00+05:30",
+    tested_from: "2012-01-01",
+    inside_band: 0.79,
+    below_low: 0.1,
+    above_high: 0.11,
+    pinball_loss: 2.5,
+    baseline_pinball_loss: 2.5,
+    median_error: 8.2,
+    zero_error: 8.1,
+    ...overrides,
+  };
+}
+
+/** An instrument's bands from a close of 100 on 2026-09-10, five and twenty sessions ahead. */
+export function priceBands(overrides: Partial<PriceBands> = {}): PriceBands {
+  return {
+    instrument_key: "NSE_EQ|INE002A01018",
+    as_of: "2026-09-10",
+    close: "100.0000",
+    model_version: "2026-09-26",
+    points: [
+      { horizon: 5, session: "2026-09-17", low: "95.00", median: "100.50", high: "106.00" },
+      { horizon: 20, session: "2026-10-08", low: "90.00", median: "101.00", high: "112.00" },
+    ],
+    records: [bandRecord({ horizon: 5 }), bandRecord()],
     ...overrides,
   };
 }

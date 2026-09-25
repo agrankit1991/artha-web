@@ -130,6 +130,7 @@ describe("Profile", () => {
       scope: { kind: "index", key: "NSE_INDEX|Nifty 50" },
       chartStyle: "candles",
       overlays: ["sma_50", "sma_200", "volume", "rsi"],
+      forecast: true,
       range: 1250,
       views: {},
     });

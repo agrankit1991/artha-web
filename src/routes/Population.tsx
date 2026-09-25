@@ -20,6 +20,7 @@ import {
   fetchOverviews,
   fetchPopulationValuation,
   fetchFigures,
+  fetchPriceBands,
   fetchPopulation,
   fetchSeries,
 } from "@/api/client";
@@ -151,6 +152,11 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
     [instrument, sessions],
   );
   const chart = useResource(loadChart);
+  const loadForecast = useCallback(
+    () => (instrument === null ? Promise.resolve(null) : fetchPriceBands(instrument)),
+    [instrument],
+  );
+  const forecast = useResource(loadForecast);
 
   const members = useMemo(() => population.data?.members ?? [], [population.data]);
   // Each member's part in the day's move, weighed by capitalisation; in
@@ -289,6 +295,7 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
             {view === "price" ? (
               <PriceChart
                 points={chart.data?.points ?? null}
+                forecast={forecast.data ?? null}
                 loading={chart.loading}
                 instrument={{
                   label: found.name,

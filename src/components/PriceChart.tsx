@@ -14,12 +14,16 @@
 
 import { useMemo, useState } from "react";
 
-import type { ChartPoint } from "@/api/client";
+import type { ChartPoint, PriceBands } from "@/api/client";
 import { Chart, type ChartInstrument, type Series } from "@/components/Chart";
 import { type ChartStyle, ChartControls, type Overlay } from "@/components/ChartControls";
+import { ForecastNote } from "@/components/ForecastNote";
+import { drawnBand } from "@/lib/forecastBands";
 import { readPreferences, writePreferences } from "@/lib/preferences";
 import {
   AVERAGE_COLOURS,
+  FORECAST_EDGE,
+  FORECAST_MIDDLE,
   OSCILLATOR,
   PRICE_LINE,
   PRICE_WIDTH,
@@ -34,6 +38,8 @@ interface PriceChartProps {
   instrument?: ChartInstrument;
   /** What is drawn over the price to begin with. */
   initialOverlays?: Overlay[];
+  /** Where the price may go past its last session; absent or null for none. */
+  forecast?: PriceBands | null;
   loading?: boolean;
 }
 
@@ -79,6 +85,7 @@ export function PriceChart({
   points,
   instrument,
   initialOverlays,
+  forecast = null,
   loading = false,
 }: PriceChartProps): React.JSX.Element {
   // What the reader chose last time, unless the page asks for something
@@ -95,6 +102,12 @@ export function PriceChart({
     setOverlays(next);
     writePreferences({ overlays: next });
   };
+  const [showForecast, setShowForecast] = useState<boolean>(() => readPreferences().forecast);
+  const chooseForecast = (next: boolean): void => {
+    setShowForecast(next);
+    writePreferences({ forecast: next });
+  };
+  const band = forecast !== null && showForecast ? forecast : null;
   const sessions = useMemo(() => points ?? [], [points]);
 
   const series = useMemo<Series[]>(() => {
@@ -141,8 +154,35 @@ export function PriceChart({
       });
     }
 
+    if (band !== null) {
+      const lines = drawnBand(band);
+      drawn.push(
+        {
+          kind: "line",
+          label: "Forecast 90%",
+          colour: FORECAST_EDGE,
+          dashed: true,
+          points: lines.high,
+        },
+        {
+          kind: "line",
+          label: "Forecast middle",
+          colour: FORECAST_MIDDLE,
+          dashed: true,
+          points: lines.median,
+        },
+        {
+          kind: "line",
+          label: "Forecast 10%",
+          colour: FORECAST_EDGE,
+          dashed: true,
+          points: lines.low,
+        },
+      );
+    }
+
     return drawn;
-  }, [sessions, style, overlays]);
+  }, [sessions, style, overlays, band]);
 
   return (
     <div className="space-y-3">
@@ -151,6 +191,9 @@ export function PriceChart({
         overlays={overlays}
         onStyle={chooseStyle}
         onOverlays={chooseOverlays}
+        {...(forecast === null
+          ? {}
+          : { forecast: { shown: showForecast, onToggle: chooseForecast } })}
       />
       <Chart
         series={series}
@@ -158,6 +201,7 @@ export function PriceChart({
         loading={loading}
         empty="No sessions to draw"
       />
+      {band !== null && <ForecastNote bands={band} />}
     </div>
   );
 }

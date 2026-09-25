@@ -34,6 +34,8 @@ export interface Preferences {
   chartStyle: ChartStyle;
   /** What is laid over the price. */
   overlays: Overlay[];
+  /** Whether a price chart draws the forecast band past its last session. */
+  forecast: boolean;
   /** How many sessions a chart reaches back by default. */
   range: number;
   /** The layout each list page was last left in, by page. */
@@ -44,6 +46,9 @@ export const DEFAULT_PREFERENCES: Preferences = {
   scope: { kind: "companies", key: null },
   chartStyle: "line",
   overlays: ["sma_20", "sma_50", "sma_200", "volume"],
+  // Shown unless turned off: preferences stored before the band existed
+  // carry no choice, and should not hide it.
+  forecast: true,
   range: 250,
   views: {},
 };
@@ -141,6 +146,7 @@ export function parse(stored: unknown): Preferences {
       : undefined;
   const chartStyle = record["chartStyle"];
   const overlays = record["overlays"];
+  const forecast = record["forecast"];
   const range = record["range"];
   const views = record["views"];
   return {
@@ -158,6 +164,7 @@ export function parse(stored: unknown): Preferences {
             typeof one === "string" && (OVERLAYS as readonly string[]).includes(one),
         )
       : DEFAULT_PREFERENCES.overlays,
+    forecast: typeof forecast === "boolean" ? forecast : DEFAULT_PREFERENCES.forecast,
     range: typeof range === "number" && RANGES.includes(range) ? range : DEFAULT_PREFERENCES.range,
     // Only layouts that exist, so a choice from a later version -- or a
     // hand-edited one -- falls back to a list rather than to nothing.
