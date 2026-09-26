@@ -2071,12 +2071,39 @@ export interface BacktestPlay {
   rules: Record<string, unknown>;
 }
 
+/** One candidate on a backtest history's last session. */
+export interface BacktestPick {
+  rank: number;
+  instrument_key: string;
+  /** The symbol it trades under; null when no longer listed. */
+  symbol: string | null;
+  /** The playbook's ranking figure for it. */
+  score: number;
+  close: number;
+  /** Whether it is within the slots today's exposure allows. */
+  chosen: boolean;
+}
+
+/** What a playbook would hold on its history's last session. */
+export interface BacktestPicks {
+  as_of: string;
+  /** `buy`, or why it would not: `gate shut`, `recovering`, `no exposure`, `no play`. */
+  standing: string;
+  /** The strategy in force; null while none is. */
+  play: string | null;
+  slots: number;
+  room: number;
+  candidates: BacktestPick[];
+}
+
 /** One kept backtest, whole. */
 export interface BacktestDetail extends BacktestSummary {
   note: string;
   switch: string;
   plays: BacktestPlay[];
   periods: BacktestPeriod[];
+  /** Null for a backtest kept before picks existed. */
+  picks: BacktestPicks | null;
   years: BacktestYear[];
   equity: BacktestEquityPoint[];
   trades: BacktestTrade[];

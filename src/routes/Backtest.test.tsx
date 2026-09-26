@@ -15,8 +15,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function renderAt(id: number): void {
-  renderPage(
+function renderAt(id: number): ReturnType<typeof renderPage> {
+  return renderPage(
     <Routes>
       <Route path="/backtest/:id" element={<Backtest />} />
     </Routes>,
@@ -81,6 +81,44 @@ describe("Backtest", () => {
     expect(within(momentum).getByText("In force 75% of the sessions.")).toBeInTheDocument();
     expect(screen.getByText(/read monthly/)).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Verdict" })).toHaveTextContent("The whole stretch");
+  });
+
+  it("names the companies it would hold today, linking those still listed", async () => {
+    stubPlatform({ "/api/backtests/7": { body: backtestDetail() } });
+    renderAt(7);
+
+    const picks = await screen.findByRole("region", { name: "Picks today" });
+    expect(within(picks).getByText(/holding 1 of at most 2/)).toBeInTheDocument();
+    expect(within(picks).getByRole("link", { name: "CLIMBER" })).toHaveAttribute(
+      "href",
+      "/company/CLIMBER",
+    );
+    expect(
+      within(picks).queryByRole("link", { name: "NSE_EQ|INE999Z01010" }),
+    ).not.toBeInTheDocument();
+    expect(within(picks).getByText("Hold")).toBeInTheDocument();
+    expect(within(picks).getByText("Runner-up")).toBeInTheDocument();
+    for (const name of [/^Rank$/, /^Symbol/, /^Close/, /^Ranking figure/, /^Today/]) {
+      await userEvent.click(within(picks).getByRole("button", { name }));
+    }
+  });
+
+  it("says why nothing would be held, and has no section for an old backtest", async () => {
+    const shut = backtestDetail().picks;
+    stubPlatform({
+      "/api/backtests/7": {
+        body: backtestDetail({ picks: shut && { ...shut, standing: "gate shut", candidates: [] } }),
+      },
+    });
+    const { unmount } = renderAt(7);
+    expect(await screen.findByText(/market gate is shut/)).toBeInTheDocument();
+    unmount();
+
+    vi.unstubAllGlobals();
+    stubPlatform({ "/api/backtests/7": { body: backtestDetail({ picks: null }) } });
+    renderAt(7);
+    await screen.findByRole("region", { name: "Verdict" });
+    expect(screen.queryByRole("region", { name: "Picks today" })).not.toBeInTheDocument();
   });
 
   it("sorts every table by any column", async () => {

@@ -12,6 +12,7 @@ import { useParams } from "react-router-dom";
 
 import { type BacktestYear, fetchBacktest } from "@/api/client";
 import { BacktestPeriodsTable } from "@/components/BacktestPeriodsTable";
+import { BacktestPicksPanel } from "@/components/BacktestPicks";
 import { BacktestPlays } from "@/components/BacktestPlays";
 import { BacktestTradesTable } from "@/components/BacktestTradesTable";
 import { Chart, type Series } from "@/components/Chart";
@@ -137,6 +138,16 @@ export function Backtest(): React.JSX.Element {
             <StatTile label="Max drawdown" value={percent(verdict.max_drawdown)} />
             <StatTile label="Sharpe" value={ratio(verdict.sharpe)} />
           </StatGrid>
+        </section>
+      )}
+
+      {shown.picks !== null && (
+        <section aria-label="Picks today" className="space-y-3">
+          <SectionHeader
+            title="Picks today"
+            description="The companies the playbook would hold on the last session of its history."
+          />
+          <BacktestPicksPanel picks={shown.picks} />
         </section>
       )}
 

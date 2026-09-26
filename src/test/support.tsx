@@ -1520,6 +1520,31 @@ export function backtestDetail(overrides: Partial<BacktestDetail> = {}): Backtes
       }),
       backtestPeriod(),
     ],
+    picks: {
+      as_of: "2026-09-25",
+      standing: "buy",
+      play: "Momentum near the high",
+      slots: 2,
+      room: 1,
+      candidates: [
+        {
+          rank: 1,
+          instrument_key: "NSE_EQ|INE001A01010",
+          symbol: "CLIMBER",
+          score: 0.83,
+          close: 1520.5,
+          chosen: true,
+        },
+        {
+          rank: 2,
+          instrument_key: "NSE_EQ|INE999Z01010",
+          symbol: null,
+          score: 0.41,
+          close: 88,
+          chosen: false,
+        },
+      ],
+    },
     years: [
       { year: 2025, playbook: 16.7, benchmark: 6.7 },
       { year: 2026, playbook: -22.8, benchmark: null },
