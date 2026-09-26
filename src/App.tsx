@@ -50,6 +50,8 @@ import { Overview } from "@/routes/Overview";
 import { Population } from "@/routes/Population";
 import { Profile } from "@/routes/Profile";
 import { SignIn } from "@/routes/SignIn";
+import { Strategies } from "@/routes/Strategies";
+import { Strategy } from "@/routes/Strategy";
 
 /** The navigation, in the order the screens are meant to be read. */
 const SCREENS: Screen[] = [
@@ -66,6 +68,7 @@ const SCREENS: Screen[] = [
   { path: PATHS.funds, label: "Funds", icon: ENTITIES.fund.icon, group: "Research" },
   { path: PATHS.screen, label: "Screener", icon: MARKS.screen, group: "Research" },
   { path: PATHS.scans, label: "Scans", icon: MARKS.scans, group: "Research" },
+  { path: PATHS.strategies, label: "Strategies", icon: MARKS.strategies, group: "Research" },
   { path: PATHS.backtests, label: "Backtests", icon: MARKS.backtests, group: "Research" },
   { path: PATHS.compare, label: "Compare", icon: MARKS.compare, group: "Research" },
   { path: PATHS.ipos, label: "IPOs", icon: ENTITIES.ipo.icon, group: "Research" },
@@ -189,6 +192,8 @@ function SignedIn({
         <Route path={PATHS.sectors} element={<Sectors />} />
         <Route path={PATHS.screen} element={<Screener />} />
         <Route path={PATHS.scans} element={<Scans />} />
+        <Route path={PATHS.strategies} element={<Strategies />} />
+        <Route path="/strategy/:id" element={<Strategy />} />
         <Route path={PATHS.backtests} element={<Backtests />} />
         <Route path="/backtest/:id" element={<Backtest />} />
         <Route path={PATHS.compare} element={<Compare />} />

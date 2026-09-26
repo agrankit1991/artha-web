@@ -2134,3 +2134,155 @@ export async function fetchBacktest(id: number): Promise<BacktestDetail | null> 
     throw failure;
   }
 }
+
+/** A backtest asked of a saved strategy. */
+export interface StrategyRequest {
+  request_id: number;
+  status: "queued" | "running" | "done" | "failed";
+  requested_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  /** Why it failed. */
+  error: string | null;
+  /** The kept backtest it produced. */
+  backtest_id: number | null;
+}
+
+/** The headline of a strategy's latest finished backtest. */
+export interface StrategyResult {
+  backtest_id: number;
+  run_at: string;
+  cagr: number;
+  max_drawdown: number;
+  out_of_sample_cagr: number | null;
+  out_of_sample_edge: number | null;
+}
+
+/** A saved strategy as the list shows it. */
+export interface StrategySummary {
+  strategy_id: number;
+  name: string;
+  /** Whether it plays several saved strategies, each in its market conditions. */
+  combines: boolean;
+  updated_at: string;
+  latest: StrategyRequest | null;
+  result: StrategyResult | null;
+}
+
+/** A saved strategy whole. */
+export interface StrategyDetail extends StrategySummary {
+  /** The TOML, as written. */
+  text: string;
+  created_at: string;
+  /** Its newest backtest requests, newest first. */
+  requests: StrategyRequest[];
+}
+
+/** What a strategy's text says, or why it cannot be read. */
+export interface StrategyCheck {
+  valid: boolean;
+  message: string | null;
+  name: string | null;
+  combines: boolean;
+  plays: { name: string; when: string }[];
+}
+
+/** What a rule may read and call. */
+export interface StrategyLanguage {
+  series: string[];
+  functions: string[];
+}
+
+/**
+ * Fetch every saved strategy with its latest backtest.
+ *
+ * @returns The strategies, by name.
+ */
+export function fetchStrategies(): Promise<StrategySummary[]> {
+  return request<StrategySummary[]>("/api/strategies");
+}
+
+/**
+ * Fetch one saved strategy whole.
+ *
+ * @param id - Its number.
+ * @returns The strategy, or null when none has that number.
+ */
+export async function fetchStrategy(id: number): Promise<StrategyDetail | null> {
+  try {
+    return await request<StrategyDetail>(`/api/strategies/${String(id)}`);
+  } catch (failure) {
+    if (failure instanceof ApiError && failure.status === 404) {
+      return null;
+    }
+    throw failure;
+  }
+}
+
+/**
+ * Say whether a text can be backtested as written, without saving it.
+ *
+ * @param text - The TOML.
+ * @returns What it says, or why it cannot be read.
+ */
+export function checkStrategy(text: string): Promise<StrategyCheck> {
+  return request<StrategyCheck>("/api/strategies/check", {
+    method: "POST",
+    body: JSON.stringify({ text }),
+  });
+}
+
+/**
+ * Save a new strategy, under the name its text gives.
+ *
+ * @param text - The TOML.
+ * @returns The strategy.
+ */
+export function createStrategy(text: string): Promise<StrategyDetail> {
+  return request<StrategyDetail>("/api/strategies", {
+    method: "POST",
+    body: JSON.stringify({ text }),
+  });
+}
+
+/**
+ * Rewrite a saved strategy; renaming it is changing the name in its text.
+ *
+ * @param id - Its number.
+ * @param text - The new TOML.
+ * @returns The strategy as it now is.
+ */
+export function updateStrategy(id: number, text: string): Promise<StrategyDetail> {
+  return request<StrategyDetail>(`/api/strategies/${String(id)}`, {
+    method: "PUT",
+    body: JSON.stringify({ text }),
+  });
+}
+
+/**
+ * Delete a saved strategy; the backtests it produced stay kept.
+ *
+ * @param id - Its number.
+ */
+export async function deleteStrategy(id: number): Promise<void> {
+  await request<unknown>(`/api/strategies/${String(id)}`, { method: "DELETE" });
+}
+
+/**
+ * Ask the backtester to run a saved strategy as it now is.
+ *
+ * @param id - Its number.
+ * @returns The request, queued.
+ */
+export function runStrategy(id: number): Promise<StrategyRequest> {
+  return request<StrategyRequest>(`/api/strategies/${String(id)}/backtests`, { method: "POST" });
+}
+
+/**
+ * Fetch what a rule may read and call.
+ *
+ * @returns The series and functions.
+ */
+export function fetchStrategyLanguage(): Promise<StrategyLanguage> {
+  return request<StrategyLanguage>("/api/strategies/language");
+}

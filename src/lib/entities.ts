@@ -29,6 +29,7 @@ import {
   SlidersHorizontal,
   Star,
   Users,
+  Workflow,
 } from "lucide-react";
 
 /** The kinds of thing this platform has pages about. */
@@ -55,6 +56,7 @@ export const ENTITIES: Record<EntityKind, { icon: Icon; label: string }> = {
  */
 export const MARKS = {
   backtests: FlaskConical,
+  strategies: Workflow,
   breadth: Activity,
   compare: GitCompareArrows,
   dates: Calendar,

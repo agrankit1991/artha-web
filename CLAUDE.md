@@ -257,10 +257,10 @@ call site.
 - **Routing** (`src/App.tsx`): `PATHS` is the one place a path is spelled.
   Markets: `/` overview, `/breadth`, `/indices`, `/sectors`, `/futures`,
   `/movers/:list`, `/earnings`, `/news`. Research: `/screen`, `/scans`,
-  `/backtests`, `/compare`, `/ipos`, `/funds`. Mine: `/watchlists`,
+  `/strategies`, `/backtests`, `/compare`, `/ipos`, `/funds`. Mine: `/watchlists`,
   `/profile`. Entity pages: `/company/:ref`, `/index/:ref`,
   `/sector/:ref`, `/fund/:code`, `/ipo/:id`, `/future/:key`,
-  `/backtest/:id`.
+  `/backtest/:id`, `/strategy/:id` (`/strategy/new` for one not yet saved).
 
   **Company, index and sector addresses are readable** (owner's choice,
   2026-09-23): `/company/RELIANCE`, `/index/nifty-50`,
@@ -332,6 +332,22 @@ call site.
   flatters every return. A trade in a company no longer listed has no page:
   `DataTable`'s `linkTo` returns null for such a row, and its name stays
   plain text.
+- **Strategies** (`src/routes/Strategies.tsx`, `src/routes/Strategy.tsx`,
+  2026-09-26, owner's request: "a place where I can create strategies and
+  backtest them and see the instruments matching them") -- strategies are
+  written as TOML text in `StrategyEditor`, checked by the platform as
+  they are typed (`POST /api/strategies/check`, debounced), saved, and run
+  by the platform's backtester service. A combination names saved
+  strategies by name and plays each in the market conditions it gives.
+  The page polls every five seconds while a run is queued or running, then
+  shows the verdict and the companies the latest backtest would hold today
+  (`StrategyResultPanel`, which reads the picks from the kept backtest the
+  Backtests page shows). **Text, not a form, deliberately (v1):** the
+  platform's one reader of the language decides what is valid, so the page
+  cannot drift from the backtester; the templates in
+  `src/lib/strategyTemplates.ts` carry every lever, commented. The
+  reader's edits are kept apart from the loaded text (`edited`), so a poll
+  reloading the strategy never overwrites unsaved rules.
 - **The frame** (`src/components/AppShell.tsx`): navigation down the side,
   the account and theme across the top, the running build at the bottom.
   The sidebar is the navigation because this is a set of places rather than
@@ -352,7 +368,7 @@ call site.
   (`../UI-PLAN.md`): page furniture `PageHeader`, `SectionHeader`,
   `StatTile`/`StatGrid`, `FactList`, `RangeMeter`, `Empty`, `Failed`,
   `Hint`, `Chooser`, `Tabs`; `SearchBox` in the header; `Dialog` (own,
-  like `Menu`, so jsdom can drive it); `WatchButton`, `ShareButton`,
+  like `Menu`, so jsdom can drive it) and `ConfirmDialog` on it; `WatchButton`, `ShareButton`,
   `SessionPicker`, `EarningsPanel`, `ValuationPanel`,
   `ValuationHistoryChart`, `PopulationValuationPanel`,
   `InstrumentFigures` (with a sparkline beside every reading when given

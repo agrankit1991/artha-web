@@ -36,6 +36,7 @@ import {
 import { type Column, DataTable } from "@/components/DataTable";
 import { symbolColumn } from "@/components/identityColumns";
 import { Delta } from "@/components/Delta";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Dialog } from "@/components/Dialog";
 import { Empty } from "@/components/Empty";
 import { Failed } from "@/components/Failed";
@@ -600,60 +601,6 @@ function ListDialog({
         </div>
         {problem !== null && <p className="text-sm text-loss">{problem}</p>}
       </form>
-    </Dialog>
-  );
-}
-
-/** A yes-or-no question before something is deleted. */
-function ConfirmDialog({
-  open,
-  title,
-  description,
-  action,
-  onClose,
-  onConfirm,
-}: {
-  open: boolean;
-  title: string;
-  description: string;
-  action: string;
-  onClose: () => void;
-  onConfirm: () => Promise<void>;
-}): React.JSX.Element {
-  const [problem, setProblem] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      title={title}
-      description={description}
-      actions={
-        <>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            disabled={busy}
-            onClick={() => {
-              setBusy(true);
-              setProblem(null);
-              onConfirm()
-                .catch((error: unknown) => {
-                  setProblem(error instanceof Error ? error.message : "Could not do that");
-                })
-                .finally(() => {
-                  setBusy(false);
-                });
-            }}
-          >
-            {action}
-          </Button>
-        </>
-      }
-    >
-      {problem !== null && <p className="text-sm text-loss">{problem}</p>}
     </Dialog>
   );
 }

@@ -20,6 +20,7 @@ export const PATHS = {
   indices: "/indices",
   screen: "/screen",
   scans: "/scans",
+  strategies: "/strategies",
   backtests: "/backtests",
   compare: "/compare",
   futures: "/futures",
@@ -210,4 +211,14 @@ export function moversPath(list: string, kind = "companies", key: string | null 
  */
 export function backtestPath(id: number): string {
   return `/backtest/${String(id)}`;
+}
+
+/**
+ * Where one saved strategy's page is; `new` for a strategy not yet saved.
+ *
+ * @param id - Its number, or "new".
+ * @returns Something like `/strategy/4`.
+ */
+export function strategyPath(id: number | "new"): string {
+  return `/strategy/${String(id)}`;
 }

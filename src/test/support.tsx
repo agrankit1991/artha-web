@@ -69,6 +69,10 @@ import type {
   BacktestDetail,
   BacktestPeriod,
   BacktestSummary,
+  StrategyDetail,
+  StrategyRequest,
+  StrategyResult,
+  StrategySummary,
 } from "@/api/client";
 
 /** A reply the stubbed platform should give to a path. */
@@ -1579,6 +1583,77 @@ export function backtestDetail(overrides: Partial<BacktestDetail> = {}): Backtes
         portion: 1,
       },
     ],
+    ...overrides,
+  };
+}
+
+/**
+ * A backtest asked of a strategy, finished.
+ *
+ * @param overrides - Fields to change.
+ * @returns The request.
+ */
+export function strategyRequest(overrides: Partial<StrategyRequest> = {}): StrategyRequest {
+  return {
+    request_id: 11,
+    status: "done",
+    requested_at: "2026-09-26T18:00:00+05:30",
+    started_at: "2026-09-26T18:00:05+05:30",
+    finished_at: "2026-09-26T18:01:45+05:30",
+    error: null,
+    backtest_id: 7,
+    ...overrides,
+  };
+}
+
+/**
+ * The headline of a strategy's finished backtest.
+ *
+ * @param overrides - Fields to change.
+ * @returns The headline.
+ */
+export function strategyResult(overrides: Partial<StrategyResult> = {}): StrategyResult {
+  return {
+    backtest_id: 7,
+    run_at: "2026-09-26T18:01:45+05:30",
+    cagr: 26.8,
+    max_drawdown: -34.4,
+    out_of_sample_cagr: 30.4,
+    out_of_sample_edge: 12.94,
+    ...overrides,
+  };
+}
+
+/**
+ * A saved strategy as the list shows it, with a finished backtest.
+ *
+ * @param overrides - Fields to change.
+ * @returns The strategy.
+ */
+export function strategySummary(overrides: Partial<StrategySummary> = {}): StrategySummary {
+  return {
+    strategy_id: 5,
+    name: "Momentum near the high",
+    combines: false,
+    updated_at: "2026-09-26T17:55:00+05:30",
+    latest: strategyRequest(),
+    result: strategyResult(),
+    ...overrides,
+  };
+}
+
+/**
+ * A saved strategy whole.
+ *
+ * @param overrides - Fields to change.
+ * @returns The strategy.
+ */
+export function strategyDetail(overrides: Partial<StrategyDetail> = {}): StrategyDetail {
+  return {
+    ...strategySummary(),
+    text: 'name = "Momentum near the high"\nrank = "ret(close, 252)"\n',
+    created_at: "2026-09-26T17:50:00+05:30",
+    requests: [strategyRequest()],
     ...overrides,
   };
 }
