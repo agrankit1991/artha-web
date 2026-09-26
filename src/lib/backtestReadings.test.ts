@@ -65,6 +65,9 @@ describe("readRules", () => {
     expect(said({ stop: { kind: "volatility", value: 1.28, horizon: 20 } })).toContain(
       "the low edge of a 20-session volatility band, z = 1.28",
     );
+    expect(said({ stop: { kind: "level", level: "lowest(low, 20)", trailing: true } })).toContain(
+      "at lowest(low, 20), trailing the highest close",
+    );
     expect(said({ target: { kind: "percent", value: 25, runner: null, portion: 1 } })).toContain(
       "25% above the entry",
     );

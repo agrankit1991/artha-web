@@ -118,6 +118,8 @@ function sayStop(stop: Readonly<Record<string, unknown>>): string | null {
       return `${value}% below the entry${trailing}`;
     case "atr":
       return `${value} × the ${String(stop.period)}-session average true range${trailing}`;
+    case "level":
+      return `at ${String(stop.level)}${trailing}`;
     case "volatility":
       return `the low edge of a ${String(stop.horizon)}-session volatility band, z = ${value}${trailing}`;
     default:
