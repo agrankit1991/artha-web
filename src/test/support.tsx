@@ -66,6 +66,9 @@ import type {
   Statement,
   TrailingReturns,
   Fund as FundResponse,
+  BacktestDetail,
+  BacktestPeriod,
+  BacktestSummary,
 } from "@/api/client";
 
 /** A reply the stubbed platform should give to a path. */
@@ -1412,6 +1415,144 @@ export function futureContract(overrides: Partial<FutureContract> = {}): FutureC
         open_interest: null,
         one_month: null,
       }),
+    ],
+    ...overrides,
+  };
+}
+
+/**
+ * A kept backtest's headline: S0010 as carded, split in 2018.
+ *
+ * @param overrides - Fields to change.
+ * @returns The headline.
+ */
+export function backtestSummary(overrides: Partial<BacktestSummary> = {}): BacktestSummary {
+  return {
+    backtest_id: 7,
+    name: "Momentum near the high",
+    description: "12-1 momentum among stocks near their high.",
+    benchmark: "nifty500",
+    run_at: "2026-09-26T16:00:00+05:30",
+    data_to: "2026-09-21",
+    first_session: "2005-01-03",
+    last_session: "2026-09-21",
+    cagr: 26.8,
+    max_drawdown: -34.4,
+    sharpe: 1.2,
+    out_of_sample_cagr: 30.4,
+    out_of_sample_edge: 12.94,
+    ...overrides,
+  };
+}
+
+/**
+ * One period of a backtest.
+ *
+ * @param overrides - Fields to change.
+ * @returns The period.
+ */
+export function backtestPeriod(overrides: Partial<BacktestPeriod> = {}): BacktestPeriod {
+  return {
+    name: "out-of-sample",
+    first_session: "2018-01-01",
+    last_session: "2026-09-21",
+    cagr: 30.4,
+    total_return: 880.0,
+    volatility: 22.1,
+    max_drawdown: -32.0,
+    sharpe: 1.33,
+    sortino: 1.8,
+    invested: 69.7,
+    trades: 821,
+    win_rate: 45.9,
+    average_trade: 3.1,
+    average_sessions: 36,
+    benchmark_cagr: 10.7,
+    judged_cagr: 26.1,
+    calendar_low: 18.0,
+    calendar_high: 26.1,
+    random_median: 13.1,
+    edge: 12.94,
+    beaten: 100,
+    played: {},
+    ...overrides,
+  };
+}
+
+/**
+ * A kept backtest, whole: three periods, two years, one play, two trades.
+ *
+ * @param overrides - Fields to change.
+ * @returns The backtest.
+ */
+export function backtestDetail(overrides: Partial<BacktestDetail> = {}): BacktestDetail {
+  return {
+    ...backtestSummary(),
+    note: "Equity history before 2026-09-16 holds only companies that still trade, so every figure is optimistic; judge a strategy by its edge over random picks. Only those that survived.",
+    switch: "daily",
+    plays: [
+      {
+        name: "Momentum near the high",
+        when: "1",
+        rules: {
+          rank: "lag(close, 21) / lag(close, 252) - 1",
+          slots: 20,
+          rebalance: 21,
+          target: { kind: "percent", value: 25, runner: null, portion: 0.5 },
+        },
+      },
+    ],
+    periods: [
+      backtestPeriod({
+        name: "whole",
+        first_session: "2005-01-03",
+        calendar_low: null,
+        calendar_high: null,
+        random_median: null,
+        edge: null,
+        beaten: null,
+      }),
+      backtestPeriod({
+        name: "in-sample",
+        last_session: "2017-12-29",
+        first_session: "2005-01-03",
+        calendar_low: 17.5,
+      }),
+      backtestPeriod(),
+    ],
+    years: [
+      { year: 2025, playbook: 16.7, benchmark: 6.7 },
+      { year: 2026, playbook: -22.8, benchmark: null },
+    ],
+    equity: [
+      { session: "2026-09-18", value: 1, invested: 0, benchmark: 1 },
+      { session: "2026-09-21", value: 1.02, invested: 95, benchmark: 1.01 },
+    ],
+    trades: [
+      {
+        instrument_key: "NSE_EQ|INE001A01010",
+        symbol: "CLIMBER",
+        entered: "2026-01-02",
+        exited: "2026-02-02",
+        entry_price: 100,
+        exit_price: 125,
+        sessions: 21,
+        reason: "target",
+        gain_percent: 24.6,
+        portion: 0.5,
+      },
+      {
+        instrument_key: "NSE_EQ|INE999Z01010",
+        symbol: null,
+        entered: "2026-01-02",
+        exited: "2026-03-02",
+        entry_price: 50,
+        exit_price: 45,
+        sessions: 40,
+        reason: "stop",
+        gain_percent: -10.4,
+        portion: 1,
+      },
     ],
     ...overrides,
   };

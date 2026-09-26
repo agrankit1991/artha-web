@@ -20,6 +20,7 @@ export const PATHS = {
   indices: "/indices",
   screen: "/screen",
   scans: "/scans",
+  backtests: "/backtests",
   compare: "/compare",
   futures: "/futures",
   movers: "/movers/top-gainers",
@@ -199,4 +200,14 @@ export function moversPath(list: string, kind = "companies", key: string | null 
     parameters.set("scope_key", key);
   }
   return `/movers/${list}?${parameters.toString()}`;
+}
+
+/**
+ * Where one kept backtest's page is.
+ *
+ * @param id - Its number.
+ * @returns Something like `/backtest/12`.
+ */
+export function backtestPath(id: number): string {
+  return `/backtest/${String(id)}`;
 }

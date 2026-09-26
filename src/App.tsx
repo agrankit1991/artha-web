@@ -37,6 +37,8 @@ import { Screener } from "@/routes/Screener";
 import { Watchlists } from "@/routes/Watchlists";
 import { Sectors } from "@/routes/Sectors";
 import { Fund } from "@/routes/Fund";
+import { Backtest } from "@/routes/Backtest";
+import { Backtests } from "@/routes/Backtests";
 import { Funds } from "@/routes/Funds";
 import { Future } from "@/routes/Future";
 import { Futures } from "@/routes/Futures";
@@ -64,6 +66,7 @@ const SCREENS: Screen[] = [
   { path: PATHS.funds, label: "Funds", icon: ENTITIES.fund.icon, group: "Research" },
   { path: PATHS.screen, label: "Screener", icon: MARKS.screen, group: "Research" },
   { path: PATHS.scans, label: "Scans", icon: MARKS.scans, group: "Research" },
+  { path: PATHS.backtests, label: "Backtests", icon: MARKS.backtests, group: "Research" },
   { path: PATHS.compare, label: "Compare", icon: MARKS.compare, group: "Research" },
   { path: PATHS.ipos, label: "IPOs", icon: ENTITIES.ipo.icon, group: "Research" },
   { path: PATHS.watchlists, label: "Watchlists", icon: MARKS.watchlist, group: "Mine" },
@@ -186,6 +189,8 @@ function SignedIn({
         <Route path={PATHS.sectors} element={<Sectors />} />
         <Route path={PATHS.screen} element={<Screener />} />
         <Route path={PATHS.scans} element={<Scans />} />
+        <Route path={PATHS.backtests} element={<Backtests />} />
+        <Route path="/backtest/:id" element={<Backtest />} />
         <Route path={PATHS.compare} element={<Compare />} />
         <Route path={PATHS.watchlists} element={<Watchlists />} />
         <Route path={PATHS.ipos} element={<Ipos />} />

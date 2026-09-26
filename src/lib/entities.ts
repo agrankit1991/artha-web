@@ -15,6 +15,7 @@ import {
   CalendarClock,
   ExternalLink,
   FileText,
+  FlaskConical,
   GitCompareArrows,
   Globe,
   Handshake,
@@ -53,6 +54,7 @@ export const ENTITIES: Record<EntityKind, { icon: Icon; label: string }> = {
  * corporate actions card, for the same reason the entities do.
  */
 export const MARKS = {
+  backtests: FlaskConical,
   breadth: Activity,
   compare: GitCompareArrows,
   dates: Calendar,

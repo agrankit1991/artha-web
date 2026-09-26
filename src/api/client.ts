@@ -1973,3 +1973,137 @@ export function fetchEarnings(
 export function fetchSectorEarnings(cadence: Cadence = "annual"): Promise<SectorEarnings[]> {
   return request<SectorEarnings[]>(`/api/earnings/sectors?cadence=${cadence}`);
 }
+
+/** What a list of backtests shows of one. Percentages are in percent. */
+export interface BacktestSummary {
+  backtest_id: number;
+  name: string;
+  description: string;
+  /** The index it was compared with, as the rules name it: `nifty500`. */
+  benchmark: string;
+  run_at: string;
+  /** The last session of the history it read. */
+  data_to: string;
+  first_session: string;
+  last_session: string;
+  /** Compound yearly rate over the whole stretch. */
+  cagr: number;
+  max_drawdown: number;
+  sharpe: number | null;
+  /** The rate in the years after the split; null without one. */
+  out_of_sample_cagr: number | null;
+  /** The lead there over random picks under the same rules, in points. */
+  out_of_sample_edge: number | null;
+}
+
+/** One period of a backtest: in sample, out of sample, or the whole stretch. */
+export interface BacktestPeriod {
+  name: "whole" | "in-sample" | "out-of-sample";
+  first_session: string;
+  last_session: string;
+  cagr: number | null;
+  total_return: number | null;
+  volatility: number | null;
+  max_drawdown: number | null;
+  sharpe: number | null;
+  sortino: number | null;
+  /** The average share of capital in stocks. */
+  invested: number | null;
+  trades: number;
+  win_rate: number | null;
+  average_trade: number | null;
+  average_sessions: number | null;
+  benchmark_cagr: number | null;
+  /** What the verdict reads: the median calendar's rate, or the own calendar's. */
+  judged_cagr: number | null;
+  calendar_low: number | null;
+  calendar_high: number | null;
+  /** The median rate of random picks under the same rules. */
+  random_median: number | null;
+  /** The judged rate less that, in points. */
+  edge: number | null;
+  /** The share of random-pick runs the judged rate beat. */
+  beaten: number | null;
+  /** The share of the sessions each play was in force, by name. */
+  played: Record<string, number>;
+}
+
+/** The portfolio at one close. */
+export interface BacktestEquityPoint {
+  session: string;
+  /** Its value, starting from one. */
+  value: number;
+  /** The share of it in stocks, in percent. */
+  invested: number;
+  /** The benchmark's close over its first in the run. */
+  benchmark: number | null;
+}
+
+/** One calendar year of the whole run, in percent. */
+export interface BacktestYear {
+  year: number;
+  playbook: number;
+  benchmark: number | null;
+}
+
+/** One sale: a whole holding, or part of one. */
+export interface BacktestTrade {
+  instrument_key: string;
+  /** The symbol it trades under; null when no longer listed. */
+  symbol: string | null;
+  entered: string;
+  exited: string;
+  entry_price: number;
+  exit_price: number;
+  sessions: number;
+  reason: string;
+  gain_percent: number;
+  /** The share of the purchase this sale sold. */
+  portion: number;
+}
+
+/** One strategy of a playbook, and when it is played. */
+export interface BacktestPlay {
+  name: string;
+  /** The market condition it is played in; `1` for always. */
+  when: string;
+  /** Every setting of the strategy, as written. */
+  rules: Record<string, unknown>;
+}
+
+/** One kept backtest, whole. */
+export interface BacktestDetail extends BacktestSummary {
+  note: string;
+  switch: string;
+  plays: BacktestPlay[];
+  periods: BacktestPeriod[];
+  years: BacktestYear[];
+  equity: BacktestEquityPoint[];
+  trades: BacktestTrade[];
+}
+
+/**
+ * Fetch every kept backtest.
+ *
+ * @returns The backtests, the most recently run first.
+ */
+export function fetchBacktests(): Promise<BacktestSummary[]> {
+  return request<BacktestSummary[]>("/api/backtests");
+}
+
+/**
+ * Fetch one kept backtest whole.
+ *
+ * @param id - Its number.
+ * @returns The backtest, or null when no backtest has that number.
+ */
+export async function fetchBacktest(id: number): Promise<BacktestDetail | null> {
+  try {
+    return await request<BacktestDetail>(`/api/backtests/${String(id)}`);
+  } catch (failure) {
+    if (failure instanceof ApiError && failure.status === 404) {
+      return null;
+    }
+    throw failure;
+  }
+}

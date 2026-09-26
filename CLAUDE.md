@@ -256,10 +256,11 @@ call site.
   application like this feels broken.
 - **Routing** (`src/App.tsx`): `PATHS` is the one place a path is spelled.
   Markets: `/` overview, `/breadth`, `/indices`, `/sectors`, `/futures`,
-  `/movers/:list`, `/earnings`, `/news`. Research: `/screen`, `/compare`,
-  `/ipos`, `/funds`. Mine: `/watchlists`, `/profile`. Entity pages:
-  `/company/:ref`, `/index/:ref`, `/sector/:ref`, `/fund/:code`,
-  `/ipo/:id`, `/future/:key`.
+  `/movers/:list`, `/earnings`, `/news`. Research: `/screen`, `/scans`,
+  `/backtests`, `/compare`, `/ipos`, `/funds`. Mine: `/watchlists`,
+  `/profile`. Entity pages: `/company/:ref`, `/index/:ref`,
+  `/sector/:ref`, `/fund/:code`, `/ipo/:id`, `/future/:key`,
+  `/backtest/:id`.
 
   **Company, index and sector addresses are readable** (owner's choice,
   2026-09-23): `/company/RELIANCE`, `/index/nifty-50`,
@@ -321,6 +322,16 @@ call site.
   oscillator: "+42" says nothing to most readers and "more stocks joining"
   does. Colour never carries a meaning on its own; every figure is printed
   and every shape is labelled for a screen reader.
+- **Backtests** (`src/routes/Backtests.tsx`, `src/routes/Backtest.tsx`,
+  2026-09-26) -- every playbook kept by the platform (`backtest --keep` on
+  the laptop, `import-backtest` in production), and one whole: the
+  out-of-sample verdict first, growth against the index on the one
+  `Chart`, the periods, each year, the rules in words
+  (`src/lib/backtestReadings.ts`) and every trade. The edge over random
+  picks is emphasised wherever it appears, because survivor-only history
+  flatters every return. A trade in a company no longer listed has no page:
+  `DataTable`'s `linkTo` returns null for such a row, and its name stays
+  plain text.
 - **The frame** (`src/components/AppShell.tsx`): navigation down the side,
   the account and theme across the top, the running build at the bottom.
   The sidebar is the navigation because this is a set of places rather than

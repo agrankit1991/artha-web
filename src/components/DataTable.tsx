@@ -97,8 +97,11 @@ interface DataTableProps<Row extends RowData> {
    * in somewhere else means crossing the whole row to reach it, on a
    * table that scrolls sideways. It is also what a link looks like
    * everywhere else: the words for the thing.
+   *
+   * Null for a row with no page of its own -- a company no longer listed
+   * -- whose name is then plain text rather than a link to nothing.
    */
-  linkTo?: (row: Row) => string;
+  linkTo?: (row: Row) => string | null;
   /**
    * Sort on the server rather than in the browser.
    *
@@ -211,6 +214,7 @@ export function DataTable<Row extends RowData>({
               className={cn(onSelect && "cursor-pointer")}
             >
               {row.getVisibleCells().map((cell, position) => {
+                const page = linkTo && position === 0 ? linkTo(row.original) : null;
                 const drawn = flexRender(cell.column.columnDef.cell, cell.getContext());
                 return (
                   <TableCell
@@ -221,9 +225,9 @@ export function DataTable<Row extends RowData>({
                       full && position === 0 && cn(STICKY_COLUMN, "bg-card"),
                     )}
                   >
-                    {linkTo && position === 0 ? (
+                    {page !== null ? (
                       <Link
-                        to={linkTo(row.original)}
+                        to={page}
                         className="block hover:text-primary hover:underline"
                         onClick={(event) => {
                           // Choosing a row and opening it are separate
