@@ -81,6 +81,10 @@ describe("methodName", () => {
     expect(methodName("lightgbm-band+market+sector")).toBe(
       "an AI model (LightGBM) reading the stock's figures, market strength and sector strength",
     );
+    expect(methodName("har-scale")).toBe(
+      "a volatility forecast (HAR) from each stock's own daily, weekly, monthly and yearly volatility (no AI)",
+    );
+    expect(methodName("har-scale+market")).toContain("India VIX");
     expect(methodName("something-new")).toBe("something-new");
   });
 });

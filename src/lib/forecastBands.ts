@@ -60,6 +60,11 @@ export function methodName(method: string): string {
   if (method === "volatility-cone") {
     return "each stock's own volatility (no AI)";
   }
+  if (method.startsWith("har-scale")) {
+    return method.includes("+market")
+      ? "a volatility forecast (HAR) from each stock's own daily, weekly, monthly and yearly volatility, the market's volatility and India VIX (no AI)"
+      : "a volatility forecast (HAR) from each stock's own daily, weekly, monthly and yearly volatility (no AI)";
+  }
   if (method.startsWith("lightgbm-band")) {
     const context = [
       method.includes("+market") ? "market strength" : null,
