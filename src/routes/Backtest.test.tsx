@@ -106,6 +106,8 @@ describe("Backtest", () => {
 
     const rules = screen.getByRole("region", { name: "Rules" });
     expect(within(rules).getByText("lag(close, 21) / lag(close, 252) - 1")).toBeInTheDocument();
+    const words = within(rules).getByRole("region", { name: "In plain words" });
+    expect(within(words).getByText(/return from a year ago to a month ago/)).toBeInTheDocument();
     expect(screen.getByRole("note")).toHaveTextContent("survived");
   });
 
@@ -233,6 +235,7 @@ describe("Backtest", () => {
       periods: backtestDetail().periods.map((period) => ({ ...period, detail: null })),
       baskets: [],
       market: [],
+      explanation: null,
       plays: [
         ...backtestDetail().plays,
         { name: "Other", when: "1", rules: { rank: "close", slots: 10 } },
@@ -244,6 +247,7 @@ describe("Backtest", () => {
     await screen.findByRole("table", { name: "Trades" });
     expect(screen.queryByRole("table", { name: "Risk and streaks" })).not.toBeInTheDocument();
     expect(screen.queryByRole("table", { name: "Basket sizes" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "In plain words" })).not.toBeInTheDocument();
   });
 
   // One test per table: all five in one test outgrew the time limit under the full suite.

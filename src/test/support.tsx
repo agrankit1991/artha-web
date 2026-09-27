@@ -72,6 +72,7 @@ import type {
   BacktestStreak,
   BacktestSummary,
   StrategyDetail,
+  StrategyExplanation,
   StrategyRequest,
   StrategyResult,
   StrategySummary,
@@ -1683,6 +1684,52 @@ export function backtestDetail(overrides: Partial<BacktestDetail> = {}): Backtes
         gain_percent: -10.4,
         portion: 1,
       },
+    ],
+    explanation: strategyExplanation(),
+    ...overrides,
+  };
+}
+
+/**
+ * A single strategy in plain words: three topics, one with conditions listed, and two terms.
+ *
+ * @param overrides - Fields to change.
+ * @returns The explanation.
+ */
+export function strategyExplanation(
+  overrides: Partial<StrategyExplanation> = {},
+): StrategyExplanation {
+  return {
+    choosing: [],
+    plays: [
+      {
+        name: "Momentum near the high",
+        when: null,
+        points: [
+          {
+            topic: "Which companies",
+            text: "It only looks at companies that pass all of these:",
+            items: [
+              "the average daily value traded over the last month is at least Rs 10 crore",
+              "the market value is at least Rs 1,000 crore",
+            ],
+          },
+          {
+            topic: "How it picks",
+            text: "It ranks them by the price's return from a year ago to a month ago, highest first, and holds the top 20, putting an equal share of the money into each.",
+            items: [],
+          },
+          {
+            topic: "When it sells",
+            text: "It sells a holding once the price is below its 100-day average.",
+            items: [],
+          },
+        ],
+      },
+    ],
+    terms: [
+      { word: "Trading days", meaning: "Days the exchange is open." },
+      { word: "Moving average", meaning: "The average closing price over the last so many days." },
     ],
     ...overrides,
   };

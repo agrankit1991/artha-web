@@ -1,11 +1,11 @@
 /** Tests for the strategy editor and its live check. */
 
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { renderPage, stubPlatform } from "@/test/support";
+import { renderPage, strategyExplanation, stubPlatform } from "@/test/support";
 
 import { StrategyEditor } from "./StrategyEditor";
 
@@ -36,6 +36,27 @@ describe("StrategyEditor", () => {
 
     expect(await screen.findByRole("status")).toHaveTextContent("Reads as Mine");
     expect(screen.queryByText(/plays/)).not.toBeInTheDocument();
+  });
+
+  it("says beside the text what it does in plain words", async () => {
+    stubPlatform({
+      "/api/strategies/check": {
+        body: {
+          valid: true,
+          message: null,
+          name: "Mine",
+          combines: false,
+          plays: [{ name: "Mine", when: "1" }],
+          explanation: strategyExplanation(),
+        },
+      },
+    });
+    renderPage(<Harness initial='name = "Mine"' />);
+
+    const words = screen.getByRole("region", { name: "In plain words" });
+    expect(
+      await within(words).findByText(/sells a holding once the price is below/),
+    ).toBeInTheDocument();
   });
 
   it("lists what a combination plays, and when", async () => {
@@ -75,6 +96,9 @@ describe("StrategyEditor", () => {
     renderPage(<Harness initial='name = "Mine"' />);
 
     expect(await screen.findByRole("status")).toHaveTextContent("no series named 'closes'");
+    expect(screen.getByRole("region", { name: "In plain words" })).toHaveTextContent(
+      "Once the text reads, what it does is said here in plain words.",
+    );
   });
 
   it("says so when the check itself fails", async () => {

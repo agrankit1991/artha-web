@@ -24,6 +24,7 @@ import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
 import { SectionHeader } from "@/components/SectionHeader";
 import { StatGrid, StatTile } from "@/components/StatTile";
+import { StrategyExplanationPanel } from "@/components/StrategyExplanationPanel";
 import { Badge } from "@/components/ui/badge";
 import { useResource } from "@/hooks/useResource";
 import { percent, points, ratio, share } from "@/lib/backtestFigures";
@@ -249,6 +250,12 @@ export function Backtest(): React.JSX.Element {
 
       <section aria-label="Rules" className="space-y-3">
         <SectionHeader title="Rules" />
+        {shown.explanation && (
+          <section aria-label="In plain words" className="space-y-3 rounded-lg border bg-card p-4">
+            <h3 className="text-base font-semibold">In plain words</h3>
+            <StrategyExplanationPanel explanation={shown.explanation} />
+          </section>
+        )}
         <BacktestPlays
           plays={shown.plays}
           switchCadence={shown.switch}

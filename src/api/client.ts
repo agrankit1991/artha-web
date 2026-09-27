@@ -2214,6 +2214,8 @@ export interface BacktestDetail extends BacktestSummary {
   baskets?: BacktestBasket[];
   /** The market in each calendar year; empty for an older backtest. */
   market?: MarketYear[];
+  /** Its rules in plain words; null when the kept rules no longer read. */
+  explanation?: StrategyExplanation | null;
 }
 
 /**
@@ -2292,6 +2294,39 @@ export interface StrategyCheck {
   name: string | null;
   combines: boolean;
   plays: { name: string; when: string }[];
+  /** What it does in plain words; null when it cannot be read. */
+  explanation?: StrategyExplanation | null;
+}
+
+/** One thing a strategy does, in words. */
+export interface ExplanationPoint {
+  /** What it is about: "Which companies", "When it sells". */
+  topic: string;
+  text: string;
+  /** The conditions the sentence introduces, one to a line. */
+  items: string[];
+}
+
+/** One strategy a combination plays, in words. */
+export interface PlayExplanation {
+  name: string;
+  /** "while ...", or "otherwise" for a combination's fallback; null for a single strategy. */
+  when: string | null;
+  points: ExplanationPoint[];
+}
+
+/** A word the explanation uses that a reader may not know. */
+export interface ExplanationTerm {
+  word: string;
+  meaning: string;
+}
+
+/** A strategy or a combination in plain words, for a reader who does not write rules. */
+export interface StrategyExplanation {
+  /** How a combination chooses its strategy; empty for a single strategy. */
+  choosing: string[];
+  plays: PlayExplanation[];
+  terms: ExplanationTerm[];
 }
 
 /** What a rule may read and call. */

@@ -353,6 +353,15 @@ call site.
   `BacktestPicksPanel` still lists what passes its rules, the first
   slots' worth marked Next: the owner researches on weekend closes, and a
   shut market is when the watchlist is wanted (2026-09-27).
+  **In plain words** (`StrategyExplanationPanel`, 2026-09-27, the owner
+  found the rules hard to follow and asked for them "in simple language so
+  a non engineer can understand"): the platform says what a strategy does
+  topic by topic, from the same parsed rules the backtest plays, and the
+  page only lays it out. `StrategyEditor` draws it beside the text on a
+  wide screen, from the same check that validates the text. The column
+  stays with a hint while the text does not read, so the text box never
+  changes width mid-typing. A backtest's Rules section shows it above the
+  rules as written.
   A backtest's page also shows its **risk and streaks** (`BacktestMeasures`,
   one row per measure, one column per period), the **basket sizes**
   (`BacktestBaskets`), each year's worst fall, holdings, trades and breadth,
