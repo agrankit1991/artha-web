@@ -260,7 +260,8 @@ call site.
   `/strategies`, `/backtests`, `/compare`, `/ipos`, `/funds`. Mine: `/watchlists`,
   `/profile`. Entity pages: `/company/:ref`, `/index/:ref`,
   `/sector/:ref`, `/fund/:code`, `/ipo/:id`, `/future/:key`,
-  `/backtest/:id`, `/strategy/:id` (`/strategy/new` for one not yet saved).
+  `/backtest/:id`, `/strategy/:id` (`/strategy/new` for one not yet saved),
+  `/strategies/years`.
 
   **Company, index and sector addresses are readable** (owner's choice,
   2026-09-23): `/company/RELIANCE`, `/index/nifty-50`,
@@ -352,6 +353,14 @@ call site.
   `BacktestPicksPanel` still lists what passes its rules, the first
   slots' worth marked Next: the owner researches on weekend closes, and a
   shut market is when the watchlist is wanted (2026-09-27).
+  A backtest's page also shows its **risk and streaks** (`BacktestMeasures`,
+  one row per measure, one column per period), the **basket sizes**
+  (`BacktestBaskets`), each year's worst fall, holdings, trades and breadth,
+  and each trade's shares and weights. **What worked each year**
+  (`src/routes/StrategyYears.tsx`, `/strategies/years`, linked from
+  Strategies as _By year_) ranks every saved strategy by calendar year beside
+  the market and names what the leaders had in common. It is hindsight, and
+  the page says so.
 - **The frame** (`src/components/AppShell.tsx`): navigation down the side,
   the account and theme across the top, the running build at the bottom.
   The sidebar is the navigation because this is a set of places rather than

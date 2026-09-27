@@ -2026,6 +2026,96 @@ export interface BacktestPeriod {
   beaten: number | null;
   /** The share of the sessions each play was in force, by name. */
   played: Record<string, number>;
+  /** Its detailed measures; null for a backtest kept before them. */
+  detail?: BacktestPeriodDetail | null;
+}
+
+/** The longest run of steps moving one way. */
+export interface BacktestStreak {
+  /** Sessions, months or trades. */
+  length: number;
+  /** What it compounded to, in percent; for trades, their gains' sum. */
+  change: number;
+  start: string;
+  end: string;
+}
+
+/** The deepest fall, from its high to its recovery. */
+export interface BacktestDrawdownSpell {
+  depth: number;
+  peak: string;
+  trough: string;
+  /** The first session back at the high; null if never. */
+  recovered: string | null;
+  sessions_down: number;
+  sessions_to_recover: number | null;
+}
+
+/** How the days, or the months, moved; percentages. */
+export interface BacktestMoves {
+  best: number;
+  worst: number;
+  /** The share of steps that rose. */
+  rising: number;
+  longest_rise: BacktestStreak | null;
+  longest_fall: BacktestStreak | null;
+}
+
+/** What the trades won and lost; percentages per trade. */
+export interface BacktestTradeOutcomes {
+  largest_win: number | null;
+  largest_loss: number | null;
+  average_win: number | null;
+  average_loss: number | null;
+  /** The winners' gains over the losers' losses. */
+  profit_factor: number | null;
+  winning_streak: BacktestStreak | null;
+  losing_streak: BacktestStreak | null;
+}
+
+/** How many companies were held at the closes. */
+export interface BacktestHoldings {
+  fewest: number;
+  average: number;
+  most: number;
+}
+
+/** A period's detailed measures. */
+export interface BacktestPeriodDetail {
+  deepest: BacktestDrawdownSpell | null;
+  /** The longest unbroken run of sessions below a previous high. */
+  longest_underwater: number;
+  /** The share of sessions below one, in percent. */
+  underwater: number;
+  days: BacktestMoves;
+  months: BacktestMoves | null;
+  outcomes: BacktestTradeOutcomes;
+  holdings: BacktestHoldings;
+}
+
+/** The playbook rerun with every strategy holding at most one number of companies. */
+export interface BacktestBasket {
+  slots: number;
+  cagr: number | null;
+  max_drawdown: number | null;
+  sharpe: number | null;
+  /** How many it held on average. */
+  holdings: number;
+  in_sample_cagr: number | null;
+  out_of_sample_cagr: number | null;
+}
+
+/** The market in one calendar year; percentages. */
+export interface MarketYear {
+  year: number;
+  nifty50: number | null;
+  nifty500: number | null;
+  nifty500_drawdown: number | null;
+  /** The share of sessions the Nifty 50 closed above its 200-session average. */
+  uptrend: number | null;
+  /** The mean share of companies worth Rs 5,000 crore or more above their 200-session average. */
+  breadth: number | null;
+  vix: number | null;
 }
 
 /** The portfolio at one close. */
@@ -2044,6 +2134,11 @@ export interface BacktestYear {
   year: number;
   playbook: number;
   benchmark: number | null;
+  /** The playbook's deepest fall within the year; null for an older backtest, as are the rest. */
+  max_drawdown?: number | null;
+  holdings?: BacktestHoldings | null;
+  trades?: number | null;
+  win_rate?: number | null;
 }
 
 /** One sale: a whole holding, or part of one. */
@@ -2060,6 +2155,12 @@ export interface BacktestTrade {
   gain_percent: number;
   /** The share of the purchase this sale sold. */
   portion: number;
+  /** The shares sold for the backtest's capital; null for an older backtest, as are the weights. */
+  shares?: number | null;
+  /** The holding's share of the portfolio at its first close, in percent. */
+  first_weight?: number | null;
+  lowest_weight?: number | null;
+  highest_weight?: number | null;
 }
 
 /** One strategy of a playbook, and when it is played. */
@@ -2107,6 +2208,12 @@ export interface BacktestDetail extends BacktestSummary {
   years: BacktestYear[];
   equity: BacktestEquityPoint[];
   trades: BacktestTrade[];
+  /** The rupees it started with, for the trades' shares. */
+  capital?: number;
+  /** The playbook at other basket sizes; empty for an older backtest. */
+  baskets?: BacktestBasket[];
+  /** The market in each calendar year; empty for an older backtest. */
+  market?: MarketYear[];
 }
 
 /**
@@ -2285,4 +2392,46 @@ export function runStrategy(id: number): Promise<StrategyRequest> {
  */
 export function fetchStrategyLanguage(): Promise<StrategyLanguage> {
   return request<StrategyLanguage>("/api/strategies/language");
+}
+
+/** One strategy's calendar year. */
+export interface StrategyYear {
+  strategy_id: number;
+  name: string;
+  backtest_id: number;
+  /** Its return that year, in percent. */
+  change: number;
+  max_drawdown: number | null;
+  /** How many companies it held on average. */
+  holdings: number | null;
+}
+
+/** How a trait separated the strategies having it from the rest, in one year. */
+export interface TraitGap {
+  trait: string;
+  having: number;
+  with_median: number;
+  without_median: number;
+  /** The difference, in points. */
+  gap: number;
+}
+
+/** One calendar year: the market, every strategy best first, and what set the leaders apart. */
+export interface YearReview {
+  year: number;
+  /** "good", "average" or "bad" by the Nifty 500's return. */
+  kind: "good" | "average" | "bad" | null;
+  market: MarketYear | null;
+  strategies: StrategyYear[];
+  led: TraitGap | null;
+  lagged: TraitGap | null;
+}
+
+/**
+ * Fetch what worked each year: every saved strategy's years beside the market's.
+ *
+ * @returns One review per year, newest first.
+ */
+export function fetchStrategyYears(): Promise<YearReview[]> {
+  return request<YearReview[]>("/api/strategies/years");
 }

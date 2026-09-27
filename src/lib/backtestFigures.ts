@@ -48,3 +48,26 @@ export function ratio(value: number | null | undefined): string {
 export function share(value: number | null | undefined): string {
   return value === null || value === undefined ? ABSENT : `${value.toFixed(0)}%`;
 }
+
+/**
+ * Write a holding's weight in the portfolio to one decimal, unsigned.
+ *
+ * @param value - The weight, in percent, or null.
+ * @returns Something like `10.4%`, or a dash.
+ */
+export function weight(value: number | null | undefined): string {
+  return value === null || value === undefined ? ABSENT : `${value.toFixed(1)}%`;
+}
+
+/**
+ * Write a count of sessions, months or trades.
+ *
+ * @param value - The count, or null.
+ * @param unit - What is counted, singular: "session", "month", "trade".
+ * @returns Something like `124 sessions`, or a dash.
+ */
+export function count(value: number | null | undefined, unit: string): string {
+  return value === null || value === undefined
+    ? ABSENT
+    : `${String(value)} ${unit}${value === 1 ? "" : "s"}`;
+}

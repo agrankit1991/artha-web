@@ -24,6 +24,68 @@ function renderAt(id: number): ReturnType<typeof renderPage> {
   );
 }
 
+/** Each table on the page and its column headers, to sort by every one. */
+const SORTABLE: [string, RegExp[]][] = [
+  [
+    "Periods",
+    [
+      /^Period/,
+      /^CAGR/,
+      /^Median calendar/,
+      /^Random picks/,
+      /^Edge/,
+      /^Index/,
+      /^Max drawdown/,
+      /^Sharpe/,
+      /^Trades/,
+      /^Won/,
+      /^Invested/,
+    ],
+  ],
+  [
+    "Years",
+    [
+      /^Year/,
+      /^Playbook/,
+      /^Index/,
+      /^Lead/,
+      /^Worst fall/,
+      /^Companies held/,
+      /^Trades/,
+      /^Large companies/,
+    ],
+  ],
+  ["Risk and streaks", [/^Measure/, /^Out of sample/, /^In-sample/, /^Whole stretch/]],
+  [
+    "Basket sizes",
+    [
+      /^Basket/,
+      /^CAGR/,
+      /^In-sample/,
+      /^Out of sample/,
+      /^Max drawdown/,
+      /^Sharpe/,
+      /^Held on average/,
+    ],
+  ],
+  [
+    "Trades",
+    [
+      /^Symbol/,
+      /^Bought$/,
+      /^Sold/,
+      /^Sessions/,
+      /^Bought at/,
+      /^Gain/,
+      /^Of the holding/,
+      /^Shares/,
+      /^Weight at entry/,
+      /^Weight while held/,
+      /^Why/,
+    ],
+  ],
+];
+
 describe("Backtest", () => {
   it("leads with the out-of-sample verdict and shows every period, year and rule", async () => {
     const fetched = stubPlatform({ "/api/backtests/7": { body: backtestDetail() } });
@@ -147,50 +209,54 @@ describe("Backtest", () => {
     expect(within(picks).queryByText("Hold")).not.toBeInTheDocument();
   });
 
-  it("sorts every table by any column", async () => {
+  it("shows its risk, streaks, basket sizes and each trade's size", async () => {
+    stubPlatform({ "/api/backtests/7": { body: backtestDetail() } });
+    renderAt(7);
+
+    const risk = await screen.findByRole("table", { name: "Risk and streaks" });
+    expect(within(risk).getAllByText(/-32.0% \(15 Jan 2020/)).not.toHaveLength(0);
+    expect(within(risk).getAllByText("96 sessions")).not.toHaveLength(0);
+    expect(within(risk).getAllByText("11 trades, -70.0%")).not.toHaveLength(0);
+    expect(within(risk).getAllByText("0–10, 7.4 on average")).not.toHaveLength(0);
+    const baskets = screen.getByRole("table", { name: "Basket sizes" });
+    expect(within(baskets).getByText("as written")).toBeInTheDocument();
+    const years = screen.getByRole("table", { name: "Years" });
+    expect(within(years).getByText("9.2 (6–10)")).toBeInTheDocument();
+    expect(within(years).getByText("44%")).toBeInTheDocument();
+    const trades = screen.getByRole("table", { name: "Trades" });
+    expect(within(trades).getByText("1,210")).toBeInTheDocument();
+    expect(within(trades).getByText("8.1% – 17.6%")).toBeInTheDocument();
+  });
+
+  it("leaves out what a backtest kept before the detailed measures lacks", async () => {
+    const older = backtestDetail({
+      periods: backtestDetail().periods.map((period) => ({ ...period, detail: null })),
+      baskets: [],
+      market: [],
+      plays: [
+        ...backtestDetail().plays,
+        { name: "Other", when: "1", rules: { rank: "close", slots: 10 } },
+      ],
+    });
+    stubPlatform({ "/api/backtests/7": { body: older } });
+    renderAt(7);
+
+    await screen.findByRole("table", { name: "Trades" });
+    expect(screen.queryByRole("table", { name: "Risk and streaks" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("table", { name: "Basket sizes" })).not.toBeInTheDocument();
+  });
+
+  // One test per table: all five in one test outgrew the time limit under the full suite.
+  it.each(SORTABLE)("sorts the %s table by any column", async (label, names) => {
     stubPlatform({ "/api/backtests/7": { body: backtestDetail({ benchmark: "sensex" }) } });
     renderAt(7);
-    const trades = await screen.findByRole("table", { name: "Trades" });
-    const headers: [string, RegExp[]][] = [
-      [
-        "Periods",
-        [
-          /^Period/,
-          /^CAGR/,
-          /^Median calendar/,
-          /^Random picks/,
-          /^Edge/,
-          /^Index/,
-          /^Max drawdown/,
-          /^Sharpe/,
-          /^Trades/,
-          /^Won/,
-          /^Invested/,
-        ],
-      ],
-      ["Years", [/^Year/, /^Playbook/, /^Index/, /^Lead/]],
-      [
-        "Trades",
-        [
-          /^Symbol/,
-          /^Bought$/,
-          /^Sold/,
-          /^Sessions/,
-          /^Bought at/,
-          /^Gain/,
-          /^Of the holding/,
-          /^Why/,
-        ],
-      ],
-    ];
-    for (const [label, names] of headers) {
-      const table = screen.getByRole("table", { name: label });
-      for (const name of names) {
-        await userEvent.click(within(table).getByRole("button", { name }));
-      }
+    const table = await screen.findByRole("table", { name: label });
+
+    for (const name of names) {
+      await userEvent.click(within(table).getByRole("button", { name }));
     }
 
-    expect(within(trades).getAllByRole("row")).toHaveLength(3);
+    expect(within(table).getAllByRole("row").length).toBeGreaterThan(1);
     expect(screen.getByText("against the sensex")).toBeInTheDocument();
   });
 

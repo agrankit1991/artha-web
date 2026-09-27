@@ -7,7 +7,7 @@
  * random picks out of sample: survivor-only history flatters every return.
  */
 
-import { Plus } from "lucide-react";
+import { CalendarRange, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { fetchStrategies } from "@/api/client";
@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { useResource } from "@/hooks/useResource";
 import { percent, points } from "@/lib/backtestFigures";
 import { ABSENT, formatSince } from "@/lib/format";
-import { strategyPath } from "@/lib/paths";
+import { PATHS, strategyPath } from "@/lib/paths";
 
 /** What the latest request's status says in the list. */
 function standing(row: StrategySummary): string {
@@ -116,11 +116,18 @@ export function Strategies(): React.JSX.Element {
         }
         description="Write a strategy as rules, or combine saved ones by the market's conditions, and backtest it on the stored history. Each shows the companies it would hold today. History before September 2026 holds only the companies that survived, so every return is optimistic -- the edge over random picks is the figure to trust."
         actions={
-          <Button size="sm" asChild>
-            <Link to={strategyPath("new")}>
-              <Plus aria-hidden /> New strategy
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to={PATHS.strategyYears}>
+                <CalendarRange aria-hidden /> By year
+              </Link>
+            </Button>
+            <Button size="sm" asChild>
+              <Link to={strategyPath("new")}>
+                <Plus aria-hidden /> New strategy
+              </Link>
+            </Button>
+          </div>
         }
       />
       {strategies.data?.length === 0 ? (

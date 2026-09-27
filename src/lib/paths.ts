@@ -21,6 +21,7 @@ export const PATHS = {
   screen: "/screen",
   scans: "/scans",
   strategies: "/strategies",
+  strategyYears: "/strategies/years",
   backtests: "/backtests",
   compare: "/compare",
   futures: "/futures",

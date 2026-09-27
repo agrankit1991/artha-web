@@ -10,7 +10,9 @@
 import { useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 
-import { type BacktestYear, fetchBacktest } from "@/api/client";
+import { type BacktestPlay, type BacktestYear, fetchBacktest } from "@/api/client";
+import { BacktestBaskets } from "@/components/BacktestBaskets";
+import { BacktestMeasures } from "@/components/BacktestMeasures";
 import { BacktestPeriodsTable } from "@/components/BacktestPeriodsTable";
 import { BacktestPicksPanel } from "@/components/BacktestPicks";
 import { BacktestPlays } from "@/components/BacktestPlays";
@@ -24,10 +26,10 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { StatGrid, StatTile } from "@/components/StatTile";
 import { Badge } from "@/components/ui/badge";
 import { useResource } from "@/hooks/useResource";
-import { percent, points, ratio } from "@/lib/backtestFigures";
+import { percent, points, ratio, share } from "@/lib/backtestFigures";
 import { growthLines } from "@/lib/backtestReadings";
 import { PRICE_LINE, THRESHOLD } from "@/lib/chartPalette";
-import { formatDay } from "@/lib/format";
+import { ABSENT, formatDay } from "@/lib/format";
 
 /** How the benchmarks are named on the page. */
 const BENCHMARKS: Record<string, string> = {
@@ -37,7 +39,10 @@ const BENCHMARKS: Record<string, string> = {
   gold: "Gold",
 };
 
-const YEAR_COLUMNS: Column<BacktestYear>[] = [
+/** A year of the run, beside the breadth of the market that year. */
+type YearRow = BacktestYear & { breadth: number | null };
+
+const YEAR_COLUMNS: Column<YearRow>[] = [
   {
     id: "year",
     header: "Year",
@@ -68,7 +73,55 @@ const YEAR_COLUMNS: Column<BacktestYear>[] = [
       ),
     meta: { align: "right", emphasis: true },
   },
+  {
+    id: "max_drawdown",
+    header: "Worst fall",
+    accessorFn: (row) => row.max_drawdown ?? null,
+    cell: ({ row }) => percent(row.original.max_drawdown),
+    meta: { align: "right" },
+  },
+  {
+    id: "holdings",
+    header: "Companies held",
+    accessorFn: (row) => row.holdings?.average ?? null,
+    cell: ({ row }) => {
+      const held = row.original.holdings;
+      return held === null || held === undefined
+        ? ABSENT
+        : `${held.average.toFixed(1)} (${String(held.fewest)}–${String(held.most)})`;
+    },
+    meta: { align: "right" },
+  },
+  {
+    id: "trades",
+    header: "Trades",
+    accessorFn: (row) => row.trades ?? null,
+    cell: ({ row }) =>
+      row.original.trades === null || row.original.trades === undefined
+        ? ABSENT
+        : String(row.original.trades),
+    meta: { align: "right" },
+  },
+  {
+    id: "breadth",
+    header: "Large companies above 200-day",
+    accessorFn: (row) => row.breadth,
+    cell: ({ row }) => share(row.original.breadth),
+    meta: { align: "right" },
+  },
 ];
+
+/**
+ * The slots the playbook is written with, when every play holds the same number.
+ *
+ * @param plays - Its plays.
+ * @returns The number, or null when they differ.
+ */
+function writtenSlots(plays: BacktestPlay[]): number | null {
+  const slots = new Set(plays.map((play) => play.rules.slots));
+  const [only] = [...slots];
+  return slots.size === 1 && typeof only === "number" ? only : null;
+}
 
 /**
  * Render the page for the backtest the address names.
@@ -102,6 +155,8 @@ export function Backtest(): React.JSX.Element {
     { kind: "line", label: index, colour: THRESHOLD, points: lines.benchmark, width: 1 },
   ];
   const whole = shown.periods.find((period) => period.name === "whole");
+  const breadth = new Map((shown.market ?? []).map((year) => [year.year, year.breadth]));
+  const years = shown.years.map((year) => ({ ...year, breadth: breadth.get(year.year) ?? null }));
 
   return (
     <div className="space-y-8">
@@ -167,9 +222,29 @@ export function Backtest(): React.JSX.Element {
         <BacktestPeriodsTable periods={shown.periods} />
       </section>
 
+      {shown.periods.some((period) => period.detail) && (
+        <section aria-label="Risk and streaks" className="space-y-3">
+          <SectionHeader
+            title="Risk and streaks"
+            description="How deep and how long its worst fall was, its longest runs up and down, what its trades won and lost, and how many companies it held."
+          />
+          <BacktestMeasures periods={shown.periods} />
+        </section>
+      )}
+
+      {(shown.baskets ?? []).length > 0 && (
+        <section aria-label="Basket size" className="space-y-3">
+          <SectionHeader
+            title="Basket size"
+            description="The same rules holding at most 10, 20, 30, 40 or 50 companies, over the whole stretch; in- and out-of-sample are that run's two parts."
+          />
+          <BacktestBaskets baskets={shown.baskets ?? []} written={writtenSlots(shown.plays)} />
+        </section>
+      )}
+
       <section aria-label="Years" className="space-y-3">
         <SectionHeader title="Year by year" />
-        <DataTable columns={YEAR_COLUMNS} rows={shown.years} label="Years" />
+        <DataTable columns={YEAR_COLUMNS} rows={years} label="Years" />
       </section>
 
       <section aria-label="Rules" className="space-y-3">

@@ -56,6 +56,10 @@ describe("Strategies", () => {
       "href",
       "/strategy/new",
     );
+    expect(screen.getByRole("link", { name: /By year/ })).toHaveAttribute(
+      "href",
+      "/strategies/years",
+    );
   });
 
   it("sorts by any column", async () => {

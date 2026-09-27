@@ -11,8 +11,8 @@ import type { BacktestTrade } from "@/api/client";
 import { type Column, DataTable } from "@/components/DataTable";
 import { symbolColumn } from "@/components/identityColumns";
 import { Badge } from "@/components/ui/badge";
-import { percent, share } from "@/lib/backtestFigures";
-import { formatDay, formatPrice } from "@/lib/format";
+import { percent, share, weight } from "@/lib/backtestFigures";
+import { ABSENT, formatDay, formatPrice, formatWhole } from "@/lib/format";
 import { companyPath } from "@/lib/paths";
 import { cn } from "@/lib/utils";
 
@@ -76,6 +76,33 @@ const COLUMNS: Column<BacktestTrade>[] = [
     header: "Of the holding",
     accessorFn: (row) => row.portion,
     cell: ({ row }) => share(row.original.portion * 100),
+    meta: { align: "right" },
+  },
+  {
+    id: "shares",
+    header: "Shares",
+    accessorFn: (row) => row.shares ?? null,
+    cell: ({ row }) =>
+      row.original.shares === null || row.original.shares === undefined
+        ? ABSENT
+        : formatWhole(Math.round(row.original.shares)),
+    meta: { align: "right" },
+  },
+  {
+    id: "first_weight",
+    header: "Weight at entry",
+    accessorFn: (row) => row.first_weight ?? null,
+    cell: ({ row }) => weight(row.original.first_weight),
+    meta: { align: "right" },
+  },
+  {
+    id: "weight_range",
+    header: "Weight while held",
+    accessorFn: (row) => row.highest_weight ?? null,
+    cell: ({ row }) =>
+      row.original.lowest_weight === null || row.original.lowest_weight === undefined
+        ? ABSENT
+        : `${weight(row.original.lowest_weight)} – ${weight(row.original.highest_weight)}`,
     meta: { align: "right" },
   },
   {

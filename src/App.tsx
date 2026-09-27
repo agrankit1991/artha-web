@@ -52,6 +52,7 @@ import { Profile } from "@/routes/Profile";
 import { SignIn } from "@/routes/SignIn";
 import { Strategies } from "@/routes/Strategies";
 import { Strategy } from "@/routes/Strategy";
+import { StrategyYears } from "@/routes/StrategyYears";
 
 /** The navigation, in the order the screens are meant to be read. */
 const SCREENS: Screen[] = [
@@ -193,6 +194,7 @@ function SignedIn({
         <Route path={PATHS.screen} element={<Screener />} />
         <Route path={PATHS.scans} element={<Scans />} />
         <Route path={PATHS.strategies} element={<Strategies />} />
+        <Route path={PATHS.strategyYears} element={<StrategyYears />} />
         <Route path="/strategy/:id" element={<Strategy />} />
         <Route path={PATHS.backtests} element={<Backtests />} />
         <Route path="/backtest/:id" element={<Backtest />} />

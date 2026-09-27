@@ -68,11 +68,15 @@ import type {
   Fund as FundResponse,
   BacktestDetail,
   BacktestPeriod,
+  BacktestPeriodDetail,
+  BacktestStreak,
   BacktestSummary,
   StrategyDetail,
   StrategyRequest,
   StrategyResult,
   StrategySummary,
+  StrategyYear,
+  YearReview,
 } from "@/api/client";
 
 /** A reply the stubbed platform should give to a path. */
@@ -1479,6 +1483,59 @@ export function backtestPeriod(overrides: Partial<BacktestPeriod> = {}): Backtes
     edge: 12.94,
     beaten: 100,
     played: {},
+    detail: periodDetail(),
+    ...overrides,
+  };
+}
+
+/**
+ * A period's detailed measures: a recovered fall, streaks both ways, a held basket.
+ *
+ * @param overrides - Fields to change.
+ * @returns The detail.
+ */
+export function periodDetail(overrides: Partial<BacktestPeriodDetail> = {}): BacktestPeriodDetail {
+  const streak = (length: number, change: number): BacktestStreak => ({
+    length,
+    change,
+    start: "2020-03-02",
+    end: "2020-03-20",
+  });
+  return {
+    deepest: {
+      depth: -32.0,
+      peak: "2020-01-15",
+      trough: "2020-03-24",
+      recovered: "2020-08-10",
+      sessions_down: 48,
+      sessions_to_recover: 96,
+    },
+    longest_underwater: 180,
+    underwater: 61.5,
+    days: {
+      best: 7.2,
+      worst: -9.1,
+      rising: 53.4,
+      longest_rise: streak(9, 11.2),
+      longest_fall: streak(7, -12.5),
+    },
+    months: {
+      best: 21.0,
+      worst: -18.3,
+      rising: 60.0,
+      longest_rise: streak(6, 48.0),
+      longest_fall: null,
+    },
+    outcomes: {
+      largest_win: 291.0,
+      largest_loss: -44.0,
+      average_win: 22.5,
+      average_loss: -8.6,
+      profit_factor: 2.4,
+      winning_streak: streak(8, 96.0),
+      losing_streak: streak(11, -70.0),
+    },
+    holdings: { fewest: 0, average: 7.4, most: 10 },
     ...overrides,
   };
 }
@@ -1550,8 +1607,48 @@ export function backtestDetail(overrides: Partial<BacktestDetail> = {}): Backtes
       ],
     },
     years: [
-      { year: 2025, playbook: 16.7, benchmark: 6.7 },
+      {
+        year: 2025,
+        playbook: 16.7,
+        benchmark: 6.7,
+        max_drawdown: -12.1,
+        holdings: { fewest: 6, average: 9.2, most: 10 },
+        trades: 48,
+        win_rate: 52.0,
+      },
       { year: 2026, playbook: -22.8, benchmark: null },
+    ],
+    capital: 1_000_000,
+    baskets: [
+      {
+        slots: 10,
+        cagr: 28.8,
+        max_drawdown: -25.3,
+        sharpe: 1.4,
+        holdings: 7.4,
+        in_sample_cagr: 28.0,
+        out_of_sample_cagr: 31.9,
+      },
+      {
+        slots: 20,
+        cagr: 26.7,
+        max_drawdown: -34.4,
+        sharpe: 1.2,
+        holdings: 14.8,
+        in_sample_cagr: 24.9,
+        out_of_sample_cagr: 30.2,
+      },
+    ],
+    market: [
+      {
+        year: 2025,
+        nifty50: 10.5,
+        nifty500: 6.7,
+        nifty500_drawdown: -14.2,
+        uptrend: 58.0,
+        breadth: 44.0,
+        vix: 14.1,
+      },
     ],
     equity: [
       { session: "2026-09-18", value: 1, invested: 0, benchmark: 1 },
@@ -1569,6 +1666,10 @@ export function backtestDetail(overrides: Partial<BacktestDetail> = {}): Backtes
         reason: "target",
         gain_percent: 24.6,
         portion: 0.5,
+        shares: 1210.4,
+        first_weight: 10.0,
+        lowest_weight: 8.1,
+        highest_weight: 17.6,
       },
       {
         instrument_key: "NSE_EQ|INE999Z01010",
@@ -1654,6 +1755,65 @@ export function strategyDetail(overrides: Partial<StrategyDetail> = {}): Strateg
     text: 'name = "Momentum near the high"\nrank = "ret(close, 252)"\n',
     created_at: "2026-09-26T17:50:00+05:30",
     requests: [strategyRequest()],
+    ...overrides,
+  };
+}
+
+/**
+ * One strategy's calendar year.
+ *
+ * @param overrides - Fields to change.
+ * @returns The year.
+ */
+export function strategyYear(overrides: Partial<StrategyYear> = {}): StrategyYear {
+  return {
+    strategy_id: 5,
+    name: "M23 · Momentum 10 · Nifty gate",
+    backtest_id: 119,
+    change: 52.9,
+    max_drawdown: -11.8,
+    holdings: 8.7,
+    ...overrides,
+  };
+}
+
+/**
+ * One calendar year's review: an average market, a gated leader.
+ *
+ * @param overrides - Fields to change.
+ * @returns The review.
+ */
+export function yearReview(overrides: Partial<YearReview> = {}): YearReview {
+  return {
+    year: 2025,
+    kind: "average",
+    market: {
+      year: 2025,
+      nifty50: 10.5,
+      nifty500: 6.7,
+      nifty500_drawdown: -14.2,
+      uptrend: 58.0,
+      breadth: 44.0,
+      vix: 14.1,
+    },
+    strategies: [
+      strategyYear(),
+      strategyYear({
+        strategy_id: 6,
+        name: "M01 · Momentum 20",
+        change: 39.9,
+        holdings: null,
+        max_drawdown: null,
+      }),
+    ],
+    led: { trait: "a market gate", having: 90, with_median: 31.2, without_median: 18.0, gap: 13.2 },
+    lagged: {
+      trait: "a stop-loss",
+      having: 12,
+      with_median: 20.1,
+      without_median: 29.4,
+      gap: -9.3,
+    },
     ...overrides,
   };
 }
