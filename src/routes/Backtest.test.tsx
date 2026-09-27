@@ -121,6 +121,32 @@ describe("Backtest", () => {
     expect(screen.queryByRole("region", { name: "Picks today" })).not.toBeInTheDocument();
   });
 
+  it("lists what it would buy first while its gate is shut", async () => {
+    const buying = backtestDetail().picks;
+    stubPlatform({
+      "/api/backtests/7": {
+        body: backtestDetail({
+          picks: buying && {
+            ...buying,
+            standing: "gate shut",
+            slots: 1,
+            candidates: buying.candidates.map((one) => ({ ...one, chosen: false })),
+          },
+        }),
+      },
+    });
+    renderAt(7);
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "those marked Next are what it would buy first once it may",
+    );
+    const picks = screen.getByRole("table", { name: "Picks today" });
+    expect(within(picks).getByRole("link", { name: "CLIMBER" })).toBeInTheDocument();
+    expect(within(picks).getByText("Next")).toBeInTheDocument();
+    expect(within(picks).getByText("Runner-up")).toBeInTheDocument();
+    expect(within(picks).queryByText("Hold")).not.toBeInTheDocument();
+  });
+
   it("sorts every table by any column", async () => {
     stubPlatform({ "/api/backtests/7": { body: backtestDetail({ benchmark: "sensex" }) } });
     renderAt(7);

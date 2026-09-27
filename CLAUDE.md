@@ -348,6 +348,10 @@ call site.
   `src/lib/strategyTemplates.ts` carry every lever, commented. The
   reader's edits are kept apart from the loaded text (`edited`), so a poll
   reloading the strategy never overwrites unsaved rules.
+  While a strategy would buy nothing (its gate shut, say),
+  `BacktestPicksPanel` still lists what passes its rules, the first
+  slots' worth marked Next: the owner researches on weekend closes, and a
+  shut market is when the watchlist is wanted (2026-09-27).
 - **The frame** (`src/components/AppShell.tsx`): navigation down the side,
   the account and theme across the top, the running build at the bottom.
   The sidebar is the navigation because this is a set of places rather than
