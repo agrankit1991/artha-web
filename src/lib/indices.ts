@@ -12,6 +12,8 @@
  * one worth making again.
  */
 
+import type { ScopeOptions } from "@/api/client";
+
 /** An index offered by name rather than by key. */
 export interface FeaturedIndex {
   /** The instrument key, as the platform stores it. */
@@ -37,6 +39,22 @@ export const FEATURED_INDICES: readonly FeaturedIndex[] = [
   { key: "NSE_INDEX|Nifty Bank", name: "Bank Nifty" },
   { key: "NSE_INDEX|India VIX", name: "India VIX" },
 ];
+
+/**
+ * The headline indices that are populations the platform counts.
+ *
+ * India VIX is a headline index with no constituents, so it is a card and
+ * never a population. Which ones qualify follows the platform's own list
+ * of counted indices rather than a second hardcoded one.
+ *
+ * @param options - What the platform counts, or null before it has said.
+ * @returns The headline indices it counts, in their settled order; none
+ *   until it has said.
+ */
+export function countedHeadlines(options: ScopeOptions | null): FeaturedIndex[] {
+  const counted = new Set((options?.indices ?? []).map((option) => option.key));
+  return FEATURED_INDICES.filter((index) => counted.has(index.key));
+}
 
 /**
  * The index a comparison is drawn against by default.

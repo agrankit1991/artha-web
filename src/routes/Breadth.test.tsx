@@ -9,10 +9,12 @@ import {
   breadth,
   breadthGrid,
   breadthSession,
+  participation,
   renderPage,
   scopeOptions,
   stubPlatform,
 } from "@/test/support";
+import { forgetForTests, readPreferences } from "@/lib/preferences";
 
 vi.mock("lightweight-charts", async () => (await import("@/test/chartStub")).chartModule());
 
@@ -24,6 +26,7 @@ function stubEverything(): ReturnType<typeof stubPlatform> {
   return stubPlatform({
     "/api/movers/scopes": { body: scopeOptions() },
     "/api/breadth/grid": { body: breadthGrid() },
+    "/api/breadth/participation": { body: participation() },
     "/api/breadth": { body: breadth() },
   });
 }
@@ -73,7 +76,10 @@ describe("Breadth", () => {
     renderPage(<Breadth />);
     await screen.findByText("Daily Breadth");
 
-    await userEvent.click(screen.getByRole("button", { name: "5Y" }));
+    // The heatmap offers a 5Y of its own; this is the page's window.
+    await userEvent.click(
+      within(screen.getByRole("group", { name: "Window" })).getByRole("button", { name: "5Y" }),
+    );
 
     await waitFor(() => {
       const asked = fetchMock.mock.calls.map((call) => String(call[0]));
@@ -288,33 +294,118 @@ describe("Breadth", () => {
     expect(within(drawn).getByText("McClellan oscillator")).toBeInTheDocument();
   });
 
-  it("draws the headline indices' participation over time, against the average chosen", async () => {
+  it("asks for every population's participation in one request, fifty sessions to begin with", async () => {
+    const fetchMock = stubEverything();
+
+    renderPage(<Breadth />);
+
+    // The headline indices the platform counts, and nothing it does not.
+    await waitFor(() => {
+      expect(participationAsked(fetchMock)).toContain(
+        "/api/breadth/participation?sessions=50&scope=index:NSE_INDEX|Nifty 50",
+      );
+    });
+  });
+
+  it("reaches back as far as the span chosen, apart from the page's window", async () => {
+    const fetchMock = stubEverything();
+    renderPage(<Breadth />);
+    await screen.findByRole("table", { name: "Share above the 50-day average" });
+
+    await userEvent.click(
+      within(screen.getByRole("group", { name: "Span" })).getByRole("button", { name: "20Y" }),
+    );
+
+    await waitFor(() => {
+      expect(participationAsked(fetchMock).some((path) => path.includes("sessions=5000"))).toBe(
+        true,
+      );
+    });
+    // The window over the rest of the page is untouched.
+    const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+    expect(
+      asked.some((path) => path.startsWith("/api/breadth?") && path.includes("sessions=5000")),
+    ).toBe(false);
+  });
+
+  it("colours each session against the average chosen", async () => {
     stubEverything();
     renderPage(<Breadth />);
 
-    expect(
-      await screen.findByRole("table", { name: "Share above the 50-day average" }),
-    ).toBeInTheDocument();
+    const grid = await screen.findByRole("table", { name: "Share above the 50-day average" });
+    expect(within(grid).getByLabelText(/Nifty 50, 18 Sept? 2026: 55% above/)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "200-day" }));
 
-    expect(
-      screen.getByRole("table", { name: "Share above the 200-day average" }),
-    ).toBeInTheDocument();
+    const longer = screen.getByRole("table", { name: "Share above the 200-day average" });
+    expect(within(longer).getByLabelText(/Nifty 50, 18 Sept? 2026: 62% above/)).toBeInTheDocument();
   });
 
-  it("says so when the headline indices' history cannot be read", async () => {
+  it("remembers the populations a reader changes, and resets to the headline indices", async () => {
+    const fetchMock = stubEverything();
+    renderPage(<Breadth />);
+    await screen.findByRole("table", { name: /Share above/ });
+
+    await userEvent.click(screen.getByRole("button", { name: "Remove Nifty 50" }));
+
+    expect(await screen.findByText("No populations to compare")).toBeInTheDocument();
+    expect(readPreferences().participation).toEqual([]);
+
+    fetchMock.mockClear();
+    await userEvent.click(screen.getByRole("button", { name: "Reset to the headline indices" }));
+
+    expect(readPreferences().participation).toBeNull();
+    await waitFor(() => {
+      expect(participationAsked(fetchMock)).toHaveLength(1);
+    });
+  });
+
+  it("opens on the populations a reader chose on an earlier visit", async () => {
+    window.localStorage.setItem(
+      "artha.preferences",
+      JSON.stringify({ participation: [{ kind: "sector", key: "IT - Software" }] }),
+    );
+    forgetForTests();
+    const fetchMock = stubEverything();
+
+    renderPage(<Breadth />);
+
+    await waitFor(() => {
+      expect(participationAsked(fetchMock)).toContain(
+        "/api/breadth/participation?sessions=50&scope=sector:IT - Software",
+      );
+    });
+  });
+
+  it("says so when the participation cannot be read, and keeps the rest of the page", async () => {
     stubPlatform({
       "/api/movers/scopes": { body: scopeOptions() },
       "/api/breadth/grid": { body: breadthGrid() },
-      "/api/breadth": {
-        bodyFor: (path: string) =>
-          path.includes("scope_kind=index") ? { detail: "breadth broke" } : breadth(),
-        statusFor: (path: string) => (path.includes("scope_kind=index") ? 500 : 200),
-      },
+      "/api/breadth/participation": { status: 500, body: { detail: "participation broke" } },
+      "/api/breadth": { body: breadth() },
     });
     renderPage(<Breadth />);
 
-    expect(await screen.findByText("breadth broke")).toBeInTheDocument();
+    expect(await screen.findByText("participation broke")).toBeInTheDocument();
+    expect(screen.getByText("Daily Breadth")).toBeInTheDocument();
+  });
+
+  it("says so when the headline indices cannot be named", async () => {
+    stubPlatform({
+      "/api/movers/scopes": { status: 500, body: { detail: "scopes broke" } },
+      "/api/breadth/grid": { body: breadthGrid() },
+      "/api/breadth/participation": { body: participation() },
+      "/api/breadth": { body: breadth() },
+    });
+    renderPage(<Breadth />);
+
+    expect(await screen.findByText("scopes broke")).toBeInTheDocument();
   });
 });
+
+/** The participation requests made, decoded as the platform reads them. */
+function participationAsked(fetchMock: ReturnType<typeof stubPlatform>): string[] {
+  return fetchMock.mock.calls
+    .map((call) => decodeURIComponent(String(call[0])).replace(/\+/g, " "))
+    .filter((path) => path.startsWith("/api/breadth/participation"));
+}

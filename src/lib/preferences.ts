@@ -18,6 +18,7 @@
 import { useSyncExternalStore } from "react";
 
 import type { ChartStyle, Overlay } from "@/components/ChartControls";
+import type { Scope } from "@/components/ScopeSelector";
 import type { ScopeKind } from "@/api/client";
 
 /** The reader's standing choices. */
@@ -40,6 +41,13 @@ export interface Preferences {
   range: number;
   /** The layout each list page was last left in, by page. */
   views: Partial<Record<string, ViewMode>>;
+  /**
+   * The populations the participation heatmap lays side by side, in order;
+   * null until the reader changes them, meaning the headline indices the
+   * platform counts -- so a reset follows the platform rather than a list
+   * stored on the day of the change.
+   */
+  participation: Scope[] | null;
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -51,11 +59,13 @@ export const DEFAULT_PREFERENCES: Preferences = {
   forecast: true,
   range: 250,
   views: {},
+  participation: null,
 };
 
 const STORAGE_KEY = "artha.preferences";
 
 const SCOPE_KINDS: readonly ScopeKind[] = ["companies", "indices", "sector", "index"];
+const KEYED_KINDS: readonly ScopeKind[] = ["sector", "index"];
 const STYLES: readonly ChartStyle[] = ["line", "candles", "area"];
 const OVERLAYS: readonly Overlay[] = ["sma_20", "sma_50", "sma_200", "volume", "rsi"];
 const RANGES: readonly number[] = [21, 65, 125, 250, 1250, 12500];
@@ -135,25 +145,14 @@ function load(): unknown {
 export function parse(stored: unknown): Preferences {
   const record =
     typeof stored === "object" && stored !== null ? (stored as Record<string, unknown>) : {};
-  const scope = record["scope"];
-  const kind =
-    typeof scope === "object" && scope !== null
-      ? (scope as Record<string, unknown>)["kind"]
-      : undefined;
-  const key =
-    typeof scope === "object" && scope !== null
-      ? (scope as Record<string, unknown>)["key"]
-      : undefined;
   const chartStyle = record["chartStyle"];
   const overlays = record["overlays"];
   const forecast = record["forecast"];
   const range = record["range"];
   const views = record["views"];
+  const participation = record["participation"];
   return {
-    scope:
-      typeof kind === "string" && (SCOPE_KINDS as readonly string[]).includes(kind)
-        ? { kind: kind as ScopeKind, key: typeof key === "string" ? key : null }
-        : DEFAULT_PREFERENCES.scope,
+    scope: scopeOf(record["scope"]) ?? DEFAULT_PREFERENCES.scope,
     chartStyle:
       typeof chartStyle === "string" && (STYLES as readonly string[]).includes(chartStyle)
         ? (chartStyle as ChartStyle)
@@ -178,7 +177,35 @@ export function parse(stored: unknown): Preferences {
             ),
           )
         : DEFAULT_PREFERENCES.views,
+    // A column that names no population would fail the whole heatmap's
+    // request, so it is dropped rather than kept with its key missing.
+    participation: Array.isArray(participation)
+      ? participation
+          .map(scopeOf)
+          .filter(
+            (scope): scope is Scope =>
+              scope !== null && (scope.key !== null || !KEYED_KINDS.includes(scope.kind)),
+          )
+      : DEFAULT_PREFERENCES.participation,
   };
+}
+
+/**
+ * Read a stored population.
+ *
+ * @param stored - Whatever storage held for one.
+ * @returns The population, its key null when none was stored; null when
+ *   its kind is not one this version knows.
+ */
+function scopeOf(stored: unknown): Scope | null {
+  if (typeof stored !== "object" || stored === null) {
+    return null;
+  }
+  const kind = (stored as Record<string, unknown>)["kind"];
+  const key = (stored as Record<string, unknown>)["key"];
+  return typeof kind === "string" && (SCOPE_KINDS as readonly string[]).includes(kind)
+    ? { kind: kind as ScopeKind, key: typeof key === "string" ? key : null }
+    : null;
 }
 
 /** Only for tests: forget what was read, so the next read is from storage. */

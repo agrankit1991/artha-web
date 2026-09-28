@@ -317,6 +317,30 @@ call site.
   Each share carries where it stands in that population's _own_ history,
   because 43% above the 200-day is weak or ordinary depending entirely on
   the population.
+
+  **Participation over time** (`BreadthHeatmap`, 2026-09-28, owner's
+  request for five and twenty years "with same daily details") keeps the
+  original grid exactly -- a row per population, a 12px column per
+  session, newest at the right -- and only gains, in the same card, a span
+  selector (50D to Max, apart from the page's window so twenty years
+  never loads into the table) and chips to add, remove and reorder
+  populations (`ParticipationPopulations`). **Two designs were rejected
+  first:** a vertical canvas grid fitted to the view, and a separate
+  detail page; the owner wanted the old view extended in place, with
+  sideways scrolling. A longer span is the same cells, scrolled: only the
+  columns in view are built (`src/lib/visibleRange.ts`), the scrolled-past
+  sessions standing in as one gap cell of their width at each end, and
+  the grid opens scrolled to the newest session. Date labels are laid
+  over the header cells, not in them, so no label widens its column and
+  every session keeps the 14px pitch the gaps are sized by. The set of
+  populations is kept in preferences (`participation`, null meaning "the
+  headline indices the platform counts") and Reset returns to it.
+  Companies are deliberately not offered: one company has no share of
+  members above an average. One request serves every row:
+  `GET /api/breadth/participation?scope=index:<key>&scope=sector:<key>&sessions=`,
+  about 0.8 MB for twenty years of seven indices against about 17 MB as
+  seven full breadth readings.
+
 - **The breadth glance** (`src/components/BreadthPanel.tsx`) — how many
   took part rather than how far the index moved, used by both screens. One proportional bar for the split, three meters for the moving
   averages, two sparklines, and a plain-language reading of the McClellan
@@ -382,7 +406,9 @@ call site.
 - **Shared components** in `src/components`: `DataTable`, `Delta`,
   `MoverPanel`, `IndexCard`, `MiniCandlestick`, `ScopeSelector`,
   `ScopePicker`, `ThemeToggle`, `Meter`, `Sparkline`, `Statistic`,
-  `BreadthPanel`, `BreadthGridPanel`, `RegimeBanner`, `NewsFeed`,
+  `BreadthPanel`, `BreadthGridPanel`, `BreadthHeatmap`, `RegimeBanner`, `NewsFeed`,
+  `Chip` (a removable member of a set the reader builds: the compare set
+  and the heatmap's populations),
   `LoadMore`, `RangeSelector`, `Tabs`, `Heatmap`, `Chart`, `ChartControls`,
   `ComparisonChart`, `PriceChart`,
   `TradingViewWidget`, `TradingViewLink`, `Menu`, `Tooltip`, `ThemeMenu`,

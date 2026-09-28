@@ -12,7 +12,6 @@
  * button starts one with that company already on it.
  */
 
-import { X } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -24,6 +23,7 @@ import {
   fetchSearch,
   fetchSeries,
 } from "@/api/client";
+import { Chip } from "@/components/Chip";
 import { type ChartLine, ComparisonChart } from "@/components/ComparisonChart";
 import { type Column, DataTable } from "@/components/DataTable";
 import { nameColumn, symbolColumn } from "@/components/identityColumns";
@@ -33,7 +33,6 @@ import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
 import { PRICE_RANGES, RangeSelector } from "@/components/RangeSelector";
 import { SectionHeader } from "@/components/SectionHeader";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDebounced } from "@/hooks/useDebounced";
 import { useResource } from "@/hooks/useResource";
@@ -133,9 +132,12 @@ export function Compare(): React.JSX.Element {
       <section className="space-y-3" aria-label="Instruments compared">
         <div className="flex flex-wrap items-center gap-2">
           {compared.map((one) => (
-            <span
+            <Chip
               key={one.instrument.instrument_key}
-              className="inline-flex items-center gap-1.5 rounded-full border py-1 pl-2.5 pr-1 text-sm"
+              removeLabel={`Remove ${one.instrument.symbol}`}
+              onRemove={() => {
+                setKeys(keys.filter((key) => key !== one.instrument.instrument_key));
+              }}
             >
               <span
                 aria-hidden="true"
@@ -146,18 +148,7 @@ export function Compare(): React.JSX.Element {
               <span className="hidden text-xs text-muted-foreground sm:inline">
                 {one.instrument.name}
               </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                aria-label={`Remove ${one.instrument.symbol}`}
-                className="h-6 w-6 rounded-full p-0"
-                onClick={() => {
-                  setKeys(keys.filter((key) => key !== one.instrument.instrument_key));
-                }}
-              >
-                <X aria-hidden="true" className="h-3 w-3" />
-              </Button>
-            </span>
+            </Chip>
           ))}
           {keys.length < MOST ? (
             <Adder

@@ -83,4 +83,28 @@ describe("preferences", () => {
     expect(read.views).toEqual({ indices: "grouped" });
     expect(parse({ views: "grouped" }).views).toEqual({});
   });
+
+  it("keeps the heatmap's columns in order, and drops any that name no population", () => {
+    // Left unchosen, the headline indices are what the platform says they are.
+    expect(parse({}).participation).toBeNull();
+    expect(parse({ participation: "Nifty 50" }).participation).toBeNull();
+
+    const read = parse({
+      participation: [
+        { kind: "sector", key: "Pharmaceuticals" },
+        { kind: "companies", key: null },
+        // An index without its key would fail the whole request.
+        { kind: "index" },
+        { kind: "galaxy", key: "x" },
+        "junk",
+        { kind: "index", key: "NSE_INDEX|Nifty 50" },
+      ],
+    });
+
+    expect(read.participation).toEqual([
+      { kind: "sector", key: "Pharmaceuticals" },
+      { kind: "companies", key: null },
+      { kind: "index", key: "NSE_INDEX|Nifty 50" },
+    ]);
+  });
 });

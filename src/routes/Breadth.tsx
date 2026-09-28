@@ -12,15 +12,17 @@ import { Activity, Grid3x3, LayoutGrid, Table as TableIcon } from "lucide-react"
 import { useCallback, useMemo, useState } from "react";
 
 import type { BreadthSession } from "@/api/client";
-import { fetchBreadth, fetchBreadthGrid, fetchScopes } from "@/api/client";
+import { fetchBreadth, fetchBreadthGrid, fetchParticipation, fetchScopes } from "@/api/client";
 import { BreadthGridPanel } from "@/components/BreadthGridPanel";
-import { type BreadthMeasure, BreadthHeatmap, type HeatmapRow } from "@/components/BreadthHeatmap";
+import { type BreadthMeasure, BreadthHeatmap } from "@/components/BreadthHeatmap";
 import { Chooser } from "@/components/Chooser";
 import { BreadthChart } from "@/components/BreadthChart";
 import { BreadthPanel } from "@/components/BreadthPanel";
 import { type Column, DataTable } from "@/components/DataTable";
+import { Empty } from "@/components/Empty";
+import { ParticipationPopulations } from "@/components/ParticipationPopulations";
 import { RegimeBanner } from "@/components/RegimeBanner";
-import { BREADTH_RANGES, RangeSelector } from "@/components/RangeSelector";
+import { BREADTH_RANGES, PARTICIPATION_RANGES, RangeSelector } from "@/components/RangeSelector";
 import { ScopePicker } from "@/components/ScopePicker";
 import type { Scope } from "@/components/ScopeSelector";
 import { Statistic } from "@/components/Statistic";
@@ -29,8 +31,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
 import { useResource } from "@/hooks/useResource";
-import { FEATURED_INDICES } from "@/lib/indices";
+import { headlinePopulations, heatmapRows } from "@/lib/participationPopulations";
 import { populationPath } from "@/lib/paths";
+import { usePreferences, writePreferences } from "@/lib/preferences";
 import { readings } from "@/lib/breadthReadings";
 import { ABSENT, formatDay, formatVolume, toNumber } from "@/lib/format";
 
@@ -64,25 +67,29 @@ export function Breadth(): React.JSX.Element {
   const breadth = useResource(loadBreadth);
   const grid = useResource(loadGrid);
 
-  // The headline indices' last fifty sessions each, for the heatmap. One
-  // request apiece, side by side: the endpoint already answers per population.
+  // Participation over time: the reader's own populations, or the headline
+  // indices until they choose. Its own span rather than the page's window,
+  // so twenty years here does not load twenty years into the table below.
   const [measure, setMeasure] = useState<BreadthMeasure>("above_sma_50");
-  const loadHeatmap = useCallback(
-    () =>
-      Promise.all(
-        FEATURED_INDICES.map(async (index): Promise<HeatmapRow> => {
-          const found = await fetchBreadth("index", index.key, HEATMAP_SESSIONS);
-          return {
-            key: index.key,
-            label: index.name,
-            href: populationPath("index", index.key),
-            sessions: found.sessions,
-          };
-        }),
-      ),
-    [],
+  const [span, setSpan] = useState(HEATMAP_SESSIONS);
+  const { participation: chosen } = usePreferences();
+  const populations = useMemo(
+    () => chosen ?? headlinePopulations(scopes.data),
+    [chosen, scopes.data],
   );
-  const heatmap = useResource(loadHeatmap);
+  const loadParticipation = useCallback(
+    () =>
+      populations.length === 0 ? Promise.resolve(null) : fetchParticipation(populations, span),
+    [populations, span],
+  );
+  const participation = useResource(loadParticipation);
+  const rows = useMemo(
+    () => heatmapRows(participation.data, measure, scopes.data),
+    [participation.data, measure, scopes.data],
+  );
+  // The headline indices are named by the platform's list, so until it
+  // answers there is nothing to fetch and the grid is still loading.
+  const awaitingHeadlines = chosen === null && scopes.data === null;
 
   const measures = useMemo(() => readings(breadth.data), [breadth.data]);
   // Newest first: a table is read from the top, and the top of this one is
@@ -145,29 +152,59 @@ export function Breadth(): React.JSX.Element {
                     Participation Over Time
                   </CardTitle>
                   <CardDescription>
-                    Each headline index's last {HEATMAP_SESSIONS} sessions: how much of it stood
-                    above its moving average, day by day.
+                    How much of each index stood above its moving average, day by day. A longer span
+                    scrolls sideways, the newest session at the right.
                   </CardDescription>
                 </div>
-                <Chooser
-                  options={MEASURES}
-                  chosen={measure}
-                  onChange={setMeasure}
-                  label="Moving average"
-                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <RangeSelector
+                    ranges={PARTICIPATION_RANGES}
+                    sessions={span}
+                    onChange={setSpan}
+                    label="Span"
+                  />
+                  <Chooser
+                    options={MEASURES}
+                    chosen={measure}
+                    onChange={setMeasure}
+                    label="Moving average"
+                  />
+                </div>
               </div>
             </CardHeader>
-            <CardContent>
-              {heatmap.error !== null ? (
-                <Failed message={heatmap.error} />
+            <CardContent className="space-y-4">
+              {participation.error !== null ? (
+                <Failed message={participation.error} />
+              ) : chosen === null && scopes.error !== null ? (
+                <Failed message={scopes.error} />
+              ) : populations.length === 0 && !awaitingHeadlines ? (
+                <Empty
+                  title="No populations to compare"
+                  reason="Add an index or a sector below, or reset to the headline indices."
+                />
               ) : (
                 <BreadthHeatmap
-                  rows={heatmap.data ?? []}
-                  measure={measure}
+                  days={participation.data?.days ?? []}
+                  rows={rows}
                   measureLabel={MEASURES.find((one) => one.key === measure)?.label ?? ""}
-                  loading={heatmap.loading}
+                  loading={participation.loading || awaitingHeadlines}
+                  yearly={span > HEATMAP_SESSIONS}
                 />
               )}
+              <ParticipationPopulations
+                populations={populations}
+                options={scopes.data}
+                onChange={(next) => {
+                  writePreferences({ participation: next });
+                }}
+                onReset={
+                  chosen === null
+                    ? null
+                    : () => {
+                        writePreferences({ participation: null });
+                      }
+                }
+              />
             </CardContent>
           </Card>
 
@@ -340,7 +377,7 @@ function percent(value: string | null): string {
   return parsed === null ? ABSENT : `${parsed.toFixed(0)}%`;
 }
 
-/** How many sessions the heatmap spans: about ten weeks, as StockEdge's does. */
+/** How many sessions the heatmap spans until a longer span is chosen: about ten weeks, as StockEdge's does. */
 const HEATMAP_SESSIONS = 50;
 
 /** The averages the heatmap can measure against. */

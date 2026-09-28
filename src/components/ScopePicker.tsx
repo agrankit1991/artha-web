@@ -12,9 +12,9 @@
  */
 
 import type { ScopeOptions } from "@/api/client";
-import { type Scope, ScopeSelector } from "@/components/ScopeSelector";
+import { type Scope, ScopeSelector, sameScope } from "@/components/ScopeSelector";
 import { Button } from "@/components/ui/button";
-import { FEATURED_INDICES } from "@/lib/indices";
+import { countedHeadlines } from "@/lib/indices";
 
 interface ScopePickerProps {
   scope: Scope;
@@ -28,11 +28,6 @@ const WHOLE: { label: string; scope: Scope }[] = [
   { label: "Indices", scope: { kind: "indices", key: null } },
 ];
 
-/** Whether two scopes name the same population. */
-function same(one: Scope, other: Scope): boolean {
-  return one.kind === other.kind && one.key === other.key;
-}
-
 /**
  * Offer the pinned populations as buttons and the rest through the selector.
  *
@@ -40,8 +35,7 @@ function same(one: Scope, other: Scope): boolean {
  * @returns The picker.
  */
 export function ScopePicker({ scope, options, onChange }: ScopePickerProps): React.JSX.Element {
-  const ranked = new Set((options?.indices ?? []).map((option) => option.key));
-  const pinned = FEATURED_INDICES.filter((index) => ranked.has(index.key)).map((index) => ({
+  const pinned = countedHeadlines(options).map((index) => ({
     label: index.name,
     scope: { kind: "index" as const, key: index.key },
   }));
@@ -53,8 +47,8 @@ export function ScopePicker({ scope, options, onChange }: ScopePickerProps): Rea
           <Button
             key={`${item.scope.kind}:${item.scope.key ?? ""}`}
             size="sm"
-            variant={same(item.scope, scope) ? "secondary" : "ghost"}
-            aria-pressed={same(item.scope, scope)}
+            variant={sameScope(item.scope, scope) ? "secondary" : "ghost"}
+            aria-pressed={sameScope(item.scope, scope)}
             onClick={() => {
               onChange(item.scope);
             }}

@@ -131,6 +131,29 @@ export interface BreadthGrid {
   scopes: ScopeBreadth[];
 }
 
+/**
+ * One population's shares above each moving average, session by session.
+ *
+ * Each list lines up with its response's `days`; an entry is null on a
+ * session the population was not counted, which is not the same as none of
+ * it above the average.
+ */
+export interface PopulationParticipation {
+  scope_kind: ScopeKind;
+  scope_key: string | null;
+  above_sma_20: (string | null)[];
+  above_sma_50: (string | null)[];
+  above_sma_200: (string | null)[];
+}
+
+/** Several populations' participation over one run of sessions. */
+export interface Participation {
+  /** The sessions, oldest first. */
+  days: string[];
+  /** One per population asked for, in the order asked for. */
+  populations: PopulationParticipation[];
+}
+
 /** One population's breadth: its latest session, its run, and its measures. */
 export interface BreadthResponse {
   scope_kind: ScopeKind;
@@ -699,6 +722,32 @@ export function fetchBreadthGrid(kind: ScopeKind, rotationSessions = 5): Promise
   return request<BreadthGrid>(
     `/api/breadth/grid?scope_kind=${kind}&rotation_sessions=${String(rotationSessions)}`,
   );
+}
+
+/**
+ * Fetch several populations' shares above their averages, day by day.
+ *
+ * One request for every column of the heatmap, carrying only the three
+ * shares it colours by: twenty years of seven indices is under a megabyte
+ * this way and seventeen as seven full breadth readings.
+ *
+ * @param populations - The populations, in the order they are drawn.
+ * @param sessions - How many sessions back from the latest; more than the
+ *   platform holds returns all it holds.
+ * @returns The days, oldest first, and each population's shares on them.
+ */
+export function fetchParticipation(
+  populations: readonly { kind: ScopeKind; key: string | null }[],
+  sessions: number,
+): Promise<Participation> {
+  const parameters = new URLSearchParams({ sessions: String(sessions) });
+  for (const population of populations) {
+    parameters.append(
+      "scope",
+      population.key === null ? population.kind : `${population.kind}:${population.key}`,
+    );
+  }
+  return request<Participation>(`/api/breadth/participation?${parameters.toString()}`);
 }
 
 /**

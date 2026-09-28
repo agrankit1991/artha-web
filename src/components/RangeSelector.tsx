@@ -40,6 +40,21 @@ export const BREADTH_RANGES: readonly Range[] = [
   { label: "5Y", sessions: 1250 },
 ];
 
+/**
+ * The spans the participation heatmap offers.
+ *
+ * From ten weeks, where a rotation shows, to everything held, where a
+ * cycle does. `Max` is the endpoint's ceiling, as for a price chart.
+ */
+export const PARTICIPATION_RANGES: readonly Range[] = [
+  { label: "50D", sessions: 50 },
+  { label: "1Y", sessions: 250 },
+  { label: "5Y", sessions: 1250 },
+  { label: "10Y", sessions: 2500 },
+  { label: "20Y", sessions: 5000 },
+  { label: "Max", sessions: 12500 },
+];
+
 interface RangeSelectorProps {
   ranges: readonly Range[];
   sessions: number;

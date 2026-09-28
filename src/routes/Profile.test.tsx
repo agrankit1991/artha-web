@@ -133,6 +133,7 @@ describe("Profile", () => {
       forecast: true,
       range: 1250,
       views: {},
+      participation: null,
     });
     await userEvent.click(screen.getByRole("button", { name: "Forget my preferences" }));
     expect(readPreferences()).toEqual(DEFAULT_PREFERENCES);

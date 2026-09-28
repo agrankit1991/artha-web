@@ -50,6 +50,7 @@ import type {
   Population,
   BreadthResponse,
   BreadthSession,
+  Participation,
   InstrumentOverview,
   MoverPanel,
   MoverRow,
@@ -310,6 +311,23 @@ export function scopeBreadth(overrides: Partial<ScopeBreadth> = {}): ScopeBreadt
     above_sma_50: "61.900000",
     regime: "over-extended",
     rotation: "4.500000",
+    ...overrides,
+  };
+}
+
+/** Build two headline indices' participation over two sessions. */
+export function participation(overrides: Partial<Participation> = {}): Participation {
+  return {
+    days: ["2026-09-17", "2026-09-18"],
+    populations: [
+      {
+        scope_kind: "index",
+        scope_key: "NSE_INDEX|Nifty 50",
+        above_sma_20: ["41.0", "45.0"],
+        above_sma_50: ["52.0", "55.0"],
+        above_sma_200: ["60.0", "62.0"],
+      },
+    ],
     ...overrides,
   };
 }

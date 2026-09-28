@@ -80,4 +80,33 @@ describe("ScopeSelector", () => {
     expect(screen.queryByText("Sectors")).not.toBeInTheDocument();
     expect(screen.queryByText("Indices")).not.toBeInTheDocument();
   });
+
+  it("offers a pick of its own, leaving out what is already chosen", async () => {
+    // As an adder: nothing is the current choice, and offering a population
+    // already on the page would add it twice.
+    const chosen = vi.fn();
+    render(
+      <ScopeSelector
+        scope={null}
+        options={scopeOptions()}
+        onChange={chosen}
+        label="Add a population"
+        placeholder="Add a population"
+        excluded={[
+          { kind: "companies", key: null },
+          { kind: "indices", key: null },
+          { kind: "index", key: "NSE_INDEX|Nifty 50" },
+        ]}
+      />,
+    );
+
+    const adder = screen.getByRole("combobox", { name: "Add a population" });
+    expect(adder).toHaveTextContent("Add a population");
+    await userEvent.click(adder);
+
+    expect(screen.queryByRole("option", { name: "Nifty 50" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "All companies" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("option", { name: "IT - Software" }));
+    expect(chosen).toHaveBeenCalledWith({ kind: "sector", key: "IT - Software" });
+  });
 });
