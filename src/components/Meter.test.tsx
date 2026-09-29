@@ -11,19 +11,23 @@ describe("Meter", () => {
     // across three of them without arithmetic.
     render(<Meter label="Above 200-day" percent={62.4} />);
 
-    expect(screen.getByText("62%")).toBeInTheDocument();
+    expect(screen.getByText("62.4%")).toBeInTheDocument();
     expect(screen.getByRole("meter", { name: "Above 200-day" })).toHaveAttribute(
       "aria-valuenow",
       "62.4",
     );
   });
 
-  it("reads as healthy above its threshold and not below", () => {
-    const { rerender } = render(<Meter label="Above 200-day" percent={70} />);
-    expect(screen.getByRole("meter").firstChild).toHaveClass("bg-gain");
-
+  it("draws how much, not whether it is good, against a halfway tick", () => {
+    // 95% above the 200-day is over-extended; a green bar would call it
+    // healthy. The caption says what a reading means.
+    const { rerender } = render(<Meter label="Above 200-day" percent={95} />);
+    const bar = (): Element | null => screen.getByRole("meter").firstElementChild;
+    expect(bar()).toHaveClass("bg-primary");
+    expect(bar()).toHaveStyle({ width: "95%" });
     rerender(<Meter label="Above 200-day" percent={30} />);
-    expect(screen.getByRole("meter").firstChild).toHaveClass("bg-loss");
+    expect(bar()).not.toHaveClass("bg-loss");
+    expect(screen.getByRole("meter").querySelector("span[aria-hidden]")).not.toBeNull();
   });
 
   it("shows nothing rather than nought when there is no figure", () => {

@@ -11,6 +11,7 @@ import type { BreadthResponse, BreadthSession } from "@/api/client";
 import { Meter } from "@/components/Meter";
 import { Sparkline } from "@/components/Sparkline";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { describeOscillator, describeRank } from "@/lib/breadthReadings";
 import { ABSENT, formatDay, toNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,8 @@ import { cn } from "@/lib/utils";
 interface BreadthPanelProps {
   breadth: BreadthResponse | null;
   loading?: boolean;
+  /** What it is the breadth of: the whole market, or one population by name. */
+  title?: string;
 }
 
 /**
@@ -26,13 +29,17 @@ interface BreadthPanelProps {
  * @param props - The reading, and whether it is still arriving.
  * @returns The panel.
  */
-export function BreadthPanel({ breadth, loading = false }: BreadthPanelProps): React.JSX.Element {
+export function BreadthPanel({
+  breadth,
+  loading = false,
+  title = "Market breadth",
+}: BreadthPanelProps): React.JSX.Element {
   const latest = breadth?.latest ?? null;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Market Breadth</CardTitle>
+        <CardTitle>{title}</CardTitle>
         <CardDescription>
           {latest === null
             ? loading
@@ -41,44 +48,61 @@ export function BreadthPanel({ breadth, loading = false }: BreadthPanelProps): R
             : `${String(latest.instruments)} instruments · ${formatDay(latest.as_of)}`}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-5">
-        <Participation latest={latest} />
-        <div className="grid gap-4 sm:grid-cols-3">
-          {/* Each share is printed with where it stands in this
+      {latest === null ? (
+        // Placeholders while counting, rather than "0 advancing" and empty
+        // meters, which read as a market where nothing moved.
+        <CardContent className="space-y-4">
+          {loading && (
+            <>
+              <Skeleton className="h-3 w-full" />
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Skeleton className="h-8" />
+                <Skeleton className="h-8" />
+                <Skeleton className="h-8" />
+              </div>
+            </>
+          )}
+        </CardContent>
+      ) : (
+        <CardContent className="space-y-5">
+          <Participation latest={latest} />
+          <div className="grid gap-4 sm:grid-cols-3">
+            {/* Each share is printed with where it stands in this
               population's own history: a reading of 43% is weak or
               ordinary depending entirely on the population, and the
               number alone cannot say which. */}
-          <Meter
-            label="Above 20-day"
-            percent={toNumber(latest?.above_sma_20)}
-            caption={describeRank(toNumber(breadth?.percentiles?.above_sma_20))}
-          />
-          <Meter
-            label="Above 50-day"
-            percent={toNumber(latest?.above_sma_50)}
-            caption={describeRank(toNumber(breadth?.percentiles?.above_sma_50))}
-          />
-          <Meter
-            label="Above 200-day"
-            percent={toNumber(latest?.above_sma_200)}
-            caption={describeRank(toNumber(breadth?.percentiles?.above_sma_200))}
-          />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Trend
-            label="Advance-decline line"
-            hint="Its direction matters, not its level"
-            values={(breadth?.sessions ?? []).map((s) => toNumber(s.advance_decline_line))}
-          />
-          <Trend
-            label="McClellan oscillator"
-            hint={describeOscillator(toNumber(breadth?.mcclellan_oscillator))}
-            values={(breadth?.sessions ?? []).map((s) => toNumber(s.mcclellan_oscillator))}
-            reading={toNumber(breadth?.mcclellan_oscillator)}
-          />
-        </div>
-        <Extremes latest={latest} highLow={toNumber(breadth?.high_low_index)} />
-      </CardContent>
+            <Meter
+              label="Above 20-day"
+              percent={toNumber(latest.above_sma_20)}
+              caption={describeRank(toNumber(breadth?.percentiles?.above_sma_20))}
+            />
+            <Meter
+              label="Above 50-day"
+              percent={toNumber(latest.above_sma_50)}
+              caption={describeRank(toNumber(breadth?.percentiles?.above_sma_50))}
+            />
+            <Meter
+              label="Above 200-day"
+              percent={toNumber(latest.above_sma_200)}
+              caption={describeRank(toNumber(breadth?.percentiles?.above_sma_200))}
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Trend
+              label="Advance-decline line"
+              hint="Its direction matters, not its level"
+              values={(breadth?.sessions ?? []).map((s) => toNumber(s.advance_decline_line))}
+            />
+            <Trend
+              label="McClellan oscillator"
+              hint={describeOscillator(toNumber(breadth?.mcclellan_oscillator))}
+              values={(breadth?.sessions ?? []).map((s) => toNumber(s.mcclellan_oscillator))}
+              reading={toNumber(breadth?.mcclellan_oscillator)}
+            />
+          </div>
+          <Extremes latest={latest} highLow={toNumber(breadth?.high_low_index)} />
+        </CardContent>
+      )}
     </Card>
   );
 }
