@@ -69,7 +69,8 @@ describe("Screener", () => {
     );
     expect(within(table).getByText("Refineries")).toBeInTheDocument();
     expect(within(table).getByRole("button", { name: /RSI \(14\)/ })).toBeInTheDocument();
-    expect(screen.getByText("1 company meets every condition")).toBeInTheDocument();
+    // The count is the results' title.
+    expect(screen.getByRole("heading", { name: "1 company" })).toBeInTheDocument();
     await waitFor(() => {
       expect(
         asked(fetched).some(
@@ -87,7 +88,7 @@ describe("Screener", () => {
     await userEvent.click(screen.getByRole("button", { name: "Oversold in an uptrend" }));
 
     // The scan's first condition, then its context: above the 200-day and liquid.
-    expect(screen.getAllByRole("combobox", { name: "Figure" })[0]).toHaveValue("rsi");
+    expect(screen.getAllByRole("combobox", { name: "Figure" })[0]).toHaveTextContent("RSI (14)");
     expect(screen.getAllByRole("spinbutton", { name: "Value" })[0]).toHaveValue(35);
     expect(screen.getAllByRole("group", { name: "Condition" })).toHaveLength(3);
     await waitFor(() => {
@@ -109,8 +110,10 @@ describe("Screener", () => {
     await screen.findByRole("table", { name: "Screen results" });
 
     await userEvent.click(screen.getByRole("button", { name: /Add condition/ }));
-    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Figure" }), "one_month");
-    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Comparison" }), "gte");
+    await userEvent.click(screen.getByRole("combobox", { name: "Figure" }));
+    await userEvent.click(screen.getByRole("option", { name: "1 month" }));
+    await userEvent.click(screen.getByRole("combobox", { name: "Comparison" }));
+    await userEvent.click(screen.getByRole("option", { name: "≥" }));
     // Nothing typed yet: the hint says why nothing is applied.
     expect(screen.getByRole("button", { name: /^What .+ means$/ })).toBeInTheDocument();
     await userEvent.type(screen.getByRole("spinbutton", { name: "Value" }), "5");
@@ -136,13 +139,24 @@ describe("Screener", () => {
     expect(screen.queryByRole("group", { name: "Condition" })).not.toBeInTheDocument();
   });
 
-  it("sorts by a figure either way and screens one population", async () => {
+  it("sorts every match on the platform from a column's header, and screens one population", async () => {
+    // A header sorted only the fifty rows loaded, beside a separate "Sort
+    // by" that sorted them all; now the header is the one way, and it asks.
     const fetched = stubEverything();
     renderPage(<Screener />);
-    await screen.findByRole("table", { name: "Screen results" });
+    const table = await screen.findByRole("table", { name: "Screen results" });
+    expect(screen.queryByRole("combobox", { name: "Sort by" })).not.toBeInTheDocument();
 
-    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Sort by" }), "one_year");
-    await userEvent.click(screen.getByRole("button", { name: "Largest first" }));
+    const sortedBy = (order: string): boolean =>
+      asked(fetched).some(
+        (path) => path.includes("sort=one_year") && path.includes(`order=${order}`),
+      );
+    // A figure sorts largest first, then smallest.
+    await userEvent.click(within(table).getByRole("button", { name: /^1Y/ }));
+    await waitFor(() => {
+      expect(sortedBy("desc")).toBe(true);
+    });
+    await userEvent.click(within(table).getByRole("button", { name: /^1Y/ }));
     await userEvent.click(screen.getByRole("button", { name: "Nifty 50" }));
 
     await waitFor(() => {
@@ -156,9 +170,8 @@ describe("Screener", () => {
         ),
       ).toBe(true);
     });
-    expect(screen.getByRole("button", { name: "Smallest first" })).toBeInTheDocument();
-    // Back to the symbol order, and to the whole market.
-    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Sort by" }), "");
+    // A third click is no sort, the symbol order; and back to the whole market.
+    await userEvent.click(within(table).getByRole("button", { name: /^1Y/ }));
     await userEvent.click(screen.getByRole("button", { name: "Companies" }));
     await waitFor(() => {
       const last = asked(fetched).at(-1) ?? "";
@@ -190,7 +203,7 @@ describe("Screener", () => {
     // Three conditions are shown, the broken one included so it can be
     // mended or removed; a comparison nobody has heard of reads as "<".
     expect(screen.getAllByRole("group", { name: "Condition" })).toHaveLength(3);
-    expect(screen.getAllByRole("combobox", { name: "Comparison" })[2]).toHaveValue("lt");
+    expect(screen.getAllByRole("combobox", { name: "Comparison" })[2]).toHaveTextContent("<");
     await waitFor(() => {
       expect(
         asked(fetched).some(
@@ -208,7 +221,7 @@ describe("Screener", () => {
     stubEverything(screenPage({ total: 0, items: [], as_of: null }));
     const { unmount } = renderPage(<Screener />);
     expect(await screen.findByText("No company meets every condition")).toBeInTheDocument();
-    expect(screen.getByText("0 companies meet every condition")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "0 companies" })).toBeInTheDocument();
     unmount();
 
     vi.unstubAllGlobals();
@@ -247,11 +260,14 @@ describe("Screener", () => {
     expect(await within(table).findByText("2.50×")).toBeInTheDocument();
     expect(within(table).getByRole("button", { name: /^Volume/ })).toBeInTheDocument();
     expect(within(table).getByRole("button", { name: /Average true range/ })).toBeInTheDocument();
-    // Every column sorts, the fixed ones and the ones the screen is about.
+    // Every figure sorts, the fixed ones and the ones the screen is about;
+    // names and sectors do not, since the platform sorts by figures.
+    for (const header of ["Symbol", "Name", "Sector"]) {
+      expect(
+        within(table).queryByRole("button", { name: new RegExp(`^${header}`) }),
+      ).not.toBeInTheDocument();
+    }
     for (const name of [
-      /^Symbol/,
-      /^Name/,
-      /^Sector/,
       /^Price/,
       /^1D/,
       /^1W/,
@@ -360,10 +376,6 @@ describe("Screener", () => {
       "On: invested",
     );
     expect(within(panel).getByText("Picks")).toBeInTheDocument();
-    expect(within(panel).getByRole("link", { name: /tested record and caveats/ })).toHaveAttribute(
-      "href",
-      "/scans",
-    );
     expect(within(panel).queryByRole("status")).not.toBeInTheDocument();
     await waitFor(() => {
       expect(
@@ -410,10 +422,12 @@ describe("Screener", () => {
     renderPage(<Screener />, { at: scanPath(scanNamed("momentum-12-1-near-high")) });
     const panel = screen.getByRole("region", { name: "Strategy" });
 
-    await userEvent.click(screen.getByRole("button", { name: "Largest first" }));
+    // Its own column, sorted largest first; clicked, it reverses.
+    const table = await screen.findByRole("table", { name: "Screen results" });
+    await userEvent.click(within(table).getByRole("button", { name: /12-1 momentum/ }));
     expect(within(panel).getByRole("status")).toBeInTheDocument();
     await userEvent.click(within(panel).getByRole("button", { name: /Restore the strategy/ }));
-    expect(screen.getByRole("button", { name: "Largest first" })).toBeInTheDocument();
+    expect(within(panel).queryByRole("status")).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Nifty 50" }));
     expect(within(panel).getByRole("status")).toBeInTheDocument();
@@ -428,8 +442,10 @@ describe("Screener", () => {
     });
   });
 
-  it("names the rows it holds by their figure, so re-sorting the results changes nothing", async () => {
-    stubStrategies();
+  it("calls a screen sorted by another column a different one, since its rows differ", async () => {
+    // A header sorts every match on the platform, so the first rows are the
+    // leaders by that column: no longer the strategy's picks.
+    const fetched = stubStrategies();
     renderPage(<Screener />, { at: scanPath(scanNamed("momentum-12-1-near-high")) });
     const panel = screen.getByRole("region", { name: "Strategy" });
     await screen.findByRole("table", { name: "Screen results" });
@@ -438,8 +454,10 @@ describe("Screener", () => {
       within(screen.getByRole("columnheader", { name: /1Y/ })).getByRole("button"),
     );
 
-    expect(within(panel).getByText(/the 20 with the highest 12-1 momentum/)).toBeInTheDocument();
-    expect(within(panel).queryByRole("status")).not.toBeInTheDocument();
+    expect(within(panel).getByRole("status")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(asked(fetched).at(-1)).toContain("sort=one_year");
+    });
   });
 
   it("brings a strategy's chip over the whole market, as its restore does", async () => {
@@ -555,5 +573,31 @@ describe("Screener", () => {
     renderPage(<Screener />, { at: "/screen?scan=no-such-scan" });
     await screen.findByRole("table", { name: "Screen results" });
     expect(screen.queryByRole("region", { name: "Strategy" })).not.toBeInTheDocument();
+  });
+
+  it("keeps its rows while it screens again, and says it is", async () => {
+    const platform = stubEverything();
+    let screens = 0;
+    // The first screen answers; a later one is still on its way.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: string, init?: RequestInit) => {
+        if (input.startsWith("/api/screen?")) {
+          screens += 1;
+          if (screens > 1) {
+            return new Promise(() => undefined);
+          }
+        }
+        return platform(input, init) as Promise<Response>;
+      }),
+    );
+    renderPage(<Screener />);
+    const table = await screen.findByRole("table", { name: "Screen results" });
+    await within(table).findByRole("link", { name: /RELIANCE/ });
+
+    await userEvent.click(screen.getByRole("button", { name: "Nifty 50" }));
+
+    expect(await screen.findByText("Screening again…")).toBeInTheDocument();
+    expect(within(table).getByRole("link", { name: /RELIANCE/ })).toBeInTheDocument();
   });
 });

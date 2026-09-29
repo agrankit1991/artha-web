@@ -10,7 +10,9 @@
  *
  * Results show the figures the screen was about: a column for every
  * figure in a condition or the sort, beside the company, its sector,
- * price and move.
+ * price and move. A column's header sorts the whole screen on the
+ * platform, not just the rows loaded: there was a separate "Sort by"
+ * besides, and a header click that sorted only the first fifty.
  *
  * An address that names a strategy's scan (`scan=`) brings the strategy
  * above the rows: what it does, how it works, and which rows it would
@@ -20,6 +22,7 @@
  * or sector the page had.
  */
 
+import type { SortingState, Updater } from "@tanstack/react-table";
 import { Plus, X } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -33,6 +36,7 @@ import type {
   ScreenOperator,
 } from "@/api/client";
 import { fetchScopes, fetchScreen, fetchScreenFields } from "@/api/client";
+import { Callout } from "@/components/Callout";
 import { type Column, DataTable } from "@/components/DataTable";
 import { nameColumn, symbolColumn } from "@/components/identityColumns";
 import { Delta } from "@/components/Delta";
@@ -41,10 +45,20 @@ import { Hint } from "@/components/Hint";
 import { LoadMore } from "@/components/LoadMore";
 import { PageHeader } from "@/components/PageHeader";
 import { ScopePicker } from "@/components/ScopePicker";
+import { SectionHeader } from "@/components/SectionHeader";
 import { StrategyPanel } from "@/components/StrategyPanel";
 import type { Scope } from "@/components/ScopeSelector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useDebounced } from "@/hooks/useDebounced";
 import { useResource } from "@/hooks/useResource";
 import {
@@ -57,6 +71,7 @@ import {
 } from "@/lib/scans";
 import { ABSENT, formatDay, formatPrice, formatWhole, toNumber } from "@/lib/format";
 import { valueOf, writtenFigure } from "@/lib/figures";
+import { MARKS } from "@/lib/entities";
 import { OPERATORS } from "@/lib/operators";
 import { companyPath } from "@/lib/paths";
 
@@ -191,6 +206,25 @@ export function Screener(): React.JSX.Element {
     });
   }, [conditions, sort, byName]);
   const columns = useMemo(() => columnsFor(shownFields), [shownFields]);
+  // The table's sort is the screen's: the column clicked and its direction
+  // go into the address and the platform sorts every match, not the page.
+  const sorting = useMemo<SortingState>(
+    () => (sort === null ? [] : [{ id: sort, desc: order === "desc" }]),
+    [sort, order],
+  );
+  const setSorting = (updater: Updater<SortingState>): void => {
+    const next = typeof updater === "function" ? updater(sorting) : updater;
+    const [first] = next;
+    update((query) => {
+      if (first === undefined) {
+        query.delete("sort");
+        query.delete("order");
+      } else {
+        query.set("sort", first.id);
+        query.set("order", first.desc ? "desc" : "asc");
+      }
+    });
+  };
 
   if (fields.error !== null) {
     return <Failed message={fields.error} />;
@@ -277,46 +311,6 @@ export function Screener(): React.JSX.Element {
               });
             }}
           />
-          <label className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">Sort by</span>
-            <select
-              aria-label="Sort by"
-              value={sort ?? ""}
-              onChange={(event) => {
-                update((query) => {
-                  if (event.target.value === "") {
-                    query.delete("sort");
-                  } else {
-                    query.set("sort", event.target.value);
-                  }
-                });
-              }}
-              className="h-9 rounded-md border bg-background px-2 text-sm"
-            >
-              <option value="">Symbol</option>
-              {grouped(fields.data ?? []).map(([group, members]) => (
-                <optgroup key={group} label={group}>
-                  {members.map((field) => (
-                    <option key={field.name} value={field.name}>
-                      {field.label}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </label>
-          <Button
-            variant="outline"
-            size="sm"
-            aria-label={order === "desc" ? "Largest first" : "Smallest first"}
-            onClick={() => {
-              update((query) => {
-                query.set("order", order === "desc" ? "asc" : "desc");
-              });
-            }}
-          >
-            {order === "desc" ? "Largest first" : "Smallest first"}
-          </Button>
         </div>
       </section>
 
@@ -332,19 +326,29 @@ export function Screener(): React.JSX.Element {
         />
       )}
 
-      <section className="space-y-3" aria-label="Results">
+      <section className="space-y-3" aria-labelledby="results-heading">
+        <SectionHeader
+          id="results-heading"
+          icon={MARKS.screen}
+          title={
+            hits.data === null
+              ? "Screening…"
+              : `${formatWhole(hits.data.total)} ${hits.data.total === 1 ? "company" : "companies"}`
+          }
+          description={
+            hits.data?.as_of == null
+              ? "Meeting every condition."
+              : `Meeting every condition, on figures as of ${formatDay(hits.data.as_of)}. A column's header sorts every match.`
+          }
+        />
         {hits.error !== null ? (
           <Failed message={hits.error} />
         ) : (
           <>
-            <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm text-muted-foreground">
-              <span>
-                {hits.data === null
-                  ? "Screening…"
-                  : `${formatWhole(hits.data.total)} ${hits.data.total === 1 ? "company meets" : "companies meet"} every condition`}
-              </span>
-              {hits.data?.as_of != null && <span>Figures as of {formatDay(hits.data.as_of)}</span>}
-            </div>
+            {/* A re-screen keeps the rows it had while it asks again, and says so. */}
+            {hits.loading && hits.data !== null && (
+              <Callout tone="progress">Screening again…</Callout>
+            )}
             <DataTable
               columns={columns}
               rows={hits.data?.items ?? []}
@@ -353,6 +357,7 @@ export function Screener(): React.JSX.Element {
               placeholderRows={10}
               label="Screen results"
               full
+              serverSorting={{ sorting, onSortingChange: setSorting }}
               linkTo={(row) => companyPath(row.instrument_key, row.symbol)}
             />
             {hits.data !== null && (
@@ -388,38 +393,45 @@ function ConditionRow({
   const field = fields.find((one) => one.name === condition.field);
   return (
     <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Condition">
-      <select
-        aria-label="Figure"
+      <Select
         value={condition.field}
-        onChange={(event) => {
-          onChange({ ...condition, field: event.target.value });
+        onValueChange={(value) => {
+          onChange({ ...condition, field: value });
         }}
-        className="h-9 rounded-md border bg-background px-2 text-sm"
       >
-        {grouped(fields).map(([group, members]) => (
-          <optgroup key={group} label={group}>
-            {members.map((one) => (
-              <option key={one.name} value={one.name}>
-                {one.label}
-              </option>
-            ))}
-          </optgroup>
-        ))}
-      </select>
-      <select
-        aria-label="Comparison"
+        <SelectTrigger aria-label="Figure" className="w-56">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {grouped(fields).map(([group, members]) => (
+            <SelectGroup key={group}>
+              <SelectLabel>{group}</SelectLabel>
+              {members.map((one) => (
+                <SelectItem key={one.name} value={one.name}>
+                  {one.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select
         value={condition.operator}
-        onChange={(event) => {
-          onChange({ ...condition, operator: event.target.value as ScreenOperator });
+        onValueChange={(value) => {
+          onChange({ ...condition, operator: value as ScreenOperator });
         }}
-        className="h-9 rounded-md border bg-background px-2 text-sm"
       >
-        {OPERATORS.map((one) => (
-          <option key={one.key} value={one.key}>
-            {one.label}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger aria-label="Comparison" className="w-40">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {OPERATORS.map((one) => (
+            <SelectItem key={one.key} value={one.key}>
+              {one.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       <span className="flex items-center gap-1">
         <Input
           type="number"
@@ -494,7 +506,7 @@ function suffix(field: ScreenField): string {
     case "multiple":
       return "× average";
     case "crore":
-      return "₹ Cr";
+      return "₹ cr";
     case "count":
     case "points":
     case "ratio":
@@ -507,13 +519,16 @@ function suffix(field: ScreenField): string {
 /** The fixed columns, then one per figure the screen is about. */
 function columnsFor(fields: ScreenField[]): Column<ScreenHit>[] {
   return [
-    symbolColumn((row) => row),
-    nameColumn((row) => row),
+    // Symbol order is the screen's own when nothing is sorted; the
+    // platform sorts by figures, so names and sectors do not sort.
+    { ...symbolColumn<ScreenHit>((row) => row), enableSorting: false },
+    { ...nameColumn<ScreenHit>((row) => row), enableSorting: false },
     {
       id: "sector",
       header: "Sector",
       accessorFn: (row) => row.sector ?? "",
       cell: ({ row }) => row.original.sector ?? ABSENT,
+      enableSorting: false,
     },
     {
       id: "close",

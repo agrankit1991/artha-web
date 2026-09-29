@@ -12,8 +12,8 @@ import { cn } from "@/lib/utils";
 
 interface SectionHeaderProps {
   title: string;
-  /** What the section answers, in a line. */
-  description?: string;
+  /** What the section answers, in a line; may carry a link. */
+  description?: React.ReactNode;
   icon?: Icon;
   /** Controls that change what the section shows. */
   actions?: React.ReactNode;

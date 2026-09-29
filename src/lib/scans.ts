@@ -8,10 +8,11 @@
  * screener offers the featured ones as one-click chips.
  *
  * Some scans stand behind a strategy the strategy lab backtested
- * (`research/strategy-lab`): the scan lists today's candidates and the
- * strategy says which of them it would hold. The tested figures are copied
- * from the lab's records verbatim, to the decimal the lab printed, and are
- * as of `STRATEGIES_EVALUATED`; they do not update themselves.
+ * (`research/strategy-lab`, archived): the scan lists today's candidates
+ * and the strategy says which of them it would hold. The lab's tested
+ * figures, which never updated themselves, are no longer carried here
+ * (the owner's decision D11, 2026-09-30); what the platform has backtested
+ * is on the Backtests page.
  */
 
 import type { ScopeKind, ScreenCondition, ScreenHit } from "@/api/client";
@@ -45,35 +46,6 @@ export interface StrategyRules {
   holding: string;
 }
 
-/**
- * How a strategy did in the lab over the years its rules were not chosen
- * on. Every figure is a percentage, or percentage points for an edge, as
- * the lab printed it.
- */
-export interface StrategyRecord {
-  /** The first month of the backtest, as `YYYY-MM`. */
-  from: string;
-  /** The first of the unseen (out-of-sample) years, which run to the evaluation. */
-  unseenFrom: number;
-  /**
-   * Its return a year over the unseen years. For a strategy that re-picks
-   * every 21 sessions, the median over the 21 sessions its schedule could
-   * start on, which is what the lab judges it by.
-   */
-  cagr: number;
-  /** The Nifty 500's return a year over the same years. */
-  nifty500: number;
-  /**
-   * Points a year over random picks made under the same rules. Random picks
-   * share every bias of the test, so this is the figure to trust.
-   */
-  edge: number;
-  /** The same edge with 2020 and 2021, two unusually kind years, left out. */
-  edgeWithout2020To2021: number;
-  /** The deepest fall from a peak over the unseen years. */
-  maxDrawdown: number;
-}
-
 /** A strategy the lab backtested, which a scan finds today's candidates for. */
 export interface Strategy {
   /** The lab's card for it, e.g. `S0010`. */
@@ -87,18 +59,6 @@ export interface Strategy {
    * results can be re-sorted by any column on the page.
    */
   rowsHeld: string;
-  tested: StrategyRecord;
-  /**
-   * Its return in each calendar year, per cent. For a strategy that
-   * re-picks every 21 sessions these are one of its schedules, so they
-   * compound to a different figure from `tested.cagr`: up to about four
-   * points a year higher for the strategies here.
-   */
-  years: Readonly<Record<number, number>>;
-  /** The years it was tested for only part of: its first, and the one still running. */
-  partialYears: readonly number[];
-  /** What to hold against the figures, its own first and then those every strategy shares. */
-  caveats: readonly string[];
 }
 
 /** One named scan. */
@@ -120,45 +80,15 @@ export interface Scan {
 /** A scan that stands behind a strategy. */
 export type StrategyScan = Scan & { strategy: Strategy };
 
-/** When the strategy lab last evaluated the strategies. */
-export const STRATEGIES_EVALUATED = "2026-09-24";
-
-/** The last session the lab's data reached; the current year's figures run to it. */
+/** The last session the lab's data reached, and so the last state of the switch it recorded. */
 export const STRATEGIES_DATA_THROUGH = "2026-09-21";
 
 /**
  * The session the market switch last shut, which it still was at
  * `STRATEGIES_DATA_THROUGH`: from the lab's S0008 card, whose switch the
- * three switched strategies share. It explains most of the running year:
- * they have held gold while momentum stocks rose without the Nifty 50.
+ * three switched strategies share.
  */
 export const SWITCH_SHUT_SINCE = "2026-03-02";
-
-/** The Nifty 500's return in each calendar year, per cent, as the lab measured it. */
-export const NIFTY_500_YEARS: Readonly<Record<number, number>> = {
-  2005: 34.0,
-  2006: 34.0,
-  2007: 62.5,
-  2008: -57.1,
-  2009: 88.6,
-  2010: 14.1,
-  2011: -27.2,
-  2012: 31.8,
-  2013: 3.6,
-  2014: 37.8,
-  2015: -0.7,
-  2016: 3.8,
-  2017: 35.9,
-  2018: -3.4,
-  2019: 7.7,
-  2020: 16.7,
-  2021: 30.2,
-  2022: 3.0,
-  2023: 25.8,
-  2024: 15.2,
-  2025: 6.7,
-  2026: -4.2,
-};
 
 /**
  * The market switch three of the strategies share, as the lab tested it:
@@ -227,13 +157,6 @@ function twentyWhileSwitchedOn(figure: string): string {
   return `While the market switch is on, the 20 with the highest ${figure} on a re-pick day. While it is off, none of them: it holds gold.`;
 }
 
-/** What every strategy's figures share, said after its own caveats. */
-const SHARED_CAVEATS: readonly string[] = [
-  "Tested only on companies still listed today, which flatters every return; random picks share that flattery, so the edge over them is the figure to trust.",
-  "Costs of 0.2% on every buy and every sell are counted; tax is not.",
-  "Past results are not a promise.",
-];
-
 export const SCANS: readonly Scan[] = [
   {
     key: "momentum-12-1-near-high",
@@ -260,44 +183,6 @@ export const SCANS: readonly Scan[] = [
         holding: TWENTY_EQUAL,
       },
       rowsHeld: twentyWhileSwitchedOn("12-1 momentum"),
-      tested: {
-        from: "2005-01",
-        unseenFrom: 2018,
-        cagr: 26.2,
-        nifty500: 10.7,
-        edge: 13.5,
-        edgeWithout2020To2021: 12.3,
-        maxDrawdown: -32.3,
-      },
-      years: {
-        2005: 23.9,
-        2006: 61.6,
-        2007: 78.5,
-        2008: -17.1,
-        2009: 69.9,
-        2010: 11.9,
-        2011: -1.5,
-        2012: 25.2,
-        2013: -7.7,
-        2014: 102.8,
-        2015: -10.9,
-        2016: 8.2,
-        2017: 104.8,
-        2018: -19.9,
-        2019: -1.0,
-        2020: 75.2,
-        2021: 141.7,
-        2022: -5.4,
-        2023: 89.2,
-        2024: 53.8,
-        2025: 39.9,
-        2026: -22.8,
-      },
-      partialYears: [2026],
-      caveats: [
-        "The 15% near-the-high filter paid only in the unseen years: before 2018 it was neutral to slightly negative, so part of the edge rests on 2018 onwards.",
-        ...SHARED_CAVEATS,
-      ],
     },
   },
   {
@@ -321,34 +206,6 @@ export const SCANS: readonly Scan[] = [
         holding: TWENTY_EQUAL,
       },
       rowsHeld: twentyWhileSwitchedOn("1-year return"),
-      tested: {
-        from: "2019-11",
-        unseenFrom: 2023,
-        cagr: 35.1,
-        nifty500: 11.0,
-        edge: 13.8,
-        edgeWithout2020To2021: 15.8,
-        maxDrawdown: -23.4,
-      },
-      years: {
-        2019: 4.3,
-        2020: 97.3,
-        2021: 127.8,
-        2022: 1.9,
-        2023: 68.0,
-        2024: 52.1,
-        2025: 42.5,
-        2026: -11.0,
-      },
-      partialYears: [2019, 2026],
-      caveats: [
-        "Delivery figures begin in late 2019, so it is tested on about seven years and never through a bad year for the market.",
-        "The delivery average needs a full 20 published sessions and goes blank when a stock's delivery data is more than 5 sessions old, as the lab tested it; a stock without one is not a candidate.",
-        "The idea was drawn from the same years it is tested on, so those years are not a clean test of it.",
-        "The 50% threshold sits on a peak: 40% or 60% earned about 28-30% a year over the unseen years.",
-        "So far in 2026 it has done worse than the market (-11.0% against the Nifty 500's -4.2%) while its market switch held gold.",
-        ...SHARED_CAVEATS,
-      ],
     },
   },
   {
@@ -375,34 +232,6 @@ export const SCANS: readonly Scan[] = [
       },
       rowsHeld:
         "Every row is a signal: bought at the next open, highest relative volume first, while any of the 20 slots is free.",
-      tested: {
-        from: "2019-11",
-        unseenFrom: 2023,
-        cagr: 30.9,
-        nifty500: 11.0,
-        edge: 19.0,
-        edgeWithout2020To2021: 19.2,
-        maxDrawdown: -17.2,
-      },
-      years: {
-        2019: 0.2,
-        2020: 16.6,
-        2021: 41.1,
-        2022: 4.7,
-        2023: 41.0,
-        2024: 53.2,
-        2025: 12.2,
-        2026: 17.6,
-      },
-      partialYears: [2019, 2026],
-      caveats: [
-        "Delivery figures begin in late 2019, so it is tested on about seven years.",
-        "Most of the edge was earned in 2024-26.",
-        "The exact settings are a local peak: neighbouring settings earned about half the edge.",
-        "The lab's realistic expectation is about 5 points a year over random picks with the same exits, well under the edge above.",
-        "Buying at the open is not always possible: a stock locked at its upper circuit may have no sellers.",
-        ...SHARED_CAVEATS,
-      ],
     },
   },
   {
@@ -423,44 +252,6 @@ export const SCANS: readonly Scan[] = [
         holding: TWENTY_EQUAL,
       },
       rowsHeld: twentyWhileSwitchedOn("1-year return per unit of volatility"),
-      tested: {
-        from: "2005-01",
-        unseenFrom: 2018,
-        cagr: 22.1,
-        nifty500: 10.7,
-        edge: 9.4,
-        edgeWithout2020To2021: 7.5,
-        maxDrawdown: -33.9,
-      },
-      years: {
-        2005: 34.3,
-        2006: 60.9,
-        2007: 96.3,
-        2008: -14.5,
-        2009: 79.9,
-        2010: 17.6,
-        2011: -4.2,
-        2012: 21.9,
-        2013: 4.2,
-        2014: 94.3,
-        2015: -10.1,
-        2016: 8.5,
-        2017: 101.7,
-        2018: -17.2,
-        2019: 2.2,
-        2020: 82.2,
-        2021: 97.1,
-        2022: -11.3,
-        2023: 86.1,
-        2024: 41.6,
-        2025: 31.0,
-        2026: -18.4,
-      },
-      partialYears: [2026],
-      caveats: [
-        "Its ranking uses the platform's 1-year volatility, worked out from simple daily returns, where the lab used log returns; the two differ slightly, so stocks with nearly equal figures can be ordered differently from the lab's.",
-        ...SHARED_CAVEATS,
-      ],
     },
   },
   {
@@ -481,45 +272,6 @@ export const SCANS: readonly Scan[] = [
           "20 equal positions, always invested; a winner that stays in the top 20 is not trimmed.",
       },
       rowsHeld: "The 20 with the highest 1-year return on a re-pick day.",
-      tested: {
-        from: "2005-01",
-        unseenFrom: 2018,
-        cagr: 23.2,
-        nifty500: 10.7,
-        edge: 9.8,
-        edgeWithout2020To2021: 0.6,
-        maxDrawdown: -44.8,
-      },
-      years: {
-        2005: 39.0,
-        2006: 31.6,
-        2007: 139.1,
-        2008: -70.7,
-        2009: 72.1,
-        2010: 24.3,
-        2011: -18.6,
-        2012: 47.6,
-        2013: 5.6,
-        2014: 108.7,
-        2015: 9.7,
-        2016: -10.4,
-        2017: 191.4,
-        2018: -13.7,
-        2019: 1.2,
-        2020: 75.0,
-        2021: 65.7,
-        2022: -13.7,
-        2023: 87.7,
-        2024: 32.5,
-        2025: -5.0,
-        2026: 42.7,
-      },
-      partialYears: [2026],
-      caveats: [
-        "Its edge over random picks almost disappears without 2020-21 (+0.6 points).",
-        "It is the baseline: the plain momentum rule the other strategies are measured against.",
-        ...SHARED_CAVEATS,
-      ],
     },
   },
   {

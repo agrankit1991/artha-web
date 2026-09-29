@@ -1604,6 +1604,29 @@ export function fetchScreenFields(): Promise<ScreenField[]> {
 }
 
 /**
+ * Count how many companies each of several screens finds over the whole
+ * market, in one request: the scan catalogue asked the screen once per
+ * scan before, thirty-two requests to draw one page.
+ *
+ * @param screens - Each screen's conditions, by a name of the caller's.
+ * @returns Each screen's count, under the same names.
+ */
+export function fetchScreenCounts(
+  screens: Record<string, readonly ScreenCondition[]>,
+): Promise<Record<string, number>> {
+  const asked = Object.fromEntries(
+    Object.entries(screens).map(([name, conditions]) => [
+      name,
+      conditions.map((one) => `${one.field}:${one.operator}:${one.value}`),
+    ]),
+  );
+  return request<{ counts: Record<string, number> }>("/api/screen/counts", {
+    method: "POST",
+    body: JSON.stringify({ screens: asked }),
+  }).then((reply) => reply.counts);
+}
+
+/**
  * Run a screen.
  *
  * @param query - The conditions, the population and the ordering.

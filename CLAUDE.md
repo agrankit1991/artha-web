@@ -442,6 +442,20 @@ fallback)`** (`src/hooks/useSearchParam.ts`): a value at its default is
   flatters every return. A trade in a company no longer listed has no page:
   `DataTable`'s `linkTo` returns null for such a row, and its name stays
   plain text.
+- **Scans** (`src/routes/Scans.tsx`, reworked 2026-09-30) -- the named
+  scans of `src/lib/scans.ts`, each a set of screener conditions, grouped
+  by category, each card saying how many companies it finds today and
+  drawing that as a bar against the page's largest. Every count comes in
+  one request, `POST /api/screen/counts` (`fetchScreenCounts`), which
+  counts each set with the screener's own query over the whole market, so
+  a scan's count and its screen cannot disagree. A scan with no count says
+  "Not counted", never nought. The strategy lab's scans are ordinary cards
+  in their category. **The lab's frozen figures are gone** (the owner's
+  D11): its returns by year, unseen-year record and caveats never updated
+  themselves. Of its five strategies only "12-1 momentum near the 52-week
+  high" has a backtest the platform keeps, so the other four have no
+  tested record on the site until they are written as platform
+  strategies.
 - **Strategies** (`src/routes/Strategies.tsx`, `src/routes/Strategy.tsx`,
   2026-09-26, owner's request: "a place where I can create strategies and
   backtest them and see the instruments matching them") -- strategies are
@@ -730,7 +744,7 @@ the working plan with the reasoning is `docs/REDESIGN-PLAN.md`
 
 The redesign in `docs/REDESIGN-PLAN.md` is largely built; its Context block
 lists every commit. Remaining: market-cap buckets and a momentum score,
-named scans and fundamentals in the screener -- all waiting on a valuation
+and fundamentals in the screener -- all waiting on a valuation
 cache in the platform -- index membership changes, and participant-wise
 open interest. Registration by invitation is built (`/?invite=`). Earlier
 open items from `../UI-PLAN.md` (median-multiple history, movers as of a

@@ -2,40 +2,46 @@
  * The named scans, each with how many companies it finds today.
  *
  * StockEdge's scan catalogue, grouped the same way. Every scan is a set of
- * screener conditions, run through the screener for its count and opened
- * in it to see the companies, so a scan and a screen never disagree.
+ * screener conditions, counted by the screener's own query and opened in
+ * it to see the companies, so a scan and a screen never disagree. Every
+ * count comes in one request, and each is drawn as a bar against the
+ * page's largest, so a category is scanned by size before it is read.
  *
- * The strategies come first: scans behind a strategy the strategy lab
- * backtested, shown with how each did year by year against the market,
- * how it works and what to hold against its figures.
+ * The strategies' scans are here as scans: today's candidates. The copy
+ * of the strategy lab's tested figures this page once carried never
+ * updated itself and was removed (the owner's decision D11, 2026-09-30);
+ * what the platform itself has backtested is on the Backtests page.
  */
 
 import { ArrowRight } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 
-import { type ScreenField, fetchScreenFields } from "@/api/client";
+import { type ScreenField, fetchScreenCounts, fetchScreenFields } from "@/api/client";
 import { ConditionBadges } from "@/components/ConditionBadges";
 import { Failed } from "@/components/Failed";
-import { MarketSwitch } from "@/components/MarketSwitch";
 import { PageHeader } from "@/components/PageHeader";
-import { ReturnsByYear } from "@/components/ReturnsByYear";
-import { ScanCount } from "@/components/ScanCount";
 import { SectionHeader } from "@/components/SectionHeader";
-import { StrategyCard } from "@/components/StrategyCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useResource } from "@/hooks/useResource";
-import { formatDay } from "@/lib/format";
-import {
-  SCANS,
-  SCAN_CATEGORIES,
-  STRATEGIES_DATA_THROUGH,
-  STRATEGIES_EVALUATED,
-  STRATEGY_SCANS,
-  type Scan,
-  type ScanCategory,
-  scanPath,
-} from "@/lib/scans";
+import { formatCount } from "@/lib/format";
+import { PATHS } from "@/lib/paths";
+import { SCANS, SCAN_CATEGORIES, type Scan, type ScanCategory, scanPath } from "@/lib/scans";
+
+/** What a category is about, said under its name where it needs saying. */
+const ABOUT: Partial<Record<ScanCategory, React.ReactNode>> = {
+  Strategies: (
+    <>
+      Today&apos;s candidates for the strategies the strategy lab tested before it was archived.
+      What the platform itself has backtested is on{" "}
+      <Link to={PATHS.backtests} className="text-primary hover:underline">
+        Backtests
+      </Link>
+      .
+    </>
+  ),
+};
 
 /**
  * Render the page.
@@ -44,11 +50,14 @@ import {
  */
 export function Scans(): React.JSX.Element {
   const loadFields = useCallback(() => fetchScreenFields(), []);
+  const loadCounts = useCallback(
+    () => fetchScreenCounts(Object.fromEntries(SCANS.map((scan) => [scan.key, scan.conditions]))),
+    [],
+  );
   const fields = useResource(loadFields);
-
-  if (fields.error !== null) {
-    return <Failed message={fields.error} />;
-  }
+  const counts = useResource(loadCounts);
+  // Every bar is drawn against the largest count on the page.
+  const largest = useMemo(() => Math.max(...Object.values(counts.data ?? {}), 1), [counts.data]);
 
   return (
     <div className="space-y-8">
@@ -57,94 +66,59 @@ export function Scans(): React.JSX.Element {
         count={`${String(SCANS.length)} scans`}
         description="Questions asked of the whole market often enough to name, each with how many companies answer it on the latest session. Open one to see them in the screener, where its conditions can be changed."
       />
-      {SCAN_CATEGORIES.map((category) =>
-        category === "Strategies" ? (
-          <StrategiesSection key={category} fields={fields.data} />
-        ) : (
-          <ScanSection key={category} category={category} fields={fields.data ?? []} />
-        ),
-      )}
+      {fields.error !== null && <Failed message={fields.error} />}
+      {counts.error !== null && <Failed message={counts.error} />}
+      {SCAN_CATEGORIES.map((category) => (
+        <section key={category} className="space-y-3" aria-label={category}>
+          <SectionHeader
+            title={category}
+            {...(ABOUT[category] === undefined ? {} : { description: ABOUT[category] })}
+          />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {SCANS.filter((scan) => scan.category === category).map((scan) => (
+              <ScanCard
+                key={scan.key}
+                scan={scan}
+                fields={fields.data ?? []}
+                count={counts.data?.[scan.key]}
+                counting={counts.loading}
+                largest={largest}
+              />
+            ))}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }
 
-/**
- * The backtested strategies: when they were tested, where the market
- * switch stands, how each did year by year, and a card for each.
- */
-function StrategiesSection({ fields }: { fields: ScreenField[] | null }): React.JSX.Element {
-  return (
-    <section className="space-y-4" aria-label="Strategies">
-      <SectionHeader
-        title="Strategies"
-        description="Rules backtested in the strategy lab, each with a scan that lists today's candidates."
-      />
-      <div className="max-w-3xl space-y-2 text-sm leading-relaxed text-muted-foreground">
-        <p>
-          Backtested in the strategy lab on {formatDay(STRATEGIES_EVALUATED)}, on prices to{" "}
-          {formatDay(STRATEGIES_DATA_THROUGH)}. The scan lists today&apos;s candidates; the strategy
-          holds the top 20 by the scan&apos;s order (the surge strategy buys each day&apos;s rows
-          into 20 slots). The figures stop at the evaluation and do not update with the market.
-        </p>
-        <p>
-          Every figure comes from companies still listed today, which flatters them all. Random
-          picks under the same rules share that flattery, so each card&apos;s edge over them is the
-          figure to trust.
-        </p>
-      </div>
-      <MarketSwitch fields={fields} />
-      <ReturnsByYear scans={STRATEGY_SCANS} />
-      <div className="grid gap-4 lg:grid-cols-2">
-        {STRATEGY_SCANS.map((scan) => (
-          <StrategyCard
-            key={scan.key}
-            scan={scan}
-            fields={fields ?? []}
-            // The featured strategy spans the row, which also leaves the
-            // other four filling two rows of two.
-            className={scan.featured === true ? "lg:col-span-2" : undefined}
-          />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/** One category of plain scans, as a grid of cards. */
-function ScanSection({
-  category,
+/** One scan: what it asks, how many answer, and the way into the screener. */
+function ScanCard({
+  scan,
   fields,
+  count,
+  counting,
+  largest,
 }: {
-  category: ScanCategory;
+  scan: Scan;
   fields: ScreenField[];
+  /** How many companies it finds; undefined when the platform gave no count. */
+  count: number | undefined;
+  counting: boolean;
+  largest: number;
 }): React.JSX.Element {
   return (
-    <section className="space-y-3" aria-label={category}>
-      <SectionHeader title={category} />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {SCANS.filter((scan) => scan.category === category).map((scan) => (
-          <ScanCard key={scan.key} scan={scan} fields={fields} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/** One scan: what it asks, how many answer, and the way into the screener. */
-function ScanCard({ scan, fields }: { scan: Scan; fields: ScreenField[] }): React.JSX.Element {
-  return (
     <Card className="flex flex-col">
-      <CardHeader>
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-base">{scan.label}</CardTitle>
-          <ScanCount scan={scan} noun="stocks" />
-        </div>
+      <CardHeader className="space-y-2">
+        <CardTitle>{scan.label}</CardTitle>
+        <ScanSize count={count} counting={counting} largest={largest} />
       </CardHeader>
       <CardContent className="flex flex-1 flex-col justify-between gap-3">
         <p className="text-sm text-muted-foreground">{scan.description}</p>
         <ConditionBadges conditions={scan.conditions} fields={fields} />
         <Link
           to={scanPath(scan)}
+          viewTransition
           className="inline-flex items-center gap-1 self-start text-sm font-medium text-primary hover:underline"
         >
           Run in the screener
@@ -152,5 +126,40 @@ function ScanCard({ scan, fields }: { scan: Scan; fields: ScreenField[] }): Reac
         </Link>
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * A scan's count, written and drawn as a bar against the page's largest.
+ * A scan with no count says so rather than showing a nought it was never
+ * given.
+ */
+function ScanSize({
+  count,
+  counting,
+  largest,
+}: {
+  count: number | undefined;
+  counting: boolean;
+  largest: number;
+}): React.JSX.Element {
+  if (counting) {
+    return <Skeleton className="h-5 w-32" />;
+  }
+  if (count === undefined) {
+    return <span className="text-sm text-muted-foreground">Not counted</span>;
+  }
+  return (
+    <div className="flex items-center gap-3">
+      <span className="w-28 shrink-0 text-sm font-medium tabular">
+        {formatCount(count)} {count === 1 ? "company" : "companies"}
+      </span>
+      <span aria-hidden="true" className="h-1.5 flex-1 rounded-full bg-muted">
+        <span
+          className="block h-full rounded-full bg-primary/70"
+          style={{ width: `${String((count / largest) * 100)}%` }}
+        />
+      </span>
+    </div>
   );
 }

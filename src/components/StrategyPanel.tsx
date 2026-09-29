@@ -14,8 +14,7 @@
  * signals yet, whatever the screen says.
  */
 
-import { ArrowRight, Undo2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Undo2 } from "lucide-react";
 
 import { Callout } from "@/components/Callout";
 import type { ScreenField, ScreenHit } from "@/api/client";
@@ -24,7 +23,6 @@ import { MarketSwitch } from "@/components/MarketSwitch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDay } from "@/lib/format";
-import { PATHS } from "@/lib/paths";
 import {
   type OffSessionDelivery,
   type StrategyScan,
@@ -99,13 +97,6 @@ export function StrategyPanel({
 
       {strategy.howItWorks.marketSwitch !== undefined && <MarketSwitch fields={fields} />}
       <HowItWorks rules={strategy.howItWorks} />
-      <Link
-        to={PATHS.scans}
-        className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-      >
-        Its tested record and caveats
-        <ArrowRight aria-hidden="true" className="h-4 w-4" />
-      </Link>
     </section>
   );
 }
