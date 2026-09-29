@@ -60,9 +60,10 @@ export function PageHeader({
             {Mark !== null && (
               <Mark aria-hidden="true" className="h-5 w-5 shrink-0 text-muted-foreground" />
             )}
-            {/* The previous project's title treatment: the accent fading to a
-                lighter tint of itself, so each page's name carries the theme. */}
-            <h1 className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
+            {/* The previous project's title treatment: the brand teal fading to
+                a lighter tint of itself. To 85% rather than 70%, which left the
+                end of a long title under 3:1. */}
+            <h1 className="bg-gradient-to-r from-primary to-primary/85 bg-clip-text text-page font-bold tracking-tight text-transparent">
               {title}
             </h1>
             {count !== undefined && (
@@ -72,6 +73,12 @@ export function PageHeader({
             )}
             {badges}
           </div>
+          {/* The one brand moment on every page: a short rule in the logo's
+              orange under the name. */}
+          <div
+            aria-hidden="true"
+            className="h-[3px] w-12 rounded-full bg-gradient-to-r from-brand to-brand/0"
+          />
           {identifiers !== undefined && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
               {identifiers}

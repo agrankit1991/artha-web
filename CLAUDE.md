@@ -537,9 +537,12 @@ the working plan with the reasoning is `docs/REDESIGN-PLAN.md`
   compares by is a column. Index tables show the index's _name_, the
   exchange as plain text and the category as an outline badge (`N/A` when
   unknown).
-- **Page furniture:** `PageHeader` has the gradient title and an optional
-  `count` badge ("217 indices"); `SectionHeader` is `text-2xl` with an
-  `h-6` icon; list pages offer `ViewModeToggle` (List · Grouped · Cards),
+- **Page furniture:** `PageHeader` has the gradient title (`text-page`,
+  28px), a short orange brand rule under it and an optional `count` badge
+  ("217 indices"); `SectionHeader` is `text-section` (20px) with an `h-5`
+  icon; a panel's `CardTitle` is a real `h3` (`as="h2"` where a page has no
+  sections) at `text-panel`. The four sizes are tokens in `index.css`;
+  list pages offer `ViewModeToggle` (List · Grouped · Cards),
   remembered per page through `useViewMode(page)` in preferences.
 - **A signed amount is a `Delta` too:** pass `format` (e.g. `formatSignedPrice`)
   for points or crore that read up or down the way a percentage does -- the

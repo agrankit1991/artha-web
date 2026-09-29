@@ -27,11 +27,17 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
+// A real heading, so a panel's title is in the page's outline for a screen
+// reader: h3 under a section's h2, or h2 where a page has no sections.
+function CardTitle({
+  className,
+  as: Heading = "h3",
+  ...props
+}: React.ComponentProps<"h3"> & { as?: "h2" | "h3" | "h4" }) {
   return (
-    <div
+    <Heading
       data-slot="card-title"
-      className={cn("leading-none font-semibold", className)}
+      className={cn("text-panel leading-snug font-semibold", className)}
       {...props}
     />
   );

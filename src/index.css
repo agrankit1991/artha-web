@@ -158,6 +158,23 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/*
+ * The type scale. Four sizes carry the hierarchy, so a page title, a
+ * section title and a panel title are three different sizes on every page
+ * (a section title was once the same size as the page's own). Body text is
+ * Tailwind's `text-sm`, captions `text-xs`.
+ */
+@theme {
+  --text-page: 1.75rem;
+  --text-page--line-height: 2.25rem;
+  --text-section: 1.25rem;
+  --text-section--line-height: 1.75rem;
+  --text-panel: 1rem;
+  --text-panel--line-height: 1.5rem;
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1rem;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
