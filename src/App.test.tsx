@@ -100,7 +100,7 @@ describe("App", () => {
     await userEvent.type(screen.getByLabelText("Password"), "a long enough passphrase");
     await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
 
-    expect(await screen.findByText("Market Movers")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Movers" })).toBeInTheDocument();
   });
 
   it("returns to the sign-in page at once on signing out", async () => {
@@ -108,7 +108,7 @@ describe("App", () => {
     // shared machine ends up showing one person's dashboard to the next.
     stubPlatform({ "/api/me": { body: ACCOUNT }, "/api/logout": { status: 204 }, ...DATA });
     render(<App />);
-    await screen.findByText("Market Movers");
+    await screen.findByRole("heading", { name: "Movers" });
 
     await userEvent.click(screen.getByRole("button", { name: "Account" }));
     await userEvent.click(screen.getByRole("menuitem", { name: /Sign out/ }));
@@ -143,7 +143,7 @@ describe("App", () => {
   it("names the account in the header, and takes it to a page of its own", async () => {
     stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
     render(<App />);
-    await screen.findByText("Market Movers");
+    await screen.findByRole("heading", { name: "Movers" });
 
     await userEvent.click(screen.getByRole("button", { name: "Account" }));
     await userEvent.click(screen.getByRole("menuitem", { name: /Profile/ }));
@@ -169,7 +169,7 @@ describe("App", () => {
   it("hides the navigation behind a button on a phone", async () => {
     stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
     render(<App />);
-    await screen.findByText("Market Movers");
+    await screen.findByRole("heading", { name: "Movers" });
 
     const opener = screen.getByRole("button", { name: "Open navigation" });
     await userEvent.click(opener);
@@ -182,7 +182,7 @@ describe("App", () => {
     // the most common way a sidebar gets in the way.
     stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
     const { container } = render(<App />);
-    await screen.findByText("Market Movers");
+    await screen.findByRole("heading", { name: "Movers" });
     await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
 
     const overlay = container.querySelector(".bg-overlay");
@@ -194,7 +194,7 @@ describe("App", () => {
   it("closes the navigation on choosing a screen from it", async () => {
     stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
     render(<App />);
-    await screen.findByText("Market Movers");
+    await screen.findByRole("heading", { name: "Movers" });
     await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
 
     await userEvent.click(screen.getByRole("link", { name: "Breadth" }));
@@ -205,7 +205,7 @@ describe("App", () => {
   it("closes the navigation on Escape, handing the focus back to its button", async () => {
     stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
     render(<App />);
-    await screen.findByText("Market Movers");
+    await screen.findByRole("heading", { name: "Movers" });
     await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
 
     await userEvent.keyboard("{Escape}");
@@ -254,7 +254,7 @@ describe("App", () => {
   it("leads home from the logo, in the sidebar and in a phone's header", async () => {
     stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
     render(<App />);
-    await screen.findByText("Market Movers");
+    await screen.findByRole("heading", { name: "Movers" });
 
     const brands = screen.getAllByRole("link", { name: "Artha Science" });
     expect(brands).toHaveLength(2);
@@ -268,7 +268,7 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(await screen.findByText("Market Movers")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Movers" })).toBeInTheDocument();
   });
 
   it("moves between screens without reloading the application", async () => {
@@ -276,7 +276,7 @@ describe("App", () => {
     // makes them routes rather than a piece of component state.
     stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
     render(<App />);
-    await screen.findByText("Market Movers");
+    await screen.findByRole("heading", { name: "Movers" });
 
     await userEvent.click(screen.getByRole("link", { name: "Breadth" }));
 
@@ -295,7 +295,7 @@ describe("App", () => {
   it("takes the overview's own way through to breadth", async () => {
     stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
     render(<App />);
-    await screen.findByText("Market Movers");
+    await screen.findByRole("heading", { name: "Movers" });
 
     await userEvent.click(screen.getByRole("button", { name: /See breadth in full/ }));
 
@@ -305,7 +305,7 @@ describe("App", () => {
   it("routes to the news page and back", async () => {
     stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
     render(<App />);
-    await screen.findByText("Market Movers");
+    await screen.findByRole("heading", { name: "Movers" });
 
     await userEvent.click(screen.getByRole("link", { name: "News" }));
 
@@ -315,7 +315,7 @@ describe("App", () => {
   it("takes the overview's own way through to the feed", async () => {
     stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
     render(<App />);
-    await screen.findByText("Market News");
+    await screen.findByRole("heading", { name: "News" });
 
     await userEvent.click(screen.getByRole("button", { name: /View all news/ }));
 
@@ -336,7 +336,7 @@ describe("App", () => {
     // Scoped to the cards: "Nifty 50" also names a chip in the scope
     // picker further down, which chooses a population rather than opening
     // one.
-    const cards = screen.getByRole("region", { name: "Market Indices" });
+    const cards = screen.getByRole("region", { name: "Market indices" });
     const [card] = within(cards).getAllByRole("button");
     await userEvent.click(card as HTMLElement);
 
@@ -376,7 +376,7 @@ describe("App", () => {
       "/api/funds": { body: schemePage() },
     });
     render(<App />);
-    await screen.findByText("Market Movers");
+    await screen.findByRole("heading", { name: "Movers" });
 
     await userEvent.click(screen.getByRole("link", { name: "IPOs" }));
     expect(await screen.findByText("Initial Public Offerings")).toBeInTheDocument();
@@ -395,7 +395,7 @@ describe("App", () => {
       "/api/funds": { body: schemePage() },
     });
     render(<App />);
-    await screen.findByText("Market Movers");
+    await screen.findByRole("heading", { name: "Movers" });
     await userEvent.click(screen.getByRole("link", { name: "Funds" }));
     await screen.findByText("Mutual Funds");
 
@@ -407,7 +407,7 @@ describe("App", () => {
   it("opens a population's own page from the breadth grid", async () => {
     stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA, "/api/breadth/grid": { body: grid() } });
     render(<App />);
-    await screen.findByText("Market Movers");
+    await screen.findByRole("heading", { name: "Movers" });
     await userEvent.click(screen.getByRole("link", { name: "Breadth" }));
     await screen.findByText("Sector & Index Breadth");
 
@@ -419,7 +419,7 @@ describe("App", () => {
   it("opens the chosen population's own page from the movers", async () => {
     stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
     render(<App />);
-    await screen.findByText("Market Movers");
+    await screen.findByRole("heading", { name: "Movers" });
 
     // The pinned chip appears once the platform has said which
     // populations it ranks.
@@ -466,7 +466,7 @@ describe("App", () => {
 
     render(<App />);
 
-    await screen.findByText("Market Movers");
+    await screen.findByRole("heading", { name: "Movers" });
     expect(screen.queryByRole("link", { name: "Visitors" })).not.toBeInTheDocument();
   });
 });

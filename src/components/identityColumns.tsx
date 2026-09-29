@@ -65,17 +65,28 @@ export function symbolColumn<Row>(
 export function nameColumn<Row>(
   identify: (row: Row) => Identity,
   streak?: (row: Row) => number,
+  { compact = false }: { compact?: boolean } = {},
 ): Column<Row> {
   return {
     id: "name",
     header: "Name",
     accessorFn: (row) => identify(row).name ?? "",
-    cell: ({ row }) => (
-      <span className="flex min-w-0 items-center gap-1.5">
-        <span className="max-w-[18rem] truncate">{identify(row.original).name ?? ABSENT}</span>
-        {streak !== undefined && <StreakBadge sessions={streak(row.original)} />}
-      </span>
-    ),
+    cell: ({ row }) => {
+      const name = identify(row.original).name ?? ABSENT;
+      return (
+        <span className="flex min-w-0 items-center gap-1.5">
+          {/* Narrower in a panel, where a long name pushed the figures out
+              of the card; the whole name is on hover. */}
+          <span
+            title={name}
+            className={cn("truncate", compact ? "max-w-[10rem]" : "max-w-[18rem]")}
+          >
+            {name}
+          </span>
+          {streak !== undefined && <StreakBadge sessions={streak(row.original)} />}
+        </span>
+      );
+    },
   };
 }
 

@@ -7,18 +7,20 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { Overview } from "./Overview";
 import { forgetForTests } from "@/lib/preferences";
 import {
-  type Reply,
   breadth,
   chartPoints,
+  institutionalFlow,
   moverRow,
   moversResponse,
   newsPage,
   overview,
   panel,
   priceSeries,
-  scopeOptions,
   renderPage,
+  scopeOptions,
+  sectorSummary,
   stubPlatform,
+  type Reply,
 } from "@/test/support";
 
 vi.mock("lightweight-charts", async () => (await import("@/test/chartStub")).chartModule());
@@ -70,7 +72,7 @@ describe("Overview", () => {
     renderOverview();
 
     await screen.findAllByText("24,812.40");
-    const cards = screen.getByRole("region", { name: "Market Indices" });
+    const cards = screen.getByRole("region", { name: "Market indices" });
     const names = within(cards)
       .getAllByText(/Nifty|Sensex|Bank Nifty|India VIX/)
       .map((element) => element.textContent);
@@ -110,7 +112,7 @@ describe("Overview", () => {
     renderOverview();
     await screen.findByText("Top gainers");
 
-    await userEvent.click(screen.getByRole("combobox"));
+    await userEvent.click(screen.getByRole("combobox", { name: "Scope" }));
     await userEvent.click(screen.getByRole("option", { name: "IT - Software" }));
 
     await waitFor(() => {
@@ -141,7 +143,7 @@ describe("Overview", () => {
 
     renderOverview();
 
-    expect(await screen.findByText("Market Breadth")).toBeInTheDocument();
+    expect(await screen.findByText("Breadth: All companies")).toBeInTheDocument();
     expect(screen.getByText("60 advancing")).toBeInTheDocument();
   });
 
@@ -149,7 +151,7 @@ describe("Overview", () => {
     stubEverything();
     const open = vi.fn();
     renderOverview({ onOpenBreadth: open });
-    await screen.findByText("Market Breadth");
+    await screen.findByText("Breadth: All companies");
 
     await userEvent.click(screen.getByRole("button", { name: /See breadth in full/ }));
 
@@ -181,6 +183,8 @@ describe("Overview", () => {
       },
       "/api/figures": { body: { instrument_key: "NSE_INDEX|Nifty 50", points: chartPoints(30) } },
       "/api/series": { body: [] },
+      "/api/flows": { body: [] },
+      "/api/sectors": { body: [] },
     });
 
     renderOverview();
@@ -231,7 +235,9 @@ describe("Overview", () => {
 
     renderOverview();
 
-    expect(await screen.findByRole("region", { name: "Sector heatmap" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("region", { name: "SENSEX heatmap from TradingView" }),
+    ).toBeInTheDocument();
   });
 
   it("offers the way through to the whole feed, under it as the old page did", async () => {
@@ -361,7 +367,7 @@ describe("Overview", () => {
     renderOverview({ onOpenPopulation: opened });
     await screen.findByText("Top gainers");
 
-    await userEvent.click(screen.getByRole("combobox"));
+    await userEvent.click(screen.getByRole("combobox", { name: "Scope" }));
     await userEvent.click(screen.getByRole("option", { name: "IT - Software" }));
 
     expect(await screen.findByRole("button", { name: /Open IT - Software/ })).toBeInTheDocument();
@@ -379,43 +385,96 @@ describe("Overview", () => {
     expect(opened).toHaveBeenCalledWith("index", "NSE_INDEX|Nifty 50");
   });
 
-  it("opens with what moved today, and offers every list in full", async () => {
+  it("opens with what moved today: the benchmark, the population's breadth, the institutions", async () => {
+    stubEverything({
+      "/api/flows": {
+        body: [
+          institutionalFlow({ participant: "FII", net_amount: "-3809.99" }),
+          institutionalFlow({ participant: "DII", net_amount: "4210.50" }),
+        ],
+      },
+    });
+    renderPage(<Overview />);
+
+    const band = await screen.findByRole("region", { name: "What moved today" });
+    expect(await within(band).findByText(/up$/)).toBeInTheDocument();
+    // The population the band counts is named in it, not chosen far below.
+    expect(within(band).getByText("All companies")).toBeInTheDocument();
+    expect(await within(band).findByText("FII net")).toBeInTheDocument();
+    expect(within(band).getByText("-3,809.99 Cr")).toBeInTheDocument();
+    // Who led and who dragged are the lists' first rows, not the band's.
+    expect(within(band).queryByText("Led by")).not.toBeInTheDocument();
+    expect((await screen.findAllByRole("link", { name: "See all →" })).length).toBeGreaterThan(0);
+  });
+
+  it("keeps the band to what it knows before the breadth and the flows arrive", async () => {
+    stubEverything({
+      "/api/movers": { body: moversResponse([]) },
+      "/api/breadth": { body: breadth({ latest: null, sessions: [] }) },
+      "/api/flows": { body: [] },
+    });
+    renderPage(<Overview />);
+
+    const band = await screen.findByRole("region", { name: "What moved today" });
+    expect(within(band).queryByText(/up$/)).not.toBeInTheDocument();
+    expect(within(band).queryByText("FII net")).not.toBeInTheDocument();
+  });
+
+  it("ranks the sectors by today's median move, strongest and weakest", async () => {
+    // Fourteen sectors big enough to rank and one too small to mean
+    // anything: the six strongest and six weakest are shown.
+    const sectors = Array.from({ length: 14 }, (_, index) =>
+      sectorSummary({
+        sector: `Sector ${String(index + 1)}`,
+        measured: 12,
+        median_change_percent: String(7 - index),
+        as_of: "2026-09-25",
+      }),
+    );
+    stubEverything({
+      "/api/sectors": {
+        body: [
+          ...sectors,
+          sectorSummary({ sector: "Tiny", measured: 2, median_change_percent: "9" }),
+        ],
+      },
+    });
+    renderPage(<Overview />);
+
+    const ranked = await screen.findByRole("list", { name: "Sectors by today's median move" });
+    const names = within(ranked)
+      .getAllByRole("listitem")
+      .map((item) => item.textContent);
+    expect(names).toHaveLength(12);
+    expect(names[0]).toContain("Sector 1");
+    expect(names[11]).toContain("Sector 14");
+    expect(within(ranked).queryByText("Tiny")).not.toBeInTheDocument();
+    expect(within(ranked).getByRole("link", { name: "Sector 1" })).toHaveAttribute(
+      "href",
+      "/sector/sector-1",
+    );
+    expect(screen.getByText(/strongest and weakest of 14/)).toBeInTheDocument();
+  });
+
+  it("offers the lists beyond gainers and losers in one panel, chosen from its title", async () => {
     stubEverything({
       "/api/movers": {
         body: moversResponse([
           panel({ name: "top-gainers" }),
-          panel({
-            name: "top-losers",
-            rows: [
-              moverRow({ instrument_key: "NSE_EQ|INE467B01029", symbol: "TCS", value: "-2.10" }),
-            ],
-          }),
+          panel({ name: "top-losers" }),
+          panel({ name: "most-active" }),
+          panel({ name: "unusual-volume" }),
         ]),
       },
     });
     renderPage(<Overview />);
-    expect(await screen.findByText("Dragged by")).toBeInTheDocument();
-    const band = await screen.findByRole("region", { name: "What moved today" });
-    expect(within(band).getByRole("link", { name: "TCS" })).toHaveAttribute("href", "/company/TCS");
 
-    expect(within(band).getByText(/up$/)).toBeInTheDocument();
-    expect(within(band).getByRole("link", { name: "All movers →" })).toHaveAttribute(
-      "href",
-      "/movers/top-gainers?scope_kind=companies",
-    );
-    expect((await screen.findAllByRole("link", { name: "See all →" })).length).toBeGreaterThan(0);
-  });
+    const chooser = await screen.findByRole("combobox", { name: "Which list" });
+    expect(screen.getByRole("columnheader", { name: /Volume/ })).toBeInTheDocument();
+    await userEvent.click(chooser);
+    await userEvent.click(await screen.findByRole("option", { name: "Unusual volume" }));
 
-  it("keeps the band to what it knows before the lists and the breadth arrive", async () => {
-    stubEverything({
-      "/api/movers": { body: moversResponse([]) },
-      "/api/breadth": { body: breadth({ latest: null, sessions: [] }) },
-    });
-    renderPage(<Overview />);
-
-    const band = await screen.findByRole("region", { name: "What moved today" });
-    expect(within(band).queryByText("Breadth")).not.toBeInTheDocument();
-    expect(within(band).queryByText("Led by")).not.toBeInTheDocument();
+    expect(await screen.findByRole("columnheader", { name: /vs average/ })).toBeInTheDocument();
   });
 
   it("opens on the population the reader left it on last time", async () => {

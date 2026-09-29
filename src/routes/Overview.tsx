@@ -7,16 +7,19 @@
  * arrives whole rather than in pieces.
  */
 
-import { Activity, ChevronRight, LineChart, PieChart } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCallback, useMemo, useState } from "react";
 
 import type {
   BreadthSession,
+  InstitutionalFlow,
   InstrumentOverview,
+  MoverListName,
   MoverPanel,
   MoverRow,
   ScopeOptions,
+  SectorSummary,
 } from "@/api/client";
 import {
   fetchBreadth,
@@ -27,9 +30,13 @@ import {
   fetchNews,
   fetchOverviews,
   fetchScopes,
+  fetchSectors,
   fetchSeries,
 } from "@/api/client";
 import { BreadthPanel } from "@/components/BreadthPanel";
+import { DivergingBars } from "@/components/DivergingBars";
+import { Empty } from "@/components/Empty";
+import { PageHeader } from "@/components/PageHeader";
 import { type ChartLine, ComparisonChart } from "@/components/ComparisonChart";
 import { PriceChart } from "@/components/PriceChart";
 import { PRICE_RANGES, RangeSelector } from "@/components/RangeSelector";
@@ -39,7 +46,8 @@ import { IndexCard } from "@/components/IndexCard";
 import { MoverPanelCard } from "@/components/MoverPanel";
 import { NewsFeed } from "@/components/NewsFeed";
 import { ScopePicker } from "@/components/ScopePicker";
-import type { Scope } from "@/components/ScopeSelector";
+import { type Scope, WHOLE_POPULATIONS } from "@/components/ScopeSelector";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Delta } from "@/components/Delta";
 import { Failed } from "@/components/Failed";
@@ -49,8 +57,8 @@ import { ENTITIES, MARKS } from "@/lib/entities";
 import { coloured } from "@/lib/chartPalette";
 import { useResource } from "@/hooks/useResource";
 import { readPreferences, writePreferences } from "@/lib/preferences";
-import { formatDay, formatPrice } from "@/lib/format";
-import { companyPath, moversPath, populationPath } from "@/lib/paths";
+import { formatDay, formatPrice, formatSignedPrice, toNumber } from "@/lib/format";
+import { companyPath, moversPath, PATHS, populationPath } from "@/lib/paths";
 import { BENCHMARK, FEATURED_INDICES, GOLD } from "@/lib/indices";
 
 interface OverviewProps {
@@ -74,7 +82,6 @@ interface OverviewProps {
  */
 const HEADLINES = 6;
 
-/** How much history the chart opens on -- a year. */
 /**
  * What the chart section can show.
  *
@@ -141,6 +148,7 @@ export function Overview({
     [sessions],
   );
   const loadChart = useCallback(() => fetchFigures(BENCHMARK.key, sessions), [sessions]);
+  const loadSectors = useCallback(() => fetchSectors(), []);
 
   const scopes = useResource(loadScopes);
   const indices = useResource(loadIndices);
@@ -151,6 +159,9 @@ export function Overview({
   const comparison = useResource(loadComparison);
   const chart = useResource(loadChart);
   const symbols = useResource(loadSymbols);
+  const sectors = useResource(loadSectors);
+  // The lists beyond gainers and losers share one panel, chosen from its title.
+  const [otherList, setOtherList] = useState<MoverListName>("most-active");
 
   // Every row leads somewhere now: a list of indices to each index's own
   // page, a list of companies to each company's.
@@ -164,30 +175,47 @@ export function Overview({
     return FEATURED_INDICES.map((index) => ({ ...index, overview: found.get(index.key) }));
   }, [indices.data]);
 
-  return (
-    <div className="space-y-8">
-      {/* The previous project's title: centred, with the accent fading in
-          and out beneath it. */}
-      <header className="pb-2 text-center">
-        <h1 className="relative inline-block text-4xl font-bold">
-          Market Overview
-          <span
-            aria-hidden="true"
-            className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent"
-          />
-        </h1>
-      </header>
+  const population = scope.key === null ? populationLabel(scope) : nameOf(scope.key, scopes.data);
+  const panels = movers.data?.panels ?? [];
+  const panelOf = (name: MoverListName): MoverPanel | undefined =>
+    panels.find((one) => one.name === name);
+  const others = OTHER_LISTS.filter((name) => panelOf(name) !== undefined);
+  const benchmark = indices.data?.find((one) => one.instrument_key === BENCHMARK.key) ?? null;
 
-      <MarketBand
-        benchmark={indices.data?.find((one) => one.instrument_key === BENCHMARK.key) ?? null}
-        breadth={breadth.data?.latest ?? null}
-        panels={movers.data?.panels ?? []}
-        scope={scope}
+  return (
+    <div className="space-y-10">
+      <PageHeader
+        title="Market Overview"
+        identifiers={
+          benchmark === null ? undefined : <span>Session of {formatDay(benchmark.as_of)}</span>
+        }
+        // The population the band, the breadth and the movers are about,
+        // chosen at the top where it governs them, and named in each.
+        actions={
+          <>
+            <ScopePicker scope={scope} options={scopes.data} onChange={setScope} />
+            {scope.key !== null && onOpenPopulation && (
+              <OpenPopulation
+                kind={scope.kind === "index" ? "index" : "sector"}
+                scopeKey={scope.key}
+                label={population}
+                onOpen={onOpenPopulation}
+              />
+            )}
+          </>
+        }
       />
 
-      <section className="space-y-3" aria-labelledby="indices-heading">
-        <SectionHeader id="indices-heading" icon={ENTITIES.index.icon} title="Market Indices" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <MarketBand
+        benchmark={benchmark}
+        breadth={breadth.data?.latest ?? null}
+        population={population}
+        flows={flows.data}
+      />
+
+      <section className="space-y-4" aria-labelledby="indices-heading">
+        <SectionHeader id="indices-heading" icon={ENTITIES.index.icon} title="Market indices" />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {cards.map((index) => (
             <IndexCard
               key={index.key}
@@ -200,51 +228,97 @@ export function Overview({
         </div>
       </section>
 
-      {/* A failure here is the flows' own: the rest of the page stands. */}
-      {flows.error === null && <FlowsGlance flows={flows.data} loading={flows.loading} />}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="space-y-2">
+          <BreadthPanel
+            breadth={breadth.data}
+            loading={breadth.loading}
+            title={`Breadth: ${population}`}
+          />
+          {onOpenBreadth && (
+            <button
+              type="button"
+              className="text-sm text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
+              onClick={onOpenBreadth}
+            >
+              See breadth in full →
+            </button>
+          )}
+        </div>
+        {/* A failure here is the flows' own: the rest of the page stands. */}
+        {flows.error === null ? (
+          <FlowsGlance flows={flows.data} loading={flows.loading} />
+        ) : (
+          <Failed message={flows.error} />
+        )}
+      </div>
 
-      <section className="space-y-3" aria-labelledby="heatmap-heading">
-        <SectionHeader id="heatmap-heading" icon={PieChart} title="Market Heatmap" />
-        <TradingViewWidget
-          widget="stock-heatmap"
-          label="Sector heatmap"
-          height={400}
-          settings={{
-            exchanges: ["BSE"],
-            dataSource: "SENSEX",
-            grouping: "sector",
-            blockSize: "market_cap_basic",
-            blockColor: "change",
-            locale: "en",
-            hasTopBar: false,
-            isDataSetEnabled: false,
-            isZoomEnabled: false,
-            hasSymbolTooltip: true,
-            isMonoSize: false,
-          }}
+      <SectorsToday sectors={sectors.data} failure={sectors.error} />
+
+      <section className="space-y-4" aria-labelledby="movers-heading">
+        <SectionHeader
+          id="movers-heading"
+          icon={MARKS.movers}
+          title="Movers"
+          description={`Ranked within ${population}.`}
         />
+        {movers.error !== null ? (
+          <Failed message={movers.error} />
+        ) : (
+          <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+            {(["top-gainers", "top-losers"] as const).map((name) => {
+              const panel = panelOf(name);
+              return panel === undefined ? null : (
+                <MoverPanelCard
+                  href={moversPath(panel.name, scope.kind, scope.key)}
+                  key={panel.name}
+                  panel={panel}
+                  loading={movers.loading}
+                  {...(onSelect ? { onSelect } : {})}
+                  linkTo={opens}
+                />
+              );
+            })}
+            {(() => {
+              // The other five lists share the third place, chosen from
+              // its title: seven panels always left a row half empty.
+              const panel = panelOf(otherList) ?? panelOf(others[0] ?? otherList);
+              return panel === undefined ? null : (
+                <div className="min-w-0 lg:col-span-2 2xl:col-span-1">
+                  <MoverPanelCard
+                    href={moversPath(panel.name, scope.kind, scope.key)}
+                    panel={panel}
+                    loading={movers.loading}
+                    {...(onSelect ? { onSelect } : {})}
+                    linkTo={opens}
+                    choice={{ lists: others, onChoose: setOtherList }}
+                  />
+                </div>
+              );
+            })()}
+          </div>
+        )}
       </section>
 
-      <section className="space-y-3" aria-labelledby="comparison-heading">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 id="comparison-heading" className="flex items-center gap-2 text-2xl font-semibold">
-              <LineChart aria-hidden="true" className="h-6 w-6 text-primary" />
-              Index vs Gold
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {view === "price"
-                ? "Sessions as candles, with this platform's own moving averages over them."
-                : "Both rebased to the first session they share, so two different scales compare."}
-            </p>
-          </div>
-          <RangeSelector
-            ranges={PRICE_RANGES}
-            sessions={sessions}
-            onChange={setSessions}
-            label="History"
-          />
-        </div>
+      <section className="space-y-4" aria-labelledby="comparison-heading">
+        <SectionHeader
+          id="comparison-heading"
+          icon={MARKS.performance}
+          title={view === "price" ? BENCHMARK.name : `${BENCHMARK.name} against gold`}
+          description={
+            view === "price"
+              ? "Sessions as candles, with this platform's own moving averages over them."
+              : "Both rebased to the first session they share, so two different scales compare."
+          }
+          actions={
+            <RangeSelector
+              ranges={PRICE_RANGES}
+              sessions={sessions}
+              onChange={setSessions}
+              label="History"
+            />
+          }
+        />
         <Tabs
           tabs={VIEWS}
           active={view}
@@ -274,58 +348,35 @@ export function Overview({
         </Tabs>
       </section>
 
-      <section className="space-y-4" aria-labelledby="movers-heading">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 id="movers-heading" className="flex items-center gap-2 text-2xl font-semibold">
-            <Activity aria-hidden="true" className="h-6 w-6 text-primary" />
-            Market Movers
-          </h2>
-          <div className="flex flex-wrap items-center gap-3">
-            <ScopePicker scope={scope} options={scopes.data} onChange={setScope} />
-            {scope.key !== null && onOpenPopulation && (
-              <OpenPopulation
-                kind={scope.kind === "index" ? "index" : "sector"}
-                scopeKey={scope.key}
-                label={nameOf(scope.key, scopes.data)}
-                onOpen={onOpenPopulation}
-              />
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <BreadthPanel breadth={breadth.data} loading={breadth.loading} />
-          {onOpenBreadth && (
-            <button
-              type="button"
-              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-              onClick={onOpenBreadth}
-            >
-              See breadth in full →
-            </button>
-          )}
-        </div>
-
-        {movers.error !== null ? (
-          <Failed message={movers.error} />
-        ) : (
-          <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
-            {(movers.data?.panels ?? []).map((panel) => (
-              <MoverPanelCard
-                href={moversPath(panel.name, scope.kind, scope.key)}
-                key={panel.name}
-                panel={panel}
-                loading={movers.loading}
-                {...(onSelect ? { onSelect } : {})}
-                linkTo={opens}
-              />
-            ))}
-          </div>
-        )}
+      <section className="space-y-4" aria-labelledby="heatmap-heading">
+        <SectionHeader
+          id="heatmap-heading"
+          icon={ENTITIES.sector.icon}
+          title="SENSEX heatmap"
+          description="The thirty SENSEX companies, sized by market capitalisation and coloured by today's move. Drawn by TradingView."
+        />
+        <TradingViewWidget
+          widget="stock-heatmap"
+          label="SENSEX heatmap from TradingView"
+          height={400}
+          settings={{
+            exchanges: ["BSE"],
+            dataSource: "SENSEX",
+            grouping: "sector",
+            blockSize: "market_cap_basic",
+            blockColor: "change",
+            locale: "en",
+            hasTopBar: false,
+            isDataSetEnabled: false,
+            isZoomEnabled: false,
+            hasSymbolTooltip: true,
+            isMonoSize: false,
+          }}
+        />
       </section>
 
-      <section className="space-y-3" aria-labelledby="news-heading">
-        <SectionHeader id="news-heading" icon={MARKS.news} title="Market News" />
+      <section className="space-y-4" aria-labelledby="news-heading">
+        <SectionHeader id="news-heading" icon={MARKS.news} title="News" />
         <NewsFeed items={news.data?.items ?? null} loading={news.loading} />
         {onOpenNews && (
           <div className="flex justify-center pt-2">
@@ -393,27 +444,34 @@ function nameOf(key: string, options: ScopeOptions | null): string {
 }
 
 /**
- * What moved today, in one line: the benchmark, how many took part, and
- * who led each way. The overview's first sentence, before its sections.
+ * What moved today, in one line: the benchmark, how many of the chosen
+ * population took part, and which way the institutions traded. The
+ * overview's first sentence, before its sections.
  */
 function MarketBand({
   benchmark,
   breadth,
-  panels,
-  scope,
+  population,
+  flows,
 }: {
   benchmark: InstrumentOverview | null;
   breadth: BreadthSession | null;
-  panels: MoverPanel[];
-  scope: Scope;
+  population: string;
+  flows: InstitutionalFlow[] | null;
 }): React.JSX.Element {
-  const gainer = panels.find((one) => one.name === "top-gainers")?.rows[0];
-  const loser = panels.find((one) => one.name === "top-losers")?.rows[0];
   const counted = breadth === null ? 0 : breadth.advancing + breadth.declining + breadth.unchanged;
+  // Newest first from the platform.
+  const netOf = (participant: "FII" | "DII"): InstitutionalFlow | undefined =>
+    (flows ?? []).find(
+      (one) => one.participant === participant && one.segment === "CASH" && one.period === "DAY",
+    );
+  const institutions = (["FII", "DII"] as const)
+    .map((participant) => ({ participant, flow: netOf(participant) }))
+    .filter((one) => one.flow !== undefined);
   return (
     <section
       aria-label="What moved today"
-      className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border bg-card px-4 py-3 text-sm"
+      className="flex flex-wrap items-center gap-x-8 gap-y-3 rounded-lg border bg-card px-4 py-3 text-sm shadow-xs"
     >
       <span className="flex items-baseline gap-2">
         <span className="text-muted-foreground">{BENCHMARK.name}</span>
@@ -421,45 +479,119 @@ function MarketBand({
         <Delta value={benchmark?.day.change_percent ?? null} />
       </span>
       {breadth !== null && counted > 0 && (
-        <span className="flex items-baseline gap-2">
-          <span className="text-muted-foreground">Breadth</span>
-          <span className="tabular text-gain">{breadth.advancing} up</span>
-          <span className="tabular text-loss">{breadth.declining} down</span>
-          <span className="text-xs text-muted-foreground">
-            of {counted} on {formatDay(breadth.as_of)}
-          </span>
+        <span className="flex flex-wrap items-baseline gap-x-2">
+          <span className="text-muted-foreground">{population}</span>
+          <span className="tabular whitespace-nowrap text-gain">{breadth.advancing} up</span>
+          <span className="tabular whitespace-nowrap text-loss">{breadth.declining} down</span>
+          <span className="whitespace-nowrap text-xs text-muted-foreground">of {counted}</span>
         </span>
       )}
-      {gainer !== undefined && (
-        <span className="flex items-baseline gap-2">
-          <span className="text-muted-foreground">Led by</span>
+      {institutions.map(({ participant, flow }) => (
+        <span key={participant} className="flex items-baseline gap-2">
+          <span className="text-muted-foreground">{participant} net</span>
+          <Delta
+            value={flow?.net_amount ?? null}
+            format={(value) => `${formatSignedPrice(value)} Cr`}
+          />
+        </span>
+      ))}
+    </section>
+  );
+}
+
+/** The lists beyond gainers and losers, which share one panel. */
+const OTHER_LISTS: readonly MoverListName[] = [
+  "most-active",
+  "most-volatile",
+  "unusual-volume",
+  "near-52wk-high",
+  "near-52wk-low",
+];
+
+/**
+ * What a whole-market choice is called: all companies, all indices.
+ *
+ * @param scope - A scope with no key.
+ * @returns Its name.
+ */
+function populationLabel(scope: Scope): string {
+  return WHOLE_POPULATIONS.find((one) => one.scope.kind === scope.kind)?.label ?? "the market";
+}
+
+/** How many companies a sector must have measured to be ranked: fewer is one company's day. */
+const SECTOR_SAMPLE = 5;
+
+/** How many sectors are shown from each end. */
+const SECTORS_EACH_WAY = 6;
+
+/**
+ * Where the money went today: the sectors whose median company rose most
+ * and fell most.
+ *
+ * A median, not a weighted index: a sector whose largest company rose
+ * while most fell shows as falling. Only sectors with enough companies to
+ * mean something are ranked.
+ *
+ * @param props - Every sector's summary, and what went wrong, if anything.
+ * @returns The section.
+ */
+function SectorsToday({
+  sectors,
+  failure,
+}: {
+  sectors: SectorSummary[] | null;
+  failure: string | null;
+}): React.JSX.Element {
+  const ranked = (sectors ?? [])
+    .filter((one) => one.measured >= SECTOR_SAMPLE && toNumber(one.median_change_percent) !== null)
+    .map((one) => ({
+      label: one.sector,
+      value: toNumber(one.median_change_percent) ?? 0,
+      href: populationPath("sector", one.sector),
+      as_of: one.as_of,
+    }))
+    .sort((one, other) => other.value - one.value);
+  const shown =
+    ranked.length <= SECTORS_EACH_WAY * 2
+      ? ranked
+      : [...ranked.slice(0, SECTORS_EACH_WAY), ...ranked.slice(-SECTORS_EACH_WAY)];
+  const day = ranked[0]?.as_of ?? null;
+
+  return (
+    <section className="space-y-4" aria-labelledby="sectors-heading">
+      <SectionHeader
+        id="sectors-heading"
+        icon={ENTITIES.sector.icon}
+        title="Sectors today"
+        description={
+          ranked.length === 0
+            ? "The median company's move in each sector."
+            : `The median company's move in each sector${day === null ? "" : ` on ${formatDay(day)}`}: the ${String(Math.min(SECTORS_EACH_WAY, ranked.length))} strongest and weakest of ${String(ranked.length)} with ${String(SECTOR_SAMPLE)} or more companies.`
+        }
+        actions={
           <Link
-            to={companyPath(gainer.instrument_key, gainer.symbol)}
-            className="font-medium hover:underline"
+            to={PATHS.sectors}
+            viewTransition
+            className="text-sm text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
           >
-            {gainer.symbol}
+            All sectors →
           </Link>
-          <Delta value={gainer.value} />
-        </span>
+        }
+      />
+      {failure !== null ? (
+        <Failed message={failure} />
+      ) : sectors === null ? (
+        <Skeleton className="h-64 w-full" />
+      ) : shown.length === 0 ? (
+        <Empty
+          title="No sector ranked yet"
+          reason="Sectors are ranked once their companies have a session."
+        />
+      ) : (
+        <div className="rounded-lg border bg-card p-4 shadow-xs">
+          <DivergingBars rows={shown} label="Sectors by today's median move" />
+        </div>
       )}
-      {loser !== undefined && (
-        <span className="flex items-baseline gap-2">
-          <span className="text-muted-foreground">Dragged by</span>
-          <Link
-            to={companyPath(loser.instrument_key, loser.symbol)}
-            className="font-medium hover:underline"
-          >
-            {loser.symbol}
-          </Link>
-          <Delta value={loser.value} />
-        </span>
-      )}
-      <Link
-        to={moversPath("top-gainers", scope.kind, scope.key)}
-        className="ml-auto text-xs text-muted-foreground underline-offset-4 hover:underline"
-      >
-        All movers →
-      </Link>
     </section>
   );
 }

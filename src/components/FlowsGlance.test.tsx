@@ -7,25 +7,10 @@ import { describe, expect, it } from "vitest";
 import type { InstitutionalFlow } from "@/api/client";
 
 import { FlowsGlance } from "./FlowsGlance";
+import { institutionalFlow } from "@/test/support";
 
-function flow(overrides: Partial<InstitutionalFlow>): InstitutionalFlow {
-  return {
-    participant: "FII",
-    segment: "CASH",
-    period: "DAY",
-    day: "2026-09-22",
-    buy_amount: "9845.81",
-    sell_amount: "13655.80",
-    net_amount: "-3809.99",
-    buy_contracts: null,
-    sell_contracts: null,
-    oi_contracts: null,
-    oi_amount: null,
-    long_contracts: null,
-    short_contracts: null,
-    ...overrides,
-  };
-}
+/** One flow, as the shared fixture makes it. */
+const flow = institutionalFlow;
 
 function draw(flows: InstitutionalFlow[] | null, loading = false): ReturnType<typeof render> {
   return render(

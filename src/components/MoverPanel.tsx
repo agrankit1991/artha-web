@@ -24,6 +24,13 @@ import { type Column, DataTable } from "@/components/DataTable";
 import { nameColumn, symbolColumn } from "@/components/identityColumns";
 import { Delta } from "@/components/Delta";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { Icon } from "@/lib/entities";
 import { cn } from "@/lib/utils";
 import {
@@ -127,6 +134,11 @@ interface MoverPanelProps {
   linkTo?: (row: MoverRow) => string;
   /** Where the whole list is, when a fuller page exists. */
   href?: string;
+  /**
+   * Other lists this panel can show instead, chosen from its title: one
+   * panel standing for several, where a row of seven would not fit.
+   */
+  choice?: { lists: readonly MoverListName[]; onChoose: (name: MoverListName) => void };
 }
 
 /**
@@ -141,6 +153,7 @@ export function MoverPanelCard({
   onSelect,
   linkTo,
   href,
+  choice,
 }: MoverPanelProps): React.JSX.Element {
   const { title, measure, render, icon: Mark, tint } = MOVER_LISTS[panel.name];
 
@@ -150,6 +163,7 @@ export function MoverPanelCard({
       nameColumn(
         (row) => row,
         (row) => row.streak,
+        { compact: true },
       ),
       {
         id: "close",
@@ -174,9 +188,32 @@ export function MoverPanelCard({
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
           <div>
-            <CardTitle className="flex items-center gap-2 text-base">
+            <CardTitle className="flex items-center gap-2">
               <Mark aria-hidden="true" className={cn("h-5 w-5", tint)} />
-              {title}
+              {choice === undefined ? (
+                title
+              ) : (
+                <Select
+                  value={panel.name}
+                  onValueChange={(name) => {
+                    choice.onChoose(name as MoverListName);
+                  }}
+                >
+                  <SelectTrigger
+                    aria-label="Which list"
+                    className="h-8 w-auto gap-1.5 font-semibold"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {choice.lists.map((name) => (
+                      <SelectItem key={name} value={name}>
+                        {MOVER_LISTS[name].title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </CardTitle>
             <CardDescription>
               {panel.as_of === null ? "No session ranked yet" : formatDay(panel.as_of)}
