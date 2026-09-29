@@ -101,18 +101,19 @@ It rose from 95% with the first real views.
   are also in `daily_bar`: an embed draws TradingView's numbers with
   TradingView's indicator maths, and a chart disagreeing with the signal
   beside it sends somebody debugging a rule that is working correctly.
-  `TradingViewWidget` is the one wrapper; it follows the app's theme,
-  credits TradingView as their terms ask, and clears itself up, because
-  the embed replaces its own script with an iframe and leaves it behind
-  otherwise.
+  **No embed is used since 2026-09-30:** the last, a SENSEX heatmap, was
+  replaced by the platform's own `Heatmap`, and its wrapper
+  (`TradingViewWidget`, which followed the theme, credited TradingView and
+  cleared its iframe away) was deleted with it; git history has it if an
+  embed is wanted again.
 
   **Take the symbols from the previous project, not from guesswork.**
-  Which markets a free widget will actually draw is documented nowhere,
-  and the set in `Overview.tsx` -- `FOREXCOM:SPXUSD`, `NASDAQ:NDX`,
+  Which markets a free widget will actually draw is documented nowhere;
+  the set once on the overview -- `FOREXCOM:SPXUSD`, `NASDAQ:NDX`,
   `INDEX:N100`, `SPREADEX:FTSE`, `XETR:DAX`, `BLACKBULL:JPN225`,
-  `SSE:000001`, `HSI:HSI`, and a BSE/SENSEX heatmap -- is the one already
-  known to work. An invented symbol fails by drawing nothing, which looks
-  like a broken widget rather than a wrong ticker.
+  `SSE:000001`, `HSI:HSI` -- was known to work. An invented symbol fails
+  by drawing nothing, which looks like a broken widget rather than a
+  wrong ticker.
 
 - TypeScript is strict, including `exactOptionalPropertyTypes` and
   `noUncheckedIndexedAccess`. ESLint runs type-aware rules.
@@ -253,13 +254,26 @@ once in `src/lib/paths.ts` (`companyPath`, `populationPath`, `fundPath`,
 `ipoPath`, `futurePath`, `moversPath`, `comparePath`, `watchlistPath`,
 `hitPath` for a search result).
 
-**The heatmap is ours, not an embed.** Drawn from stored figures, so it
-agrees with the table beside it and works for any population -- including
-the hundred and fifty-eight sectors no outside widget has heard of. Every
-tile is the same size on purpose: a real heatmap sizes by market
-capitalisation, which this platform derives rather than stores, and equal
-tiles are an honest "every company counts once" that matches the breadth
-counts rather than contradicting them.
+**The heatmap is ours, not an embed** (`Heatmap`, rebuilt 2026-09-30 at the
+owner's request to work like TradingView's). Drawn from stored figures, so
+it agrees with the tables beside it and works for any index, any sector or
+the whole market; it replaced the overview's TradingView SENSEX map. One
+request, `GET /api/heatmap?scope_kind=&scope_key=` (`fetchHeatmap`), brings
+every company's sector, market cap (from the platform's nightly
+`company_snapshot`), traded value and its move over 1D/1W/1M/3M/YTD/1Y, so
+choosing a period or a size redraws without asking again (the whole market
+is about 0.8 s and 1.9 MB uncompressed; a `limit` parameter would trim it).
+Tiles are sized by market cap by default, with Traded value and Equal
+(every company counting once, the owner's 2026-09-23 choice, kept as an
+option); laid out squarified, sectors first (`src/lib/treemap.ts`, tested
+as arithmetic), at most the 500 largest; coloured against a reach per
+period (±3% a day up to ±50% a year), eased by a square root so an
+ordinary day is not a wash, mixed in OKLab from the `--heat-*` tokens with
+each tile's text chosen by contrast (`src/lib/heatColour.ts`). A sector's
+name zooms into it; a search dims all but the matches; hovering or focusing
+a tile shows its card; Table shows the same companies as a `DataTable`;
+full screen where the browser offers it. On the overview it follows the
+chosen population, and all the indices (not companies) map the whole market.
 
 **shadcn/ui on Tailwind, with a single `DataTable`.** Every list in this app
 -- movers, index constituents, the company list, a comparison -- is the same
@@ -500,7 +514,7 @@ fallback)`** (`src/hooks/useSearchParam.ts`): a value at its default is
   and the heatmap's populations),
   `LoadMore`, `RangeSelector`, `Tabs`, `Heatmap`, `Chart`, `ChartControls`,
   `ComparisonChart`, `PriceChart`,
-  `TradingViewWidget`, `TradingViewLink`, `Menu`, `Tooltip`, `ThemeMenu`,
+  `TradingViewLink`, `Menu`, `Tooltip`, `ThemeMenu`,
   `UserMenu`, `AppShell`. Since the plan
   (`../UI-PLAN.md`): page furniture `PageHeader`, `SectionHeader`,
   `StatTile`/`StatGrid` (the one tile: a figure, its change or its tone, and a line qualifying it; `Statistic` merged into it 2026-09-30), `FactList`, `RangeMeter`, `Empty`, `Failed`,

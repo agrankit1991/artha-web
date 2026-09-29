@@ -9,6 +9,7 @@ import {
   type Reply,
   breadth,
   chartPoints,
+  heatmapTile,
   member,
   population,
   priceSeries,
@@ -43,6 +44,14 @@ function stubEverything(
   extra: Record<string, Reply> = {},
 ): ReturnType<typeof stubPlatform> {
   return stubPlatform({
+    "/api/heatmap": {
+      body: {
+        scope_kind: "index",
+        scope_key: "NSE_INDEX|Nifty Bank",
+        as_of: "2026-09-25",
+        tiles: [heatmapTile()],
+      },
+    },
     // One prefix for the population and its valuation: a longer prefix for
     // the valuation would also capture a sector's population request.
     "/api/populations": populationsReply(body),
@@ -171,13 +180,29 @@ describe("Population", () => {
     });
   });
 
-  it("colours every company by how it moved", async () => {
-    stubEverything();
+  it("maps its companies by size and move, from the heatmap's own request", async () => {
+    const fetched = stubEverything();
 
     show();
 
-    expect(await screen.findByText("Performance heatmap")).toBeInTheDocument();
-    expect(screen.getByRole("list", { name: "Companies by move" })).toBeInTheDocument();
+    const map = await screen.findByRole("group", { name: /^Nifty Bank: companies by/ });
+    expect(within(map).getByRole("link", { name: /^RELIANCE/ })).toHaveAttribute(
+      "href",
+      "/company/RELIANCE",
+    );
+    const asked = fetched.mock.calls.map((call) => decodeURIComponent(String(call[0])));
+    expect(asked).toContain("/api/heatmap?scope_kind=index&scope_key=NSE_INDEX|Nifty+Bank");
+  });
+
+  it("says the heatmap could not be read without losing the page", async () => {
+    stubEverything(population(), {
+      "/api/heatmap": { status: 500, body: { detail: "map broke" } },
+    });
+
+    show();
+
+    expect(await screen.findByText(/Map broke/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Nifty Bank", level: 1 })).toBeInTheDocument();
   });
 
   it("lists the companies it holds, sortable by every column", async () => {

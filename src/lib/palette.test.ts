@@ -91,6 +91,11 @@ const REQUIRED = [
   "--chrome-border",
   "--brand",
   "--overlay",
+  "--heat-gain",
+  "--heat-loss",
+  "--heat-flat",
+  "--heat-ink-light",
+  "--heat-ink-dark",
 ];
 
 describe("the brand palette", () => {

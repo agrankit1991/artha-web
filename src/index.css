@@ -78,6 +78,16 @@
   --loss: #dc2626;
   --caution: #b45309;
 
+  /* The heatmap's tiles: a loss through a neutral to a gain, by how far
+     each moved against the period's reach. Written as colours, not as
+     references to the tokens above, because the map mixes them in script
+     and picks each tile's text by its contrast (src/lib/heatColour.ts). */
+  --heat-gain: #15803d;
+  --heat-loss: #dc2626;
+  --heat-flat: #c9d6da;
+  --heat-ink-light: #ffffff;
+  --heat-ink-dark: #0f1a1d;
+
   /* Charts. Seven series colours in an order checked for colour blindness
      (every neighbouring pair at least ΔE 14.7 as a protanope sees it) and
      for normal vision, with no green, red or amber: those say rise, fall and
@@ -141,6 +151,14 @@
   --gain: #22c55e;
   --loss: #ef4444;
   --caution: #f59e0b;
+
+  /* Deeper than the figures' shades: a tile is a surface under text, and
+     the 500 shades take neither white nor black text well. */
+  --heat-gain: #15803d;
+  --heat-loss: #b91c1c;
+  --heat-flat: #2b3b40;
+  --heat-ink-light: #ffffff;
+  --heat-ink-dark: #0f1a1d;
 
   --chart-1: #15a0b9;
   --chart-2: #e06a2c;

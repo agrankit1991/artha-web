@@ -20,6 +20,7 @@ import {
   fetchOverviews,
   fetchPopulationValuation,
   fetchFigures,
+  fetchHeatmap,
   fetchPriceBands,
   fetchPopulation,
   fetchSeries,
@@ -124,6 +125,10 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
     [kind, scopeKey],
   );
   const valuation = useResource(loadValuation);
+  // The map's own request: every company with its sector, both sizes and
+  // every period's move, so the map's choices redraw without asking again.
+  const loadHeatmap = useCallback(() => fetchHeatmap(kind, scopeKey), [kind, scopeKey]);
+  const heatmap = useResource(loadHeatmap);
   // Only an index is reconstituted; a sector's membership is its companies' profiles.
   const loadChanges = useCallback(
     () => (kind === "index" ? fetchIndexChanges(scopeKey) : Promise.resolve([])),
@@ -277,8 +282,8 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
         // Said plainly, because only part of the page can go back in time.
         <Callout tone="info">
           Read as of {formatDay(asOf)}: the level, the figures and the companies. The chart,
-          breadth, valuation and earnings show the latest, and each company&apos;s part in the move
-          is given for the latest session only.
+          breadth, valuation, earnings and the heatmap show the latest, and each company&apos;s part
+          in the move is given for the latest session only.
         </Callout>
       )}
 
@@ -394,17 +399,23 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
           <>
             <Card>
               <CardHeader>
-                <CardTitle>Performance heatmap</CardTitle>
+                <CardTitle>Heatmap</CardTitle>
                 <CardDescription>
-                  Every company counting once, coloured by its move: the same reading the breadth
-                  counts above are taken from.
+                  Every company sized by what it is worth and coloured by how it moved, grouped by
+                  sector. Choose a sector&apos;s name to see it alone, or Equal to count every
+                  company once, as the breadth counts above do.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Heatmap
-                  members={members}
-                  linkTo={(one) => companyPath(one.instrument_key, one.symbol)}
-                />
+                {heatmap.error !== null ? (
+                  <Failed message={heatmap.error} />
+                ) : (
+                  <Heatmap
+                    tiles={heatmap.data?.tiles ?? null}
+                    label={found?.name ?? scopeKey}
+                    linkTo={(tile) => companyPath(tile.instrument_key, tile.symbol)}
+                  />
+                )}
               </CardContent>
             </Card>
 

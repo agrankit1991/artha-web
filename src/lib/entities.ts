@@ -26,6 +26,7 @@ import {
   Landmark,
   Layers,
   LayoutDashboard,
+  LayoutGrid,
   LineChart,
   Newspaper,
   Percent,
@@ -81,6 +82,8 @@ export const MARKS = {
   // A table of figures side by side.
   figures: Table2,
   flows: Landmark,
+  // A population's companies as tiles by size and move.
+  heatmap: LayoutGrid,
   // Who owns it: shareholding.
   holders: ChartPie,
   // Its own icon: it used to share breadth's, and two neighbours in the

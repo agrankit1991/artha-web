@@ -37,6 +37,7 @@ import type {
   Fund as FundResponse,
   FutureContract,
   GrowthFigure,
+  HeatmapTile,
   HeldBy,
   IndexSummary,
   InstitutionalFlow,
@@ -832,6 +833,33 @@ export function earnings(overrides: Partial<Earnings> = {}): Earnings {
         profit_yoy: null,
       }),
     ],
+    ...overrides,
+  };
+}
+
+/**
+ * One company on a heatmap: RELIANCE, a refiner, up 1.5% on the day.
+ *
+ * @param overrides - Fields to change.
+ * @returns The tile.
+ */
+export function heatmapTile(overrides: Partial<HeatmapTile> = {}): HeatmapTile {
+  return {
+    instrument_key: "NSE_EQ|INE002A01018",
+    symbol: "RELIANCE",
+    name: "Reliance Industries",
+    sector: "Refineries",
+    close: "1240.00",
+    market_cap: "1678254.00",
+    traded_value: "1215.20",
+    changes: {
+      day: "1.50",
+      one_week: "-2.00",
+      one_month: "4.00",
+      three_months: "6.00",
+      year_to_date: "8.00",
+      one_year: "12.00",
+    },
     ...overrides,
   };
 }

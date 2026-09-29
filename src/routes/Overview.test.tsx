@@ -9,6 +9,7 @@ import { forgetForTests } from "@/lib/preferences";
 import {
   breadth,
   chartPoints,
+  heatmapTile,
   institutionalFlow,
   moverRow,
   moversResponse,
@@ -47,6 +48,14 @@ function stubEverything(extra: Record<string, Reply> = {}): ReturnType<typeof st
       body: [overview(), overview({ instrument_key: "BSE_INDEX|SENSEX" })],
     },
     "/api/breadth": { body: breadth() },
+    "/api/heatmap": {
+      body: {
+        scope_kind: "companies",
+        scope_key: null,
+        as_of: "2026-09-25",
+        tiles: [heatmapTile()],
+      },
+    },
     "/api/news": { body: newsPage() },
     "/api/external-symbols": {
       body: [
@@ -174,6 +183,9 @@ describe("Overview", () => {
       "/api/movers": { status: 500, body: { detail: "the lists are being rebuilt" } },
       "/api/overviews": { body: [] },
       "/api/breadth": { body: breadth() },
+      "/api/heatmap": {
+        body: { scope_kind: "companies", scope_key: null, as_of: null, tiles: [] },
+      },
       "/api/news": { body: newsPage({ total: 0, items: [] }) },
       "/api/external-symbols": {
         body: [
@@ -228,16 +240,45 @@ describe("Overview", () => {
     expect(await screen.findByText("SMA 200")).toBeInTheDocument();
   });
 
-  it("embeds only what this platform has no data of its own for", async () => {
-    // A TradingView chart of prices this platform also holds would sooner
-    // or later disagree with a signal fired on the stored ones.
-    stubEverything();
+  it("draws the chosen population's heatmap from this platform's own figures", async () => {
+    // It was TradingView's SENSEX map, whose prices could disagree with the
+    // stored ones every other figure here is read from.
+    const fetched = stubEverything();
 
     renderOverview();
 
+    const map = await screen.findByRole("group", { name: /: companies by market capitalisation/ });
+    expect(within(map).getByRole("link", { name: /^RELIANCE/ })).toHaveAttribute(
+      "href",
+      "/company/RELIANCE",
+    );
     expect(
-      await screen.findByRole("region", { name: "SENSEX heatmap from TradingView" }),
-    ).toBeInTheDocument();
+      fetched.mock.calls.some((call) => String(call[0]).startsWith("/api/heatmap?scope_kind=")),
+    ).toBe(true);
+  });
+
+  it("maps the whole market when all the indices are chosen, which are not companies", async () => {
+    window.localStorage.setItem(
+      "artha.preferences",
+      JSON.stringify({ scope: { kind: "indices", key: null } }),
+    );
+    forgetForTests();
+    const fetched = stubEverything();
+
+    renderOverview();
+
+    await screen.findByRole("group", { name: /: companies by market capitalisation/ });
+    expect(
+      fetched.mock.calls.some((call) => String(call[0]) === "/api/heatmap?scope_kind=companies"),
+    ).toBe(true);
+  });
+
+  it("says the map could not be read without losing the page", async () => {
+    stubEverything({ "/api/heatmap": { status: 500, body: { detail: "map broke" } } });
+
+    renderOverview();
+
+    expect(await screen.findByText(/Map broke/)).toBeInTheDocument();
   });
 
   it("offers the way through to the whole feed, under it as the old page did", async () => {

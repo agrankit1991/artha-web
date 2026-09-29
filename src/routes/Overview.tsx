@@ -30,6 +30,7 @@ import {
   fetchNews,
   fetchOverviews,
   fetchScopes,
+  fetchHeatmap,
   fetchSectors,
   fetchSeries,
 } from "@/api/client";
@@ -41,7 +42,6 @@ import { type ChartLine, ComparisonChart } from "@/components/ComparisonChart";
 import { PriceChart } from "@/components/PriceChart";
 import { PRICE_RANGES, RangeSelector } from "@/components/RangeSelector";
 import { Tabs } from "@/components/Tabs";
-import { TradingViewWidget } from "@/components/TradingViewWidget";
 import { IndexCard } from "@/components/IndexCard";
 import { MoverPanelCard } from "@/components/MoverPanel";
 import { NewsFeed } from "@/components/NewsFeed";
@@ -51,10 +51,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Delta } from "@/components/Delta";
 import { Failed } from "@/components/Failed";
+import { Heatmap } from "@/components/Heatmap";
 import { FlowsGlance } from "@/components/FlowsGlance";
 import { SectionHeader } from "@/components/SectionHeader";
 import { ENTITIES, MARKS } from "@/lib/entities";
 import { coloured } from "@/lib/chartPalette";
+import { useChartRange } from "@/hooks/useChartRange";
 import { useResource } from "@/hooks/useResource";
 import { readPreferences, writePreferences } from "@/lib/preferences";
 import { formatCroreSigned, formatDay, formatPrice, toNumber } from "@/lib/format";
@@ -122,11 +124,7 @@ export function Overview({
   const [view, setView] = useState<"price" | "gold">("gold");
   // One range for both views. Switching between them to find the span
   // reset is the kind of thing that makes a chart feel like two charts.
-  const [sessions, setSessionsOnly] = useState(() => readPreferences().range);
-  const setSessions = (next: number): void => {
-    setSessionsOnly(next);
-    writePreferences({ range: next });
-  };
+  const [sessions, setSessions] = useChartRange();
 
   const loadScopes = useCallback(() => fetchScopes(), []);
   const loadIndices = useCallback(
@@ -149,6 +147,15 @@ export function Overview({
   );
   const loadChart = useCallback(() => fetchFigures(BENCHMARK.key, sessions), [sessions]);
   const loadSectors = useCallback(() => fetchSectors(), []);
+  // All the indices are not companies, so their map is the whole market's.
+  const mappedScope = useMemo<Scope>(
+    () => (scope.kind === "indices" ? { kind: "companies", key: null } : scope),
+    [scope],
+  );
+  const loadHeatmap = useCallback(
+    () => fetchHeatmap(mappedScope.kind, mappedScope.key),
+    [mappedScope],
+  );
 
   const scopes = useResource(loadScopes);
   const indices = useResource(loadIndices);
@@ -160,6 +167,7 @@ export function Overview({
   const chart = useResource(loadChart);
   const symbols = useResource(loadSymbols);
   const sectors = useResource(loadSectors);
+  const heatmap = useResource(loadHeatmap);
   // The lists beyond gainers and losers share one panel, chosen from its title.
   const [otherList, setOtherList] = useState<MoverListName>("most-active");
 
@@ -176,6 +184,9 @@ export function Overview({
   }, [indices.data]);
 
   const population = scope.key === null ? populationLabel(scope) : nameOf(scope.key, scopes.data);
+  const mapped = {
+    name: mappedScope.key === null ? populationLabel(mappedScope) : population,
+  };
   const panels = movers.data?.panels ?? [];
   const panelOf = (name: MoverListName): MoverPanel | undefined =>
     panels.find((one) => one.name === name);
@@ -351,28 +362,19 @@ export function Overview({
       <section className="space-y-4" aria-labelledby="heatmap-heading">
         <SectionHeader
           id="heatmap-heading"
-          icon={ENTITIES.sector.icon}
-          title="SENSEX heatmap"
-          description="The thirty SENSEX companies, sized by market capitalisation and coloured by today's move. Drawn by TradingView."
+          icon={MARKS.heatmap}
+          title="Heatmap"
+          description={`${mapped.name}: every company sized by what it is worth and coloured by how it moved, grouped by sector. Choose a sector's name to see it alone.`}
         />
-        <TradingViewWidget
-          widget="stock-heatmap"
-          label="SENSEX heatmap from TradingView"
-          height={400}
-          settings={{
-            exchanges: ["BSE"],
-            dataSource: "SENSEX",
-            grouping: "sector",
-            blockSize: "market_cap_basic",
-            blockColor: "change",
-            locale: "en",
-            hasTopBar: false,
-            isDataSetEnabled: false,
-            isZoomEnabled: false,
-            hasSymbolTooltip: true,
-            isMonoSize: false,
-          }}
-        />
+        {heatmap.error !== null ? (
+          <Failed message={heatmap.error} />
+        ) : (
+          <Heatmap
+            tiles={heatmap.data?.tiles ?? null}
+            label={mapped.name}
+            linkTo={(tile) => companyPath(tile.instrument_key, tile.symbol)}
+          />
+        )}
       </section>
 
       <section className="space-y-4" aria-labelledby="news-heading">

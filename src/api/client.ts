@@ -808,6 +808,51 @@ export function fetchBreadthGrid(kind: ScopeKind, rotationSessions = 5): Promise
   );
 }
 
+/** A company's move over each period a heatmap can be coloured by, in per cent. */
+export interface TileChanges {
+  day: string | null;
+  one_week: string | null;
+  one_month: string | null;
+  three_months: string | null;
+  year_to_date: string | null;
+  one_year: string | null;
+}
+
+/** One company on a heatmap. */
+export interface HeatmapTile {
+  instrument_key: string;
+  symbol: string;
+  name: string;
+  /** What groups the tiles; null when its profile names none. */
+  sector: string | null;
+  close: string;
+  /** In crore, from the platform's nightly snapshot; null when not valued. */
+  market_cap: string | null;
+  /** What changed hands on the latest session, in crore. */
+  traded_value: string;
+  changes: TileChanges;
+}
+
+/** A population's tiles, largest capitalisation first. */
+export interface HeatmapTiles {
+  scope_kind: ScopeKind;
+  scope_key: string | null;
+  as_of: string | null;
+  tiles: HeatmapTile[];
+}
+
+/**
+ * Fetch every company in a population as a heatmap draws it: one request
+ * carrying the sector, both sizes and every period's move.
+ *
+ * @param kind - The whole market, an index or a sector.
+ * @param key - Which index or sector.
+ * @returns The tiles.
+ */
+export function fetchHeatmap(kind: ScopeKind, key: string | null): Promise<HeatmapTiles> {
+  return request<HeatmapTiles>(`/api/heatmap?${scopeQuery(kind, key)}`);
+}
+
 /**
  * Fetch several populations' shares above their averages, day by day.
  *
