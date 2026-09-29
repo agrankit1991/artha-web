@@ -137,7 +137,7 @@ export function SearchBox(): React.JSX.Element {
         }
         aria-autocomplete="list"
         autoComplete="off"
-        placeholder="Search by company name, symbol or ISIN  ( / )"
+        placeholder="Search companies, indices, sectors and funds ( / )"
         value={typed}
         onChange={(event) => {
           setTyped(event.target.value);

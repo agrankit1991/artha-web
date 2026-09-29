@@ -202,6 +202,67 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "Open navigation" })).toBeInTheDocument();
   });
 
+  it("closes the navigation on Escape, handing the focus back to its button", async () => {
+    stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
+    render(<App />);
+    await screen.findByText("Market Movers");
+    await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+
+    await userEvent.keyboard("{Escape}");
+
+    const opener = screen.getByRole("button", { name: "Open navigation" });
+    expect(opener).toHaveFocus();
+  });
+
+  it("says how far the data reaches, at the foot of every screen", async () => {
+    // A stale day should show in the frame, not be discovered in a figure.
+    stubPlatform({
+      "/api/me": { body: ACCOUNT },
+      "/api/sessions": { body: [{ day: "2026-09-25", instruments: 5274 }] },
+      ...DATA,
+    });
+
+    render(<App />);
+
+    expect(await screen.findByText(/Data to 25 Sept? 2026/)).toBeInTheDocument();
+  });
+
+  it("lights the place a detail page belongs to", async () => {
+    // A backtest's own page is under Backtests, though its address is not.
+    window.history.pushState({}, "", "/backtest/6");
+    stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("link", { name: "Backtests" })).toHaveClass("bg-primary");
+    });
+    expect(screen.getByRole("link", { name: "Strategies" })).not.toHaveClass("bg-primary");
+  });
+
+  it("says so when nothing lives at an address", async () => {
+    window.history.pushState({}, "", "/no-such-page");
+    stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
+
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: "Nothing lives here" })).toBeInTheDocument();
+    expect(screen.getByText("/no-such-page")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Go to the overview" })).toHaveAttribute("href", "/");
+  });
+
+  it("leads home from the logo, in the sidebar and in a phone's header", async () => {
+    stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
+    render(<App />);
+    await screen.findByText("Market Movers");
+
+    const brands = screen.getAllByRole("link", { name: "Artha Science" });
+    expect(brands).toHaveLength(2);
+    for (const brand of brands) {
+      expect(brand).toHaveAttribute("href", "/");
+    }
+  });
+
   it("opens on the overview", async () => {
     stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
 

@@ -186,6 +186,9 @@
 
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, "SFMono-Regular", monospace;
+  /* The name in Devanagari on the sign-in page: a face made for Sanskrit
+     texts, loaded by that page alone. */
+  --font-devanagari: "Tiro Devanagari Sanskrit", serif;
   --color-chrome: var(--chrome);
   --color-chrome-foreground: var(--chrome-foreground);
   --color-chrome-accent: var(--chrome-accent);

@@ -429,10 +429,22 @@ call site.
   pen, gold and kesar palettes) are in `../research/logo/`. Regenerate
   rather than hand-edit.
 - **The frame** (`src/components/AppShell.tsx`): navigation down the side,
-  the account and theme across the top, the running build at the bottom.
-  The sidebar is the navigation because this is a set of places rather than
-  a flow; it slides away on a phone, where the header carries the button
-  that brings it back.
+  search, the theme and the account across the top, and what the data
+  reaches ("Data to 25 Sept 2026", from `/api/sessions?limit=1`) and the
+  running build at the bottom. The brand row (logo and the coloured name)
+  leads home. A detail page lights the place it belongs to through the
+  screen's `matches` prefixes (`/backtest/` under Backtests, `/movers/`
+  under Movers). On a phone the sidebar slides away and is `invisible`
+  while shut, so its links leave the tab order; Escape closes it and gives
+  the focus back to its button, and the header carries the logo. An
+  address nothing lives at gets `NotFound` rather than an empty frame, and
+  the wait for the session shows the logo. `g` then a letter jumps to every
+  page but the owner's Visitors (`KeyboardShortcuts`).
+- **Sign-in** (`src/routes/SignIn.tsx`) is the one page that is all brand:
+  the logo, the name in its two colours and in Devanagari (अर्थ विज्ञान, in
+  Tiro Devanagari Sanskrit, loaded by this page alone), one line on what the
+  site is, the form in a card over a soft wash of teal and orange, and the
+  theme on offer. The platform's reasons are shown as sentences.
 - **Profile** (`src/routes/Profile.tsx`) -- what the platform holds about
   the sign-in, light or dark, and signing out. Deliberately short: a
   profile with an invented "activity" panel is worse than one that admits

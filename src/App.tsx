@@ -16,7 +16,7 @@ import { useCallback, useState } from "react";
 import { BrowserRouter, Route, Routes, useNavigate, useParams } from "react-router-dom";
 
 import type { Account } from "@/api/client";
-import { fetchAccount, fetchHello, signOut } from "@/api/client";
+import { fetchAccount, fetchHello, fetchSessions, signOut } from "@/api/client";
 import { AppShell, type Screen } from "@/components/AppShell";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { ReferencedPage } from "@/components/ReferencedPage";
@@ -53,6 +53,7 @@ import { SignIn } from "@/routes/SignIn";
 import { Strategies } from "@/routes/Strategies";
 import { Strategy } from "@/routes/Strategy";
 import { StrategyYears } from "@/routes/StrategyYears";
+import { NotFound } from "@/routes/NotFound";
 import { Visitors } from "@/routes/Visitors";
 
 /** The navigation, in the order the screens are meant to be read. */
@@ -61,19 +62,67 @@ const SCREENS: Screen[] = [
   { path: PATHS.breadth, label: "Breadth", icon: MARKS.breadth, group: "Markets" },
   { path: PATHS.flows, label: "FII / DII", icon: MARKS.flows, group: "Markets" },
   { path: PATHS.deals, label: "Deals", icon: MARKS.deals, group: "Markets" },
-  { path: PATHS.indices, label: "Indices", icon: ENTITIES.index.icon, group: "Markets" },
-  { path: PATHS.sectors, label: "Sectors", icon: ENTITIES.sector.icon, group: "Markets" },
-  { path: PATHS.movers, label: "Movers", icon: MARKS.movers, group: "Markets" },
+  {
+    path: PATHS.indices,
+    label: "Indices",
+    icon: ENTITIES.index.icon,
+    group: "Markets",
+    matches: ["/index/"],
+  },
+  {
+    path: PATHS.sectors,
+    label: "Sectors",
+    icon: ENTITIES.sector.icon,
+    group: "Markets",
+    matches: ["/sector/"],
+  },
+  {
+    path: PATHS.movers,
+    label: "Movers",
+    icon: MARKS.movers,
+    group: "Markets",
+    matches: ["/movers/"],
+  },
   { path: PATHS.earnings, label: "Earnings", icon: MARKS.earnings, group: "Markets" },
-  { path: PATHS.futures, label: "Futures", icon: ENTITIES.future.icon, group: "Markets" },
+  {
+    path: PATHS.futures,
+    label: "Futures",
+    icon: ENTITIES.future.icon,
+    group: "Markets",
+    matches: ["/future/"],
+  },
   { path: PATHS.news, label: "News", icon: MARKS.news, group: "Markets" },
-  { path: PATHS.funds, label: "Funds", icon: ENTITIES.fund.icon, group: "Research" },
+  {
+    path: PATHS.funds,
+    label: "Funds",
+    icon: ENTITIES.fund.icon,
+    group: "Research",
+    matches: ["/fund/"],
+  },
   { path: PATHS.screen, label: "Screener", icon: MARKS.screen, group: "Research" },
   { path: PATHS.scans, label: "Scans", icon: MARKS.scans, group: "Research" },
-  { path: PATHS.strategies, label: "Strategies", icon: MARKS.strategies, group: "Research" },
-  { path: PATHS.backtests, label: "Backtests", icon: MARKS.backtests, group: "Research" },
+  {
+    path: PATHS.strategies,
+    label: "Strategies",
+    icon: MARKS.strategies,
+    group: "Research",
+    matches: ["/strategy/"],
+  },
+  {
+    path: PATHS.backtests,
+    label: "Backtests",
+    icon: MARKS.backtests,
+    group: "Research",
+    matches: ["/backtest/"],
+  },
   { path: PATHS.compare, label: "Compare", icon: MARKS.compare, group: "Research" },
-  { path: PATHS.ipos, label: "IPOs", icon: ENTITIES.ipo.icon, group: "Research" },
+  {
+    path: PATHS.ipos,
+    label: "IPOs",
+    icon: ENTITIES.ipo.icon,
+    group: "Research",
+    matches: ["/ipo/"],
+  },
   { path: PATHS.watchlists, label: "Watchlists", icon: MARKS.watchlist, group: "Mine" },
   { path: PATHS.profile, label: "Profile", icon: MARKS.profile, group: "Mine" },
 ];
@@ -160,12 +209,17 @@ function SignedIn({
   // worth knowing when a screen disagrees with what the code says it does.
   const greeting = useCallback(() => fetchHello(), []);
   const hello = useResource(greeting);
+  // And how far the data reaches, so a stale day shows in the frame rather
+  // than being discovered in a figure.
+  const latest = useCallback(() => fetchSessions(1), []);
+  const sessions = useResource(latest);
 
   return (
     <AppShell
       account={account}
       screens={account.is_owner ? [...SCREENS, ...OWNER_SCREENS] : SCREENS}
       build={hello.data}
+      latestSession={sessions.data?.[0]?.day ?? null}
       onOpenProfile={() => {
         onNavigate(PATHS.profile);
       }}
@@ -241,6 +295,7 @@ function SignedIn({
         />
         <Route path={PATHS.profile} element={<Profile account={account} onSignOut={onSignOut} />} />
         {account.is_owner && <Route path={PATHS.visitors} element={<Visitors />} />}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </AppShell>
   );
@@ -274,7 +329,8 @@ function FutureRoute(): React.JSX.Element {
 /** What shows while the platform is being asked who is signed in. */
 function Waiting(): React.JSX.Element {
   return (
-    <div className="flex min-h-svh items-center justify-center">
+    <div className="flex min-h-svh flex-col items-center justify-center gap-4">
+      <img src="/brand/logo.svg" alt="" className="h-16 w-16 motion-safe:animate-pulse" />
       <p className="text-sm text-muted-foreground">Loading…</p>
     </div>
   );

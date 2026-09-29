@@ -47,7 +47,7 @@ export function UserMenu({ account, onOpenProfile, onSignOut }: UserMenuProps): 
   return (
     <Menu
       label="Account"
-      triggerClassName="h-9 gap-2 rounded-md border pl-1 pr-2 hover:bg-accent"
+      triggerClassName="h-9 gap-2 rounded-md border border-chrome-border pl-1 pr-2 hover:bg-chrome-accent"
       trigger={
         <>
           <span

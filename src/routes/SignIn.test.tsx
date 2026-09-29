@@ -5,7 +5,17 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SignIn } from "./SignIn";
+import { ThemeProvider } from "@/lib/theme";
 import { ACCOUNT, stubPlatform } from "@/test/support";
+
+/** Render the page as the application does, inside the theme it offers a choice of. */
+function show(onSignedIn: (account: typeof ACCOUNT) => void): void {
+  render(
+    <ThemeProvider>
+      <SignIn onSignedIn={onSignedIn} />
+    </ThemeProvider>,
+  );
+}
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -21,7 +31,7 @@ describe("SignIn", () => {
   it("hands the account back once the platform accepts", async () => {
     const fetchMock = stubPlatform({ "/api/login": { body: ACCOUNT } });
     const signedIn = vi.fn();
-    render(<SignIn onSignedIn={signedIn} />);
+    show(signedIn);
 
     await fillIn();
 
@@ -35,17 +45,25 @@ describe("SignIn", () => {
     // One message for a wrong password and an unknown address, which is the
     // platform's choice; the page's job is to show what it was told.
     stubPlatform({ "/api/login": { status: 401, body: { detail: "email or password is wrong" } } });
-    render(<SignIn onSignedIn={vi.fn()} />);
+    show(vi.fn());
 
     await fillIn("not the passphrase");
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("email or password is wrong");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Email or password is wrong");
+  });
+
+  it("carries the brand: the name in both scripts, and the theme on offer", () => {
+    show(vi.fn());
+
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Artha Science");
+    expect(screen.getByText("अर्थ")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Theme" })).toBeInTheDocument();
   });
 
   it("marks the fields for a password manager", () => {
     // Without these a manager will not offer to fill or to save, which is
     // how people end up choosing a password they can retype.
-    render(<SignIn onSignedIn={vi.fn()} />);
+    show(vi.fn());
 
     expect(screen.getByLabelText("Email")).toHaveAttribute("autocomplete", "username");
     expect(screen.getByLabelText("Password")).toHaveAttribute("autocomplete", "current-password");
@@ -53,7 +71,7 @@ describe("SignIn", () => {
 
   it("says it is working, and stops saying so when it is done", async () => {
     stubPlatform({ "/api/login": { status: 401, body: { detail: "no" } } });
-    render(<SignIn onSignedIn={vi.fn()} />);
+    show(vi.fn());
 
     await fillIn();
 
@@ -73,7 +91,7 @@ describe("SignIn with an invitation", () => {
     window.history.replaceState(null, "", "/?invite=abc123");
     const fetchMock = stubPlatform({ "/api/register": { status: 201, body: ACCOUNT } });
     const onSignedIn = vi.fn();
-    render(<SignIn onSignedIn={onSignedIn} />);
+    show(onSignedIn);
 
     expect(screen.getByLabelText("Invitation code")).toHaveValue("abc123");
     await userEvent.type(screen.getByLabelText("Your name"), "Friend");
@@ -96,7 +114,7 @@ describe("SignIn with an invitation", () => {
 
   it("says a password is too short before asking the platform", async () => {
     const fetchMock = stubPlatform({});
-    render(<SignIn onSignedIn={vi.fn()} />);
+    show(vi.fn());
     await userEvent.click(screen.getByRole("button", { name: /Have an invitation/ }));
     await userEvent.type(screen.getByLabelText("Invitation code"), "abc");
     await userEvent.type(screen.getByLabelText("Your name"), "F");
@@ -112,7 +130,7 @@ describe("SignIn with an invitation", () => {
     stubPlatform({
       "/api/register": { status: 403, body: { detail: "that invitation is not valid" } },
     });
-    render(<SignIn onSignedIn={vi.fn()} />);
+    show(vi.fn());
     await userEvent.click(screen.getByRole("button", { name: /Have an invitation/ }));
     await userEvent.type(screen.getByLabelText("Invitation code"), "used");
     await userEvent.type(screen.getByLabelText("Your name"), "F");
@@ -120,7 +138,7 @@ describe("SignIn with an invitation", () => {
     await userEvent.type(screen.getByLabelText("Password"), "a long enough passphrase");
     await userEvent.click(screen.getByRole("button", { name: "Create account" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("that invitation is not valid");
+    expect(await screen.findByRole("alert")).toHaveTextContent("That invitation is not valid");
     await userEvent.click(screen.getByRole("button", { name: /Already have an account/ }));
     expect(screen.queryByLabelText("Invitation code")).not.toBeInTheDocument();
   });

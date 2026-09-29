@@ -27,6 +27,14 @@ export const JUMPS: readonly { key: string; path: string; label: string }[] = [
   { key: "n", path: PATHS.news, label: "News" },
   { key: "c", path: PATHS.scans, label: "Scans" },
   { key: "w", path: PATHS.watchlists, label: "Watchlists" },
+  { key: "r", path: PATHS.screen, label: "Screener" },
+  { key: "y", path: PATHS.strategies, label: "Strategies" },
+  { key: "k", path: PATHS.backtests, label: "Backtests" },
+  { key: "a", path: PATHS.compare, label: "Compare" },
+  { key: "u", path: PATHS.funds, label: "Funds" },
+  { key: "t", path: PATHS.futures, label: "Futures" },
+  { key: "l", path: PATHS.ipos, label: "IPOs" },
+  { key: "p", path: PATHS.profile, label: "Profile" },
 ];
 
 /** How long after `g` the next letter still counts as a jump. */
