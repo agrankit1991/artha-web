@@ -85,7 +85,10 @@ export function Tabs<Key extends string>({
           role="tablist"
           aria-label={label}
           onKeyDown={move}
-          className="relative inline-flex gap-1 rounded-lg border bg-muted/40 p-1"
+          // Scrolls sideways within its width on a phone rather than pushing
+          // the page wider; the highlight is measured inside it, so it scrolls
+          // with the tabs.
+          className="relative inline-flex max-w-full gap-1 overflow-x-auto rounded-lg border bg-muted/40 p-1 [scrollbar-width:none]"
         >
           {/* The highlight, sliding to the chosen tab rather than jumping. */}
           {indicator !== null && (
@@ -115,7 +118,7 @@ export function Tabs<Key extends string>({
                 onChange(tab.key);
               }}
               className={cn(
-                "relative rounded-md px-3 py-1.5 text-sm transition-colors",
+                "relative shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition-colors",
                 tab.key === active
                   ? "font-medium text-foreground"
                   : "text-muted-foreground hover:text-foreground",

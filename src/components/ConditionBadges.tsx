@@ -26,7 +26,13 @@ export function ConditionBadges({ conditions, fields }: ConditionBadgesProps): R
   return (
     <div className="flex flex-wrap gap-1">
       {conditions.map((one) => (
-        <Badge key={`${one.field}:${one.operator}`} variant="outline" className="font-mono text-xs">
+        <Badge
+          key={`${one.field}:${one.operator}`}
+          variant="outline"
+          // A condition can be long; on a phone it wraps inside the card
+          // rather than pushing the page sideways.
+          className="h-auto max-w-full whitespace-normal break-words rounded-md text-left font-mono text-xs"
+        >
           {describe(one.field, fields)} {operatorLabel(one.operator)} {one.value}
         </Badge>
       ))}
