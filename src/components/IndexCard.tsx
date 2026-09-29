@@ -50,26 +50,13 @@ export function IndexCard({ name, overview, symbol, onSelect }: IndexCardProps):
   }
 
   const { day } = overview;
-  const chosen = onSelect;
-
   return (
+    // Not a button itself: a card that is a button cannot hold the
+    // TradingView link without nesting one control inside another. The
+    // name is the button, stretched over the whole card; the link sits
+    // above the stretch.
     <Card
-      className={cn("transition-shadow hover:shadow-md", chosen && "cursor-pointer")}
-      {...(chosen
-        ? {
-            role: "button",
-            tabIndex: 0,
-            onClick: () => {
-              chosen(overview.instrument_key);
-            },
-            onKeyDown: (event: React.KeyboardEvent) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                chosen(overview.instrument_key);
-              }
-            },
-          }
-        : {})}
+      className={cn("relative transition-shadow hover:shadow-md", onSelect && "cursor-pointer")}
     >
       <CardContent className="space-y-3">
         {/* The previous project's card: the name in plain case with the
@@ -77,7 +64,21 @@ export function IndexCard({ name, overview, symbol, onSelect }: IndexCardProps):
             it, then the level with the session's candle and direction. */}
         <div className="space-y-0.5">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="min-w-0 truncate text-lg font-semibold">{name}</h3>
+            <h3 className="min-w-0 truncate text-lg font-semibold">
+              {onSelect ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSelect(overview.instrument_key);
+                  }}
+                  className="text-left after:absolute after:inset-0 after:rounded-xl after:content-[''] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
+                >
+                  {name}
+                </button>
+              ) : (
+                name
+              )}
+            </h3>
             <Delta value={day.change_percent} arrow={false} badge />
           </div>
           {/* Indices do not all publish on the same schedule, so two cards
@@ -104,14 +105,9 @@ export function IndexCard({ name, overview, symbol, onSelect }: IndexCardProps):
         </dl>
 
         {symbol !== undefined && (
-          // Stopping the click from reaching the card: choosing the card
-          // and leaving for TradingView are different intentions.
-          <div
-            onClick={(event) => {
-              event.stopPropagation();
-            }}
-            role="presentation"
-          >
+          // Above the name's stretch, so it is its own target: choosing the
+          // card and leaving for TradingView are different intentions.
+          <div className="relative z-10 w-fit">
             <TradingViewLink
               label="View on TradingView"
               symbol={symbol.symbol}
