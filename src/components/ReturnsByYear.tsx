@@ -141,7 +141,7 @@ export function ReturnsByYear({ scans }: ReturnsByYearProps): React.JSX.Element 
           rows={rows}
           label="Returns by year"
           full
-          maxHeight="max-h-none"
+          maxHeight="none"
           linkTo={(row) => row.path}
         />
         <ul className="space-y-1 text-xs text-muted-foreground">

@@ -211,7 +211,7 @@ function PeriodTable({
       placeholderRows={6}
       label="Earnings by period"
       full
-      maxHeight="max-h-[28rem]"
+      maxHeight="28rem"
     />
   );
 }

@@ -91,7 +91,7 @@ export function StatementTable({
       placeholderRows={6}
       label={label}
       full
-      maxHeight="max-h-[32rem]"
+      maxHeight="32rem"
     />
   );
 }

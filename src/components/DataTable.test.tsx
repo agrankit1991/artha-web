@@ -144,6 +144,54 @@ describe("DataTable", () => {
     const { container } = render(<DataTable columns={COLUMNS} rows={[ROWS[0] as Row]} full />);
 
     expect(container.firstChild).toHaveClass("overflow-auto");
+    expect(container.firstChild).toHaveStyle({ maxHeight: "70vh" });
+  });
+
+  it("caps a full list at the height it is given, as a length", () => {
+    // A class built from a variable is one Tailwind never generates, which
+    // is how three tables once asked for a height and got none.
+    const { container } = render(
+      <DataTable columns={COLUMNS} rows={[ROWS[0] as Row]} full maxHeight="32rem" />,
+    );
+
+    expect(container.firstChild).toHaveStyle({ maxHeight: "32rem" });
+  });
+
+  it("lets the keyboard reach a row and choose it", async () => {
+    const chosen = vi.fn();
+    render(<DataTable columns={COLUMNS} rows={ROWS} onSelect={chosen} />);
+
+    const [, first, second] = screen.getAllByRole("row");
+    expect(first).toHaveAttribute("tabindex", "0");
+    first?.focus();
+    await userEvent.keyboard("{Enter}");
+    second?.focus();
+    await userEvent.keyboard(" ");
+    await userEvent.keyboard("x");
+
+    expect(chosen.mock.calls.map(([row]) => (row as Row).symbol)).toEqual(["TCS", "RELIANCE"]);
+  });
+
+  it("leaves rows out of the tab order when nothing can be chosen", () => {
+    render(<DataTable columns={COLUMNS} rows={ROWS} />);
+
+    expect(screen.getAllByRole("row")[1]).not.toHaveAttribute("tabindex");
+  });
+
+  it("shows which row is the chosen one", () => {
+    render(
+      <DataTable
+        columns={COLUMNS}
+        rows={ROWS}
+        onSelect={vi.fn()}
+        selected={(row) => row.symbol === "RELIANCE"}
+      />,
+    );
+
+    const [, first, second] = screen.getAllByRole("row");
+    expect(second).toHaveAttribute("aria-current", "true");
+    expect(second).toHaveAttribute("data-state", "selected");
+    expect(first).not.toHaveAttribute("aria-current");
   });
 
   it("stays a plain table when it is a panel rather than a list", () => {

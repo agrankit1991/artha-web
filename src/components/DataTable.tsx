@@ -34,6 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 /**
@@ -69,8 +70,13 @@ interface DataTableProps<Row extends RowData> {
   empty?: string;
   /** Whether the rows are still on their way. */
   loading?: boolean;
-  /** Called when a row is chosen, making rows clickable when given. */
+  /**
+   * Called when a row is chosen, making rows clickable when given -- and
+   * reachable by the keyboard, chosen with Enter or Space.
+   */
   onSelect?: (row: Row) => void;
+  /** Whether a row is the chosen one, so it can be shown as chosen. */
+  selected?: (row: Row) => boolean;
   /** Rows to leave room for while loading, so the page does not jump. */
   placeholderRows?: number;
   /**
@@ -86,7 +92,12 @@ interface DataTableProps<Row extends RowData> {
    * reader has lost which column they are in and which row they are on.
    */
   full?: boolean;
-  /** How tall a full list grows before it scrolls. */
+  /**
+   * How tall a full list grows before it scrolls, as a CSS length
+   * (`"32rem"`, `"70vh"`) or `"none"`. A length, not a class: a class built
+   * from a variable is one Tailwind never generates, which is how three
+   * tables once asked for a height and got none.
+   */
   maxHeight?: string;
   /**
    * Where a row's own page is, if it has one. Given this, the first
@@ -133,9 +144,10 @@ export function DataTable<Row extends RowData>({
   placeholderRows = 5,
   label,
   full = false,
-  maxHeight = "max-h-[70vh]",
+  maxHeight = "70vh",
   linkTo,
   serverSorting,
+  selected,
 }: DataTableProps<Row>): React.JSX.Element {
   const [sorting, setSorting] = useState<SortingState>([]);
   const table = useReactTable({
@@ -211,7 +223,26 @@ export function DataTable<Row extends RowData>({
                     }
                   : undefined
               }
-              className={cn(onSelect && "cursor-pointer")}
+              // A row that can be chosen is reachable and chosen by the
+              // keyboard as well as the pointer.
+              tabIndex={onSelect ? 0 : undefined}
+              onKeyDown={
+                onSelect
+                  ? (event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onSelect(row.original);
+                      }
+                    }
+                  : undefined
+              }
+              aria-current={selected?.(row.original) === true ? "true" : undefined}
+              data-state={selected?.(row.original) === true ? "selected" : undefined}
+              className={cn(
+                onSelect &&
+                  "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                "data-[state=selected]:bg-primary/10",
+              )}
             >
               {row.getVisibleCells().map((cell, position) => {
                 const page = linkTo && position === 0 ? linkTo(row.original) : null;
@@ -252,7 +283,9 @@ export function DataTable<Row extends RowData>({
   );
 
   return full ? (
-    <div className={cn("relative w-full overflow-auto rounded-md border", maxHeight)}>{body}</div>
+    <div className="relative w-full overflow-auto rounded-md border" style={{ maxHeight }}>
+      {body}
+    </div>
   ) : (
     body
   );
@@ -291,7 +324,7 @@ function LoadingRows({ columns, rows }: { columns: number; rows: number }): Reac
         <TableRow key={index}>
           {Array.from({ length: columns }, (_also, cell) => (
             <TableCell key={cell}>
-              <div className="h-4 w-full animate-pulse rounded bg-muted" />
+              <Skeleton className="h-4 w-full" />
             </TableCell>
           ))}
         </TableRow>
