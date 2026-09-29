@@ -2,7 +2,7 @@
  * Every sector, or every index, side by side.
  *
  * The question a grid answers is which parts of the market are working and
- * which are not — and then, a step behind it, which are changing. Where a
+ * which are not - and then, a step behind it, which are changing. Where a
  * sector stands and which way it is turning are two different readings,
  * and the first without the second misses one that has fallen from eighty
  * per cent to sixty and still looks strong.

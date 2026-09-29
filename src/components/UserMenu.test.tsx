@@ -22,7 +22,7 @@ describe("initialsOf", () => {
 
   it("shows a mark rather than an empty circle for an empty name", () => {
     // An empty circle reads as an interface that has lost the account.
-    expect(initialsOf("   ")).toBe("—");
+    expect(initialsOf("   ")).toBe("-");
   });
 });
 

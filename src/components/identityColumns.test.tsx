@@ -41,7 +41,7 @@ describe("identity columns", () => {
   it("marks a company with no recorded name as absent rather than blank", () => {
     table([{ symbol: "NEWCO", name: null, streak: 1 }]);
 
-    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(screen.getByText("-")).toBeInTheDocument();
   });
 });
 

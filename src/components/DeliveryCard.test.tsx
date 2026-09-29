@@ -38,7 +38,7 @@ describe("DeliveryCard", () => {
       />,
     );
 
-    expect(screen.getByText("Latest against average").parentElement).toHaveTextContent("—");
+    expect(screen.getByText("Latest against average").parentElement).toHaveTextContent("-");
     expect(
       screen.getByRole("img", { name: "Delivered share, last 1 sessions" }),
     ).toBeInTheDocument();

@@ -46,7 +46,7 @@ describe("Futures", () => {
     // Nothing traded yet: dashes, and the day itself.
     const gold = within(table).getByRole("link", { name: /GOLD/ }).closest("tr");
     expect(gold).toHaveTextContent("expires today");
-    expect(gold).toHaveTextContent("—");
+    expect(gold).toHaveTextContent("-");
     await waitFor(() => {
       expect(fetched.mock.calls.some((call) => String(call[0]).includes("segment=COMMODITY"))).toBe(
         true,

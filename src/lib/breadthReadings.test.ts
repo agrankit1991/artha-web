@@ -37,8 +37,8 @@ describe("readings", () => {
 
   it("reports the direction of the advance-decline line, not its level", () => {
     // Its level depends on when counting started, so it means nothing.
-    expect(labelled("Advance–decline line").hint).toBe("Rising over 20 sessions");
-    expect(labelled("Advance–decline line").tone).toBe("good");
+    expect(labelled("Advance-decline line").hint).toBe("Rising over 20 sessions");
+    expect(labelled("Advance-decline line").tone).toBe("good");
   });
 
   it("calls a falling line bad news", () => {
@@ -48,7 +48,7 @@ describe("readings", () => {
       ),
     });
 
-    expect(labelled("Advance–decline line", falling).tone).toBe("bad");
+    expect(labelled("Advance-decline line", falling).tone).toBe("bad");
   });
 
   it("calls a line that went nowhere flat", () => {
@@ -56,13 +56,13 @@ describe("readings", () => {
       sessions: Array.from({ length: 30 }, () => breadthSession({ advance_decline_line: "1000" })),
     });
 
-    expect(labelled("Advance–decline line", flat).hint).toBe("Flat");
+    expect(labelled("Advance-decline line", flat).hint).toBe("Flat");
   });
 
   it("will not call a direction from a single session", () => {
     const one = breadth({ sessions: [breadthSession()] });
 
-    expect(labelled("Advance–decline line", one).hint).toBe("Not enough sessions");
+    expect(labelled("Advance-decline line", one).hint).toBe("Not enough sessions");
   });
 
   it("marks a thrust against Zweig's own threshold", () => {
@@ -95,8 +95,8 @@ describe("readings", () => {
   });
 
   it("reads the high-low index against fifty", () => {
-    expect(labelled("High–low index").hint).toBe("More new highs than lows");
-    expect(labelled("High–low index", breadth({ high_low_index: "20" })).tone).toBe("bad");
+    expect(labelled("High-low index").hint).toBe("More new highs than lows");
+    expect(labelled("High-low index", breadth({ high_low_index: "20" })).tone).toBe("bad");
   });
 
   it("shows a dash rather than a nought for a measure with too little history", () => {
@@ -110,15 +110,15 @@ describe("readings", () => {
 
     expect(readings(young).map((reading) => reading.value)).toEqual([
       "1,390",
-      "—",
-      "—",
-      "—",
-      "—",
-      "—",
+      "-",
+      "-",
+      "-",
+      "-",
+      "-",
     ]);
     expect(
       readings(young).every(
-        (reading) => reading.label === "Advance–decline line" || reading.tone === "neutral",
+        (reading) => reading.label === "Advance-decline line" || reading.tone === "neutral",
       ),
     ).toBe(true);
   });
@@ -133,7 +133,7 @@ describe("readings", () => {
     const young = breadth({ high_low_index: null, sessions: [breadthSession()] });
     const empty = breadth({ high_low_index: null });
 
-    expect(labelled("High–low index", young).hint).toBe("Needs 10 sessions");
-    expect(labelled("High–low index", empty).hint).toBe("No new highs or lows");
+    expect(labelled("High-low index", young).hint).toBe("Needs 10 sessions");
+    expect(labelled("High-low index", empty).hint).toBe("No new highs or lows");
   });
 });

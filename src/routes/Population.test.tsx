@@ -226,7 +226,7 @@ describe("Population", () => {
       await userEvent.click(header);
     }
 
-    expect(within(table).getAllByText("—").length).toBeGreaterThan(0);
+    expect(within(table).getAllByText("-").length).toBeGreaterThan(0);
   });
 
   it("asks for more history when a longer range is chosen", async () => {

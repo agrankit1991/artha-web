@@ -34,9 +34,9 @@ const NAMED = 5;
 
 /** The buckets today's moves are counted into, in per cent. */
 export const BUCKETS: { from: number; to: number; label: string }[] = [
-  { from: Number.NEGATIVE_INFINITY, to: -5, label: "< −5%" },
-  { from: -5, to: -2, label: "−5 to −2%" },
-  { from: -2, to: 0, label: "−2 to 0%" },
+  { from: Number.NEGATIVE_INFINITY, to: -5, label: "< -5%" },
+  { from: -5, to: -2, label: "-5 to -2%" },
+  { from: -2, to: 0, label: "-2 to 0%" },
   { from: 0, to: 0, label: "0%" },
   { from: 0, to: 2, label: "0 to 2%" },
   { from: 2, to: 5, label: "2 to 5%" },
@@ -93,7 +93,7 @@ export function PopulationValuationPanel({
         Every company is valued by the same rule as its own page: price over trailing earnings,
         market capitalisation over book, with the share count from the latest standalone year and
         any bonus or split since. The medians count every company once and leave losses out. Money
-        moved is capitalisation times today&rsquo;s move — a proxy for what a weighted index felt,
+        moved is capitalisation times today&rsquo;s move - a proxy for what a weighted index felt,
         since real index weights are by free float, which is not published here.
       </p>
     </div>

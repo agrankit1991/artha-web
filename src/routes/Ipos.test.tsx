@@ -239,7 +239,7 @@ describe("Ipos", () => {
     await screen.findByRole("heading", { name: /Veegaland/ });
 
     expect(screen.getByText("72.00")).toBeInTheDocument();
-    expect(screen.queryByText(/72.00 – 72.00/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/72.00 - 72.00/)).not.toBeInTheDocument();
   });
 
   it("says a list is empty and why", async () => {

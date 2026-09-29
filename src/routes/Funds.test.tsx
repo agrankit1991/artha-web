@@ -169,7 +169,7 @@ describe("Funds", () => {
 
     const table = await screen.findByRole("table", { name: "Schemes" });
     expect(within(table).getByText("House not published")).toBeInTheDocument();
-    expect(within(table).getAllByText("—").length).toBeGreaterThan(1);
+    expect(within(table).getAllByText("-").length).toBeGreaterThan(1);
 
     for (const header of within(table).getAllByRole("button")) {
       await userEvent.click(header);
@@ -317,6 +317,6 @@ describe("Funds", () => {
     );
     expect(shortCategory("Close Ended Schemes ( Income )")).toBe("Income");
     expect(shortCategory("Debt")).toBe("Debt");
-    expect(shortCategory(null)).toBe("—");
+    expect(shortCategory(null)).toBe("-");
   });
 });

@@ -9,16 +9,16 @@ describe("Sparkline", () => {
   it("says which way it is going, for a reader who cannot see it", () => {
     // The shape is the whole content, so without this the component says
     // nothing at all to a screen reader.
-    render(<Sparkline values={[1, 2, 3]} label="A–D line" />);
+    render(<Sparkline values={[1, 2, 3]} label="A-D line" />);
 
-    expect(screen.getByRole("img", { name: "A–D line: rising" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "A-D line: rising" })).toBeInTheDocument();
   });
 
   it("colours a fall differently from a rise", () => {
-    const { rerender } = render(<Sparkline values={[3, 2, 1]} label="A–D line" />);
+    const { rerender } = render(<Sparkline values={[3, 2, 1]} label="A-D line" />);
     expect(screen.getByRole("img").querySelector("polyline")).toHaveClass("stroke-loss");
 
-    rerender(<Sparkline values={[1, 2, 3]} label="A–D line" />);
+    rerender(<Sparkline values={[1, 2, 3]} label="A-D line" />);
     expect(screen.getByRole("img").querySelector("polyline")).toHaveClass("stroke-gain");
   });
 

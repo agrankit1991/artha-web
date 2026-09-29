@@ -13,7 +13,7 @@
  */
 
 /** What a missing figure looks like. One character, so a column stays aligned. */
-export const ABSENT = "—";
+export const ABSENT = "-";
 
 /**
  * Parse a figure for arithmetic or sorting.

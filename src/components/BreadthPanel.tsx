@@ -66,7 +66,7 @@ export function BreadthPanel({ breadth, loading = false }: BreadthPanelProps): R
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <Trend
-            label="Advance–decline line"
+            label="Advance-decline line"
             hint="Its direction matters, not its level"
             values={(breadth?.sessions ?? []).map((s) => toNumber(s.advance_decline_line))}
           />
@@ -165,7 +165,7 @@ function Extremes({
         <span className="text-muted-foreground">at lows</span>
       </span>
       <span className="text-muted-foreground">
-        High–low index{" "}
+        High-low index{" "}
         <span className="tabular font-medium text-foreground">
           {highLow === null ? ABSENT : `${highLow.toFixed(0)}%`}
         </span>

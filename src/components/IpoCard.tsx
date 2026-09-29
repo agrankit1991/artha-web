@@ -348,7 +348,7 @@ export function priceBand(offering: Offering): string {
   if (low === null || high === null || low === high) {
     return formatPrice(offering.maximum_price ?? offering.minimum_price);
   }
-  return `${formatPrice(offering.minimum_price)} – ${formatPrice(offering.maximum_price)}`;
+  return `${formatPrice(offering.minimum_price)} - ${formatPrice(offering.maximum_price)}`;
 }
 
 /** An issue size in crore, written as such. */

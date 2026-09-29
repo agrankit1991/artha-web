@@ -143,7 +143,7 @@ describe("Scans", () => {
     renderPage(<Scans />);
 
     const nearHigh = card("12-1 momentum near the 52-week high");
-    expect(await within(nearHigh).findByText("—")).toBeInTheDocument();
+    expect(await within(nearHigh).findByText("-")).toBeInTheDocument();
   });
 
   it("says so when the fields cannot be read", async () => {

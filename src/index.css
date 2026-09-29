@@ -187,6 +187,12 @@
   /* Figures line up in a column only if their digits are the same width.
      Without this every price column reads as ragged, and comparing two rows
      means reading rather than glancing. */
+  /* One line weight for every icon: lucide's default 2px reads heavy beside
+     14px text. The hand-drawn charts (sparklines, bars) set their own. */
+  svg.lucide {
+    stroke-width: 1.75;
+  }
+
   .tabular {
     font-variant-numeric: tabular-nums;
   }

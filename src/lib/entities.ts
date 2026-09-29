@@ -9,10 +9,13 @@
 
 import {
   Activity,
-  BarChart3,
   Building2,
   Calendar,
   CalendarClock,
+  ChartCandlestick,
+  ChartColumn,
+  ChartLine,
+  ChartPie,
   ExternalLink,
   Eye,
   FileText,
@@ -22,13 +25,19 @@ import {
   Handshake,
   Landmark,
   Layers,
+  LayoutDashboard,
   LineChart,
   Newspaper,
+  Percent,
   PiggyBank,
+  ReceiptIndianRupee,
   Rocket,
   ScanSearch,
   SlidersHorizontal,
   Star,
+  Table2,
+  TrendingUp,
+  User,
   Users,
   Workflow,
 } from "lucide-react";
@@ -63,12 +72,29 @@ export const MARKS = {
   dates: Calendar,
   deals: Handshake,
   documents: FileText,
-  earnings: BarChart3,
+  // A receipt in rupees: quarterly results, not just any bar chart.
+  earnings: ReceiptIndianRupee,
   exchange: Globe,
-  flows: Landmark,
   external: ExternalLink,
+  // Reported figures by period: revenue, profit.
+  financials: ChartColumn,
+  // A table of figures side by side.
+  figures: Table2,
+  flows: Landmark,
+  // Who owns it: shareholding.
+  holders: ChartPie,
+  // Its own icon: it used to share breadth's, and two neighbours in the
+  // sidebar looked alike.
+  movers: TrendingUp,
   news: Newspaper,
+  overview: LayoutDashboard,
   peers: Users,
+  // A line over time that is not a price: relative performance, a NAV.
+  performance: ChartLine,
+  // A price over time.
+  price: ChartCandlestick,
+  profile: User,
+  returns: Percent,
   scans: ScanSearch,
   screen: SlidersHorizontal,
   visitors: Eye,

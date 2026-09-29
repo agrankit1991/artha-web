@@ -31,7 +31,7 @@ export function ForecastNote({ bands }: ForecastNoteProps): React.JSX.Element {
           <span className="font-medium text-foreground">Forecast</span> (violet, dashed): in{" "}
           {last.horizon} sessions
           {last.session === null ? "" : `, by ${formatDay(last.session)}`}, the price is likely
-          between {formatPrice(last.low)} and {formatPrice(last.high)} — an 80% range, drawn from
+          between {formatPrice(last.low)} and {formatPrice(last.high)} - an 80% range, drawn from
           the close of {formatDay(bands.as_of)}. About one time in five it lands outside.
         </p>
       )}

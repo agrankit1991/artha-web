@@ -275,7 +275,7 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
         <section className="space-y-3" aria-labelledby="price-heading">
           <SectionHeader
             id="price-heading"
-            icon={ENTITIES.index.icon}
+            icon={MARKS.price}
             title="Price & Performance"
             description={
               view === "compare"
@@ -321,7 +321,7 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
             id="figures-heading"
             icon={ENTITIES.index.icon}
             title="The Index Itself"
-            description="Its own level, range, trend, volume and momentum — the same figures a company carries, because an index trades."
+            description="Its own level, range, trend, volume and momentum - the same figures a company carries, because an index trades."
           />
           <InstrumentFigures
             overview={own.data?.[0] ?? null}
@@ -372,7 +372,7 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
             <CardHeader>
               <CardTitle className="text-base">Performance Heatmap</CardTitle>
               <CardDescription>
-                Every company counting once, coloured by its move — the same reading the breadth
+                Every company counting once, coloured by its move - the same reading the breadth
                 counts above are taken from.
               </CardDescription>
             </CardHeader>

@@ -106,7 +106,7 @@ describe("drawShareCard", () => {
     expect(down.fills[1]).toBe("#ef4444");
 
     const unknown = recorder();
-    drawShareCard(unknown.context, facts({ changePercent: null, changeText: "—" }));
+    drawShareCard(unknown.context, facts({ changePercent: null, changeText: "-" }));
     expect(unknown.fills[1]).toBe("#a1a1aa");
   });
 

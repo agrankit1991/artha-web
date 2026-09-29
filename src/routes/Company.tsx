@@ -339,7 +339,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
               <section className="space-y-3" aria-labelledby="price-heading">
                 <SectionHeader
                   id="price-heading"
-                  icon={ENTITIES.index.icon}
+                  icon={MARKS.price}
                   title="Price & Performance"
                   description={
                     view === "compare"
@@ -384,7 +384,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
                 id="valuation-heading"
                 icon={ENTITIES.company.icon}
                 title="Valuation"
-                description="What the company is worth against what it earns, owns and pays — worked out from the stored price, statements and dividends when the page is read."
+                description="What the company is worth against what it earns, owns and pays - worked out from the stored price, statements and dividends when the page is read."
               />
               <ValuationPanel valuation={valuation.data} loading={valuation.loading} />
             </section>
@@ -470,7 +470,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
             <section className="space-y-3" aria-labelledby="growth-heading">
               <SectionHeader
                 id="growth-heading"
-                icon={ENTITIES.index.icon}
+                icon={MARKS.financials}
                 title="Revenue & Profit"
                 description="Every year reported. A table says what each year was; the line says whether the years are going anywhere."
               />
@@ -492,7 +492,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
             <section className="space-y-3" aria-labelledby="holders-heading">
               <SectionHeader
                 id="holders-heading"
-                icon={MARKS.peers}
+                icon={MARKS.holders}
                 title="Shareholding Pattern"
                 description="Who has owned the company, quarter by quarter, in per cent. Promoters selling down and institutions building are the movements worth watching."
               />

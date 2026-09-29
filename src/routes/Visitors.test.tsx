@@ -74,7 +74,7 @@ describe("Visitors", () => {
     expect(member).toHaveTextContent("42");
     // Never seen reads as a dash, not as a date.
     expect(owner).toHaveTextContent("tester@example.com");
-    expect(owner).toHaveTextContent("—");
+    expect(owner).toHaveTextContent("-");
   });
 
   it("totals the span, the browsers nobody was signed in on included", async () => {

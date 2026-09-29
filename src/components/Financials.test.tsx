@@ -120,7 +120,7 @@ describe("Financials", () => {
       "3-year compounded+10.00%",
     );
     // A year that ends in a loss has no compound rate to state.
-    expect(within(growth).getByText("Profit after tax").parentElement).toHaveTextContent("—");
+    expect(within(growth).getByText("Profit after tax").parentElement).toHaveTextContent("-");
   });
 
   it("states no growth beside a quarterly statement", () => {

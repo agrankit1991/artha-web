@@ -2,8 +2,8 @@
  * The news page: everything published, and ways to narrow it.
  *
  * The overview shows the first few of these; a page exists because a feed
- * is something a reader digs through. Three ways to narrow it — words, one
- * company, a window — which compose rather than replacing one another, and
+ * is something a reader digs through. Three ways to narrow it - words, one
+ * company, a window - which compose rather than replacing one another, and
  * all applied by the platform so a page of twelve is twelve of the matches
  * rather than twelve of the latest, filtered afterwards.
  */

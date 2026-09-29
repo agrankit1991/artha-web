@@ -12,7 +12,6 @@
  * arrive where they were.
  */
 
-import { LayoutDashboard, User } from "lucide-react";
 import { useCallback, useState } from "react";
 import { BrowserRouter, Route, Routes, useNavigate, useParams } from "react-router-dom";
 
@@ -58,13 +57,13 @@ import { Visitors } from "@/routes/Visitors";
 
 /** The navigation, in the order the screens are meant to be read. */
 const SCREENS: Screen[] = [
-  { path: PATHS.overview, label: "Overview", icon: LayoutDashboard, group: "Markets", exact: true },
+  { path: PATHS.overview, label: "Overview", icon: MARKS.overview, group: "Markets", exact: true },
   { path: PATHS.breadth, label: "Breadth", icon: MARKS.breadth, group: "Markets" },
   { path: PATHS.flows, label: "FII / DII", icon: MARKS.flows, group: "Markets" },
   { path: PATHS.deals, label: "Deals", icon: MARKS.deals, group: "Markets" },
   { path: PATHS.indices, label: "Indices", icon: ENTITIES.index.icon, group: "Markets" },
   { path: PATHS.sectors, label: "Sectors", icon: ENTITIES.sector.icon, group: "Markets" },
-  { path: PATHS.movers, label: "Movers", icon: MARKS.breadth, group: "Markets" },
+  { path: PATHS.movers, label: "Movers", icon: MARKS.movers, group: "Markets" },
   { path: PATHS.earnings, label: "Earnings", icon: MARKS.earnings, group: "Markets" },
   { path: PATHS.futures, label: "Futures", icon: ENTITIES.future.icon, group: "Markets" },
   { path: PATHS.news, label: "News", icon: MARKS.news, group: "Markets" },
@@ -76,7 +75,7 @@ const SCREENS: Screen[] = [
   { path: PATHS.compare, label: "Compare", icon: MARKS.compare, group: "Research" },
   { path: PATHS.ipos, label: "IPOs", icon: ENTITIES.ipo.icon, group: "Research" },
   { path: PATHS.watchlists, label: "Watchlists", icon: MARKS.watchlist, group: "Mine" },
-  { path: PATHS.profile, label: "Profile", icon: User, group: "Mine" },
+  { path: PATHS.profile, label: "Profile", icon: MARKS.profile, group: "Mine" },
 ];
 
 /** Screens only the owner is offered; anyone else has no such page at all. */

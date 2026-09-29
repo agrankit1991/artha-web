@@ -71,6 +71,6 @@ describe("StrategyRuns", () => {
 
 describe("duration", () => {
   it("is a dash until the run has finished", () => {
-    expect(duration(strategyRequest({ finished_at: null }))).toBe("—");
+    expect(duration(strategyRequest({ finished_at: null }))).toBe("-");
   });
 });

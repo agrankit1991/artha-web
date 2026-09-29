@@ -133,7 +133,7 @@ describe("formatWhole", () => {
   it("signs a move in points, and leaves absence a dash", () => {
     expect(formatSignedPrice("312.45")).toBe("+312.45");
     expect(formatSignedPrice("-1234.5")).toBe("-1,234.50");
-    expect(formatSignedPrice(null)).toBe("—");
+    expect(formatSignedPrice(null)).toBe("-");
   });
 
   it("reads today on India's calendar, not UTC's", () => {

@@ -44,7 +44,7 @@ describe("BreadthGridPanel", () => {
     render(<BreadthGridPanel scopes={[scopeBreadth({ rotation: null, regime: null })]} />);
 
     const [, firstRow] = screen.getAllByRole("row");
-    expect(within(firstRow as HTMLElement).getAllByText("—")).toHaveLength(2);
+    expect(within(firstRow as HTMLElement).getAllByText("-")).toHaveLength(2);
   });
 
   it("can be sorted by every figure in it", async () => {
@@ -91,7 +91,7 @@ describe("BreadthGridPanel", () => {
     render(<BreadthGridPanel scopes={[scopeBreadth({ above_sma_50: null })]} />);
 
     const [, firstRow] = screen.getAllByRole("row");
-    expect(within(firstRow as HTMLElement).getAllByText("—")).toHaveLength(1);
+    expect(within(firstRow as HTMLElement).getAllByText("-")).toHaveLength(1);
   });
 
   it("does not offer a second control that sorts the same way", () => {

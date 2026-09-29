@@ -142,9 +142,9 @@ export function Future({ instrumentKey }: FutureProps): React.JSX.Element {
       <section className="space-y-3" aria-labelledby="figures-heading">
         <SectionHeader
           id="figures-heading"
-          icon={ENTITIES.index.icon}
+          icon={ENTITIES.future.icon}
           title="The Contract Itself"
-          description="Its level, range, trend, volume and momentum — the same figures a company carries, because a contract trades."
+          description="Its level, range, trend, volume and momentum - the same figures a company carries, because a contract trades."
         />
         {overview.error !== null ? (
           <Failed message={overview.error} />
@@ -156,7 +156,7 @@ export function Future({ instrumentKey }: FutureProps): React.JSX.Element {
       <section className="space-y-3" aria-labelledby="price-heading">
         <SectionHeader
           id="price-heading"
-          icon={ENTITIES.index.icon}
+          icon={MARKS.price}
           title="Price"
           description="Its own sessions, with this platform's moving averages over them. A contract's history is as long as its life."
           actions={

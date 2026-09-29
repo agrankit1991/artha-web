@@ -73,7 +73,7 @@ describe("Watchlists", () => {
     expect(reliance).toHaveTextContent("Retail listing ahead");
     // No level set: a dash, not a nought.
     const tcs = within(table).getByRole("link", { name: /TCS/ }).closest("tr");
-    expect(tcs).toHaveTextContent("—");
+    expect(tcs).toHaveTextContent("-");
     expect(screen.getByRole("button", { name: /Long term/ })).toHaveAttribute(
       "aria-current",
       "page",

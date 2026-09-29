@@ -27,7 +27,7 @@ describe("Delta", () => {
     expect(screen.getByText("0.00%")).toHaveClass("text-muted-foreground");
 
     rerender(<Delta value={null} />);
-    expect(screen.getByText("—")).toHaveClass("text-muted-foreground");
+    expect(screen.getByText("-")).toHaveClass("text-muted-foreground");
   });
 
   it("draws the direction arrow by default, and none for no move", () => {

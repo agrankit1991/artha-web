@@ -96,7 +96,7 @@ export function Movers(): React.JSX.Element {
     <div className="space-y-6">
       <PageHeader
         title="Market Movers"
-        description="Every list as deep as it is kept, with how many sessions running each instrument has been on it — the column the overview cannot fit."
+        description="Every list as deep as it is kept, with how many sessions running each instrument has been on it - the column the overview cannot fit."
       />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <ScopePicker

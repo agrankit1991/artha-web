@@ -29,7 +29,7 @@ describe("ValuationHistoryChart", () => {
       "aria-valuenow",
       "2",
     );
-    expect(screen.getByText(/33\.95× – 38\.27×, median 36\.11×/)).toBeInTheDocument();
+    expect(screen.getByText(/33\.95× - 38\.27×, median 36\.11×/)).toBeInTheDocument();
     // At the hundredth percentile it has never been dearer; that is a loss tone.
     const [dearest] = screen.getAllByText("Cheaper than 0% of its past");
     expect(dearest).toHaveClass("text-loss");
@@ -101,7 +101,7 @@ describe("ValuationHistoryChart", () => {
     expect(screen.getByRole("meter", { name: "Price to earnings" })).not.toHaveAttribute(
       "aria-valuenow",
     );
-    expect(screen.getAllByText(/— – —, median —/)).toHaveLength(2);
+    expect(screen.getAllByText(/- - -, median -/)).toHaveLength(2);
     expect(screen.queryByText(/of its past/)).not.toBeInTheDocument();
   });
 });

@@ -30,7 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useResource } from "@/hooks/useResource";
 import { CANDLE_DOWN, OSCILLATOR, PRICE_LINE, PRICE_WIDTH } from "@/lib/chartPalette";
-import { ENTITIES, MARKS } from "@/lib/entities";
+import { MARKS } from "@/lib/entities";
 import { ABSENT, formatDay, formatPercent, formatPrice, toNumber } from "@/lib/format";
 import {
   STAKE,
@@ -76,7 +76,7 @@ const VIEWS: Tab<View>[] = [
 /** What each reading answers, said under the section title. */
 const DESCRIPTIONS: Record<View, string> = {
   growth: `What ₹${STAKE.toLocaleString("en-IN")} put in on the first day of the window would be worth since.`,
-  nav: "One value a day, as published. A fund has no sessions, no high and low and no volume — this is the whole of its record.",
+  nav: "One value a day, as published. A fund has no sessions, no high and low and no volume - this is the whole of its record.",
   drawdown:
     "How far the value sat below its highest point to date. Nought is a new high; the deepest point is the worst a holder who bought at the wrong moment sat through.",
   rolling:
@@ -171,7 +171,7 @@ export function Fund({ schemeCode }: FundProps): React.JSX.Element {
       <section className="space-y-3" aria-labelledby="record-heading">
         <SectionHeader
           id="record-heading"
-          icon={ENTITIES.index.icon}
+          icon={MARKS.performance}
           title="NAV History"
           description={DESCRIPTIONS[view]}
           actions={<Chooser options={SPANS} chosen={span} onChange={setSpan} label="History" />}

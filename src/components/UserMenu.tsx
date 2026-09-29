@@ -28,7 +28,7 @@ export function initialsOf(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean);
   const first = words.at(0);
   if (first === undefined) {
-    return "—";
+    return "-";
   }
   // `charAt` rather than an index: it returns a string for an empty word
   // too, where indexing would hand back undefined and need a fallback for

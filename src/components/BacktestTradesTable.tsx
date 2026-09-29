@@ -102,7 +102,7 @@ const COLUMNS: Column<BacktestTrade>[] = [
     cell: ({ row }) =>
       row.original.lowest_weight === null || row.original.lowest_weight === undefined
         ? ABSENT
-        : `${weight(row.original.lowest_weight)} – ${weight(row.original.highest_weight)}`,
+        : `${weight(row.original.lowest_weight)} - ${weight(row.original.highest_weight)}`,
     meta: { align: "right" },
   },
   {

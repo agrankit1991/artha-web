@@ -53,7 +53,7 @@ describe("Indices", () => {
       .closest("tr");
     expect(sensex).toHaveTextContent("BSE");
     expect(sensex).toHaveTextContent("N/A");
-    expect(sensex).toHaveTextContent("—");
+    expect(sensex).toHaveTextContent("-");
     expect(screen.getByText("3 of 3")).toBeInTheDocument();
     expect(screen.getByText("3 indices")).toBeInTheDocument();
   });

@@ -47,7 +47,7 @@ describe("PopulationValuationPanel", () => {
     });
     const { unmount } = renderPage(<PopulationValuationPanel valuation={unweighed} />);
     expect(screen.getByText(/nothing can be weighed/)).toBeInTheDocument();
-    expect(screen.getAllByText("—").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("-").length).toBeGreaterThan(0);
     unmount();
 
     const oneWay = populationValuation({ members: [memberValuation()] });
@@ -61,7 +61,7 @@ describe("bucketed", () => {
     const moves = ["-7", "-5", "-2", "-0.5", "0", "0.5", "2", "5", "9", null];
     const counted = bucketed(moves.map((change) => memberValuation({ change_percent: change })));
 
-    // < −5 | −5..−2 | −2..0 | 0 | 0..2 | 2..5 | > 5
+    // < -5 | -5..-2 | -2..0 | 0 | 0..2 | 2..5 | > 5
     expect(counted).toEqual([1, 1, 2, 1, 2, 1, 1]);
     expect(counted.reduce((sum, one) => sum + one, 0)).toBe(9);
   });

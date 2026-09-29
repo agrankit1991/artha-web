@@ -34,9 +34,9 @@ describe("BacktestMeasures", () => {
     const recovery = within(table).getByText("It recovered in").closest("tr");
     expect(recovery).toHaveTextContent("not recovered");
     const month = within(table).getByText("Best month").closest("tr");
-    expect(month).toHaveTextContent("—");
+    expect(month).toHaveTextContent("-");
     const rising = within(table).getByText("Longest run of falling months").closest("tr");
-    expect(rising).toHaveTextContent("—");
+    expect(rising).toHaveTextContent("-");
   });
 
   it("draws nothing for a backtest without detailed measures", () => {

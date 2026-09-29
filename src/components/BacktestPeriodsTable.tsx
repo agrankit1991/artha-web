@@ -26,7 +26,7 @@ const COLUMNS: Column<BacktestPeriod>[] = [
       <span>
         <span className="font-medium">{NAMES[row.original.name]}</span>
         <span className="block text-xs text-muted-foreground">
-          {formatDay(row.original.first_session)} – {formatDay(row.original.last_session)}
+          {formatDay(row.original.first_session)} - {formatDay(row.original.last_session)}
         </span>
       </span>
     ),

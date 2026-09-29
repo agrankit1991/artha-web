@@ -111,7 +111,7 @@ export function readings(breadth: BreadthResponse | null): Reading[] {
 
   return [
     {
-      label: "Advance–decline line",
+      label: "Advance-decline line",
       value: reading(breadth.advance_decline_line, (parsed) => formatVolume(parsed)),
       ...direction,
     },
@@ -146,7 +146,7 @@ export function readings(breadth: BreadthResponse | null): Reading[] {
       tone: thrust === null ? "neutral" : thrust >= THRUST_HIGH ? "good" : "neutral",
     },
     {
-      label: "High–low index",
+      label: "High-low index",
       value: reading(breadth.high_low_index, (parsed) => `${parsed.toFixed(0)}%`),
       hint:
         highLow === null
@@ -209,7 +209,7 @@ const REGIMES: Record<BreadthRegime, RegimeReading> = {
   },
   "over-extended": {
     label: "Over-extended",
-    hint: "Nearly all are above their 200-day — historically where money rotates out of risk.",
+    hint: "Nearly all are above their 200-day - historically where money rotates out of risk.",
     tone: "warn",
   },
 };

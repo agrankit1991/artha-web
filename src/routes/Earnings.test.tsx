@@ -54,7 +54,7 @@ describe("EarningsPage", () => {
     expect(within(rows[2] as HTMLElement).getByText("40%")).toHaveClass("text-loss");
     // The oldest period has nothing before it to compare with.
     const oldest = rows[3] as HTMLElement;
-    expect(within(oldest).getAllByText("—").length).toBeGreaterThanOrEqual(2);
+    expect(within(oldest).getAllByText("-").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText(/92 companies with a profile/)).toBeInTheDocument();
   });
 
@@ -86,7 +86,7 @@ describe("EarningsPage", () => {
       .getByRole("link", { name: /Cement/ })
       .closest("tr");
     expect(cement).toHaveTextContent("n/a");
-    expect(cement).toHaveTextContent("—");
+    expect(cement).toHaveTextContent("-");
   });
 
   it("switches both the market series and the ranking to quarterly", async () => {

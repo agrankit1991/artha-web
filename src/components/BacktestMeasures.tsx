@@ -88,7 +88,7 @@ const MEASURES: [string, Reading][] = [
   [
     "Companies held",
     ({ holdings }) =>
-      `${String(holdings.fewest)}–${String(holdings.most)}, ${holdings.average.toFixed(1)} on average`,
+      `${String(holdings.fewest)}-${String(holdings.most)}, ${holdings.average.toFixed(1)} on average`,
   ],
 ];
 

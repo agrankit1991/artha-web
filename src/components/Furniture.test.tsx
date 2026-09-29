@@ -101,7 +101,7 @@ describe("FactList", () => {
     );
 
     expect(screen.getByText("INE002A01018")).toBeInTheDocument();
-    expect(screen.getAllByText("—")).toHaveLength(2);
+    expect(screen.getAllByText("-")).toHaveLength(2);
   });
 });
 
@@ -131,7 +131,7 @@ describe("RangeMeter", () => {
     render(<RangeMeter label="Year" low={100} high={null} value={null} format={rupees} />);
 
     expect(screen.getByRole("meter", { name: "Year" }).querySelector("span")).toBeNull();
-    expect(screen.getAllByText("—")).toHaveLength(2);
+    expect(screen.getAllByText("-")).toHaveLength(2);
   });
 
   it("draws no marker when an end is unknown", () => {
@@ -139,7 +139,7 @@ describe("RangeMeter", () => {
 
     const meter = screen.getByRole("meter", { name: "Year" });
     expect(meter.querySelector("span")).toBeNull();
-    expect(screen.getAllByText("—").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("-").length).toBeGreaterThan(0);
   });
 });
 

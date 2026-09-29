@@ -1,4 +1,4 @@
-# CLAUDE.md — artha-web
+# CLAUDE.md - artha-web
 
 Guidance for working in this repository.
 
@@ -27,7 +27,7 @@ npm run dev          # needs the artha-platform compose stack on :80
 Install the hooks once per clone: `git config core.hooksPath .githooks`.
 
 **Run `npm run verify` before every commit.** The hooks enforce it, but do
-not rely on them alone — `--no-verify` exists and CI is a slow way to find
+not rely on them alone - `--no-verify` exists and CI is a slow way to find
 out.
 
 ## Quality gate
@@ -82,7 +82,7 @@ It rose from 95% with the first real views.
   interaction, legends and a theme of its own to argue with. When a chart
   needs axes, crosshairs and zooming, reach for the library.
 - **Charts plot server-computed series.** TradingView Lightweight Charts, not
-  Advanced Charts — the latter carries its own indicator engine, which would
+  Advanced Charts - the latter carries its own indicator engine, which would
   duplicate the rule engine and quietly disagree with it on warm-up periods,
   gaps and corporate-action adjustment. The chart's job is to show why a
   signal fired, so it must display the values the rule actually used.
@@ -116,6 +116,14 @@ It rose from 95% with the first real views.
 
 - TypeScript is strict, including `exactOptionalPropertyTypes` and
   `noUncheckedIndexedAccess`. ESLint runs type-aware rules.
+- **Colours come from tokens; text uses plain hyphens.** `src/conventions.test.ts`
+  fails on a Tailwind palette class or a hex colour outside `index.css`,
+  `chartPalette.ts` and `shareCard.ts` (with a shrinking list of files still
+  waiting for the brand redesign), and on any en dash, em dash or U+2212
+  minus anywhere in `src` (the owner's house style; the "no value" mark
+  `ABSENT` is a hyphen since 2026-09-30).
+- **Icons come from `src/lib/entities.ts`**, one per meaning: a section
+  about a price uses `MARKS.price`, not whichever entity's icon looks close.
 
 ## Gotchas
 
@@ -124,12 +132,12 @@ It rose from 95% with the first real views.
   typecheck under `exactOptionalPropertyTypes`. Vitest 3 pairs with Vite 6.
 - **Import `defineConfig` from `vitest/config`,** not `vite`, or the `test`
   key is rejected as an unknown property.
-- `npm install` warns that esbuild's postinstall was skipped. Benign —
+- `npm install` warns that esbuild's postinstall was skipped. Benign -
   esbuild ships prebuilt binaries through optional dependencies.
 - **TanStack Table is pinned to v8, deliberately.** v9 is the current stable
   release, but its types thread the feature set through every column
   definition, and under `exactOptionalPropertyTypes` a generic wrapper around
-  it — which is exactly what `DataTable` is — cannot be made to typecheck
+  it - which is exactly what `DataTable` is - cannot be made to typecheck
   without casting away the row type. A shared table that needs a cast at its
   own boundary is worse than an older major. Revisit when v9's generics
   settle; the call sites would not change.
@@ -137,7 +145,7 @@ It rose from 95% with the first real views.
   Re-verified: `select` works with the polyfills in `src/test-setup.ts`;
   `@radix-ui/react-dropdown-menu` still never opens, and a test of one
   times out rather than failing. `src/components/Menu.tsx` is this
-  application's own menu for that reason — a trigger, a panel, Escape and
+  application's own menu for that reason - a trigger, a panel, Escape and
   click-outside, and every choice a real button with `role="menuitem"`.
   It carries sign-out and the theme, which are exactly the things worth
   having tests for. Do not swap it for the Radix one without a browser
@@ -341,7 +349,7 @@ call site.
   about 0.8 MB for twenty years of seven indices against about 17 MB as
   seven full breadth readings.
 
-- **The breadth glance** (`src/components/BreadthPanel.tsx`) — how many
+- **The breadth glance** (`src/components/BreadthPanel.tsx`) - how many
   took part rather than how far the index moved, used by both screens. One proportional bar for the split, three meters for the moving
   averages, two sparklines, and a plain-language reading of the McClellan
   oscillator: "+42" says nothing to most readers and "more stocks joining"

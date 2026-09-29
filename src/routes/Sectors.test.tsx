@@ -56,7 +56,7 @@ describe("Sectors", () => {
     // Nothing measured: no bar, a dash.
     const zinc = within(table).getByRole("link", { name: /Zinc/ }).closest("tr");
     expect(within(zinc as HTMLElement).queryByRole("meter")).not.toBeInTheDocument();
-    expect(zinc).toHaveTextContent("—");
+    expect(zinc).toHaveTextContent("-");
   });
 
   it("narrows by typed letters", async () => {

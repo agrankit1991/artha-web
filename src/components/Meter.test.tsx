@@ -30,6 +30,6 @@ describe("Meter", () => {
     // A market with no 200-day average yet is not a market with none above it.
     render(<Meter label="Above 200-day" percent={null} />);
 
-    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(screen.getByText("-")).toBeInTheDocument();
   });
 });

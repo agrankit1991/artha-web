@@ -13,7 +13,7 @@ describe("FlowBars", () => {
         bars={[
           { day: "2026-09-21", net: "1200.50", title: "21 Sep: +1,200.50 Cr" },
           { day: "2026-09-22", net: "-3809.99", title: "22 Sep: -3,809.99 Cr" },
-          { day: "2026-09-23", net: null, title: "23 Sep: —" },
+          { day: "2026-09-23", net: null, title: "23 Sep: -" },
         ]}
       />,
     );

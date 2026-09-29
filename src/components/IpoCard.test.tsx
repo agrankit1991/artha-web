@@ -41,7 +41,7 @@ describe("IpoCard", () => {
     draw();
 
     expect(screen.getByText("₹210.00 cr")).toBeInTheDocument();
-    expect(screen.getByText("130.00 – 140.00")).toBeInTheDocument();
+    expect(screen.getByText("130.00 - 140.00")).toBeInTheDocument();
     expect(screen.getByText("107 shares")).toBeInTheDocument();
     expect(screen.getByText("14,980.00")).toBeInTheDocument();
   });
@@ -113,7 +113,7 @@ describe("IpoCard", () => {
     );
 
     expect(screen.getByText("ISIN not yet assigned")).toBeInTheDocument();
-    expect(screen.getAllByText("—").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("-").length).toBeGreaterThan(1);
   });
 });
 

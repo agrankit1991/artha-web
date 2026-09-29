@@ -59,7 +59,7 @@ describe("CorporateActions", () => {
     ]);
 
     expect(screen.getByText("Other")).toBeInTheDocument();
-    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(3);
+    expect(screen.getAllByText("-").length).toBeGreaterThanOrEqual(3);
 
     // Sorted on each column too: a missing date must not decide the order
     // by being treated as the earliest one there is.

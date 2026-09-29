@@ -75,7 +75,7 @@ export function MomentumChip({
   return (
     <Badge
       variant="outline"
-      title="Momentum: its one-, three- and six-month returns against every other company, 0–100"
+      title="Momentum: its one-, three- and six-month returns against every other company, 0-100"
       className={cn("tabular", BAND_TINTS[momentumBand(score)], className)}
     >
       Momentum {Math.round(score)}

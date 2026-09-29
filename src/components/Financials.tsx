@@ -124,7 +124,7 @@ export function Financials({ statements, loading = false }: FinancialsProps): Re
       )}
       <p className="text-xs text-muted-foreground">
         Figures in crore, except earnings per share, which is in rupees. As reported, and as they
-        were known today — a later restatement is recorded beside the original rather than replacing
+        were known today - a later restatement is recorded beside the original rather than replacing
         it.
       </p>
     </div>

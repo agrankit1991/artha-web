@@ -212,7 +212,7 @@ export function Breadth(): React.JSX.Element {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <Activity className="h-4 w-4 text-muted-foreground" />
-                Advance–Decline Trend
+                Advance-Decline Trend
               </CardTitle>
               <CardDescription>
                 How one-sided each session was: above the rule more companies rose than fell, below
@@ -220,7 +220,7 @@ export function Breadth(): React.JSX.Element {
                 keeps a band of its own.
               </CardDescription>
             </CardHeader>
-            <CardContent role="region" aria-label="Advance–Decline Trend">
+            <CardContent role="region" aria-label="Advance-Decline Trend">
               <BreadthChart sessions={breadth.data?.sessions ?? []} loading={breadth.loading} />
             </CardContent>
           </Card>

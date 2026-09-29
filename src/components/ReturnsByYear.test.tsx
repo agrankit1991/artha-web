@@ -89,7 +89,7 @@ describe("ReturnsByYear", () => {
     expect(yearCell(delivery, 2019)).toHaveTextContent("+4.3%*(part of the year)");
     expect(yearCell(delivery, 2019)).not.toHaveTextContent("(best that year)");
     expect(yearCell(cellsOf("S0009"), 2019)).toHaveTextContent("(best that year)");
-    expect(yearCell(delivery, 2018)).toHaveTextContent("—");
+    expect(yearCell(delivery, 2018)).toHaveTextContent("-");
     expect(
       screen.getByText(/Part of the year: S0012 from Nov 2019, S0006 from Nov 2019/),
     ).toBeInTheDocument();

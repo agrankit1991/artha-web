@@ -48,7 +48,7 @@ describe("InstrumentFigures", () => {
       />,
     );
 
-    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(3);
+    expect(screen.getAllByText("-").length).toBeGreaterThanOrEqual(3);
   });
 
   it("says nothing is stored rather than drawing a panel of dashes", () => {
@@ -95,7 +95,7 @@ describe("InstrumentFigures", () => {
       />,
     );
 
-    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(5);
+    expect(screen.getAllByText("-").length).toBeGreaterThanOrEqual(5);
   });
 
   it("draws each figure's shape from its history, skipping a reading it lacks", () => {
@@ -120,6 +120,6 @@ describe("InstrumentFigures", () => {
     expect(
       screen.getByRole("img", { name: /^Close over recent sessions: flat/ }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Streak").nextElementSibling).toHaveTextContent("—");
+    expect(screen.getByText("Streak").nextElementSibling).toHaveTextContent("-");
   });
 });

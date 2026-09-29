@@ -219,15 +219,15 @@ describe("Backtest", () => {
     expect(within(risk).getAllByText(/-32.0% \(15 Jan 2020/)).not.toHaveLength(0);
     expect(within(risk).getAllByText("96 sessions")).not.toHaveLength(0);
     expect(within(risk).getAllByText("11 trades, -70.0%")).not.toHaveLength(0);
-    expect(within(risk).getAllByText("0–10, 7.4 on average")).not.toHaveLength(0);
+    expect(within(risk).getAllByText("0-10, 7.4 on average")).not.toHaveLength(0);
     const baskets = screen.getByRole("table", { name: "Basket sizes" });
     expect(within(baskets).getByText("as written")).toBeInTheDocument();
     const years = screen.getByRole("table", { name: "Years" });
-    expect(within(years).getByText("9.2 (6–10)")).toBeInTheDocument();
+    expect(within(years).getByText("9.2 (6-10)")).toBeInTheDocument();
     expect(within(years).getByText("44%")).toBeInTheDocument();
     const trades = screen.getByRole("table", { name: "Trades" });
     expect(within(trades).getByText("1,210")).toBeInTheDocument();
-    expect(within(trades).getByText("8.1% – 17.6%")).toBeInTheDocument();
+    expect(within(trades).getByText("8.1% - 17.6%")).toBeInTheDocument();
   });
 
   it("leaves out what a backtest kept before the detailed measures lacks", async () => {

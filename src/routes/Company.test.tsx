@@ -244,7 +244,7 @@ describe("Company", () => {
 
     renderPage(<Company instrumentKey={KEY} />);
     const table = await screen.findByRole("table", { name: "Competitors" });
-    expect(within(table).getAllByText("—").length).toBeGreaterThan(1);
+    expect(within(table).getAllByText("-").length).toBeGreaterThan(1);
 
     for (const name of ["Relative strength", "Competitors"]) {
       for (const header of within(screen.getByRole("table", { name })).getAllByRole("button")) {

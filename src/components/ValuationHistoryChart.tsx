@@ -119,7 +119,7 @@ function Standing({
       />
       <div className="flex items-baseline justify-between text-xs text-muted-foreground">
         <span>
-          {reading.low === null ? ABSENT : multipleOf(reading.low)} –{" "}
+          {reading.low === null ? ABSENT : multipleOf(reading.low)} -{" "}
           {reading.high === null ? ABSENT : multipleOf(reading.high)}, median{" "}
           {reading.median === null ? ABSENT : multipleOf(reading.median)}
         </span>

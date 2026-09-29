@@ -143,7 +143,7 @@ describe("Compare", () => {
     expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
     // No figures for any of them: a dash in every cell, and a price of nothing.
     const matrix = screen.getByRole("table", { name: "Figures compared" });
-    expect(within(matrix).getAllByText("—").length).toBeGreaterThan(0);
+    expect(within(matrix).getAllByText("-").length).toBeGreaterThan(0);
   });
 
   it("reports each read that fails on its own", async () => {

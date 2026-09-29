@@ -38,7 +38,7 @@ describe("StatementTable", () => {
     draw(statement());
 
     const row = screen.getByText("Profit After Tax").closest("tr");
-    expect(within(row as HTMLElement).getByText("—")).toBeInTheDocument();
+    expect(within(row as HTMLElement).getByText("-")).toBeInTheDocument();
   });
 
   it("writes a share as a percentage and a sum as a figure", () => {

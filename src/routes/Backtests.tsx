@@ -31,7 +31,7 @@ const COLUMNS: Column<BacktestSummary>[] = [
     header: "Traded",
     accessorFn: (row) => row.first_session,
     cell: ({ row }) =>
-      `${formatDay(row.original.first_session)} – ${formatDay(row.original.last_session)}`,
+      `${formatDay(row.original.first_session)} - ${formatDay(row.original.last_session)}`,
   },
   {
     id: "cagr",

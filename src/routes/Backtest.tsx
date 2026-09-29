@@ -89,7 +89,7 @@ const YEAR_COLUMNS: Column<YearRow>[] = [
       const held = row.original.holdings;
       return held === null || held === undefined
         ? ABSENT
-        : `${held.average.toFixed(1)} (${String(held.fewest)}–${String(held.most)})`;
+        : `${held.average.toFixed(1)} (${String(held.fewest)}-${String(held.most)})`;
     },
     meta: { align: "right" },
   },
@@ -178,7 +178,7 @@ export function Backtest(): React.JSX.Element {
         <section aria-label="Verdict" className="space-y-3">
           <SectionHeader
             title={verdict.name === "out-of-sample" ? "Out of sample" : "The whole stretch"}
-            description={`${formatDay(verdict.first_session)} – ${formatDay(verdict.last_session)}`}
+            description={`${formatDay(verdict.first_session)} - ${formatDay(verdict.last_session)}`}
           />
           <StatGrid>
             <StatTile

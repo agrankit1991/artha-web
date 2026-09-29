@@ -42,7 +42,7 @@ describe("InstrumentHeader", () => {
         overview={{ ...base, day: { ...base.day, change: null, change_percent: null } }}
       />,
     );
-    expect(screen.getAllByText("—")[0]).toHaveClass("text-muted-foreground");
+    expect(screen.getAllByText("-")[0]).toHaveClass("text-muted-foreground");
   });
 
   it("draws no price for something that does not trade, such as a sector", () => {

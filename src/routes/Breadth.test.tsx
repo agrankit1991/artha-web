@@ -190,7 +190,7 @@ describe("Breadth", () => {
 
     // The session with no ratio, no TRIN and no share above the 200-day
     // shows three dashes wherever the sort has put it.
-    expect(within(table).getAllByText("—")).toHaveLength(3);
+    expect(within(table).getAllByText("-")).toHaveLength(3);
   });
 
   it("names the regime rather than leaving a share to be interpreted", async () => {
@@ -289,7 +289,7 @@ describe("Breadth", () => {
     // Named in two places on this page -- as a column of the history and
     // as a line on this chart -- so the chart is asked for by its own region.
     await screen.findByText("Daily Breadth");
-    const drawn = screen.getByRole("region", { name: "Advance–Decline Trend" });
+    const drawn = screen.getByRole("region", { name: "Advance-Decline Trend" });
     expect(within(drawn).getByText("Net advancing")).toBeInTheDocument();
     expect(within(drawn).getByText("McClellan oscillator")).toBeInTheDocument();
   });

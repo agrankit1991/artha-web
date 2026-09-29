@@ -38,7 +38,7 @@ import { useDebounced } from "@/hooks/useDebounced";
 import { useResource } from "@/hooks/useResource";
 import { coloured } from "@/lib/chartPalette";
 import { readPreferences } from "@/lib/preferences";
-import { ENTITIES } from "@/lib/entities";
+import { ENTITIES, MARKS } from "@/lib/entities";
 import { figureAt, writtenFigure } from "@/lib/figures";
 import { formatDay, formatPrice, toNumber } from "@/lib/format";
 import { hitPath } from "@/lib/paths";
@@ -175,7 +175,7 @@ export function Compare(): React.JSX.Element {
           <section className="space-y-3" aria-labelledby="chart-heading">
             <SectionHeader
               id="chart-heading"
-              icon={ENTITIES.index.icon}
+              icon={MARKS.performance}
               title="Relative Performance"
               description="Rebased to the first session they all share, so the lines start together and the gaps are the story."
               actions={
@@ -200,7 +200,7 @@ export function Compare(): React.JSX.Element {
           <section className="space-y-3" aria-labelledby="returns-heading">
             <SectionHeader
               id="returns-heading"
-              icon={ENTITIES.company.icon}
+              icon={MARKS.returns}
               title="Returns"
               description="Each instrument's latest close and its trailing returns."
             />
@@ -214,7 +214,7 @@ export function Compare(): React.JSX.Element {
           <section className="space-y-3" aria-labelledby="figures-heading">
             <SectionHeader
               id="figures-heading"
-              icon={ENTITIES.index.icon}
+              icon={MARKS.figures}
               title="Every Figure"
               description="The platform's figures for each, one column apiece, so a row is read across."
             />
@@ -466,7 +466,7 @@ function GroupRows({
               key={one.instrument.instrument_key}
               className={cn("px-3 py-1.5 text-right tabular")}
             >
-              {one.figures === null ? "—" : writtenFigure(field, figureAt(one.figures, field.path))}
+              {one.figures === null ? "-" : writtenFigure(field, figureAt(one.figures, field.path))}
             </td>
           ))}
         </tr>

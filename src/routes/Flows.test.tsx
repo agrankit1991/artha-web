@@ -124,7 +124,7 @@ describe("Flows", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Stock futures" }));
     const futures = screen.getByRole("table", { name: "FII derivatives flows" });
-    expect(within(futures).getByText("+12.00").closest("tr")).toHaveTextContent("—");
+    expect(within(futures).getByText("+12.00").closest("tr")).toHaveTextContent("-");
 
     await userEvent.click(screen.getByRole("button", { name: "Stock options" }));
     expect(
@@ -186,7 +186,7 @@ describe("Flows", () => {
 
     const table = await screen.findByRole("table", { name: "Cash market flows" });
     expect(await within(table).findByText("No flows recorded yet")).toBeInTheDocument();
-    expect(screen.getByText("FII net, latest session").parentElement).toHaveTextContent("—");
+    expect(screen.getByText("FII net, latest session").parentElement).toHaveTextContent("-");
     expect(screen.queryByRole("img", { name: /net buying/ })).not.toBeInTheDocument();
   });
 });
