@@ -8,8 +8,8 @@
  * reads top to bottom.
  */
 
-import { useCallback, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import type { IndexSummary } from "@/api/client";
 import { fetchIndices } from "@/api/client";
@@ -17,13 +17,14 @@ import { Chooser } from "@/components/Chooser";
 import { type Column, DataTable } from "@/components/DataTable";
 import { Delta } from "@/components/Delta";
 import { Failed } from "@/components/Failed";
+import { Empty } from "@/components/Empty";
 import { PageHeader } from "@/components/PageHeader";
+import { PopulationCard, PopulationCardsLoading } from "@/components/PopulationCard";
 import { ViewModeToggle, useViewMode } from "@/components/ViewModeToggle";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useResource } from "@/hooks/useResource";
-import { ABSENT, formatCount, formatDay, formatPrice, toNumber } from "@/lib/format";
+import { ABSENT, formatCount, formatDay, formatPercent, formatPrice, toNumber } from "@/lib/format";
 import { categoryLabel } from "@/lib/indices";
 import { populationPath, slug } from "@/lib/paths";
 
@@ -38,9 +39,30 @@ const ANY = "ANY";
 export function Indices(): React.JSX.Element {
   const load = useCallback(() => fetchIndices(), []);
   const indices = useResource(load);
-  const [category, setCategory] = useState(ANY);
-  const [typed, setTyped] = useState("");
-  const [exchange, setExchange] = useState(ANY);
+  // The filters live in the address, so a filtered list is a page that can
+  // be bookmarked and returned to.
+  const [params, setParams] = useSearchParams();
+  const category = params.get("kind") ?? ANY;
+  const exchange = params.get("exchange") ?? ANY;
+  const typed = params.get("q") ?? "";
+  const set = (name: "kind" | "exchange" | "q", value: string, empty: string): void => {
+    const next = new URLSearchParams(params);
+    if (value === empty) {
+      next.delete(name);
+    } else {
+      next.set(name, value);
+    }
+    setParams(next, { replace: true });
+  };
+  const setCategory = (next: string): void => {
+    set("kind", next, ANY);
+  };
+  const setExchange = (next: string): void => {
+    set("exchange", next, ANY);
+  };
+  const setTyped = (next: string): void => {
+    set("q", next, "");
+  };
   const [mode, setMode] = useViewMode("indices");
 
   const categories = useMemo(() => {
@@ -55,13 +77,19 @@ export function Indices(): React.JSX.Element {
 
   const shown = useMemo(() => {
     const letters = typed.trim().toLowerCase();
-    return (indices.data ?? []).filter(
-      (one) =>
-        (category === ANY || one.category === category) &&
-        (exchange === ANY || exchangeOf(one) === exchange) &&
-        (letters === "" ||
-          one.name.toLowerCase().includes(letters) ||
-          one.symbol.toLowerCase().includes(letters)),
+    return (
+      (indices.data ?? [])
+        .filter(
+          (one) =>
+            (category === ANY || one.category === category) &&
+            (exchange === ANY || exchangeOf(one) === exchange) &&
+            (letters === "" ||
+              one.name.toLowerCase().includes(letters) ||
+              one.symbol.toLowerCase().includes(letters)),
+        )
+        // Indices with no level yet go last, rather than opening the list
+        // with a run of empty rows.
+        .sort((one, other) => Number(one.close === null) - Number(other.close === null))
     );
   }, [indices.data, category, exchange, typed]);
 
@@ -108,7 +136,18 @@ export function Indices(): React.JSX.Element {
       change("three_months", "3M", (row) => row.returns?.three_months ?? null),
       change("one_year", "1Y", (row) => row.returns?.one_year ?? null),
       change("year_to_date", "YTD", (row) => row.returns?.year_to_date ?? null),
-      change("from_high", "From high", (row) => row.from_high_percent),
+      {
+        id: "from_high",
+        header: "From high",
+        accessorFn: (row) => toNumber(row.from_high_percent) ?? Number.NEGATIVE_INFINITY,
+        // A distance, not a fall: shown plainly, where it was always red.
+        cell: ({ row }) => (
+          <span className="tabular text-muted-foreground">
+            {formatPercent(row.original.from_high_percent)}
+          </span>
+        ),
+        meta: { align: "right" },
+      },
       {
         id: "as_of",
         header: "As of",
@@ -118,10 +157,6 @@ export function Indices(): React.JSX.Element {
     ],
     [],
   );
-
-  if (indices.error !== null) {
-    return <Failed message={indices.error} />;
-  }
 
   const table = (rows: IndexSummary[], label: string): React.JSX.Element => (
     <DataTable
@@ -156,22 +191,54 @@ export function Indices(): React.JSX.Element {
         />
         <Chooser options={EXCHANGES} chosen={exchange} onChange={setExchange} label="Exchange" />
         <Chooser options={categories} chosen={category} onChange={setCategory} label="Kind" />
-        <span className="text-xs text-muted-foreground">
-          {String(shown.length)} of {String(indices.data?.length ?? 0)}
-        </span>
+        {/* The total is in the header; here only what the filters leave. */}
+        {indices.data !== null && shown.length !== indices.data.length && (
+          <span className="text-xs text-muted-foreground">
+            {String(shown.length)} of {String(indices.data.length)}
+          </span>
+        )}
         <ViewModeToggle mode={mode} onChange={setMode} className="ml-auto" />
       </div>
-      {mode === "list" && table(shown, "Indices")}
-      {mode === "grouped" && (
+      {indices.error !== null && <Failed message={indices.error} />}
+      {indices.error === null && mode === "list" && table(shown, "Indices")}
+      {indices.error === null && mode === "grouped" && (
         <Grouped groups={byCategory(shown)} render={(rows, name) => table(rows, name)} />
       )}
-      {mode === "cards" && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {shown.map((one) => (
-            <SummaryCard key={one.instrument_key} index={one} />
-          ))}
-        </div>
-      )}
+      {indices.error === null &&
+        mode === "cards" &&
+        (indices.data !== null && shown.length === 0 ? (
+          <Empty
+            title="No index matches"
+            reason="Try fewer letters, or another exchange or kind."
+          />
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {indices.data === null ? (
+              <PopulationCardsLoading />
+            ) : (
+              shown.map((one) => (
+                <PopulationCard
+                  key={one.instrument_key}
+                  name={one.name}
+                  href={populationPath("index", one.instrument_key)}
+                  change={one.change_percent}
+                  identity={
+                    <>
+                      <span>{exchangeOf(one)}</span>
+                      <CategoryBadge category={one.category} />
+                    </>
+                  }
+                  level={formatPrice(one.close)}
+                  readings={[
+                    { label: "1M", value: one.returns?.one_month ?? null },
+                    { label: "1Y", value: one.returns?.one_year ?? null },
+                    { label: "From high", value: one.from_high_percent, distance: true },
+                  ]}
+                />
+              ))
+            )}
+          </div>
+        ))}
     </div>
   );
 }
@@ -256,53 +323,14 @@ function Grouped({
         <section key={name} aria-labelledby={slug(name)} className="space-y-3">
           <h2
             id={slug(name)}
-            className="flex items-center gap-2 border-b border-primary/20 pb-2 text-2xl font-bold"
+            className="flex items-center gap-2 text-section font-semibold tracking-tight"
           >
             {name}
-            <Badge variant="secondary" className="text-sm">
-              {rows.length}
-            </Badge>
+            <Badge variant="secondary">{rows.length}</Badge>
           </h2>
           {render(rows, name)}
         </section>
       ))}
     </div>
-  );
-}
-
-/** One index as a card: name and move first, then its level and trailing returns. */
-function SummaryCard({ index }: { index: IndexSummary }): React.JSX.Element {
-  return (
-    <Link to={populationPath("index", index.instrument_key)} className="block">
-      <Card className="transition-shadow hover:shadow-md">
-        <CardContent className="space-y-2">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="min-w-0 truncate text-lg font-semibold">{index.name}</h3>
-            <Delta value={index.change_percent} arrow={false} badge />
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{exchangeOf(index)}</span>
-            <CategoryBadge category={index.category} />
-          </div>
-          <div className="text-2xl font-bold tabular">{formatPrice(index.close)}</div>
-          <dl className="grid grid-cols-3 gap-2 text-xs">
-            {(
-              [
-                ["1M", index.returns?.one_month],
-                ["1Y", index.returns?.one_year],
-                ["From high", index.from_high_percent],
-              ] as const
-            ).map(([label, value]) => (
-              <div key={label}>
-                <dt className="text-muted-foreground">{label}</dt>
-                <dd>
-                  <Delta value={value ?? null} />
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </CardContent>
-      </Card>
-    </Link>
   );
 }

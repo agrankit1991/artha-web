@@ -93,5 +93,13 @@ const CATEGORY_LABELS: Record<string, string> = {
  * @returns Its label, or the code itself when it is one not yet named.
  */
 export function categoryLabel(category: string): string {
-  return CATEGORY_LABELS[category] ?? category;
+  const known = CATEGORY_LABELS[category];
+  if (known !== undefined) {
+    return known;
+  }
+  // An unknown kind written all in capitals ("OTHER") reads as shouting
+  // among title-cased ones; anything else is left as the platform wrote it.
+  return /^[A-Z][A-Z _]*$/.test(category)
+    ? category.charAt(0) + category.slice(1).toLowerCase().replaceAll("_", " ")
+    : category;
 }

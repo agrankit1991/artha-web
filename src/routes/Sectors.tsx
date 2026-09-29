@@ -9,23 +9,35 @@
  * name leads to the sector's own page.
  */
 
-import { useCallback, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import type { SectorSummary } from "@/api/client";
 import { fetchSectors } from "@/api/client";
+import { AdvanceDeclineBar } from "@/components/AdvanceDeclineBar";
 import { type Column, DataTable } from "@/components/DataTable";
 import { Delta } from "@/components/Delta";
+import { Empty } from "@/components/Empty";
 import { Failed } from "@/components/Failed";
 import { Hint } from "@/components/Hint";
 import { PageHeader } from "@/components/PageHeader";
+import { PopulationCard, PopulationCardsLoading } from "@/components/PopulationCard";
+import { RotationChart, type RotationPoint } from "@/components/RotationChart";
 import { MomentumChip } from "@/components/Standing";
 import { ViewModeToggle, useViewMode } from "@/components/ViewModeToggle";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useResource } from "@/hooks/useResource";
-import { ABSENT, formatCount, toNumber } from "@/lib/format";
+import { ABSENT, formatCount, formatDay, toNumber } from "@/lib/format";
 import { populationPath } from "@/lib/paths";
+
+/**
+ * The fewest companies with figures a sector needs to be plotted. A median
+ * of two or three companies swings by tens of per cent on one result, and
+ * a plot scaled to reach those swings squeezes every real sector into a
+ * knot at the middle; the list below still carries every sector.
+ */
+const PLOTTED_FROM = 10;
 
 /**
  * Render the page.
@@ -35,7 +47,18 @@ import { populationPath } from "@/lib/paths";
 export function Sectors(): React.JSX.Element {
   const load = useCallback(() => fetchSectors(), []);
   const sectors = useResource(load);
-  const [typed, setTyped] = useState("");
+  // The letters live in the address, so a narrowed list survives Back.
+  const [params, setParams] = useSearchParams();
+  const typed = params.get("q") ?? "";
+  const setTyped = (next: string): void => {
+    const changed = new URLSearchParams(params);
+    if (next === "") {
+      changed.delete("q");
+    } else {
+      changed.set("q", next);
+    }
+    setParams(changed, { replace: true });
+  };
   const [mode, setMode] = useViewMode("sectors");
 
   const shown = useMemo(() => {
@@ -44,6 +67,39 @@ export function Sectors(): React.JSX.Element {
       (one) => letters === "" || one.sector.toLowerCase().includes(letters),
     );
   }, [sectors.data, typed]);
+
+  // Every sector is counted on the same session, so one date says it; the
+  // latest, should one ever lag.
+  const asOf = useMemo(
+    () =>
+      (sectors.data ?? [])
+        .flatMap((one) => (one.as_of === null ? [] : [one.as_of]))
+        .reduce<string | null>(
+          (latest, day) => (latest === null || day > latest ? day : latest),
+          null,
+        ),
+    [sectors.data],
+  );
+
+  const rotation = useMemo(
+    () =>
+      (sectors.data ?? []).flatMap((one): RotationPoint[] => {
+        const week = toNumber(one.returns.one_week);
+        const month = toNumber(one.returns.one_month);
+        return one.measured < PLOTTED_FROM || week === null || month === null
+          ? []
+          : [
+              {
+                name: one.sector,
+                href: populationPath("sector", one.sector),
+                week,
+                month,
+                companies: one.measured,
+              },
+            ];
+      }),
+    [sectors.data],
+  );
 
   const columns = useMemo<Column<SectorSummary>[]>(
     () => [
@@ -57,17 +113,7 @@ export function Sectors(): React.JSX.Element {
         id: "companies",
         header: "Companies",
         accessorFn: (row) => row.companies,
-        cell: ({ row }) => (
-          <span
-            title={
-              row.original.measured < row.original.companies
-                ? `${String(row.original.measured)} with figures`
-                : undefined
-            }
-          >
-            {formatCount(row.original.companies)}
-          </span>
-        ),
+        cell: ({ row }) => <Companies sector={row.original} />,
         meta: { align: "right" },
       },
       {
@@ -100,54 +146,71 @@ export function Sectors(): React.JSX.Element {
     [],
   );
 
-  if (sectors.error !== null) {
-    return <Failed message={sectors.error} />;
-  }
-
   return (
     <div className="space-y-6">
       <PageHeader
         title="Sectors"
         count={sectors.data === null ? undefined : `${String(sectors.data.length)} sectors`}
+        identifiers={asOf === null ? undefined : <span>As of {formatDay(asOf)}</span>}
         description="Every sector, as its companies' figures with every company counting once: how many rose and fell today, and what the typical member returned. Each leads to its own page."
       />
-      <div className="flex flex-wrap items-center gap-3">
-        <Input
-          type="search"
-          aria-label="Find a sector"
-          placeholder="Find a sector"
-          value={typed}
-          onChange={(event) => {
-            setTyped(event.target.value);
-          }}
-          className="w-64"
-        />
-        <span className="text-xs text-muted-foreground">
-          {String(shown.length)} of {String(sectors.data?.length ?? 0)}
-        </span>
-        <Hint
-          term="median returns"
-          text="Returns are the median company's, not a weighted index's. A sector whose largest company rose while forty small ones fell reads as falling here."
-        />
-        <ViewModeToggle mode={mode} onChange={setMode} modes={LAYOUTS} className="ml-auto" />
-      </div>
-      {mode === "cards" ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {shown.map((one) => (
-            <SectorCard key={one.sector} sector={one} />
-          ))}
-        </div>
-      ) : (
-        <DataTable
-          columns={columns}
-          rows={shown}
-          loading={sectors.loading}
-          empty="No sector matches"
-          placeholderRows={12}
-          label="Sectors"
-          full
-          linkTo={(row) => populationPath("sector", row.sector)}
-        />
+      {sectors.error !== null && <Failed message={sectors.error} />}
+      {sectors.error === null && rotation.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle as="h2">Rotation</CardTitle>
+            <CardDescription>
+              Each sector&apos;s median company over the past month against the past week: the{" "}
+              {rotation.length} of {sectors.data?.length} with at least {PLOTTED_FROM} companies
+              measured, since the median of a few swings too far to read. The list below has every
+              sector.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <RotationChart points={rotation} label="Sectors by the past month and the past week" />
+          </CardContent>
+        </Card>
+      )}
+      {sectors.error === null && (
+        <>
+          <div className="flex flex-wrap items-center gap-3">
+            <Input
+              type="search"
+              aria-label="Find a sector"
+              placeholder="Find a sector"
+              value={typed}
+              onChange={(event) => {
+                setTyped(event.target.value);
+              }}
+              className="w-64"
+            />
+            {/* The total is in the header; here only what the letters leave. */}
+            {sectors.data !== null && shown.length !== sectors.data.length && (
+              <span className="text-xs text-muted-foreground">
+                {String(shown.length)} of {String(sectors.data.length)}
+              </span>
+            )}
+            <Hint
+              term="median returns"
+              text="Returns are the median company's, not a weighted index's: a sector whose largest company rose while forty small ones fell reads as falling here. Where a sector reads '90 of 92', two of its companies have no figures yet, and every figure is over the ninety."
+            />
+            <ViewModeToggle mode={mode} onChange={setMode} modes={LAYOUTS} className="ml-auto" />
+          </div>
+          {mode === "cards" ? (
+            <SectorCards sectors={sectors.data === null ? null : shown} />
+          ) : (
+            <DataTable
+              columns={columns}
+              rows={shown}
+              loading={sectors.loading}
+              empty="No sector matches"
+              placeholderRows={12}
+              label="Sectors"
+              full
+              linkTo={(row) => populationPath("sector", row.sector)}
+            />
+          )}
+        </>
       )}
     </div>
   );
@@ -159,28 +222,37 @@ function share(sector: SectorSummary): number {
   return counted === 0 ? Number.NEGATIVE_INFINITY : sector.advancing / counted;
 }
 
+/**
+ * How many companies a sector has, and how many of them its figures rest
+ * on when that is fewer: printed, because a caveat kept in a `title` is
+ * one a keyboard or a phone never reaches.
+ */
+function Companies({ sector }: { sector: SectorSummary }): React.JSX.Element {
+  if (sector.measured === sector.companies) {
+    return <>{formatCount(sector.companies)}</>;
+  }
+  return (
+    <span title={`${String(sector.measured)} with figures`}>
+      <span className="text-muted-foreground">{formatCount(sector.measured)} of </span>
+      {formatCount(sector.companies)}
+    </span>
+  );
+}
+
 /** Risers and fallers as one bar, with the counts beside it. */
 function Split({ sector }: { sector: SectorSummary }): React.JSX.Element {
-  const counted = sector.advancing + sector.declining + sector.unchanged;
-  if (counted === 0) {
+  if (sector.advancing + sector.declining + sector.unchanged === 0) {
     return <span className="text-muted-foreground">{ABSENT}</span>;
   }
-  const up = (sector.advancing / counted) * 100;
-  const flat = (sector.unchanged / counted) * 100;
   return (
     <div className="flex items-center gap-2">
       <span className="w-6 text-right text-xs tabular text-gain">{sector.advancing}</span>
-      <div
-        className="flex h-2 w-24 overflow-hidden rounded-full bg-loss"
-        role="meter"
-        aria-label={`${String(sector.advancing)} up, ${String(sector.declining)} down, ${String(sector.unchanged)} unchanged`}
-        aria-valuenow={sector.advancing}
-        aria-valuemin={0}
-        aria-valuemax={counted}
-      >
-        <div className="h-full bg-gain" style={{ width: `${String(up)}%` }} />
-        <div className="h-full bg-muted-foreground/40" style={{ width: `${String(flat)}%` }} />
-      </div>
+      <AdvanceDeclineBar
+        advancing={sector.advancing}
+        declining={sector.declining}
+        unchanged={sector.unchanged}
+        className="h-2 w-24"
+      />
       <span className="w-6 text-xs tabular text-loss">{sector.declining}</span>
     </div>
   );
@@ -204,37 +276,46 @@ function change(
 /** A sector has no category to group by, so the page offers a list or cards. */
 const LAYOUTS = ["list", "cards"] as const;
 
-/** One sector as a card: its typical move first, then its split and trailing returns. */
-function SectorCard({ sector }: { sector: SectorSummary }): React.JSX.Element {
+/**
+ * The sectors as cards: the index list's card, with the split and the
+ * momentum where an index has its level.
+ *
+ * @param props - The sectors shown, or null while they are on their way.
+ * @returns The grid, or a word that nothing matched.
+ */
+function SectorCards({ sectors }: { sectors: SectorSummary[] | null }): React.JSX.Element {
+  if (sectors?.length === 0) {
+    return <Empty title="No sector matches" reason="Try fewer letters." />;
+  }
   return (
-    <Link to={populationPath("sector", sector.sector)} className="block">
-      <Card className="transition-shadow hover:shadow-md">
-        <CardContent className="space-y-3">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="min-w-0 truncate text-lg font-semibold">{sector.sector}</h3>
-            <Delta value={sector.median_change_percent} arrow={false} badge />
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {formatCount(sector.companies)} {sector.companies === 1 ? "company" : "companies"}
-          </div>
-          <Split sector={sector} />
-          <MomentumChip score={toNumber(sector.median_momentum)} />
-          <dl className="grid grid-cols-2 gap-2 text-xs">
-            <div>
-              <dt className="text-muted-foreground">1M</dt>
-              <dd>
-                <Delta value={sector.returns.one_month} />
-              </dd>
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {sectors === null ? (
+        <PopulationCardsLoading />
+      ) : (
+        sectors.map((one) => (
+          <PopulationCard
+            key={one.sector}
+            name={one.sector}
+            href={populationPath("sector", one.sector)}
+            change={one.median_change_percent}
+            identity={
+              <span>
+                <Companies sector={one} /> {one.companies === 1 ? "company" : "companies"}
+              </span>
+            }
+            readings={[
+              { label: "1W", value: one.returns.one_week },
+              { label: "1M", value: one.returns.one_month },
+              { label: "1Y", value: one.returns.one_year },
+            ]}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <Split sector={one} />
+              <MomentumChip score={toNumber(one.median_momentum)} />
             </div>
-            <div>
-              <dt className="text-muted-foreground">1Y</dt>
-              <dd>
-                <Delta value={sector.returns.one_year} />
-              </dd>
-            </div>
-          </dl>
-        </CardContent>
-      </Card>
-    </Link>
+          </PopulationCard>
+        ))
+      )}
+    </div>
   );
 }

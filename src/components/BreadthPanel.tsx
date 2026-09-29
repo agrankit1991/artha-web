@@ -8,6 +8,7 @@
  */
 
 import type { BreadthResponse, BreadthSession } from "@/api/client";
+import { AdvanceDeclineBar } from "@/components/AdvanceDeclineBar";
 import { Meter } from "@/components/Meter";
 import { Sparkline } from "@/components/Sparkline";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -123,8 +124,6 @@ function Participation({ latest }: { latest: BreadthSession | null }): React.JSX
   const advancing = latest?.advancing ?? 0;
   const declining = latest?.declining ?? 0;
   const unchanged = latest?.unchanged ?? 0;
-  const total = advancing + declining + unchanged || 1;
-  const share = (count: number): string => `${String((count / total) * 100)}%`;
 
   return (
     <div className="space-y-2">
@@ -135,15 +134,12 @@ function Participation({ latest }: { latest: BreadthSession | null }): React.JSX
         )}
         <span className="tabular font-medium text-loss">{declining} declining</span>
       </div>
-      <div
-        className="flex h-3 w-full overflow-hidden rounded-full bg-muted"
-        role="img"
-        aria-label={`${String(advancing)} advancing, ${String(declining)} declining, ${String(unchanged)} unchanged`}
-      >
-        <div className="bg-gain" style={{ width: share(advancing) }} />
-        <div className="bg-muted-foreground/40" style={{ width: share(unchanged) }} />
-        <div className="bg-loss" style={{ width: share(declining) }} />
-      </div>
+      <AdvanceDeclineBar
+        advancing={advancing}
+        declining={declining}
+        unchanged={unchanged}
+        className="h-3 w-full"
+      />
     </div>
   );
 }

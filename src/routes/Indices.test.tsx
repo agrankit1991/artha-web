@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Indices } from "./Indices";
+import { forgetForTests } from "@/lib/preferences";
 import { indexSummary, renderPage, stubPlatform } from "@/test/support";
 
 afterEach(() => {
@@ -54,7 +55,8 @@ describe("Indices", () => {
     expect(sensex).toHaveTextContent("BSE");
     expect(sensex).toHaveTextContent("N/A");
     expect(sensex).toHaveTextContent("-");
-    expect(screen.getByText("3 of 3")).toBeInTheDocument();
+    // The total is in the header; a count here only once a filter narrows it.
+    expect(screen.queryByText("3 of 3")).not.toBeInTheDocument();
     expect(screen.getByText("3 indices")).toBeInTheDocument();
   });
 
@@ -162,5 +164,28 @@ describe("Indices", () => {
       "href",
       "/index/nifty-50",
     );
+  });
+
+  it("holds room for the cards while they load, and says when none match", async () => {
+    const rememberCards = (): void => {
+      window.localStorage.setItem(
+        "artha.preferences",
+        JSON.stringify({ views: { indices: "cards" } }),
+      );
+      forgetForTests();
+    };
+    rememberCards();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise(() => undefined)),
+    );
+    const { unmount } = renderPage(<Indices />);
+    expect(document.querySelectorAll("[data-slot=skeleton]").length).toBeGreaterThan(0);
+    unmount();
+
+    rememberCards();
+    stubPlatform({ "/api/indices": { body: THREE } });
+    renderPage(<Indices />, { at: "/indices?q=nothing" });
+    expect(await screen.findByText("No index matches")).toBeInTheDocument();
   });
 });
