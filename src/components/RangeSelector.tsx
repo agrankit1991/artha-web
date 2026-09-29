@@ -8,28 +8,7 @@
  */
 
 import { Chooser } from "@/components/Chooser";
-
-/** One span on offer, and how many sessions it comes to. */
-export interface Range {
-  label: string;
-  sessions: number;
-}
-
-/**
- * The spans a price chart offers.
- *
- * `Max` is the endpoint's own ceiling rather than a guess at how much
- * history exists: instruments differ, and asking for more than an
- * instrument has simply returns what it has.
- */
-export const PRICE_RANGES: readonly Range[] = [
-  { label: "1M", sessions: 21 },
-  { label: "3M", sessions: 65 },
-  { label: "6M", sessions: 125 },
-  { label: "1Y", sessions: 250 },
-  { label: "5Y", sessions: 1250 },
-  { label: "Max", sessions: 12500 },
-];
+import type { Range } from "@/lib/priceRanges";
 
 /** The spans the breadth page offers. */
 export const BREADTH_RANGES: readonly Range[] = [

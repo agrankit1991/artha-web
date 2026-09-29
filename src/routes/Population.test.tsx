@@ -265,7 +265,7 @@ describe("Population", () => {
 
     await waitFor(() => {
       const asked = fetchMock.mock.calls.map((call) => String(call[0]));
-      expect(asked.some((path) => path.includes("sessions=1250"))).toBe(true);
+      expect(asked.some((path) => path.includes("sessions=1261"))).toBe(true);
     });
     // Breadth keeps its own window whatever the chart's range.
     const breadthAsked = fetchMock.mock.calls

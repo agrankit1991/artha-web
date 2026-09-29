@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Compare, MOST } from "./Compare";
+import { readPreferences } from "@/lib/preferences";
 import {
   instrumentSummary,
   overview,
@@ -94,11 +95,26 @@ describe("Compare", () => {
       "href",
       "/company/RELIANCE",
     );
-    const matrix = screen.getByRole("table", { name: "Figures compared" });
-    expect(within(matrix).getByRole("rowheader", { name: "RSI (14)" })).toBeInTheDocument();
-    expect(within(matrix).getAllByRole("columnheader", { name: /TCS/ })).toHaveLength(1);
+    // Every other figure, a table per family, an instrument a column.
+    const momentum = await screen.findByRole("table", { name: "Momentum compared" });
+    expect(within(momentum).getByText("RSI (14)")).toBeInTheDocument();
+    expect(within(momentum).getAllByRole("columnheader", { name: /TCS/ })).toHaveLength(1);
+    // A signed figure is drawn as a change, never stringified as an object.
+    expect(screen.queryByText(/object Object/)).not.toBeInTheDocument();
+    expect(
+      within(screen.getByRole("table", { name: "Range compared" })).getAllByText(/%$/).length,
+    ).toBeGreaterThan(0);
+    // What the returns and their table already say is not said again.
+    const session = screen.getByRole("table", { name: "Session compared" });
+    expect(within(session).getByText("Volume")).toBeInTheDocument();
+    expect(within(session).queryByText("Close")).not.toBeInTheDocument();
+    expect(screen.queryByText("1 month")).not.toBeInTheDocument();
+    // The returns as bars, a group per period.
+    expect(
+      within(screen.getByRole("list", { name: "Returns over 1M" })).getAllByRole("listitem"),
+    ).toHaveLength(2);
     await waitFor(() => {
-      expect(asked(fetched).some((path) => path.includes("/api/series?sessions=250"))).toBe(true);
+      expect(asked(fetched).some((path) => path.includes("/api/series?sessions=253"))).toBe(true);
     });
   });
 
@@ -135,7 +151,7 @@ describe("Compare", () => {
     await userEvent.click(screen.getByRole("button", { name: "5Y" }));
 
     await waitFor(() => {
-      expect(asked(fetched).some((path) => path.includes("sessions=1250"))).toBe(true);
+      expect(asked(fetched).some((path) => path.includes("sessions=1261"))).toBe(true);
     });
   });
 
@@ -160,8 +176,8 @@ describe("Compare", () => {
     expect(await screen.findByText(/is the most one chart can carry/)).toBeInTheDocument();
     expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
     // No figures for any of them: a dash in every cell, and a price of nothing.
-    const matrix = screen.getByRole("table", { name: "Figures compared" });
-    expect(within(matrix).getAllByText("-").length).toBeGreaterThan(0);
+    const session = await screen.findByRole("table", { name: "Session compared" });
+    expect(within(session).getAllByText("-").length).toBeGreaterThan(0);
   });
 
   it("reports each read that fails on its own", async () => {
@@ -206,5 +222,62 @@ describe("Compare", () => {
       await userEvent.click(within(returns).getByRole("button", { name }));
     }
     expect(within(returns).getAllByRole("row")).toHaveLength(3);
+  });
+
+  it("remembers the range for every chart, and offers each instrument's chart elsewhere", async () => {
+    const fetched = stubEverything();
+    renderPage(<Compare />, { at: `/compare?keys=${RELIANCE}&keys=${TCS}` });
+    await screen.findByRole("heading", { name: "Relative strength" });
+
+    await userEvent.click(screen.getByRole("button", { name: "5Y" }));
+
+    await waitFor(() => {
+      expect(asked(fetched).some((path) => path.includes("/api/series?sessions=1261"))).toBe(true);
+    });
+    expect(readPreferences().range).toBe(1261);
+    expect(asked(fetched).some((path) => path.startsWith("/api/external-symbols"))).toBe(true);
+  });
+
+  it("keeps the page when the instruments cannot be named", async () => {
+    stubPlatform({
+      "/api/instruments": { status: 500, body: { detail: "names broke" } },
+      "/api/series": { body: [] },
+      "/api/overviews": { body: [] },
+      "/api/screen/fields": { body: screenFields() },
+      "/api/external-symbols": { body: {} },
+    });
+
+    renderPage(<Compare />, { at: `/compare?keys=${RELIANCE}` });
+
+    expect(await screen.findByText("Names broke")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Compare", level: 1 })).toBeInTheDocument();
+  });
+
+  it("sorts the returns with an instrument that has no figures last, and draws a fall leftwards", async () => {
+    const base = overview({ instrument_key: RELIANCE });
+    stubPlatform({
+      "/api/instruments": {
+        body: [
+          instrumentSummary(),
+          instrumentSummary({ instrument_key: TCS, symbol: "TCS", name: "Tata Consultancy" }),
+        ],
+      },
+      "/api/series": { body: [] },
+      // TCS has no figures yet; RELIANCE fell over the month.
+      "/api/overviews": {
+        body: [{ ...base, returns: { ...base.returns, one_month: "-4.00" } }],
+      },
+      "/api/screen/fields": { body: screenFields() },
+      "/api/external-symbols": { body: {} },
+    });
+    renderPage(<Compare />, { at: `/compare?keys=${RELIANCE}&keys=${TCS}` });
+
+    const table = await screen.findByRole("table", { name: "Returns compared" });
+    for (const name of [/^Price/, /^From high/, /^As of/, /^1M/]) {
+      await userEvent.click(within(table).getByRole("button", { name }));
+    }
+    expect(within(table).getAllByRole("row")).toHaveLength(3);
+    const month = screen.getByRole("list", { name: "Returns over 1M" });
+    expect(month.querySelector("[style*='right: 50%']")).not.toBeNull();
   });
 });

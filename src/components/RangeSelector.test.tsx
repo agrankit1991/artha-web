@@ -4,18 +4,20 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { BREADTH_RANGES, PRICE_RANGES, RangeSelector } from "./RangeSelector";
+import { PRICE_RANGES } from "@/lib/priceRanges";
+
+import { BREADTH_RANGES, RangeSelector } from "./RangeSelector";
 
 describe("RangeSelector", () => {
   it("offers the spans it was given, in order", () => {
-    render(<RangeSelector ranges={PRICE_RANGES} sessions={250} onChange={vi.fn()} />);
+    render(<RangeSelector ranges={PRICE_RANGES} sessions={253} onChange={vi.fn()} />);
 
     const offered = screen.getAllByRole("button").map((button) => button.textContent);
     expect(offered).toEqual(["1M", "3M", "6M", "1Y", "5Y", "Max"]);
   });
 
   it("marks the span being shown", () => {
-    render(<RangeSelector ranges={PRICE_RANGES} sessions={250} onChange={vi.fn()} />);
+    render(<RangeSelector ranges={PRICE_RANGES} sessions={253} onChange={vi.fn()} />);
 
     expect(screen.getByRole("button", { name: "1Y" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "6M" })).toHaveAttribute("aria-pressed", "false");
@@ -23,11 +25,12 @@ describe("RangeSelector", () => {
 
   it("reports the span chosen, in sessions", async () => {
     const chosen = vi.fn();
-    render(<RangeSelector ranges={PRICE_RANGES} sessions={250} onChange={chosen} />);
+    render(<RangeSelector ranges={PRICE_RANGES} sessions={253} onChange={chosen} />);
 
     await userEvent.click(screen.getByRole("button", { name: "3M" }));
 
-    expect(chosen).toHaveBeenCalledWith(65);
+    // One more point than the platform's 63-session quarter.
+    expect(chosen).toHaveBeenCalledWith(64);
   });
 
   it("asks for more than anything holds when the whole of it is wanted", async () => {
@@ -35,7 +38,7 @@ describe("RangeSelector", () => {
     // history exists: instruments differ, and asking for more than one
     // has returns what it has.
     const chosen = vi.fn();
-    render(<RangeSelector ranges={PRICE_RANGES} sessions={250} onChange={chosen} />);
+    render(<RangeSelector ranges={PRICE_RANGES} sessions={253} onChange={chosen} />);
 
     await userEvent.click(screen.getByRole("button", { name: "Max" }));
 
@@ -71,7 +74,7 @@ describe("RangeSelector", () => {
 
   it("takes a class from whoever placed it", () => {
     const { container } = render(
-      <RangeSelector ranges={PRICE_RANGES} sessions={250} onChange={vi.fn()} className="ml-auto" />,
+      <RangeSelector ranges={PRICE_RANGES} sessions={253} onChange={vi.fn()} className="ml-auto" />,
     );
 
     expect(container.firstChild).toHaveClass("ml-auto");

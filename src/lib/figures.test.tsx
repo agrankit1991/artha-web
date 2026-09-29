@@ -51,4 +51,28 @@ describe("figures", () => {
     expect(screen.getByText("72")).toBeInTheDocument();
     expect(screen.getByText("#1")).toBeInTheDocument();
   });
+
+  it("writes a per-cent figure as a move, a distance or a size, by what it is", () => {
+    render(
+      <div>
+        <span data-testid="move">
+          {writtenFigure(field({ name: "one_month", unit: "percent" }), "-5.55")}
+        </span>
+        <span data-testid="distance">
+          {writtenFigure(field({ name: "from_high_percent", unit: "percent" }), "-23.00")}
+        </span>
+        <span data-testid="size">
+          {writtenFigure(field({ name: "volatility_year", unit: "percent" }), "21.12")}
+        </span>
+      </div>,
+    );
+
+    // A move carries its colour and sign.
+    expect(screen.getByTestId("move").querySelector(".text-loss")).not.toBeNull();
+    // A distance keeps its sign but not the colour of a fall.
+    expect(screen.getByTestId("distance")).toHaveTextContent("-23.00%");
+    expect(screen.getByTestId("distance").querySelector(".text-loss")).toBeNull();
+    // A size has neither: a volatility of 21% did not rise.
+    expect(screen.getByTestId("size")).toHaveTextContent(/^21.12%$/);
+  });
 });

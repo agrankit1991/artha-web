@@ -15,6 +15,7 @@
  * breaks a new page.
  */
 
+import { DEFAULT_RANGE, rangeFrom } from "@/lib/priceRanges";
 import { useSyncExternalStore } from "react";
 
 import type { ChartStyle, Overlay } from "@/components/ChartControls";
@@ -57,7 +58,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   // Shown unless turned off: preferences stored before the band existed
   // carry no choice, and should not hide it.
   forecast: true,
-  range: 250,
+  range: DEFAULT_RANGE,
   views: {},
   participation: null,
 };
@@ -68,7 +69,6 @@ const SCOPE_KINDS: readonly ScopeKind[] = ["companies", "indices", "sector", "in
 const KEYED_KINDS: readonly ScopeKind[] = ["sector", "index"];
 const STYLES: readonly ChartStyle[] = ["line", "candles", "area"];
 const OVERLAYS: readonly Overlay[] = ["sma_20", "sma_50", "sma_200", "volume", "rsi"];
-const RANGES: readonly number[] = [21, 65, 125, 250, 1250, 12500];
 
 const listeners = new Set<() => void>();
 let current: Preferences | null = null;
@@ -164,7 +164,7 @@ export function parse(stored: unknown): Preferences {
         )
       : DEFAULT_PREFERENCES.overlays,
     forecast: typeof forecast === "boolean" ? forecast : DEFAULT_PREFERENCES.forecast,
-    range: typeof range === "number" && RANGES.includes(range) ? range : DEFAULT_PREFERENCES.range,
+    range: rangeFrom(range),
     // Only layouts that exist, so a choice from a later version -- or a
     // hand-edited one -- falls back to a list rather than to nothing.
     views:

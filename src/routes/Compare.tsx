@@ -2,11 +2,11 @@
  * Several instruments side by side.
  *
  * Up to seven companies or indices (as many as the chart palette can tell
- * apart), rebased to the first session they
- * share and drawn on one chart; their trailing returns as a table; and
- * every figure the platform holds for them as a matrix, one column each,
- * so "which of these is the most extended" is read across a row rather
- * than remembered across pages.
+ * apart), rebased to the first session they share and drawn on one chart;
+ * their trailing returns as bars, a group per period, and as a table; and
+ * every other figure the platform holds for them, one column each, so
+ * "which of these is the most extended" is read across a row rather than
+ * remembered across pages.
  *
  * The set lives in the address, so a comparison is a link: back returns
  * to the last one, a bookmark keeps one, and a company page's Compare
@@ -16,8 +16,14 @@
 import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import type { InstrumentOverview, InstrumentSummary, ScreenField } from "@/api/client";
-import { fetchInstruments, fetchOverviews, fetchScreenFields, fetchSeries } from "@/api/client";
+import type { InstrumentOverview, InstrumentSummary, KnownSymbol, ScreenField } from "@/api/client";
+import {
+  fetchExternalSymbols,
+  fetchInstruments,
+  fetchOverviews,
+  fetchScreenFields,
+  fetchSeries,
+} from "@/api/client";
 import { InstrumentPicker } from "@/components/InstrumentPicker";
 import { Chip } from "@/components/Chip";
 import { type ChartLine, ComparisonChart } from "@/components/ComparisonChart";
@@ -27,16 +33,17 @@ import { Delta } from "@/components/Delta";
 import { Empty } from "@/components/Empty";
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
-import { PRICE_RANGES, RangeSelector } from "@/components/RangeSelector";
+import { RangeSelector } from "@/components/RangeSelector";
+import { PRICE_RANGES } from "@/lib/priceRanges";
 import { SectionHeader } from "@/components/SectionHeader";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useChartRange } from "@/hooks/useChartRange";
 import { useResource } from "@/hooks/useResource";
 import { MOST_SERIES, coloured } from "@/lib/chartPalette";
-import { readPreferences } from "@/lib/preferences";
 import { MARKS } from "@/lib/entities";
 import { figureAt, writtenFigure } from "@/lib/figures";
-import { formatDay, formatPrice, toNumber } from "@/lib/format";
+import { ABSENT, formatDay, formatPercent, formatPrice, toNumber } from "@/lib/format";
 import { hitPath } from "@/lib/paths";
-import { cn } from "@/lib/utils";
 
 /** How many instruments one comparison may hold: what the series endpoint serves at once. */
 export const MOST = MOST_SERIES;
@@ -56,7 +63,10 @@ interface Compared {
 export function Compare(): React.JSX.Element {
   const [params, setParams] = useSearchParams();
   const keys = useMemo(() => [...new Set(params.getAll("keys"))].slice(0, MOST), [params]);
-  const sessions = toNumber(params.get("sessions")) ?? readPreferences().range;
+  // The range is in the address, so a comparison is a link, and remembered
+  // as every chart's is, so the next chart opens at it too.
+  const [remembered, remember] = useChartRange();
+  const sessions = toNumber(params.get("sessions")) ?? remembered;
 
   const loadNames = useCallback(
     () => (keys.length === 0 ? Promise.resolve([]) : fetchInstruments(keys)),
@@ -71,10 +81,18 @@ export function Compare(): React.JSX.Element {
     [keys],
   );
   const loadFields = useCallback(() => fetchScreenFields(), []);
+  const loadSymbols = useCallback(
+    () =>
+      keys.length === 0
+        ? Promise.resolve<Record<string, KnownSymbol>>({})
+        : fetchExternalSymbols(keys),
+    [keys],
+  );
   const names = useResource(loadNames);
   const series = useResource(loadSeries);
   const figures = useResource(loadFigures);
   const fields = useResource(loadFields);
+  const symbols = useResource(loadSymbols);
 
   const update = (change: (next: URLSearchParams) => void): void => {
     const next = new URLSearchParams(params);
@@ -112,16 +130,13 @@ export function Compare(): React.JSX.Element {
     [compared],
   );
 
-  if (names.error !== null) {
-    return <Failed message={names.error} />;
-  }
-
   return (
     <div className="space-y-6">
       <PageHeader
         title="Compare"
-        description={`Up to ${String(MOST)} companies or indices side by side: rebased on one chart, their returns as a table, every figure as a matrix. The set lives in the address, so a comparison is a link.`}
+        description={`Up to ${String(MOST)} companies or indices side by side: rebased on one chart, their returns by period, and every other figure a column apiece. The set lives in the address, so a comparison is a link.`}
       />
+      {names.error !== null && <Failed message={names.error} />}
 
       <section className="space-y-3" aria-label="Instruments compared">
         <div className="flex flex-wrap items-center gap-2">
@@ -170,13 +185,14 @@ export function Compare(): React.JSX.Element {
             <SectionHeader
               id="chart-heading"
               icon={MARKS.performance}
-              title="Relative Performance"
+              title="Relative strength"
               description="Rebased to the first session they all share, so the lines start together and the gaps are the story."
               actions={
                 <RangeSelector
                   ranges={PRICE_RANGES}
                   sessions={sessions}
                   onChange={(next) => {
+                    remember(next);
                     update((query) => {
                       query.set("sessions", String(next));
                     });
@@ -187,7 +203,12 @@ export function Compare(): React.JSX.Element {
             {series.error !== null ? (
               <Failed message={series.error} />
             ) : (
-              <ComparisonChart series={series.data} lines={lines} loading={series.loading} />
+              <ComparisonChart
+                series={series.data}
+                lines={lines}
+                symbols={symbols.data ?? {}}
+                loading={series.loading}
+              />
             )}
           </section>
 
@@ -196,12 +217,15 @@ export function Compare(): React.JSX.Element {
               id="returns-heading"
               icon={MARKS.returns}
               title="Returns"
-              description="Each instrument's latest close and its trailing returns."
+              description="Each instrument's trailing returns, a group per period and a bar apiece in its colour, then as a table with its latest close."
             />
             {figures.error !== null ? (
               <Failed message={figures.error} />
             ) : (
-              <Returns rows={compared} loading={figures.loading && figures.data === null} />
+              <>
+                {figures.data !== null && <ReturnsBars rows={compared} />}
+                <Returns rows={compared} loading={figures.loading && figures.data === null} />
+              </>
             )}
           </section>
 
@@ -209,17 +233,16 @@ export function Compare(): React.JSX.Element {
             <SectionHeader
               id="figures-heading"
               icon={MARKS.figures}
-              title="Every Figure"
-              description="The platform's figures for each, one column apiece, so a row is read across."
+              title="Every other figure"
+              description="The platform's figures for each, one column apiece, so a row is read across. Returns, the close and the day's change are above."
             />
             {fields.error !== null ? (
               <Failed message={fields.error} />
             ) : (
-              // A comparison holds each instrument's daily figures only; a
-              // company's standing would be blank beside an index's.
-              <Matrix
+              <Figures
                 rows={compared}
-                fields={(fields.data ?? []).filter((field) => field.record === "figures")}
+                fields={(fields.data ?? []).filter(shownInFigures)}
+                loading={fields.loading || (figures.loading && figures.data === null)}
               />
             )}
           </section>
@@ -280,7 +303,19 @@ function Returns({ rows, loading }: { rows: Compared[]; loading: boolean }): Rea
       change("six_months", "6M", (row) => row.figures?.returns.six_months ?? null),
       change("one_year", "1Y", (row) => row.figures?.returns.one_year ?? null),
       change("year_to_date", "YTD", (row) => row.figures?.returns.year_to_date ?? null),
-      change("from_high", "From high", (row) => row.figures?.year_range.from_high_percent ?? null),
+      {
+        id: "from_high",
+        header: "From high",
+        accessorFn: (row) =>
+          toNumber(row.figures?.year_range.from_high_percent ?? null) ?? Number.NEGATIVE_INFINITY,
+        // A distance, not a fall.
+        cell: ({ row }) => (
+          <span className="tabular text-muted-foreground">
+            {formatPercent(row.original.figures?.year_range.from_high_percent ?? null)}
+          </span>
+        ),
+        meta: { align: "right" },
+      },
       {
         id: "as_of",
         header: "As of",
@@ -325,94 +360,184 @@ function change(
   };
 }
 
+/** The periods the returns are drawn over, in the order they are read. */
+const PERIODS: { key: keyof InstrumentOverview["returns"]; label: string }[] = [
+  { key: "one_week", label: "1W" },
+  { key: "one_month", label: "1M" },
+  { key: "three_months", label: "3M" },
+  { key: "six_months", label: "6M" },
+  { key: "one_year", label: "1Y" },
+  { key: "year_to_date", label: "YTD" },
+];
+
 /**
- * Every figure for every instrument, a column apiece.
+ * The returns as bars: a group per period, a bar apiece in the
+ * instrument's colour, either side of nought.
  *
- * A matrix rather than a list -- the rows are figures and the columns
- * instruments, which is the transpose of what `DataTable` is for -- so a
- * plain table, styled to match, with the first column pinned as the
- * others scroll.
+ * Plain HTML, like the other bar strips here. Each period on its own
+ * scale, because a year's returns dwarf a week's and the question is who
+ * led within a period, not how a week compares with a year; every figure
+ * is printed, so the colour never carries the identity alone.
  */
-function Matrix({ rows, fields }: { rows: Compared[]; fields: ScreenField[] }): React.JSX.Element {
-  const groups = useMemo(() => {
-    const byGroup = new Map<string, ScreenField[]>();
-    for (const field of fields) {
-      byGroup.set(field.group, [...(byGroup.get(field.group) ?? []), field]);
-    }
-    return [...byGroup.entries()];
-  }, [fields]);
+function ReturnsBars({ rows }: { rows: Compared[] }): React.JSX.Element {
   return (
-    <div className="overflow-x-auto rounded-md border">
-      <table className="w-full text-sm" aria-label="Figures compared">
-        <thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
-          <tr>
-            <th scope="col" className="sticky left-0 bg-muted/50 px-3 py-2 text-left font-medium">
-              Figure
-            </th>
-            {rows.map((one) => (
-              <th
-                key={one.instrument.instrument_key}
-                scope="col"
-                className="px-3 py-2 text-right font-medium"
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  <span
-                    aria-hidden="true"
-                    className="h-2 w-2 rounded-full"
-                    style={{ backgroundColor: one.colour }}
-                  />
-                  {one.instrument.symbol}
-                </span>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {groups.map(([group, members]) => (
-            <GroupRows key={group} group={group} fields={members} rows={rows} />
-          ))}
-        </tbody>
-      </table>
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {PERIODS.map((period) => {
+        const values = rows.map((row) => ({
+          row,
+          value: toNumber(row.figures?.returns[period.key] ?? null),
+        }));
+        const reach = Math.max(...values.map((one) => Math.abs(one.value ?? 0)), Number.EPSILON);
+        return (
+          <Card key={period.key}>
+            <CardHeader>
+              <CardTitle>{period.label}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul aria-label={`Returns over ${period.label}`} className="space-y-1.5">
+                {values.map(({ row, value }) => (
+                  <li
+                    key={row.instrument.instrument_key}
+                    className="grid grid-cols-[minmax(0,6rem)_1fr_4.5rem] items-center gap-2 text-sm"
+                  >
+                    <span className="truncate font-medium" title={row.instrument.name}>
+                      {row.instrument.symbol}
+                    </span>
+                    <span aria-hidden="true" className="relative h-2.5 rounded-full bg-muted">
+                      <span className="absolute inset-y-0 left-1/2 w-px bg-foreground/30" />
+                      {value !== null && (
+                        <span
+                          className="absolute inset-y-0 rounded-full"
+                          style={{
+                            backgroundColor: row.colour,
+                            width: `${String((Math.abs(value) / reach) * 50)}%`,
+                            ...(value >= 0 ? { left: "50%" } : { right: "50%" }),
+                          }}
+                        />
+                      )}
+                    </span>
+                    <span className="text-right">
+                      <Delta value={row.figures?.returns[period.key] ?? null} />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }
 
-/** One family of figures: a heading row, then a row per figure. */
-function GroupRows({
-  group,
-  fields,
-  rows,
-}: {
-  group: string;
-  fields: ScreenField[];
-  rows: Compared[];
-}): React.JSX.Element {
+/**
+ * Whether a figure belongs in "every other figure": the daily figures,
+ * less those drawn above. A comparison holds each instrument's daily
+ * figures only; a company's standing would be blank beside an index's.
+ */
+function shownInFigures(field: ScreenField): boolean {
+  const path = field.path.join(".");
   return (
-    <>
-      <tr className="border-t bg-muted/30">
-        <th
-          scope="rowgroup"
-          colSpan={rows.length + 1}
-          className="sticky left-0 px-3 py-1.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-        >
-          {group}
-        </th>
-      </tr>
-      {fields.map((field) => (
-        <tr key={field.name} className="border-t">
-          <th scope="row" className="sticky left-0 bg-card px-3 py-1.5 text-left font-normal">
-            {field.label}
-          </th>
-          {rows.map((one) => (
-            <td
-              key={one.instrument.instrument_key}
-              className={cn("px-3 py-1.5 text-right tabular")}
-            >
-              {one.figures === null ? "-" : writtenFigure(field, figureAt(one.figures, field.path))}
-            </td>
-          ))}
-        </tr>
+    field.record === "figures" &&
+    field.group !== "Returns" &&
+    path !== "day.close" &&
+    path !== "day.change_percent"
+  );
+}
+
+/** One figure, read across the instruments. */
+interface FigureRow {
+  field: ScreenField;
+}
+
+/**
+ * Every other figure for every instrument, a column apiece: one table per
+ * family of figures, on the one `DataTable`.
+ *
+ * It was a hand-built table, because its rows are figures and its columns
+ * instruments; the table does not care which way round the reading goes,
+ * and on it the matrix gains the pinned first column, the placeholders
+ * while loading and the look every other table has.
+ */
+function Figures({
+  rows,
+  fields,
+  loading,
+}: {
+  rows: Compared[];
+  fields: ScreenField[];
+  loading: boolean;
+}): React.JSX.Element {
+  const groups = useMemo(() => {
+    const byGroup = new Map<string, FigureRow[]>();
+    for (const field of fields) {
+      byGroup.set(field.group, [...(byGroup.get(field.group) ?? []), { field }]);
+    }
+    return [...byGroup.entries()];
+  }, [fields]);
+  const columns = useMemo<Column<FigureRow>[]>(
+    () => [
+      {
+        id: "figure",
+        header: "Figure",
+        cell: ({ row }) => row.original.field.label,
+        enableSorting: false,
+      },
+      ...rows.map((one): Column<FigureRow> => ({
+        id: one.instrument.instrument_key,
+        header: () => (
+          <span className="inline-flex items-center gap-1.5">
+            <span
+              aria-hidden="true"
+              className="h-2 w-2 rounded-full"
+              style={{ backgroundColor: one.colour }}
+            />
+            {one.instrument.symbol}
+          </span>
+        ),
+        cell: ({ row }) => (
+          <span className="tabular">
+            {one.figures === null
+              ? ABSENT
+              : writtenFigure(row.original.field, figureAt(one.figures, row.original.field.path))}
+          </span>
+        ),
+        enableSorting: false,
+        meta: { align: "right" },
+      })),
+    ],
+    [rows],
+  );
+  if (loading) {
+    return (
+      <DataTable
+        columns={columns}
+        rows={[]}
+        loading
+        empty="Nothing to compare"
+        placeholderRows={6}
+        label="Figures compared"
+      />
+    );
+  }
+  return (
+    // Full width, one under another: up to seven instruments across.
+    <div className="space-y-4">
+      {groups.map(([group, figures]) => (
+        <Card key={group}>
+          <CardHeader>
+            <CardTitle>{group}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DataTable
+              columns={columns}
+              rows={figures}
+              empty="Nothing to compare"
+              label={`${group} compared`}
+            />
+          </CardContent>
+        </Card>
       ))}
-    </>
+    </div>
   );
 }

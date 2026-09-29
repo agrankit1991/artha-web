@@ -26,10 +26,10 @@ describe("preferences", () => {
   it("start as the defaults, and a change is kept for the next visit", () => {
     expect(readPreferences()).toEqual(DEFAULT_PREFERENCES);
 
-    writePreferences({ range: 65, chartStyle: "candles" });
+    writePreferences({ range: 64, chartStyle: "candles" });
     forgetForTests();
 
-    expect(readPreferences()).toEqual({ ...DEFAULT_PREFERENCES, range: 65, chartStyle: "candles" });
+    expect(readPreferences()).toEqual({ ...DEFAULT_PREFERENCES, range: 64, chartStyle: "candles" });
     resetPreferences();
     expect(readPreferences()).toEqual(DEFAULT_PREFERENCES);
   });

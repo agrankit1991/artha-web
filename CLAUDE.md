@@ -678,6 +678,22 @@ the working plan with the reasoning is `docs/REDESIGN-PLAN.md`
   lists every period end on request. Quarterly growth is drawn quarter on
   quarter, since the year-ago quarter is held for a handful of companies.
   The cleaner fix, grouping by financial year, belongs in the platform.
+- **A chart's range and a return are the same window** (2026-09-30).
+  `src/lib/priceRanges.ts` holds the ranges every price chart offers, one
+  point more than the platform's return windows (22, 64, 127, 253, 1,261
+  points for 21, 63, 126, 252 sessions and five such years), because a
+  line of N points spans N - 1 sessions. The chart's "1Y" was 250 points,
+  and a comparison's legend said -11.79% over "1Y" beside a table saying
+  -13.36%. A stored older range is carried to its new value (`rangeFrom`).
+  The platform's "1Y" is 252 sessions, about a week more than a calendar
+  year of Indian sessions; the Returns are the platform's figures, not
+  recomputed here.
+- **A per-cent figure reads as a move, a distance or a size**
+  (`writtenFigure` in `src/lib/figures.tsx`): the platform calls them all
+  `percent`, so the distances (from a high, a low, an average, a swing
+  low, the deepest fall) and the sizes (day's range, volatility, delivery,
+  dividend yield) are named there; anything else is a move. Moving that
+  into the platform's unit is logged as a follow-up.
 - **Index contribution is approximate:** `lib/contribution.ts` weighs by
   market capitalisation, which the platform holds, not the free float an
   exchange uses, and every screen showing it says so.

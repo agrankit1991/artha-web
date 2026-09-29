@@ -115,7 +115,7 @@ describe("Profile", () => {
       chartStyle: "candles",
       overlays: ["sma_50", "sma_200", "volume", "rsi"],
       forecast: true,
-      range: 1250,
+      range: 1261,
       views: {},
       participation: null,
     });

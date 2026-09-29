@@ -313,7 +313,7 @@ describe("Overview", () => {
     expect(
       fetchMock.mock.calls
         .map((call) => String(call[0]))
-        .some((path) => path.startsWith("/api/figures") && path.includes("sessions=250")),
+        .some((path) => path.startsWith("/api/figures") && path.includes("sessions=253")),
     ).toBe(true);
 
     await userEvent.click(
@@ -344,7 +344,7 @@ describe("Overview", () => {
     await waitFor(() => {
       const asked = fetchMock.mock.calls.map((call) => String(call[0]));
       expect(
-        asked.some((path) => path.startsWith("/api/series") && path.includes("sessions=1250")),
+        asked.some((path) => path.startsWith("/api/series") && path.includes("sessions=1261")),
       ).toBe(true);
     });
   });

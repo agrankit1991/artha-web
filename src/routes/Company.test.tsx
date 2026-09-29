@@ -301,7 +301,7 @@ describe("Company", () => {
 
     await waitFor(() => {
       const asked = fetchMock.mock.calls.map((call) => String(call[0]));
-      expect(asked.some((path) => path.includes("sessions=1250"))).toBe(true);
+      expect(asked.some((path) => path.includes("sessions=1261"))).toBe(true);
     });
   });
 

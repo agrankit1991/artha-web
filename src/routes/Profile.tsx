@@ -14,7 +14,7 @@ import type { Account } from "@/api/client";
 import { createInvitation, fetchScopes } from "@/api/client";
 import { OVERLAYS } from "@/components/ChartControls";
 import { Chooser } from "@/components/Chooser";
-import { PRICE_RANGES } from "@/components/RangeSelector";
+import { PRICE_RANGES } from "@/lib/priceRanges";
 import { ScopePicker } from "@/components/ScopePicker";
 import { useResource } from "@/hooks/useResource";
 import { resetPreferences, usePreferences, writePreferences } from "@/lib/preferences";
