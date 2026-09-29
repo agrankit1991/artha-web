@@ -141,11 +141,11 @@ export function Funds(): React.JSX.Element {
         ),
         meta: { align: "right" },
       },
-      window("one_month", "1M"),
-      window("three_months", "3M"),
-      window("one_year", "1Y"),
-      window("three_years", "3Y p.a."),
-      window("five_years", "5Y p.a."),
+      returnsColumn("one_month", "1M"),
+      returnsColumn("three_months", "3M"),
+      returnsColumn("one_year", "1Y"),
+      returnsColumn("three_years", "3Y p.a."),
+      returnsColumn("five_years", "5Y p.a."),
     ],
     [],
   );
@@ -268,7 +268,7 @@ function merge(held: Scheme[], arrived: Scheme[]): Scheme[] {
  *   rather than as nought, where a nought would place a fund launched last
  *   year among the flat ones.
  */
-function window(field: keyof Scheme["returns"], header: string): Column<Scheme> {
+function returnsColumn(field: keyof Scheme["returns"], header: string): Column<Scheme> {
   return {
     id: field,
     header,
