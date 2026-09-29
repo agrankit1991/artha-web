@@ -258,7 +258,7 @@ call site.
   Markets: `/` overview, `/breadth`, `/indices`, `/sectors`, `/futures`,
   `/movers/:list`, `/earnings`, `/news`. Research: `/screen`, `/scans`,
   `/strategies`, `/backtests`, `/compare`, `/ipos`, `/funds`. Mine: `/watchlists`,
-  `/profile`. Entity pages: `/company/:ref`, `/index/:ref`,
+  `/profile`, and `/visitors` for the owner alone. Entity pages: `/company/:ref`, `/index/:ref`,
   `/sector/:ref`, `/fund/:code`, `/ipo/:id`, `/future/:key`,
   `/backtest/:id`, `/strategy/:id` (`/strategy/new` for one not yet saved),
   `/strategies/years`.
@@ -403,6 +403,20 @@ call site.
   the sign-in, both theme choices, and signing out. Deliberately short: a
   profile with an invented "activity" panel is worse than one that admits
   there is nothing to show.
+- **Visitors** (`src/routes/Visitors.tsx`, `/visitors`, 2026-09-29, the
+  owner asked to see "how many users are accessing my website and how
+  many times, and maybe which page", with names and emails) -- every
+  account with its days active, visits and page views over 7 days, 30 or
+  all time; the pages opened most, narrowed to one person by choosing
+  their row; and a chart of the days. **The owner's alone:** the route and
+  its menu entry exist only when `account.is_owner`, and the platform
+  answers anyone else 404. **Every page is recorded** by
+  `useRecordPageViews` in `Shell`, above the choice between the sign-in
+  page and the application, so strangers at the sign-in page count too
+  (the owner's choice); a browser is told apart by a random identifier it
+  keeps (`src/lib/visitor.ts`), and no address or device is sent. A
+  failed recording is ignored. History starts on the deploy of
+  2026-09-29; last seen reaches back further, from sessions.
 - **Shared components** in `src/components`: `DataTable`, `Delta`,
   `MoverPanel`, `IndexCard`, `MiniCandlestick`, `ScopeSelector`,
   `ScopePicker`, `ThemeToggle`, `Meter`, `Sparkline`, `Statistic`,

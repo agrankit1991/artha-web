@@ -565,6 +565,90 @@ export function signOut(): Promise<undefined> {
   return request<undefined>("/api/logout", { method: "POST" });
 }
 
+/** One account's use of the platform over a span. */
+export interface PersonUse {
+  account_id: number;
+  name: string;
+  email: string;
+  joined_at: string;
+  /** When they last used the platform at all, span or no span; null if never. */
+  last_seen_at: string | null;
+  active_days: number;
+  /** Sittings: a pause of over thirty minutes starts a new one. */
+  visits: number;
+  page_views: number;
+}
+
+/** Use by nobody signed in, over a span. */
+export interface AnonymousUse {
+  /** Browsers, told apart by the identifier each keeps. */
+  visitors: number;
+  page_views: number;
+}
+
+/** One page's use over a span. */
+export interface PageUse {
+  path: string;
+  page_views: number;
+  /** Accounts that opened it. */
+  people: number;
+}
+
+/** One Indian calendar day's use. */
+export interface DayUse {
+  day: string;
+  people: number;
+  anonymous_visitors: number;
+  page_views: number;
+}
+
+/** Who used the platform over a span, and how. */
+export interface Visitors {
+  /** The span's first day, or null for everything recorded. */
+  since: string | null;
+  /** Every account, most pages opened first. */
+  people: PersonUse[];
+  anonymous: AnonymousUse;
+  /** The pages opened most: one person's when one was asked for. */
+  pages: PageUse[];
+  /** Each day a page was opened, oldest first. */
+  days: DayUse[];
+}
+
+/**
+ * Tell the platform a page was opened.
+ *
+ * Sent whether or not anyone is signed in: the owner counts visits to the
+ * sign-in page too. The platform attaches the account from the session
+ * cookie itself, so nothing here says who.
+ *
+ * @param path - The page's address, without its query.
+ * @param visitor - The identifier this browser keeps for itself.
+ * @returns Nothing, once recorded.
+ */
+export function recordPageView(path: string, visitor: string): Promise<undefined> {
+  return request<undefined>("/api/page-views", {
+    method: "POST",
+    body: JSON.stringify({ path, visitor }),
+  });
+}
+
+/**
+ * Fetch who used the platform, for the owner.
+ *
+ * @param days - How many days back, today included; nought for everything.
+ * @param accountId - One person whose pages to rank, or null for everyone's.
+ * @returns People, pages and days over the span.
+ * @throws {ApiError} 404 for anyone but the owner.
+ */
+export function fetchVisitors(days: number, accountId: number | null): Promise<Visitors> {
+  const parameters = new URLSearchParams({ days: String(days) });
+  if (accountId !== null) {
+    parameters.set("account_id", String(accountId));
+  }
+  return request<Visitors>(`/api/visitors?${parameters.toString()}`);
+}
+
 /**
  * Fetch every mover list for one population.
  *

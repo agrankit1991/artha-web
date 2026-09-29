@@ -21,6 +21,7 @@ import { fetchAccount, fetchHello, signOut } from "@/api/client";
 import { AppShell, type Screen } from "@/components/AppShell";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { ReferencedPage } from "@/components/ReferencedPage";
+import { useRecordPageViews } from "@/hooks/useRecordPageViews";
 import { useResource } from "@/hooks/useResource";
 import { ENTITIES, MARKS } from "@/lib/entities";
 import { PATHS, populationPath } from "@/lib/paths";
@@ -53,6 +54,7 @@ import { SignIn } from "@/routes/SignIn";
 import { Strategies } from "@/routes/Strategies";
 import { Strategy } from "@/routes/Strategy";
 import { StrategyYears } from "@/routes/StrategyYears";
+import { Visitors } from "@/routes/Visitors";
 
 /** The navigation, in the order the screens are meant to be read. */
 const SCREENS: Screen[] = [
@@ -77,6 +79,11 @@ const SCREENS: Screen[] = [
   { path: PATHS.profile, label: "Profile", icon: User, group: "Mine" },
 ];
 
+/** Screens only the owner is offered; anyone else has no such page at all. */
+const OWNER_SCREENS: Screen[] = [
+  { path: PATHS.visitors, label: "Visitors", icon: MARKS.visitors, group: "Mine" },
+];
+
 /**
  * Render the application.
  *
@@ -99,6 +106,9 @@ function Shell(): React.JSX.Element {
   const whoami = useCallback(() => fetchAccount(), []);
   const session = useResource(whoami);
   const navigate = useNavigate();
+  // Here rather than in the application proper, so the sign-in page's
+  // visitors are counted as well as everyone signed in.
+  useRecordPageViews();
 
   // Signing out takes effect here rather than waiting for the platform to
   // confirm it. The request is still made and still ends the session; what
@@ -155,7 +165,7 @@ function SignedIn({
   return (
     <AppShell
       account={account}
-      screens={SCREENS}
+      screens={account.is_owner ? [...SCREENS, ...OWNER_SCREENS] : SCREENS}
       build={hello.data}
       onOpenProfile={() => {
         onNavigate(PATHS.profile);
@@ -231,6 +241,7 @@ function SignedIn({
           }
         />
         <Route path={PATHS.profile} element={<Profile account={account} onSignOut={onSignOut} />} />
+        {account.is_owner && <Route path={PATHS.visitors} element={<Visitors />} />}
       </Routes>
     </AppShell>
   );

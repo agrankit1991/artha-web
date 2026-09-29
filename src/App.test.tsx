@@ -367,4 +367,45 @@ describe("App", () => {
 
     expect(await screen.findByRole("tab", { name: "Relative strength" })).toBeInTheDocument();
   });
+
+  it("records each page opened, even before anyone has signed in", async () => {
+    // The owner counts the sign-in page's visitors as well as everyone else.
+    const fetchMock = stubPlatform({
+      "/api/me": { status: 401, body: { detail: "not signed in" } },
+      "/api/page-views": { status: 204 },
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      const recorded = fetchMock.mock.calls.find((call) => String(call[0]) === "/api/page-views");
+      expect(recorded).toBeDefined();
+      const body = JSON.parse((recorded?.[1] as RequestInit).body as string) as Record<
+        string,
+        string
+      >;
+      expect(body["path"]).toBe("/");
+      expect(body["visitor"]).toMatch(/^[0-9a-f-]{36}$/);
+    });
+  });
+
+  it("offers the visitors page to the owner", async () => {
+    stubPlatform({ "/api/me": { body: ACCOUNT }, ...DATA });
+
+    render(<App />);
+
+    expect(await screen.findByRole("link", { name: "Visitors" })).toHaveAttribute(
+      "href",
+      "/visitors",
+    );
+  });
+
+  it("offers the visitors page to nobody else", async () => {
+    stubPlatform({ "/api/me": { body: { ...ACCOUNT, is_owner: false } }, ...DATA });
+
+    render(<App />);
+
+    await screen.findByText("Market Movers");
+    expect(screen.queryByRole("link", { name: "Visitors" })).not.toBeInTheDocument();
+  });
 });

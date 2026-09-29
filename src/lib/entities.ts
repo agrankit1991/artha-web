@@ -14,6 +14,7 @@ import {
   Calendar,
   CalendarClock,
   ExternalLink,
+  Eye,
   FileText,
   FlaskConical,
   GitCompareArrows,
@@ -70,5 +71,6 @@ export const MARKS = {
   peers: Users,
   scans: ScanSearch,
   screen: SlidersHorizontal,
+  visitors: Eye,
   watchlist: Star,
 } as const satisfies Record<string, Icon>;

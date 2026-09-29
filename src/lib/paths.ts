@@ -31,6 +31,7 @@ export const PATHS = {
   ipos: "/ipos",
   funds: "/funds",
   profile: "/profile",
+  visitors: "/visitors",
 } as const;
 
 /**
