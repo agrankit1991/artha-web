@@ -10,7 +10,7 @@
 
 import type { BreadthRegime, BreadthResponse } from "@/api/client";
 import { ABSENT, formatVolume, toNumber } from "@/lib/format";
-import type { Tone } from "@/components/Statistic";
+import type { Tone } from "@/components/StatTile";
 
 /** One measure, ready to show. */
 export interface Reading {

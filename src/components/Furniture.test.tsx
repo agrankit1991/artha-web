@@ -67,6 +67,26 @@ describe("SectionHeader", () => {
 });
 
 describe("StatTile", () => {
+  it("shows a reading with the sentence explaining it, coloured by what it means", () => {
+    // The number alone is unreadable, which is why a judged reading carries
+    // its sentence.
+    const { rerender } = render(
+      <StatTile label="McClellan oscillator" value="42" hint="More stocks joining" tone="good" />,
+    );
+    expect(screen.getByText("More stocks joining")).toBeInTheDocument();
+    expect(screen.getByText("42")).toHaveClass("text-gain");
+
+    rerender(<StatTile label="McClellan oscillator" value="-42" hint="Fewer" tone="bad" />);
+    expect(screen.getByText("-42")).toHaveClass("text-loss");
+  });
+
+  it("holds a place while the figure is on its way, rather than saying there is none", () => {
+    const { container } = render(<StatTile label="Page views" value="-" loading />);
+
+    expect(container.querySelector("[data-slot=skeleton]")).not.toBeNull();
+    expect(screen.queryByText("-")).not.toBeInTheDocument();
+  });
+
   it("states the figure, its change and what qualifies it", () => {
     render(
       <StatGrid>

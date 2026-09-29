@@ -25,7 +25,7 @@ import { RegimeBanner } from "@/components/RegimeBanner";
 import { BREADTH_RANGES, PARTICIPATION_RANGES, RangeSelector } from "@/components/RangeSelector";
 import { ScopePicker } from "@/components/ScopePicker";
 import type { Scope } from "@/components/ScopeSelector";
-import { Statistic } from "@/components/Statistic";
+import { StatTile } from "@/components/StatTile";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
@@ -130,7 +130,7 @@ export function Breadth(): React.JSX.Element {
             aria-label="Headline measures"
           >
             {measures.map((measure) => (
-              <Statistic
+              <StatTile
                 key={measure.label}
                 label={measure.label}
                 value={measure.value}

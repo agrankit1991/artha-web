@@ -18,7 +18,7 @@ import { Chooser } from "@/components/Chooser";
 import { type Column, DataTable } from "@/components/DataTable";
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
-import { Statistic } from "@/components/Statistic";
+import { StatTile } from "@/components/StatTile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useResource } from "@/hooks/useResource";
@@ -75,19 +75,19 @@ export function Visitors(): React.JSX.Element {
       ) : (
         <>
           <section className="grid gap-3 sm:grid-cols-3" aria-label="Totals">
-            <Statistic
+            <StatTile
               label="People active"
               value={
                 visitors.data === null ? ABSENT : `${String(active)} of ${String(people.length)}`
               }
               hint="Accounts that opened a page in the span."
             />
-            <Statistic
+            <StatTile
               label="Page views"
               value={visitors.data === null ? ABSENT : formatCount(opened)}
               hint="Pages opened, by anyone."
             />
-            <Statistic
+            <StatTile
               label="Not signed in"
               value={anonymous === undefined ? ABSENT : formatCount(anonymous.visitors)}
               hint={

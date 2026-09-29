@@ -465,7 +465,7 @@ call site.
   2026-09-29; last seen reaches back further, from sessions.
 - **Shared components** in `src/components`: `DataTable`, `Delta`,
   `MoverPanel`, `IndexCard`, `MiniCandlestick`, `ScopeSelector`,
-  `ScopePicker`, `ThemeToggle`, `Meter`, `Sparkline`, `Statistic`,
+  `ScopePicker`, `ThemeToggle`, `Meter`, `Sparkline`,
   `BreadthPanel`, `BreadthGridPanel`, `BreadthHeatmap`, `RegimeBanner`, `NewsFeed`,
   `Chip` (a removable member of a set the reader builds: the compare set
   and the heatmap's populations),
@@ -474,7 +474,7 @@ call site.
   `TradingViewWidget`, `TradingViewLink`, `Menu`, `Tooltip`, `ThemeMenu`,
   `UserMenu`, `AppShell`. Since the plan
   (`../UI-PLAN.md`): page furniture `PageHeader`, `SectionHeader`,
-  `StatTile`/`StatGrid`, `FactList`, `RangeMeter`, `Empty`, `Failed`,
+  `StatTile`/`StatGrid` (the one tile: a figure, its change or its tone, and a line qualifying it; `Statistic` merged into it 2026-09-30), `FactList`, `RangeMeter`, `Empty`, `Failed`,
   `Hint`, `Chooser`, `Tabs`; `SearchBox` in the header; `Dialog` (own,
   like `Menu`, so jsdom can drive it) and `ConfirmDialog` on it; `WatchButton`, `ShareButton`,
   `SessionPicker`, `EarningsPanel`, `ValuationPanel`,
