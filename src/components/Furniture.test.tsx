@@ -172,6 +172,12 @@ describe("Empty and Failed", () => {
     expect(screen.getByText("This scheme launched in 2023.")).toBeInTheDocument();
   });
 
+  it("takes the place its page gives it", () => {
+    render(<Failed message="gone" className="mt-6" />);
+
+    expect(screen.getByRole("alert")).toHaveClass("mt-6");
+  });
+
   it("cannot be mistaken for an empty result", () => {
     render(<Failed message="the counts are being rebuilt" />);
 

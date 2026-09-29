@@ -295,4 +295,25 @@ describe("SearchBox", () => {
 
     expect(await screen.findByRole("option", { name: /TCS/ })).toBeInTheDocument();
   });
+
+  it("is reached with Cmd+K on a Mac", async () => {
+    stubPlatform({ "/api/search": { body: [] } });
+    draw();
+
+    await userEvent.keyboard("{Meta>}k{/Meta}");
+
+    expect(screen.getByRole("combobox", { name: "Search" })).toHaveFocus();
+  });
+
+  it("fills out what an older version remembered with no kind, key or name", async () => {
+    // The oldest remembered shape: the page still opens, as a company,
+    // rather than breaking the box for every later visit.
+    window.localStorage.setItem("artha.search.recent", JSON.stringify([{ detail: "Tata Motors" }]));
+    stubPlatform({});
+    draw();
+
+    await userEvent.click(screen.getByRole("combobox"));
+
+    expect(await screen.findByRole("option", { name: /Tata Motors/ })).toBeInTheDocument();
+  });
 });

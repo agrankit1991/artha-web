@@ -76,3 +76,36 @@ describe("BreadthPanel", () => {
     expect(screen.queryByText(/unchanged/)).not.toBeInTheDocument();
   });
 });
+
+describe("BreadthPanel, as a page shows it", () => {
+  it("says whose breadth it is, and how many were counted", () => {
+    render(<BreadthPanel breadth={breadth()} title="Breadth: Nifty 50" />);
+
+    expect(screen.getByRole("heading", { name: "Breadth: Nifty 50" })).toBeInTheDocument();
+    // Advancing, declining and unchanged: the total the split is of.
+    expect(screen.getByText(/^100 counted/)).toBeInTheDocument();
+  });
+
+  it("leaves the trend readings to a page that shows them at length", () => {
+    render(<BreadthPanel breadth={breadth()} trends={false} />);
+
+    expect(screen.getByText("60 advancing")).toBeInTheDocument();
+    expect(screen.queryByText("McClellan oscillator")).not.toBeInTheDocument();
+    expect(screen.queryByText(/52-week highs/)).not.toBeInTheDocument();
+  });
+
+  it("holds placeholders while counting, rather than a market where nothing moved", () => {
+    const { container } = render(<BreadthPanel breadth={null} loading />);
+
+    expect(screen.getByText("Counting…")).toBeInTheDocument();
+    expect(container.querySelector("[data-slot=skeleton]")).not.toBeNull();
+    expect(screen.queryByText("0 advancing")).not.toBeInTheDocument();
+  });
+
+  it("says nothing has been counted when there is nothing to count", () => {
+    const { container } = render(<BreadthPanel breadth={null} />);
+
+    expect(screen.getByText("Nothing counted yet")).toBeInTheDocument();
+    expect(container.querySelector("[data-slot=skeleton]")).toBeNull();
+  });
+});

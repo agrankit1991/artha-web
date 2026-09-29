@@ -456,6 +456,22 @@ describe("Overview", () => {
     expect(screen.getByText(/strongest and weakest of 14/)).toBeInTheDocument();
   });
 
+  it("says so when the sectors cannot be ranked, and keeps the rest of the page", async () => {
+    stubEverything({ "/api/sectors": { status: 500, body: { detail: "sectors are rebuilding" } } });
+    renderPage(<Overview />);
+
+    const section = await screen.findByRole("region", { name: "Sectors today" });
+    expect(await within(section).findByRole("alert")).toHaveTextContent("Sectors are rebuilding");
+    expect(screen.getByRole("region", { name: "Market indices" })).toBeInTheDocument();
+  });
+
+  it("says no sector is ranked yet rather than drawing an empty chart", async () => {
+    stubEverything({ "/api/sectors": { body: [] } });
+    renderPage(<Overview />);
+
+    expect(await screen.findByText("No sector ranked yet")).toBeInTheDocument();
+  });
+
   it("offers the lists beyond gainers and losers in one panel, chosen from its title", async () => {
     stubEverything({
       "/api/movers": {

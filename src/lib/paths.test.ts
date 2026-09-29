@@ -2,7 +2,15 @@
 
 import { describe, expect, it } from "vitest";
 
-import { companyPath, hitPath, newsPath, populationPath, slug } from "./paths";
+import {
+  companyPath,
+  hitPath,
+  newsPath,
+  populationPath,
+  scopeFromParams,
+  slug,
+  withScope,
+} from "./paths";
 
 describe("paths", () => {
   it("names a company by its NSE symbol, as the previous project did", () => {
@@ -50,5 +58,35 @@ describe("paths", () => {
 
   it("carries the company alone when nothing named it", () => {
     expect(newsPath("NSE_EQ|INE002A01018")).toBe("/news?instrument=NSE_EQ%7CINE002A01018");
+  });
+});
+
+describe("scope in the address", () => {
+  it("reads an index or a sector by its key, and a whole market otherwise", () => {
+    expect(
+      scopeFromParams(new URLSearchParams({ scope_kind: "sector", scope_key: "Banks" })),
+    ).toEqual({ kind: "sector", key: "Banks" });
+    expect(scopeFromParams(new URLSearchParams({ scope_kind: "indices" }))).toEqual({
+      kind: "indices",
+      key: null,
+    });
+    // An index named without a key is not an index anybody can count.
+    expect(scopeFromParams(new URLSearchParams({ scope_kind: "index" }))).toEqual({
+      kind: "companies",
+      key: null,
+    });
+  });
+
+  it("writes a population beside what the address already holds, and clears a key it no longer has", () => {
+    const withIndex = withScope(new URLSearchParams({ window: "65" }), {
+      kind: "index",
+      key: "NSE_INDEX|Nifty 50",
+    });
+    expect(withIndex.get("window")).toBe("65");
+    expect(withIndex.get("scope_key")).toBe("NSE_INDEX|Nifty 50");
+
+    const whole = withScope(withIndex, { kind: "companies", key: null });
+    expect(whole.get("scope_kind")).toBe("companies");
+    expect(whole.has("scope_key")).toBe(false);
   });
 });
