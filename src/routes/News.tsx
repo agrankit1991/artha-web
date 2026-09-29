@@ -16,6 +16,7 @@ import { fetchNews, fetchNewsMentions } from "@/api/client";
 import { NewsFeed } from "@/components/NewsFeed";
 import { LoadMore } from "@/components/LoadMore";
 import { Badge } from "@/components/ui/badge";
+import { Chooser, type Option } from "@/components/Chooser";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -40,13 +41,19 @@ const BATCH = 12;
  */
 const LEAD = 1;
 
+/** How recent the news must be. */
+type Within = "day" | "week" | "month" | "all";
+
 /** The windows a reader switches between. */
-const WINDOWS: { label: string; days: number | null }[] = [
-  { label: "24h", days: 1 },
-  { label: "Week", days: 7 },
-  { label: "Month", days: 30 },
-  { label: "All", days: null },
+const WINDOWS: Option<Within>[] = [
+  { key: "day", label: "24h" },
+  { key: "week", label: "Week" },
+  { key: "month", label: "Month" },
+  { key: "all", label: "All" },
 ];
+
+/** How many days back each window reaches; null for no limit. */
+const DAYS: Record<Within, number | null> = { day: 1, week: 7, month: 30, all: null };
 
 /**
  * Render the news page.
@@ -55,7 +62,8 @@ const WINDOWS: { label: string; days: number | null }[] = [
  */
 export function News(): React.JSX.Element {
   const [typed, setTyped] = useState("");
-  const [days, setDays] = useState<number | null>(null);
+  const [within, setWithin] = useState<Within>("all");
+  const days = DAYS[within];
   const [company, setCompany] = useState<NewsMention | null>(null);
   const [offset, setOffset] = useState(0);
   const [shown, setShown] = useState<NewsItem[]>([]);
@@ -122,21 +130,12 @@ export function News(): React.JSX.Element {
               className="pl-8"
             />
           </div>
-          <div className="flex gap-1" role="group" aria-label="Published within">
-            {WINDOWS.map((window) => (
-              <Button
-                key={window.label}
-                size="sm"
-                variant={window.days === days ? "secondary" : "ghost"}
-                aria-pressed={window.days === days}
-                onClick={() => {
-                  setDays(window.days);
-                }}
-              >
-                {window.label}
-              </Button>
-            ))}
-          </div>
+          <Chooser
+            options={WINDOWS}
+            chosen={within}
+            onChange={setWithin}
+            label="Published within"
+          />
         </div>
 
         <CompanyFilter company={company} offered={mentions.data ?? []} onChoose={setCompany} />

@@ -8,13 +8,18 @@
  * behind a click.
  */
 
-import { Button } from "@/components/ui/button";
+import { useRef } from "react";
+
+import { useSlidingIndicator } from "@/hooks/useSlidingIndicator";
+import type { Icon } from "@/lib/entities";
 import { cn } from "@/lib/utils";
 
 /** One thing on offer. */
 export interface Option<Key extends string = string> {
   key: Key;
   label: string;
+  /** An icon before the label, where one says it faster (a layout). */
+  icon?: Icon;
 }
 
 interface ChooserProps<Key extends string> {
@@ -27,7 +32,11 @@ interface ChooserProps<Key extends string> {
 }
 
 /**
- * Offer the options.
+ * Offer the options, as one segmented control.
+ *
+ * The same shape as a strip of tabs -- one track, one highlight sliding to
+ * the choice -- because it is the same gesture: this is one of a few ways
+ * of looking at the same thing.
  *
  * @param props - The options, which is chosen, and what to call.
  * @returns The chooser.
@@ -39,21 +48,55 @@ export function Chooser<Key extends string>({
   label,
   className,
 }: ChooserProps<Key>): React.JSX.Element {
+  const track = useRef<HTMLDivElement>(null);
+  const indicator = useSlidingIndicator(track, '[aria-pressed="true"]', chosen);
+
   return (
-    <div className={cn("flex flex-wrap gap-1", className)} role="group" aria-label={label}>
-      {options.map((option) => (
-        <Button
-          key={option.key}
-          size="sm"
-          variant={option.key === chosen ? "secondary" : "ghost"}
-          aria-pressed={option.key === chosen}
-          onClick={() => {
-            onChange(option.key);
+    <div
+      ref={track}
+      className={cn(
+        "relative inline-flex flex-wrap items-center gap-0.5 rounded-lg border bg-muted/40 p-0.5",
+        className,
+      )}
+      role="group"
+      aria-label={label}
+    >
+      {indicator !== null && (
+        <span
+          aria-hidden="true"
+          className="absolute left-0 top-0 rounded-md bg-background shadow-sm transition-[transform,width,height] duration-200 ease-brand"
+          style={{
+            width: indicator.width,
+            height: indicator.height,
+            transform: `translate(${String(indicator.left)}px, ${String(indicator.top)}px)`,
           }}
-        >
-          {option.label}
-        </Button>
-      ))}
+        />
+      )}
+      {options.map((option) => {
+        const isChosen = option.key === chosen;
+        return (
+          <button
+            key={option.key}
+            type="button"
+            aria-pressed={isChosen}
+            onClick={() => {
+              onChange(option.key);
+            }}
+            className={cn(
+              "relative inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-sm transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              isChosen
+                ? "font-medium text-foreground"
+                : "text-muted-foreground hover:text-foreground",
+              // Until the highlight has been measured, the choice marks itself.
+              isChosen && indicator === null && "bg-background shadow-sm",
+            )}
+          >
+            {option.icon !== undefined && <option.icon aria-hidden="true" className="h-4 w-4" />}
+            {option.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

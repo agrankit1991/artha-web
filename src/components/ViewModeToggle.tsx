@@ -9,7 +9,7 @@
 
 import { LayoutGrid, LayoutList, List } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Chooser } from "@/components/Chooser";
 import type { Icon } from "@/lib/entities";
 import {
   VIEW_MODES,
@@ -18,7 +18,6 @@ import {
   usePreferences,
   writePreferences,
 } from "@/lib/preferences";
-import { cn } from "@/lib/utils";
 
 const LABELS: Record<ViewMode, { label: string; icon: Icon }> = {
   list: { label: "List", icon: List },
@@ -46,31 +45,16 @@ export function ViewModeToggle({
   modes = VIEW_MODES,
   className,
 }: ViewModeToggleProps): React.JSX.Element {
+  // The same control as every other choice of a few ways of looking at one
+  // thing, with an icon because a layout is quicker seen than read.
   return (
-    <div
-      role="group"
-      aria-label="Layout"
-      className={cn("inline-flex rounded-md border bg-muted/40 p-0.5", className)}
-    >
-      {modes.map((one) => {
-        const { label, icon: Mark } = LABELS[one];
-        return (
-          <Button
-            key={one}
-            size="sm"
-            variant={one === mode ? "default" : "ghost"}
-            aria-pressed={one === mode}
-            onClick={() => {
-              onChange(one);
-            }}
-            className="h-7 gap-1.5 px-2.5"
-          >
-            <Mark aria-hidden="true" className="h-4 w-4" />
-            {label}
-          </Button>
-        );
-      })}
-    </div>
+    <Chooser
+      options={modes.map((one) => ({ key: one, ...LABELS[one] }))}
+      chosen={mode}
+      onChange={onChange}
+      label="Layout"
+      {...(className === undefined ? {} : { className })}
+    />
   );
 }
 

@@ -23,7 +23,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { initialsOf } from "@/components/UserMenu";
 import { THEME_CHOICES } from "@/components/ThemeMenu";
 import { useTheme } from "@/lib/theme";
-import { cn } from "@/lib/utils";
 
 interface ProfileProps {
   account: Account;
@@ -85,25 +84,12 @@ export function Profile({ account, onSignOut }: ProfileProps): React.JSX.Element
         <CardContent className="space-y-6">
           <div className="space-y-2">
             <p className="text-sm font-medium">Light and dark</p>
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Appearance">
-              {THEME_CHOICES.map((mode) => (
-                <button
-                  key={mode.choice}
-                  type="button"
-                  aria-pressed={mode.choice === choice}
-                  onClick={() => {
-                    setChoice(mode.choice);
-                  }}
-                  className={cn(
-                    "flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-accent",
-                    mode.choice === choice && "border-primary bg-primary/10",
-                  )}
-                >
-                  <mode.icon className="h-4 w-4" />
-                  {mode.label}
-                </button>
-              ))}
-            </div>
+            <Chooser
+              options={THEME_CHOICES.map(({ choice: key, label, icon }) => ({ key, label, icon }))}
+              chosen={choice}
+              onChange={setChoice}
+              label="Appearance"
+            />
             <p className="text-xs text-muted-foreground">
               {choice === "system"
                 ? `Following this machine, which is currently ${appearance}.`

@@ -15,7 +15,7 @@ import type { BreadthSession } from "@/api/client";
 import { fetchBreadth, fetchBreadthGrid, fetchParticipation, fetchScopes } from "@/api/client";
 import { BreadthGridPanel } from "@/components/BreadthGridPanel";
 import { type BreadthMeasure, BreadthHeatmap } from "@/components/BreadthHeatmap";
-import { Chooser } from "@/components/Chooser";
+import { Chooser, type Option } from "@/components/Chooser";
 import { BreadthChart } from "@/components/BreadthChart";
 import { BreadthPanel } from "@/components/BreadthPanel";
 import { type Column, DataTable } from "@/components/DataTable";
@@ -26,7 +26,6 @@ import { BREADTH_RANGES, PARTICIPATION_RANGES, RangeSelector } from "@/component
 import { ScopePicker } from "@/components/ScopePicker";
 import type { Scope } from "@/components/ScopeSelector";
 import { Statistic } from "@/components/Statistic";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
@@ -40,9 +39,9 @@ import { ABSENT, formatDay, formatVolume, toNumber } from "@/lib/format";
 const DEFAULT_WINDOW = 250;
 
 /** The kinds of population the grid can lay out, and what to call them. */
-const GRIDS: { kind: "sector" | "indices" | "index"; label: string }[] = [
-  { kind: "sector", label: "Sectors" },
-  { kind: "index", label: "Indices" },
+const GRIDS: Option<"sector" | "index">[] = [
+  { key: "sector", label: "Sectors" },
+  { key: "index", label: "Indices" },
 ];
 
 /**
@@ -237,21 +236,12 @@ export function Breadth(): React.JSX.Element {
                     Every population of one kind, strongest participation first.
                   </CardDescription>
                 </div>
-                <div className="flex gap-1" role="group" aria-label="Grid population">
-                  {GRIDS.map((option) => (
-                    <Button
-                      key={option.kind}
-                      size="sm"
-                      variant={option.kind === gridKind ? "secondary" : "ghost"}
-                      aria-pressed={option.kind === gridKind}
-                      onClick={() => {
-                        setGridKind(option.kind === "sector" ? "sector" : "index");
-                      }}
-                    >
-                      {option.label}
-                    </Button>
-                  ))}
-                </div>
+                <Chooser
+                  options={GRIDS}
+                  chosen={gridKind}
+                  onChange={setGridKind}
+                  label="Grid population"
+                />
               </div>
             </CardHeader>
             <CardContent role="region" aria-label="Population grid">
