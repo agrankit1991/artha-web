@@ -21,6 +21,12 @@ interface HintProps {
   text: string;
   /** What is being explained; the mark follows it. Optional, for a bare mark. */
   children?: React.ReactNode;
+  /**
+   * What the mark explains, named for a screen reader, when the children
+   * are not plain words. Eight marks on a panel all called "What this
+   * means" are eight buttons nobody can tell apart.
+   */
+  term?: string;
   className?: string;
 }
 
@@ -30,7 +36,7 @@ interface HintProps {
  * @param props - The term and what it means.
  * @returns The term with a mark, and the explanation while shown.
  */
-export function Hint({ text, children, className }: HintProps): React.JSX.Element {
+export function Hint({ text, children, term, className }: HintProps): React.JSX.Element {
   const [showing, setShowing] = useState(false);
   const id = useId();
   const show = (): void => {
@@ -44,7 +50,7 @@ export function Hint({ text, children, className }: HintProps): React.JSX.Elemen
       {children}
       <button
         type="button"
-        aria-label="What this means"
+        aria-label={`What ${term ?? (typeof children === "string" ? children : "this")} means`}
         aria-describedby={showing ? id : undefined}
         onMouseEnter={show}
         onMouseLeave={hide}

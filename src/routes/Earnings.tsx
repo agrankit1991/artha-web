@@ -160,7 +160,10 @@ function figure(field: "revenue_yoy" | "profit_yoy", header: string): Column<Sec
       return (
         <span className="inline-flex flex-col items-end leading-tight">
           {found.percent === null ? (
-            <Hint text="The earlier total was nought or a loss; growth from a loss is not a percentage anybody means.">
+            <Hint
+              term="n/a"
+              text="The earlier total was nought or a loss; growth from a loss is not a percentage anybody means."
+            >
               <span className="text-muted-foreground">n/a</span>
             </Hint>
           ) : (

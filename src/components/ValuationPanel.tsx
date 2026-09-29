@@ -73,7 +73,7 @@ function Tile({
 }): React.JSX.Element {
   return (
     <div className="rounded-lg bg-muted/50 p-3">
-      <Hint text={figure.derivation}>
+      <Hint term={label} text={figure.derivation}>
         <span className="text-xs text-muted-foreground">{label}</span>
       </Hint>
       <div className="mt-0.5 tabular text-lg font-semibold">

@@ -240,7 +240,10 @@ function growth(
 function GrowthCell({ figure }: { figure: GrowthFigure | null }): React.JSX.Element {
   if (figure === null) {
     return (
-      <Hint text="No comparison period is held for these companies, or fewer than three of them reported in both.">
+      <Hint
+        term="a missing growth figure"
+        text="No comparison period is held for these companies, or fewer than three of them reported in both."
+      >
         <span className="text-muted-foreground">{ABSENT}</span>
       </Hint>
     );
@@ -248,7 +251,10 @@ function GrowthCell({ figure }: { figure: GrowthFigure | null }): React.JSX.Elem
   return (
     <span className="inline-flex flex-col items-end leading-tight">
       {figure.percent === null ? (
-        <Hint text="The earlier total was nought or a loss, and growth from a loss is not a percentage anybody means. The totals still stand.">
+        <Hint
+          term="n/a"
+          text="The earlier total was nought or a loss, and growth from a loss is not a percentage anybody means. The totals still stand."
+        >
           <span className="text-muted-foreground">n/a</span>
         </Hint>
       ) : (

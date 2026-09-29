@@ -125,7 +125,10 @@ export function Sectors(): React.JSX.Element {
         <span className="text-xs text-muted-foreground">
           {String(shown.length)} of {String(sectors.data?.length ?? 0)}
         </span>
-        <Hint text="Returns are the median company's, not a weighted index's. A sector whose largest company rose while forty small ones fell reads as falling here." />
+        <Hint
+          term="median returns"
+          text="Returns are the median company's, not a weighted index's. A sector whose largest company rose while forty small ones fell reads as falling here."
+        />
         <ViewModeToggle mode={mode} onChange={setMode} modes={LAYOUTS} className="ml-auto" />
       </div>
       {mode === "cards" ? (

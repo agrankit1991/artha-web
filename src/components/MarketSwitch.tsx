@@ -91,6 +91,7 @@ function Reading({ fromAverage, asOf }: SwitchReading): React.JSX.Element {
       <span className="text-xs text-muted-foreground">({formatDay(asOf)})</span>
       <Badge variant="outline">{MEANING[position]}</Badge>
       <Hint
+        term="the market switch"
         text={`Invested once the ${name} closes more than ${band}% above its 150-day average, in gold once it closes more than ${band}% below. In between the switch stays as it last was, which one day's reading cannot tell.`}
       />
       {position === "band" && (

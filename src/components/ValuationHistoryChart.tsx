@@ -125,6 +125,7 @@ function Standing({
         </span>
         {percentile !== null && (
           <Hint
+            term="where today sits"
             text={`Of the ${String(reading.sample)} sessions in this span with a reading, ${percentile.toFixed(0)}% were at or below today's. Low means the share is cheap against its own past; high means dear.`}
           >
             <span className={percentile <= 25 ? "text-gain" : percentile >= 75 ? "text-loss" : ""}>

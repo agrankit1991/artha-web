@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import { Empty } from "./Empty";
 import { FactList } from "./FactList";
 import { Failed } from "./Failed";
+import { Hint } from "./Hint";
 import { PageHeader } from "./PageHeader";
 import { RangeMeter } from "./RangeMeter";
 import { SectionHeader } from "./SectionHeader";
@@ -175,5 +176,25 @@ describe("Empty and Failed", () => {
     render(<Failed message="the counts are being rebuilt" />);
 
     expect(screen.getByRole("alert")).toHaveTextContent("The counts are being rebuilt");
+  });
+});
+
+describe("Hint", () => {
+  it("names its mark after what it explains, so two marks can be told apart", () => {
+    render(
+      <>
+        <Hint text="Price over trailing earnings.">Price to earnings</Hint>
+        <Hint text="Bought from the fund house." term="a direct plan">
+          <span>Direct</span>
+        </Hint>
+        <Hint text="A bare mark." />
+      </>,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "What Price to earnings means" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "What a direct plan means" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "What this means" })).toBeInTheDocument();
   });
 });

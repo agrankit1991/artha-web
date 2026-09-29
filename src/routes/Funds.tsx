@@ -303,6 +303,7 @@ function PlanBadge({ scheme }: { scheme: Scheme }): React.JSX.Element {
   return (
     <span className="flex flex-wrap items-center gap-1">
       <Hint
+        term={direct ? "a direct plan" : "a regular plan"}
         text={
           direct
             ? "Bought from the fund house directly, with no distributor's commission. The same fund as the regular plan, roughly a percent a year cheaper, compounded."

@@ -439,7 +439,10 @@ function ConditionRow({
         <X aria-hidden="true" className="h-4 w-4" />
       </Button>
       {!complete(condition) && (
-        <Hint text="A condition with no value is not sent; type a number to apply it." />
+        <Hint
+          term="an empty condition"
+          text="A condition with no value is not sent; type a number to apply it."
+        />
       )}
     </div>
   );

@@ -119,7 +119,7 @@ export function IpoCard({
                 <status.icon aria-hidden="true" className="h-3 w-3" />
                 {status.label}
               </Badge>
-              <Hint text={board.hint}>
+              <Hint term={board.label} text={board.hint}>
                 <Badge variant="secondary">{board.label}</Badge>
               </Hint>
               {offering.industry !== null && (
@@ -139,7 +139,10 @@ export function IpoCard({
           </div>
           <div className="text-right">
             <div className="text-xl font-bold tabular">{offering.symbol ?? ABSENT}</div>
-            <Hint text="International Securities Identification Number: the code that identifies these shares on every exchange and in every depository.">
+            <Hint
+              term="ISIN"
+              text="International Securities Identification Number: the code that identifies these shares on every exchange and in every depository."
+            >
               <span className="text-xs text-muted-foreground">
                 {offering.isin ?? "ISIN not yet assigned"}
               </span>
@@ -212,7 +215,10 @@ export function IpoCard({
                 {
                   label: "Cut-off price",
                   value: (
-                    <Hint text="The price finally struck within the band, once bidding closed. Bids below it are not allotted.">
+                    <Hint
+                      term="the cut-off price"
+                      text="The price finally struck within the band, once bidding closed. Bids below it are not allotted."
+                    >
                       <span>{formatPrice(offering.cut_off_price)}</span>
                     </Hint>
                   ),
@@ -271,7 +277,10 @@ function Subscription({ offering }: { offering: Offering }): React.JSX.Element |
   return (
     <div className="space-y-1">
       <div className="flex items-baseline justify-between text-xs">
-        <Hint text="Bids received as a multiple of the shares on offer. Above one times the issue was oversubscribed and allotment is scaled back; below it, some shares went unsold.">
+        <Hint
+          term="Subscribed"
+          text="Bids received as a multiple of the shares on offer. Above one times the issue was oversubscribed and allotment is scaled back; below it, some shares went unsold."
+        >
           <span className="text-muted-foreground">Subscribed</span>
         </Hint>
         <span className={cn("tabular font-semibold", times >= 1 ? "text-gain" : "text-loss")}>

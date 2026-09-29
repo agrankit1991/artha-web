@@ -54,7 +54,7 @@ describe("MarketSwitch", () => {
     expect(group).toHaveTextContent(
       /At the lab's last reading, on 21 Sept? 2026, it was off, as it had been since 2 Mar 2026\./,
     );
-    expect(screen.getByRole("button", { name: "What this means" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^What .+ means$/ })).toBeInTheDocument();
   });
 
   it("says the reading is not available rather than guessing one", async () => {

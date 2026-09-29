@@ -31,7 +31,7 @@ describe("IpoCard", () => {
     draw(offering({ issue_type: "SME" }));
 
     await userEvent.hover(
-      screen.getAllByRole("button", { name: "What this means" })[0] as HTMLElement,
+      screen.getAllByRole("button", { name: /^What .+ means$/ })[0] as HTMLElement,
     );
 
     expect(screen.getByRole("tooltip")).toHaveTextContent(/small and medium enterprise/);

@@ -112,7 +112,7 @@ describe("Screener", () => {
     await userEvent.selectOptions(screen.getByRole("combobox", { name: "Figure" }), "one_month");
     await userEvent.selectOptions(screen.getByRole("combobox", { name: "Comparison" }), "gte");
     // Nothing typed yet: the hint says why nothing is applied.
-    expect(screen.getByRole("button", { name: "What this means" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^What .+ means$/ })).toBeInTheDocument();
     await userEvent.type(screen.getByRole("spinbutton", { name: "Value" }), "5");
 
     await waitFor(() => {

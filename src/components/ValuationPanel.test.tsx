@@ -23,7 +23,7 @@ describe("ValuationPanel", () => {
     render(<ValuationPanel valuation={valuation()} />);
 
     await userEvent.hover(
-      screen.getAllByRole("button", { name: "What this means" })[1] as HTMLElement,
+      screen.getAllByRole("button", { name: /^What .+ means$/ })[1] as HTMLElement,
     );
 
     expect(screen.getByRole("tooltip")).toHaveTextContent("Price 1,240.00 ÷ 28.98 trailing EPS");

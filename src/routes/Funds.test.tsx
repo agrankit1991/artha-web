@@ -295,7 +295,7 @@ describe("Funds", () => {
     expect(within(table).getByText("Direct")).toBeInTheDocument();
     expect(within(table).getByText("Regular")).toBeInTheDocument();
     await userEvent.hover(
-      within(table).getAllByRole("button", { name: "What this means" })[0] as HTMLElement,
+      within(table).getAllByRole("button", { name: /^What .+ means$/ })[0] as HTMLElement,
     );
     expect(screen.getByRole("tooltip")).toHaveTextContent(/commission/);
   });

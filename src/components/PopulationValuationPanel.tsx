@@ -147,7 +147,10 @@ function MoverList({
     <div className="space-y-2">
       <h4 className="flex items-center gap-1 text-sm font-semibold">
         {title}
-        <Hint text="By the rupees its market capitalisation gained or lost today, in crore. What a weighted index felt from it, not how far its own price moved." />
+        <Hint
+          term="the contribution"
+          text="By the rupees its market capitalisation gained or lost today, in crore. What a weighted index felt from it, not how far its own price moved."
+        />
       </h4>
       {rows.length === 0 ? (
         <p className="text-xs text-muted-foreground">None today.</p>
@@ -203,7 +206,10 @@ function Spread({ members }: { members: MemberValuation[] }): React.JSX.Element 
     <div className="space-y-2">
       <h4 className="flex items-center gap-1 text-sm font-semibold">
         Spread of today&rsquo;s moves
-        <Hint text="How many companies moved by how much. A rise carried by everybody is a wide right-hand side; one carried by a few giants is a tall middle and a long thin tail." />
+        <Hint
+          term="the spread of moves"
+          text="How many companies moved by how much. A rise carried by everybody is a wide right-hand side; one carried by a few giants is a tall middle and a long thin tail."
+        />
       </h4>
       <div
         className="grid gap-1"
