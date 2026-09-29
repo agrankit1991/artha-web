@@ -106,8 +106,12 @@ export type Series =
   | (Common & { kind: "area"; colour: string; points: Point[] })
   | (Common & { kind: "bars"; points: Point[] });
 
-/** What a chart's figures are, which decides how they are written. */
-export type Scale = "price" | "percent" | "count";
+/**
+ * What a chart's figures are, which decides how they are written: a price,
+ * a change in per cent (signed), a count, or a share in per cent (a level,
+ * unsigned: 45.2% of contracts long did not rise by 45.2%).
+ */
+export type Scale = "price" | "percent" | "count" | "share";
 
 /** What the crosshair is over, what each series was worth, and where it is. */
 interface Hovered {
@@ -676,7 +680,7 @@ function placed(at: Hovered["at"]): React.CSSProperties {
 function priceFormat(scale: Scale): {
   priceFormat?: { type: "percent" | "price"; precision?: number; minMove?: number };
 } {
-  if (scale === "percent") {
+  if (scale === "percent" || scale === "share") {
     return { priceFormat: { type: "percent" } };
   }
   return scale === "count" ? { priceFormat: { type: "price", precision: 0, minMove: 1 } } : {};
@@ -692,6 +696,9 @@ function priceFormat(scale: Scale): {
 function written(value: number, scale: Scale): string {
   if (scale === "percent") {
     return `${value > 0 ? "+" : ""}${value.toFixed(2)}%`;
+  }
+  if (scale === "share") {
+    return `${value.toFixed(1)}%`;
   }
   // A count is whole: two decimal places on a number of companies is
   // noise pretending to be precision.

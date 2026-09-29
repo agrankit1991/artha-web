@@ -319,6 +319,18 @@ describe("Chart", () => {
     expect(within(reading).getByText("22,477.45")).toBeInTheDocument();
   });
 
+  it("reads a share as a level, without the sign a change carries", async () => {
+    // 45.2% of contracts held long did not rise by 45.2%.
+    draw([{ ...LINE, label: "Long share" }], { scale: "share" });
+
+    act(() => {
+      moveCrosshair("2026-09-02", [45.2]);
+    });
+
+    const reading = await screen.findByRole("group", { name: "Crosshair reading" });
+    expect(within(reading).getByText("45.2%")).toBeInTheDocument();
+  });
+
   it("reads a candle by where the session closed", () => {
     draw([
       {

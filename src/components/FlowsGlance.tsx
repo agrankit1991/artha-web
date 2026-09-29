@@ -13,7 +13,7 @@ import { FlowBars } from "@/components/FlowBars";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MARKS } from "@/lib/entities";
-import { formatDay, formatSignedPrice } from "@/lib/format";
+import { formatCroreSigned, formatDay, formatSignedPrice } from "@/lib/format";
 import { PATHS } from "@/lib/paths";
 
 interface FlowsGlanceProps {
@@ -41,7 +41,7 @@ export function FlowsGlance({ flows, loading = false }: FlowsGlanceProps): React
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <MARKS.flows aria-hidden="true" className="h-5 w-5 text-primary" />
-            Institutional Flows
+            FII / DII flows
           </CardTitle>
           <Link
             to={PATHS.flows}
@@ -71,7 +71,7 @@ export function FlowsGlance({ flows, loading = false }: FlowsGlanceProps): React
                 </div>
                 <Delta
                   value={latest?.net_amount}
-                  format={(value) => `${formatSignedPrice(value)} Cr`}
+                  format={formatCroreSigned}
                   arrow={false}
                   className="text-xl font-semibold"
                 />

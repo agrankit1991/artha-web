@@ -6,6 +6,7 @@ import {
   ABSENT,
   direction,
   formatCount,
+  formatCroreSigned,
   formatDay,
   formatDayMonth,
   formatMonth,
@@ -183,5 +184,13 @@ describe("formatPercentLevel", () => {
     expect(formatPercentLevel("3.254")).toBe("3.25%");
     expect(formatPercentLevel("-0.5")).toBe("-0.50%");
     expect(formatPercentLevel(null)).toBe("-");
+  });
+});
+
+describe("formatCroreSigned", () => {
+  it("writes money bought or sold with its sign and its unit", () => {
+    expect(formatCroreSigned("2838.17")).toBe("+2,838.17 Cr");
+    expect(formatCroreSigned("-3693.93")).toBe("-3,693.93 Cr");
+    expect(formatCroreSigned(null)).toBe("-");
   });
 });

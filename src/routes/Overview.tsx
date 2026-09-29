@@ -57,7 +57,7 @@ import { ENTITIES, MARKS } from "@/lib/entities";
 import { coloured } from "@/lib/chartPalette";
 import { useResource } from "@/hooks/useResource";
 import { readPreferences, writePreferences } from "@/lib/preferences";
-import { formatDay, formatPrice, formatSignedPrice, toNumber } from "@/lib/format";
+import { formatCroreSigned, formatDay, formatPrice, toNumber } from "@/lib/format";
 import { companyPath, moversPath, PATHS, populationPath } from "@/lib/paths";
 import { BENCHMARK, FEATURED_INDICES, GOLD } from "@/lib/indices";
 
@@ -489,10 +489,7 @@ function MarketBand({
       {institutions.map(({ participant, flow }) => (
         <span key={participant} className="flex items-baseline gap-2">
           <span className="text-muted-foreground">{participant} net</span>
-          <Delta
-            value={flow?.net_amount ?? null}
-            format={(value) => `${formatSignedPrice(value)} Cr`}
-          />
+          <Delta value={flow?.net_amount ?? null} format={formatCroreSigned} />
         </span>
       ))}
     </section>

@@ -18,6 +18,7 @@ import {
   fetchFlows,
   fetchOverviewHistory,
 } from "@/api/client";
+import { Chart, type Series } from "@/components/Chart";
 import { Chooser } from "@/components/Chooser";
 import { type Column, DataTable } from "@/components/DataTable";
 import { Delta } from "@/components/Delta";
@@ -26,9 +27,22 @@ import { FlowBars } from "@/components/FlowBars";
 import { PageHeader } from "@/components/PageHeader";
 import { StatGrid, StatTile } from "@/components/StatTile";
 import { type Tab, Tabs } from "@/components/Tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useResource } from "@/hooks/useResource";
-import { ABSENT, formatDay, formatPrice, formatSignedPrice, toNumber } from "@/lib/format";
+import {
+  ABSENT,
+  formatCroreSigned,
+  formatDay,
+  formatPrice,
+  formatSignedPrice,
+  toNumber,
+} from "@/lib/format";
+import {
+  BENCHMARK as CHART_BENCHMARK,
+  coloured,
+  PRICE_LINE,
+  PRICE_WIDTH,
+} from "@/lib/chartPalette";
 import { BENCHMARK } from "@/lib/indices";
 
 /** How many sessions or months a page of flows reads. */
@@ -101,40 +115,56 @@ export function Flows(): React.JSX.Element {
     [flows.data, segment],
   );
 
-  if (flows.error !== null) {
-    return <Failed message={flows.error} />;
-  }
-
   const latest = cash[0];
+  // Tiles and bars hold their place while the first flows arrive.
+  const arriving = flows.loading && flows.data === null;
   const recent = cash.slice(0, RECENT);
   const unit = period === "DAY" ? "session" : "month";
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="FII / DII Activity"
+        title="FII / DII flows"
         description="What foreign and domestic institutions bought and sold, in rupees crore, as the exchange reports it after each session. Foreign derivatives positioning is on its own tab."
         actions={<Chooser options={PERIODS} chosen={period} onChange={setPeriod} label="Period" />}
       />
 
+      {flows.error !== null && <Failed message={flows.error} />}
+
       <StatGrid>
         <StatTile
           label={`FII net, latest ${unit}`}
-          value={<Delta value={latest?.fii?.net_amount} format={crore} arrow={false} />}
+          value={<Delta value={latest?.fii?.net_amount} format={formatCroreSigned} arrow={false} />}
+          loading={arriving}
           {...(latest === undefined ? {} : { hint: formatDay(latest.day) })}
         />
         <StatTile
           label={`DII net, latest ${unit}`}
-          value={<Delta value={latest?.dii?.net_amount} format={crore} arrow={false} />}
+          value={<Delta value={latest?.dii?.net_amount} format={formatCroreSigned} arrow={false} />}
+          loading={arriving}
           {...(latest === undefined ? {} : { hint: formatDay(latest.day) })}
         />
         <StatTile
           label={`FII net, last ${String(recent.length)} ${unit}s`}
-          value={<Delta value={total(recent.map((one) => one.fii))} format={crore} arrow={false} />}
+          value={
+            <Delta
+              value={total(recent.map((one) => one.fii))}
+              format={formatCroreSigned}
+              arrow={false}
+            />
+          }
+          loading={arriving}
         />
         <StatTile
           label={`DII net, last ${String(recent.length)} ${unit}s`}
-          value={<Delta value={total(recent.map((one) => one.dii))} format={crore} arrow={false} />}
+          value={
+            <Delta
+              value={total(recent.map((one) => one.dii))}
+              format={formatCroreSigned}
+              arrow={false}
+            />
+          }
+          loading={arriving}
         />
       </StatGrid>
 
@@ -156,13 +186,14 @@ export function Flows(): React.JSX.Element {
                       bars={[...cash].reverse().map((one) => ({
                         day: one.day,
                         net: one[side]?.net_amount ?? null,
-                        title: `${formatDay(one.day)}: ${crore(one[side]?.net_amount)} Cr`,
+                        title: `${formatDay(one.day)}: ${formatCroreSigned(one[side]?.net_amount)}`,
                       }))}
                     />
                   </div>
                 ))}
               </CardContent>
             </Card>
+            <CumulativeFlows cash={cash} period={period} loading={arriving} />
             <DataTable
               columns={cashColumns(period)}
               rows={cash}
@@ -176,6 +207,11 @@ export function Flows(): React.JSX.Element {
         ) : (
           <div className="space-y-4">
             <Chooser options={SEGMENTS} chosen={segment} onChange={setSegment} label="Segment" />
+            <LongShare
+              rows={derivatives}
+              segment={SEGMENTS.find((one) => one.key === segment)?.label ?? ""}
+              loading={arriving}
+            />
             <DataTable
               columns={DERIVATIVE_COLUMNS}
               rows={derivatives}
@@ -190,11 +226,6 @@ export function Flows(): React.JSX.Element {
       </Tabs>
     </div>
   );
-}
-
-/** A net figure in crore, signed. */
-function crore(value: string | null | undefined): string {
-  return formatSignedPrice(value);
 }
 
 /** The sum of some flows' net figures, or null when none is known. */
@@ -231,7 +262,8 @@ function net<Row>(
     id,
     header,
     accessorFn: (row) => toNumber(of(row)) ?? Number.NEGATIVE_INFINITY,
-    cell: ({ row }) => <Delta value={of(row.original)} format={crore} arrow={false} />,
+    // Bare in a cell; the unit is in the column's header.
+    cell: ({ row }) => <Delta value={of(row.original)} format={formatSignedPrice} arrow={false} />,
     meta: { align: "right" },
   };
 }
@@ -276,7 +308,7 @@ function longShare(row: InstitutionalFlow): string | null {
   if (long === null || short === null || long + short === 0) {
     return null;
   }
-  return ((long / (long + short)) * 100).toFixed(2);
+  return ((long / (long + short)) * 100).toFixed(1);
 }
 
 const DERIVATIVE_COLUMNS: Column<InstitutionalFlow>[] = [
@@ -321,4 +353,128 @@ function count(
     },
     meta: { align: "right" },
   };
+}
+
+/**
+ * Net buying added up over the window, FII and DII, with Nifty 50 in a pane
+ * of its own below: whether foreigners have been selling into a market, and
+ * what the market did meanwhile. Two panes rather than two scales on one.
+ *
+ * @param props - The sessions or months, newest first, and the period.
+ * @returns The chart.
+ */
+function CumulativeFlows({
+  cash,
+  period,
+  loading,
+}: {
+  cash: CashDay[];
+  period: FlowPeriod;
+  loading: boolean;
+}): React.JSX.Element {
+  const oldestFirst = [...cash].reverse();
+  const running = (side: "fii" | "dii"): { time: string; value: number }[] => {
+    let sum = 0;
+    return oldestFirst.flatMap((one) => {
+      const net = toNumber(one[side]?.net_amount);
+      if (net === null) {
+        return [];
+      }
+      sum += net;
+      return [{ time: one.day, value: Math.round(sum * 100) / 100 }];
+    });
+  };
+  const sides = coloured([
+    { label: "FII, added up", side: "fii" as const },
+    { label: "DII, added up", side: "dii" as const },
+  ]);
+  const series: Series[] = [
+    ...sides.map((one) => ({
+      kind: "line" as const,
+      label: one.label,
+      colour: one.colour,
+      points: running(one.side),
+      width: PRICE_WIDTH,
+    })),
+    // Only sessions carry the index; a month's row is dated its first day.
+    ...(period === "DAY"
+      ? [
+          {
+            kind: "line" as const,
+            label: BENCHMARK.name,
+            colour: CHART_BENCHMARK,
+            pane: 1,
+            points: oldestFirst.flatMap((one) => {
+              const close = toNumber(one.benchmark?.day.close);
+              return close === null ? [] : [{ time: one.day, value: close }];
+            }),
+          },
+        ]
+      : []),
+  ];
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle as="h2">Net buying, added up</CardTitle>
+        <CardDescription>
+          Each side&apos;s net buying summed from the start of the window, in rupees crore
+          {period === "DAY" ? `, with ${BENCHMARK.name} below it` : ""}. A line falling steadily is
+          a side selling session after session.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Chart series={series} scale="price" height={320} loading={loading} />
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * How much of the FII's position in one segment was long, session by
+ * session, against the even line: above half, more bought than sold short.
+ *
+ * @param props - The segment's rows, newest first, and what it is called.
+ * @returns The chart.
+ */
+function LongShare({
+  rows,
+  segment,
+  loading,
+}: {
+  rows: InstitutionalFlow[];
+  segment: string;
+  loading: boolean;
+}): React.JSX.Element {
+  const points = [...rows].reverse().flatMap((row) => {
+    const share = toNumber(longShare(row));
+    return share === null ? [] : [{ time: row.day, value: share }];
+  });
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle as="h2">FII long share, {segment.toLowerCase()}</CardTitle>
+        <CardDescription>
+          Of the contracts foreign institutions held, the share that was long. Above the even line
+          they held more bought than sold short.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Chart
+          series={[
+            {
+              kind: "line",
+              label: "Long share",
+              colour: PRICE_LINE,
+              width: PRICE_WIDTH,
+              points,
+              thresholds: [{ value: 50, label: "Even" }],
+            },
+          ]}
+          scale="share"
+          height={260}
+          loading={loading}
+        />
+      </CardContent>
+    </Card>
+  );
 }

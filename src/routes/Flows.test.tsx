@@ -1,13 +1,16 @@
 /** Tests for the FII / DII page. */
 
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { InstitutionalFlow } from "@/api/client";
+import { chartCalls, seriesPanes } from "@/test/chartStub";
 import { overview, renderPage, stubPlatform } from "@/test/support";
 
 import { Flows } from "./Flows";
+
+vi.mock("lightweight-charts", async () => (await import("@/test/chartStub")).chartModule());
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -92,7 +95,7 @@ describe("Flows", () => {
     expect(within(table).getByRole("button", { name: /^Nifty 50 %/ })).toBeInTheDocument();
     // Five sessions summed, of which two are recorded here.
     expect(screen.getByText("FII net, last 2 sessions")).toBeInTheDocument();
-    expect(screen.getByText("-2,809.99")).toHaveClass("text-loss");
+    expect(screen.getByText("-2,809.99 Cr")).toHaveClass("text-loss");
     expect(screen.getByRole("img", { name: "FII net buying by session" })).toBeInTheDocument();
   });
 
@@ -109,6 +112,43 @@ describe("Flows", () => {
     expect(within(table).queryByRole("button", { name: /^Nifty 50/ })).not.toBeInTheDocument();
   });
 
+  it("adds each side's net buying up over the window, with the index in a pane of its own", async () => {
+    // Whether foreigners have been selling into the market: a running sum,
+    // oldest first, not the day's figure again.
+    stub();
+    renderPage(<Flows />);
+    await screen.findByRole("heading", { name: "Net buying, added up" });
+
+    await waitFor(() => {
+      const drawn = chartCalls.setData.mock.calls.map((call) => call[0] as unknown);
+      expect(drawn).toContainEqual([
+        { time: "2026-09-21", value: 1000 },
+        { time: "2026-09-22", value: -2809.99 },
+      ]);
+      expect(drawn).toContainEqual([
+        { time: "2026-09-21", value: -500 },
+        { time: "2026-09-22", value: 3620.07 },
+      ]);
+    });
+    expect(seriesPanes()).toContain(1);
+  });
+
+  it("draws the share held long against the even line", async () => {
+    stub();
+    renderPage(<Flows />);
+    await screen.findByRole("table", { name: "Cash market flows" });
+
+    await userEvent.click(screen.getByRole("tab", { name: "FII derivatives" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "FII long share, index futures" }),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      const drawn = chartCalls.setData.mock.calls.map((call) => call[0] as { value: number }[]);
+      expect(drawn.some((points) => points.some((point) => point.value === 10.5))).toBe(true);
+    });
+  });
+
   it("shows foreign derivatives positioning with the share held long", async () => {
     stub();
     renderPage(<Flows />);
@@ -120,7 +160,7 @@ describe("Flows", () => {
     expect(within(table).getByText("40,257")).toBeInTheDocument();
     expect(within(table).getByText("3,43,165")).toBeInTheDocument();
     // 40,257 of 3,83,422 contracts long.
-    expect(within(table).getByText("10.50%")).toBeInTheDocument();
+    expect(within(table).getByText("10.5%")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Stock futures" }));
     const futures = screen.getByRole("table", { name: "FII derivatives flows" });

@@ -61,6 +61,18 @@ export function formatSignedPrice(value: string | null | undefined): string {
 }
 
 /**
+ * Render a net amount in rupees crore, signed: `+2,838.17 Cr`, for money
+ * bought or sold. One way of writing it, where the tiles once said a bare
+ * figure and a band beside them added " Cr".
+ *
+ * @param value - The amount, in crore.
+ * @returns The amount with its sign and unit, or a dash.
+ */
+export function formatCroreSigned(value: string | null | undefined): string {
+  return toNumber(value) === null ? ABSENT : `${formatSignedPrice(value)} Cr`;
+}
+
+/**
  * Render a percentage, signed.
  *
  * The sign is always shown, including for a rise: a column of percentages
