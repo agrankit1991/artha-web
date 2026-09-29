@@ -306,9 +306,16 @@ call site.
   Addresses holding an instrument key still resolve, so old bookmarks work. Pages that are a _question_ keep their
   state in the URL (`useSearchParams`): the screener's conditions, the
   comparison's set, the movers list and scope, a watchlist's `?list=`,
-  and `?as_of=` on the company and population pages. These are places a
+  and `?as_of=` on the company and population pages; since the brand
+  redesign also the filters of Indices, Sectors, Deals, Earnings
+  (`?cadence=`) and News (`?q=`, `?within=`, `?company=`). These are places a
   reader bookmarks and presses Back out of. Caddy serves the SPA
-  fallback, so a deep link works.
+  fallback, so a deep link works. **One parameter is `useSearchParam(name,
+fallback)`** (`src/hooks/useSearchParam.ts`): a value at its default is
+  left out of the address, and a change replaces the history entry. Two
+  limits, both from react-router: the setter changes with every address,
+  so an effect that calls it compares before writing (News does); and two
+  setters in one event do not compose, the second replacing the first.
 
 - **The overview** (`src/routes/Overview.tsx`) -- under a centred
   "Market Overview" title, the eight headline indices as cards in the

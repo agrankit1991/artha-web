@@ -179,7 +179,8 @@ function columnsFor(name: MoverListName): Column<MoverRow>[] {
     {
       id: "value",
       header: list.measure,
-      accessorFn: (row) => toNumber(row.value) ?? Number.NEGATIVE_INFINITY,
+      // Always a figure: a row is on a list because it has one.
+      accessorFn: (row) => Number(row.value),
       cell: ({ row }) => list.render(row.original),
       meta: { align: "right" },
     },

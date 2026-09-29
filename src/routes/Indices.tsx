@@ -9,7 +9,6 @@
  */
 
 import { useCallback, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
 
 import type { IndexSummary } from "@/api/client";
 import { fetchIndices } from "@/api/client";
@@ -25,6 +24,7 @@ import { ViewModeToggle, useViewMode } from "@/components/ViewModeToggle";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useResource } from "@/hooks/useResource";
+import { useSearchParam } from "@/hooks/useSearchParam";
 import { ABSENT, formatCount, formatDay, formatPercent, formatPrice, toNumber } from "@/lib/format";
 import { categoryLabel } from "@/lib/indices";
 import { populationPath, slug } from "@/lib/paths";
@@ -42,28 +42,9 @@ export function Indices(): React.JSX.Element {
   const indices = useResource(load);
   // The filters live in the address, so a filtered list is a page that can
   // be bookmarked and returned to.
-  const [params, setParams] = useSearchParams();
-  const category = params.get("kind") ?? ANY;
-  const exchange = params.get("exchange") ?? ANY;
-  const typed = params.get("q") ?? "";
-  const set = (name: "kind" | "exchange" | "q", value: string, empty: string): void => {
-    const next = new URLSearchParams(params);
-    if (value === empty) {
-      next.delete(name);
-    } else {
-      next.set(name, value);
-    }
-    setParams(next, { replace: true });
-  };
-  const setCategory = (next: string): void => {
-    set("kind", next, ANY);
-  };
-  const setExchange = (next: string): void => {
-    set("exchange", next, ANY);
-  };
-  const setTyped = (next: string): void => {
-    set("q", next, "");
-  };
+  const [category, setCategory] = useSearchParam("kind", ANY);
+  const [exchange, setExchange] = useSearchParam("exchange", ANY);
+  const [typed, setTyped] = useSearchParam("q");
   const [mode, setMode] = useViewMode("indices");
 
   const categories = useMemo(() => {

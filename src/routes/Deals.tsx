@@ -9,7 +9,6 @@
  */
 
 import { useCallback, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
 
 import { type Deal, type DealKind, fetchDeals } from "@/api/client";
 import { Chooser, type Option } from "@/components/Chooser";
@@ -19,6 +18,7 @@ import { FlowBars } from "@/components/FlowBars";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useResource } from "@/hooks/useResource";
+import { useSearchParam } from "@/hooks/useSearchParam";
 import { formatCroreSigned, formatDay } from "@/lib/format";
 
 type Kind = "ALL" | DealKind;
@@ -42,14 +42,10 @@ const WINDOWS: Option<Window>[] = [
  * @returns The page.
  */
 export function Deals(): React.JSX.Element {
-  const [params, setParams] = useSearchParams();
-  const kind = KINDS.find((one) => one.key === params.get("kind"))?.key ?? "ALL";
-  const span = WINDOWS.find((one) => one.key === params.get("window"))?.key ?? "30";
-  const choose = (name: "kind" | "window", value: string): void => {
-    const next = new URLSearchParams(params);
-    next.set(name, value);
-    setParams(next, { replace: true });
-  };
+  const [chosenKind, setKind] = useSearchParam("kind", "ALL");
+  const [chosenWindow, setWindow] = useSearchParam("window", "30");
+  const kind = KINDS.find((one) => one.key === chosenKind)?.key ?? "ALL";
+  const span = WINDOWS.find((one) => one.key === chosenWindow)?.key ?? "30";
 
   const load = useCallback(
     () => fetchDeals({ days: Number(span), ...(kind === "ALL" ? {} : { kind }) }),
@@ -66,22 +62,8 @@ export function Deals(): React.JSX.Element {
         description="Large trades the exchange discloses after each session: a bulk deal moves at least half a per cent of a company's shares; a block deal is a single trade of at least ₹25 crore (SEBI raised it from ₹10 crore in an October 2025 circular). History is kept from the day the platform began capturing them."
       />
       <div className="flex flex-wrap items-center gap-3">
-        <Chooser
-          options={KINDS}
-          chosen={kind}
-          onChange={(next) => {
-            choose("kind", next);
-          }}
-          label="Kind"
-        />
-        <Chooser
-          options={WINDOWS}
-          chosen={span}
-          onChange={(next) => {
-            choose("window", next);
-          }}
-          label="Window"
-        />
+        <Chooser options={KINDS} chosen={kind} onChange={setKind} label="Kind" />
+        <Chooser options={WINDOWS} chosen={span} onChange={setWindow} label="Window" />
       </div>
 
       {deals.error !== null ? (

@@ -54,6 +54,18 @@ describe("Deals", () => {
     expect(bars).toHaveTextContent("-25.50 Cr");
   });
 
+  it("reads a kind or window it does not know as the default", async () => {
+    const fetched = stubPlatform({ "/api/deals": { body: [] } });
+    renderPage(<Deals />, { at: "/deals?kind=ODD&window=5" });
+
+    await screen.findByRole("table", { name: "Disclosed deals" });
+    expect(fetched.mock.calls.map((call) => String(call[0]))).toContain("/api/deals?days=30");
+    expect(screen.getByRole("button", { name: "All deals" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
   it("keeps the page's header when the deals cannot be read", async () => {
     stubPlatform({ "/api/deals": { status: 500, body: { detail: "deals broke" } } });
     renderPage(<Deals />);

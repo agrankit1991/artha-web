@@ -125,15 +125,33 @@ describe("Movers", () => {
     expect(await screen.findByText(/Movers broke/)).toBeInTheDocument();
   });
 
-  it("sorts by any column", async () => {
-    stubEverything();
+  it("sorts by any column, a row without a figure last", async () => {
+    stubPlatform({
+      "/api/movers/scopes": { body: scopeOptions() },
+      "/api/movers/": {
+        body: panel({
+          rows: [
+            moverRow(),
+            moverRow({
+              instrument_key: "NSE_EQ|INE467B01029",
+              symbol: "TCS",
+              rank: 2,
+              close: null,
+              change_percent: null,
+            }),
+          ],
+        }),
+      },
+    });
     renderPage(page(), { at: "/movers/unusual-volume" });
     const table = await screen.findByRole("table", { name: "Unusual volume" });
     await within(table).findByRole("link", { name: /TCS/ });
     for (const name of [/^Symbol/, /^Name/, /^Price/, /^Change/, /^vs average/]) {
       await userEvent.click(within(table).getByRole("button", { name }));
     }
-    expect(within(table).getAllByRole("row")).toHaveLength(3);
+    const rows = within(table).getAllByRole("row");
+    expect(rows).toHaveLength(3);
+    expect(rows[2]).toHaveTextContent("TCS");
   });
 
   it("leads each row of a list of indices to that index's page", async () => {

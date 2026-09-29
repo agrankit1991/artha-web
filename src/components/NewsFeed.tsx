@@ -27,6 +27,12 @@ interface NewsFeedProps {
    * looks pressable and does nothing is worse than a tag that does not.
    */
   onSelectMention?: (mention: NewsMention) => void;
+  /**
+   * What to say when there is nothing to show; null says nothing. The
+   * news page draws its lead article above the feed, so a feed of one
+   * leaves this empty with nothing wrong.
+   */
+  empty?: React.ReactNode;
 }
 
 /**
@@ -60,7 +66,8 @@ export function NewsFeed({
   loading = false,
   tagLimit = 4,
   onSelectMention,
-}: NewsFeedProps): React.JSX.Element {
+  empty = <p className="text-sm text-muted-foreground">No news stored yet</p>,
+}: NewsFeedProps): React.JSX.Element | null {
   if (items === null || items.length === 0) {
     return loading ? (
       <div className={GRID}>
@@ -76,7 +83,7 @@ export function NewsFeed({
         ))}
       </div>
     ) : (
-      <p className="text-sm text-muted-foreground">No news stored yet</p>
+      <>{empty}</>
     );
   }
 
@@ -104,9 +111,6 @@ function Article({
   tagLimit: number;
   onSelectMention?: (mention: NewsMention) => void;
 }): React.JSX.Element {
-  const shown = item.mentions.slice(0, tagLimit);
-  const hidden = item.mentions.length - shown.length;
-
   return (
     // Not `overflow-hidden`: the summary's tooltip has to be able to reach
     // past the bottom of the card. The picture clips itself instead.
@@ -130,37 +134,101 @@ function Article({
             </span>
           </Tooltip>
         )}
-        <div className="mt-auto flex flex-wrap items-center gap-1 pt-0.5">
-          {shown.map((mention) =>
-            onSelectMention ? (
-              <button
-                key={mention.instrument_key}
-                type="button"
-                title={`Show only news about ${mention.symbol}`}
-                onClick={() => {
-                  onSelectMention(mention);
-                }}
-              >
-                <Badge
-                  variant="secondary"
-                  className="cursor-pointer text-xs hover:bg-primary hover:text-primary-foreground"
-                >
-                  {mention.symbol}
-                </Badge>
-              </button>
-            ) : (
-              <Badge key={mention.instrument_key} variant="secondary" className="text-xs">
-                {mention.symbol}
-              </Badge>
-            ),
-          )}
-          {hidden > 0 && <span className="text-xs text-muted-foreground">+{hidden} more</span>}
-          <span className="ml-auto text-xs text-muted-foreground">
-            {formatSince(item.published_at)}
-          </span>
-        </div>
+        <Mentions
+          item={item}
+          tagLimit={tagLimit}
+          {...(onSelectMention ? { onSelectMention } : {})}
+        />
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * The newest article, given the room its picture deserves: the same
+ * article as a card, laid out wide, with the whole summary and every tag.
+ *
+ * @param props - The article, and what choosing one of its tags does.
+ * @returns The article.
+ */
+export function LeadArticle({
+  item,
+  onSelectMention,
+}: {
+  item: NewsItem;
+  onSelectMention: (mention: NewsMention) => void;
+}): React.JSX.Element {
+  return (
+    <Card className="gap-0 overflow-hidden py-0">
+      <div className="grid md:grid-cols-2">
+        <Thumbnail url={item.thumbnail_url} className="rounded-none md:h-full" />
+        <CardContent className="flex flex-col gap-3 p-6">
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xl font-semibold leading-snug hover:underline"
+          >
+            {item.headline}
+          </a>
+          {item.summary !== "" && (
+            <p className="text-sm leading-relaxed text-muted-foreground">{item.summary}</p>
+          )}
+          <Mentions item={item} tagLimit={item.mentions.length} onSelectMention={onSelectMention} />
+        </CardContent>
+      </div>
+    </Card>
+  );
+}
+
+/**
+ * An article's tags and its age, along the foot of the card.
+ *
+ * @param props - The article; how many tags to show before summarising
+ *   the rest; and what choosing one does, which makes the tags buttons.
+ * @returns The row.
+ */
+function Mentions({
+  item,
+  tagLimit,
+  onSelectMention,
+}: {
+  item: NewsItem;
+  tagLimit: number;
+  onSelectMention?: (mention: NewsMention) => void;
+}): React.JSX.Element {
+  const shown = item.mentions.slice(0, tagLimit);
+  const hidden = item.mentions.length - shown.length;
+  return (
+    <div className="mt-auto flex flex-wrap items-center gap-1 pt-0.5">
+      {shown.map((mention) =>
+        onSelectMention ? (
+          <button
+            key={mention.instrument_key}
+            type="button"
+            title={`Show only news about ${mention.symbol}`}
+            onClick={() => {
+              onSelectMention(mention);
+            }}
+          >
+            <Badge
+              variant="secondary"
+              className="cursor-pointer text-xs hover:bg-primary hover:text-primary-foreground"
+            >
+              {mention.symbol}
+            </Badge>
+          </button>
+        ) : (
+          <Badge key={mention.instrument_key} variant="secondary" className="text-xs">
+            {mention.symbol}
+          </Badge>
+        ),
+      )}
+      {hidden > 0 && <span className="text-xs text-muted-foreground">+{hidden} more</span>}
+      <span className="ml-auto text-xs text-muted-foreground">
+        {formatSince(item.published_at)}
+      </span>
+    </div>
   );
 }
 
@@ -175,7 +243,14 @@ function Article({
  * @param props - The link to the picture.
  * @returns The picture, or nothing at all when there is none to show.
  */
-function Thumbnail({ url }: { url: string | null }): React.JSX.Element | null {
+function Thumbnail({
+  url,
+  className,
+}: {
+  url: string | null;
+  /** The lead's shape, where it differs from a card's. */
+  className?: string;
+}): React.JSX.Element | null {
   const [broken, setBroken] = useState(false);
 
   if (url === null || broken) {
@@ -185,7 +260,9 @@ function Thumbnail({ url }: { url: string | null }): React.JSX.Element | null {
   }
 
   return (
-    <div className={cn(PICTURE, "w-full shrink-0 overflow-hidden rounded-t-xl bg-muted")}>
+    <div
+      className={cn(PICTURE, "w-full shrink-0 overflow-hidden rounded-t-xl bg-muted", className)}
+    >
       <img
         src={url}
         // The headline is right beside it and says the same thing, so

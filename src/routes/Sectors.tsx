@@ -10,7 +10,6 @@
  */
 
 import { useCallback, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
 
 import type { SectorSummary } from "@/api/client";
 import { fetchSectors } from "@/api/client";
@@ -29,6 +28,7 @@ import { ViewModeToggle, useViewMode } from "@/components/ViewModeToggle";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useResource } from "@/hooks/useResource";
+import { useSearchParam } from "@/hooks/useSearchParam";
 import { ABSENT, formatCount, formatDay, toNumber } from "@/lib/format";
 import { populationPath } from "@/lib/paths";
 
@@ -49,17 +49,7 @@ export function Sectors(): React.JSX.Element {
   const load = useCallback(() => fetchSectors(), []);
   const sectors = useResource(load);
   // The letters live in the address, so a narrowed list survives Back.
-  const [params, setParams] = useSearchParams();
-  const typed = params.get("q") ?? "";
-  const setTyped = (next: string): void => {
-    const changed = new URLSearchParams(params);
-    if (next === "") {
-      changed.delete("q");
-    } else {
-      changed.set("q", next);
-    }
-    setParams(changed, { replace: true });
-  };
+  const [typed, setTyped] = useSearchParam("q");
   const [mode, setMode] = useViewMode("sectors");
 
   const shown = useMemo(() => {

@@ -34,6 +34,7 @@ const THREE = [
     declining: 0,
     unchanged: 0,
     returns: blankReturns(),
+    median_momentum: null,
   }),
 ];
 

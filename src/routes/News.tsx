@@ -8,22 +8,24 @@
  * rather than twelve of the latest, filtered afterwards.
  */
 
-import { Newspaper, Search, X } from "lucide-react";
+import { Search } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import type { MentionedInstrument, NewsItem, NewsMention } from "@/api/client";
 import { fetchNews, fetchNewsMentions } from "@/api/client";
-import { NewsFeed } from "@/components/NewsFeed";
-import { LoadMore } from "@/components/LoadMore";
-import { Badge } from "@/components/ui/badge";
+import { Chip } from "@/components/Chip";
 import { Chooser, type Option } from "@/components/Chooser";
+import { Empty } from "@/components/Empty";
+import { Failed } from "@/components/Failed";
+import { LeadArticle, NewsFeed } from "@/components/NewsFeed";
+import { LoadMore } from "@/components/LoadMore";
+import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useDebounced } from "@/hooks/useDebounced";
-import { Failed } from "@/components/Failed";
 import { useResource } from "@/hooks/useResource";
-import { formatSince } from "@/lib/format";
+import { useSearchParam } from "@/hooks/useSearchParam";
+import { formatCount } from "@/lib/format";
 
 /**
  * Articles the grid gains with each press of "Load more".
@@ -56,36 +58,49 @@ const WINDOWS: Option<Within>[] = [
 const DAYS: Record<Within, number | null> = { day: 1, week: 7, month: 30, all: null };
 
 /**
- * Render the news page.
+ * Render the news page. The words, the window and the company are all in
+ * the address, so a narrowed feed is a link.
  *
  * @returns The page.
  */
 export function News(): React.JSX.Element {
-  const [typed, setTyped] = useState("");
-  const [within, setWithin] = useState<Within>("all");
+  const [asked, setAsked] = useSearchParam("q");
+  const [chosenWindow, setWithin] = useSearchParam("within", "all");
+  const [companyKey, setCompanyKey] = useSearchParam("company");
+  const within = WINDOWS.find((one) => one.key === chosenWindow)?.key ?? "all";
   const days = DAYS[within];
-  const [company, setCompany] = useState<NewsMention | null>(null);
+  // The box answers every keystroke; the address and the platform hear the
+  // words once typing stops.
+  const [typed, setTyped] = useState(asked);
+  const text = useDebounced(typed);
   const [offset, setOffset] = useState(0);
   const [shown, setShown] = useState<NewsItem[]>([]);
-  const text = useDebounced(typed);
+
+  useEffect(() => {
+    // Compared first: the setter changes with every address, so writing
+    // unconditionally would run this again after each write.
+    if (text.trim() !== asked) {
+      setAsked(text.trim());
+    }
+  }, [text, asked, setAsked]);
 
   // Any change to what is being asked for starts again at the beginning.
   // Keeping the articles already on screen would leave a reader looking at
   // a list that answers two different questions at once.
   useEffect(() => {
     setOffset(0);
-  }, [text, days, company]);
+  }, [text, days, companyKey]);
 
   const loadNews = useCallback(
     () =>
       fetchNews({
         text,
         days,
-        instrumentKey: company?.instrument_key ?? null,
+        instrumentKey: companyKey === "" ? null : companyKey,
         limit: offset === 0 ? BATCH + LEAD : BATCH,
         offset,
       }),
-    [text, days, company, offset],
+    [text, days, companyKey, offset],
   );
   const loadMentions = useCallback(() => fetchNewsMentions(days), [days]);
 
@@ -104,23 +119,33 @@ export function News(): React.JSX.Element {
     setShown((held) => (page.offset === 0 ? page.items : merge(held, page.items)));
   }, [page]);
 
+  const choose = (mention: NewsMention): void => {
+    setCompanyKey(mention.instrument_key);
+  };
+  const narrowed = text.trim() !== "" || within !== "all" || companyKey !== "";
+  const nothing = page !== null && page.offset === 0 && page.items.length === 0;
+
   return (
     <div className="space-y-6">
-      <header className="space-y-4">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl font-semibold">
-            <Newspaper className="h-5 w-5 text-primary" />
-            Market News
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Everything the platform has collected, and what it was published about.
-          </p>
-        </div>
+      <PageHeader
+        title="News"
+        count={
+          page === null
+            ? undefined
+            : `${formatCount(page.total)} ${page.total === 1 ? "article" : "articles"}`
+        }
+        description="Everything the platform has collected, and the companies each article was published about. Choose a company's tag to read only its news."
+      />
 
+      <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative min-w-64 flex-1">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search
+              aria-hidden="true"
+              className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+            />
             <Input
+              type="search"
               value={typed}
               onChange={(event) => {
                 setTyped(event.target.value);
@@ -137,19 +162,40 @@ export function News(): React.JSX.Element {
             label="Published within"
           />
         </div>
-
-        <CompanyFilter company={company} offered={mentions.data ?? []} onChoose={setCompany} />
-      </header>
+        <CompanyFilter
+          companyKey={companyKey}
+          symbol={symbolOf(companyKey, mentions.data ?? [], shown)}
+          offered={mentions.data ?? []}
+          onChoose={choose}
+          onClear={() => {
+            setCompanyKey("");
+          }}
+        />
+      </div>
 
       {news.error !== null ? (
         <Failed message={news.error} />
+      ) : nothing ? (
+        narrowed ? (
+          <Empty
+            title="No news matches"
+            reason="Try other words, a longer window, or every company."
+          />
+        ) : (
+          <Empty
+            title="No news stored yet"
+            reason="Articles appear here as the platform collects them."
+          />
+        )
       ) : (
         <>
-          {shown.length > 0 && <Lead item={shown[0] as NewsItem} onSelectMention={setCompany} />}
+          {shown.length > 0 && <LeadArticle item={shown[0] as NewsItem} onSelectMention={choose} />}
           <NewsFeed
             items={page === null && shown.length === 0 ? null : shown.slice(1)}
             loading={news.loading && shown.length === 0}
-            onSelectMention={setCompany}
+            onSelectMention={choose}
+            // One article is the lead alone, not an empty feed under it.
+            empty={null}
           />
           {page !== null && (
             <LoadMore
@@ -168,6 +214,23 @@ export function News(): React.JSX.Element {
 }
 
 /**
+ * The symbol of the company the feed is narrowed to, from whichever list
+ * names it: the most written about, or the articles on screen, which all
+ * mention it. Its key's tail stands in until either arrives.
+ *
+ * @param key - The company's instrument key; empty for none.
+ * @param offered - The companies most written about.
+ * @param shown - The articles on screen.
+ * @returns The symbol.
+ */
+function symbolOf(key: string, offered: MentionedInstrument[], shown: NewsItem[]): string {
+  const known = [...offered, ...shown.flatMap((item) => item.mentions)].find(
+    (one) => one.instrument_key === key,
+  );
+  return known?.symbol ?? key.slice(key.lastIndexOf("|") + 1);
+}
+
+/**
  * Add a batch to what is already on screen, without repeating anything.
  *
  * @param held - The articles already shown.
@@ -179,91 +242,27 @@ function merge(held: NewsItem[], arriving: NewsItem[]): NewsItem[] {
   return [...held, ...arriving.filter((item) => !known.has(item.url))];
 }
 
-/** The newest article, given the room its picture deserves. */
-function Lead({
-  item,
-  onSelectMention,
-}: {
-  item: NewsItem;
-  onSelectMention: (mention: NewsMention) => void;
-}): React.JSX.Element {
-  return (
-    <Card className="overflow-hidden pt-0">
-      <div className="grid md:grid-cols-2">
-        {item.thumbnail_url !== null && (
-          <div className="aspect-[16/9] w-full overflow-hidden bg-muted md:aspect-auto md:h-full">
-            <img
-              src={item.thumbnail_url}
-              alt=""
-              aria-hidden="true"
-              referrerPolicy="no-referrer"
-              className="h-full w-full object-cover"
-            />
-          </div>
-        )}
-        <CardContent className="flex flex-col gap-3 pt-6">
-          <a
-            href={item.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xl font-semibold leading-snug hover:underline"
-          >
-            {item.headline}
-          </a>
-          <p className="text-sm text-muted-foreground">{item.summary}</p>
-          <div className="mt-auto flex flex-wrap items-center gap-1">
-            {item.mentions.map((mention) => (
-              <button
-                key={mention.instrument_key}
-                type="button"
-                title={`Show only news about ${mention.symbol}`}
-                onClick={() => {
-                  onSelectMention(mention);
-                }}
-              >
-                <Badge
-                  variant="secondary"
-                  className="cursor-pointer text-xs hover:bg-primary hover:text-primary-foreground"
-                >
-                  {mention.symbol}
-                </Badge>
-              </button>
-            ))}
-            <span className="ml-auto text-xs text-muted-foreground">
-              {formatSince(item.published_at)}
-            </span>
-          </div>
-        </CardContent>
-      </div>
-    </Card>
-  );
-}
-
 /** Choosing one company's news, from the companies actually written about. */
 function CompanyFilter({
-  company,
+  companyKey,
+  symbol,
   offered,
   onChoose,
+  onClear,
 }: {
-  company: NewsMention | null;
+  companyKey: string;
+  symbol: string;
   offered: MentionedInstrument[];
-  onChoose: (company: NewsMention | null) => void;
+  onChoose: (company: NewsMention) => void;
+  onClear: () => void;
 }): React.JSX.Element | null {
-  if (company !== null) {
+  if (companyKey !== "") {
     return (
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm text-muted-foreground">Showing news about</span>
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => {
-            onChoose(null);
-          }}
-        >
-          {company.symbol}
-          <X className="h-3 w-3" />
-          <span className="sr-only">Clear company filter</span>
-        </Button>
+        <Chip removeLabel="Clear company filter" onRemove={onClear}>
+          <span className="font-medium">{symbol}</span>
+        </Chip>
       </div>
     );
   }

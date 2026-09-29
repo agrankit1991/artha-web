@@ -10,7 +10,6 @@
  */
 
 import { useCallback, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
 
 import type { Cadence, SectorEarnings } from "@/api/client";
 import { fetchEarnings, fetchSectorEarnings } from "@/api/client";
@@ -25,6 +24,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useResource } from "@/hooks/useResource";
+import { useSearchParam } from "@/hooks/useSearchParam";
 import { ENTITIES, MARKS } from "@/lib/entities";
 import { formatCount, formatDay, toNumber } from "@/lib/format";
 import { populationPath } from "@/lib/paths";
@@ -46,17 +46,8 @@ const EACH_END = 10;
  * @returns The page.
  */
 export function EarningsPage(): React.JSX.Element {
-  const [params, setParams] = useSearchParams();
-  const cadence: Cadence = params.get("cadence") === "quarterly" ? "quarterly" : "annual";
-  const setCadence = (next: Cadence): void => {
-    const changed = new URLSearchParams(params);
-    if (next === "annual") {
-      changed.delete("cadence");
-    } else {
-      changed.set("cadence", next);
-    }
-    setParams(changed, { replace: true });
-  };
+  const [chosen, setCadence] = useSearchParam("cadence", "annual");
+  const cadence: Cadence = chosen === "quarterly" ? "quarterly" : "annual";
   const loadMarket = useCallback(() => fetchEarnings("companies", "all", cadence), [cadence]);
   const loadSectors = useCallback(() => fetchSectorEarnings(cadence), [cadence]);
   const market = useResource(loadMarket);

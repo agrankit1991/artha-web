@@ -236,6 +236,20 @@ describe("EarningsPage", () => {
     });
   });
 
+  it("says nothing of samples when no sector has a quarterly comparison", async () => {
+    stubPlatform({
+      "/api/earnings/sectors": { body: [sectorEarnings({ revenue_yoy: null })] },
+      "/api/earnings/": { body: earnings({ cadence: "quarterly" }) },
+    });
+
+    renderPage(<EarningsPage />, { at: "/earnings?cadence=quarterly" });
+
+    expect(
+      await screen.findByRole("table", { name: "Sectors by earnings growth" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/here\. Rank sectors/)).not.toBeInTheDocument();
+  });
+
   it("says when no statements are held", async () => {
     stubPlatform({
       "/api/earnings/sectors": { body: [] },
