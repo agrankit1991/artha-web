@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { Routes, Route } from "react-router-dom";
 
 import { Movers } from "./Movers";
+import { forgetForTests } from "@/lib/preferences";
 import { moverRow, panel, renderPage, scopeOptions, stubPlatform } from "@/test/support";
 
 afterEach(() => {
@@ -55,8 +56,12 @@ describe("Movers", () => {
     const table = await screen.findByRole("table", { name: "Top gainers" });
     const tcs = await within(table).findByRole("link", { name: /TCS/ });
     expect(tcs).toHaveAttribute("href", "/company/TCS");
+    // The place leads the symbol, inside the way through to the company.
+    expect(tcs).toHaveTextContent(/^2\s*TCS$/);
     expect(within(table).getByRole("button", { name: /^Name/ })).toBeInTheDocument();
-    expect(screen.getByText(/2 instruments/)).toBeInTheDocument();
+    // Ranked on the change, so the change is one column, not two.
+    expect(within(table).getAllByRole("button", { name: /^Change/ })).toHaveLength(1);
+    expect(screen.getByText(/^Ranked on .* · 2 companies$/)).toBeInTheDocument();
     await waitFor(() => {
       expect(
         asked(fetched).some((path) =>
@@ -99,6 +104,7 @@ describe("Movers", () => {
 
     renderPage(page(), { at: "/movers/most-volatile?scope_kind=indices" });
     await screen.findByRole("table", { name: "Most volatile" });
+    expect(await screen.findByText(/2 indices$/)).toBeInTheDocument();
     expect(
       asked(fetched).some((path) => path.includes("/api/movers/most-volatile?scope_kind=indices")),
     ).toBe(true);
@@ -124,7 +130,7 @@ describe("Movers", () => {
     renderPage(page(), { at: "/movers/unusual-volume" });
     const table = await screen.findByRole("table", { name: "Unusual volume" });
     await within(table).findByRole("link", { name: /TCS/ });
-    for (const name of [/^#/, /^Symbol/, /^Name/, /^Price/, /^Change/, /^vs average/]) {
+    for (const name of [/^Symbol/, /^Name/, /^Price/, /^Change/, /^vs average/]) {
       await userEvent.click(within(table).getByRole("button", { name }));
     }
     expect(within(table).getAllByRole("row")).toHaveLength(3);
@@ -166,6 +172,36 @@ describe("Movers", () => {
     expect(tcs).toHaveAttribute("href", "/company/TCS");
     expect(tcs).toHaveTextContent("#2");
     expect(tcs).toHaveTextContent("3d");
-    expect(tcs).toHaveTextContent("Change");
+    // A gainer's ranked figure is its change, already on the card once.
+    expect(tcs).not.toHaveTextContent("Change");
+
+    await userEvent.click(screen.getByRole("tab", { name: "Unusual volume" }));
+    expect(await screen.findByRole("link", { name: /TCS.*vs average/ })).toBeInTheDocument();
+  });
+
+  it("holds room for the cards while they load, and says when nothing was ranked", async () => {
+    const rememberCards = (): void => {
+      window.localStorage.setItem(
+        "artha.preferences",
+        JSON.stringify({ views: { movers: "cards" } }),
+      );
+      forgetForTests();
+    };
+    rememberCards();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise(() => undefined)),
+    );
+    const { unmount } = renderPage(page(), { at: "/movers/top-gainers" });
+    expect(document.querySelectorAll("[data-slot=skeleton]").length).toBeGreaterThan(0);
+    unmount();
+
+    rememberCards();
+    stubPlatform({
+      "/api/movers/scopes": { body: scopeOptions() },
+      "/api/movers/": { body: panel({ rows: [] }) },
+    });
+    renderPage(page(), { at: "/movers/top-gainers" });
+    expect(await screen.findByText("Nothing ranked")).toBeInTheDocument();
   });
 });

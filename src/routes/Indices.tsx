@@ -14,12 +14,13 @@ import { useSearchParams } from "react-router-dom";
 import type { IndexSummary } from "@/api/client";
 import { fetchIndices } from "@/api/client";
 import { Chooser } from "@/components/Chooser";
+import { CardsLoading } from "@/components/CardsLoading";
 import { type Column, DataTable } from "@/components/DataTable";
 import { Delta } from "@/components/Delta";
 import { Failed } from "@/components/Failed";
 import { Empty } from "@/components/Empty";
 import { PageHeader } from "@/components/PageHeader";
-import { PopulationCard, PopulationCardsLoading } from "@/components/PopulationCard";
+import { PopulationCard } from "@/components/PopulationCard";
 import { ViewModeToggle, useViewMode } from "@/components/ViewModeToggle";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -214,7 +215,7 @@ export function Indices(): React.JSX.Element {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {indices.data === null ? (
-              <PopulationCardsLoading />
+              <CardsLoading />
             ) : (
               shown.map((one) => (
                 <PopulationCard

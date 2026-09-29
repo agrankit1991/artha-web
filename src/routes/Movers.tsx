@@ -13,6 +13,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 
 import type { MoverListName, MoverRow } from "@/api/client";
 import { fetchMoverList, fetchScopes } from "@/api/client";
+import { CardsLoading } from "@/components/CardsLoading";
 import { type Column, DataTable } from "@/components/DataTable";
 import { StreakBadge, nameColumn, symbolColumn } from "@/components/identityColumns";
 import { Delta } from "@/components/Delta";
@@ -26,7 +27,7 @@ import { type Tab, Tabs } from "@/components/Tabs";
 import { ViewModeToggle, useViewMode } from "@/components/ViewModeToggle";
 import { Card, CardContent } from "@/components/ui/card";
 import { useResource } from "@/hooks/useResource";
-import { formatDay, formatPrice, toNumber } from "@/lib/format";
+import { formatCount, formatDay, formatPrice, toNumber } from "@/lib/format";
 import { companyPath, moversPath, populationPath, scopeFromParams } from "@/lib/paths";
 import { cn } from "@/lib/utils";
 
@@ -85,22 +86,22 @@ export function Movers(): React.JSX.Element {
       ? populationPath("index", row.instrument_key)
       : companyPath(row.instrument_key, row.symbol);
 
+  // What the list is of, in words: the indices population ranks indices.
+  const counted = scope.kind === "indices" ? "indices" : "companies";
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Market Movers"
-        description="Every list as deep as it is kept, with how many sessions running each instrument has been on it - the column the overview cannot fit."
+        title="Market movers"
+        description="Every list as deep as it is kept, with how many sessions running each has been on it: the column the overview cannot fit."
       />
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <ScopePicker
-          scope={scope}
-          options={scopes.data}
-          onChange={(next) => {
-            go(name, next);
-          }}
-        />
-        <ViewModeToggle mode={layout} onChange={setLayout} modes={LAYOUTS} />
-      </div>
+      <ScopePicker
+        scope={scope}
+        options={scopes.data}
+        onChange={(next) => {
+          go(name, next);
+        }}
+      />
       <Tabs
         tabs={tabs}
         active={name}
@@ -108,22 +109,20 @@ export function Movers(): React.JSX.Element {
           go(next, scope);
         }}
         label="List"
+        aside={<ViewModeToggle mode={layout} onChange={setLayout} modes={LAYOUTS} />}
       >
         {ranking.error !== null ? (
           <Failed message={ranking.error} />
         ) : (
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              {MOVER_LISTS[name].title}
-              {ranking.data?.as_of != null && ` · ranked on ${formatDay(ranking.data.as_of)}`}
-              {ranking.data !== null && ` · ${String(ranking.data.rows.length)} instruments`}
-            </p>
+            {ranking.data !== null && (
+              <p className="text-sm text-muted-foreground">
+                {ranking.data.as_of !== null && `Ranked on ${formatDay(ranking.data.as_of)} · `}
+                {formatCount(ranking.data.rows.length)} {counted}
+              </p>
+            )}
             {layout === "cards" ? (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {(ranking.data?.rows ?? []).map((row) => (
-                  <MoverCard key={row.instrument_key} row={row} list={name} href={opens(row)} />
-                ))}
-              </div>
+              <MoverCards rows={ranking.data?.rows ?? null} list={name} opens={opens} />
             ) : (
               <DataTable
                 columns={columns}
@@ -146,19 +145,28 @@ export function Movers(): React.JSX.Element {
 /** The columns, with the ranked figure written the way its list reads. */
 function columnsFor(name: MoverListName): Column<MoverRow>[] {
   const list = MOVER_LISTS[name];
+  const change: Column<MoverRow> = {
+    id: "change",
+    header: "Change",
+    accessorFn: (row) => toNumber(row.change_percent) ?? Number.NEGATIVE_INFINITY,
+    cell: ({ row }) => <Delta value={row.original.change_percent} />,
+    meta: { align: "right" },
+  };
   return [
-    symbolColumn((row) => row),
+    // The place leads the symbol rather than taking a column of its own:
+    // the first column is the way to the row's page, and a rank there
+    // would make "1" the link.
+    symbolColumn((row) => row, {
+      lead: (row) => (
+        <span className="w-6 shrink-0 text-right text-xs tabular text-muted-foreground">
+          {row.rank}
+        </span>
+      ),
+    }),
     nameColumn(
       (row) => row,
       (row) => row.streak,
     ),
-    {
-      id: "rank",
-      header: "#",
-      accessorFn: (row) => row.rank,
-      cell: ({ row }) => row.original.rank,
-      meta: { align: "right" },
-    },
     {
       id: "close",
       header: "Price",
@@ -166,13 +174,8 @@ function columnsFor(name: MoverListName): Column<MoverRow>[] {
       cell: ({ row }) => formatPrice(row.original.close),
       meta: { align: "right" },
     },
-    {
-      id: "change",
-      header: "Change",
-      accessorFn: (row) => toNumber(row.change_percent) ?? Number.NEGATIVE_INFINITY,
-      cell: ({ row }) => <Delta value={row.original.change_percent} />,
-      meta: { align: "right" },
-    },
+    // A gainer is ranked on its change: a second change column repeated it.
+    ...(list.rankedByChange ? [] : [change]),
     {
       id: "value",
       header: list.measure,
@@ -186,6 +189,43 @@ function columnsFor(name: MoverListName): Column<MoverRow>[] {
 /** A ranking reads as one table or as cards; it has no category to group by. */
 const LAYOUTS = ["list", "cards"] as const;
 
+/**
+ * The ranking as cards, three across.
+ *
+ * @param props - The rows in rank order, or null while they are on their
+ *   way; the list; and where each row leads.
+ * @returns The grid, or a word that nothing was ranked.
+ */
+function MoverCards({
+  rows,
+  list,
+  opens,
+}: {
+  rows: MoverRow[] | null;
+  list: MoverListName;
+  opens: (row: MoverRow) => string;
+}): React.JSX.Element {
+  if (rows?.length === 0) {
+    return (
+      <Empty
+        title="Nothing ranked"
+        reason="Nothing in this population made this list on its latest session."
+      />
+    );
+  }
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {rows === null ? (
+        <CardsLoading />
+      ) : (
+        rows.map((row) => (
+          <MoverCard key={row.instrument_key} row={row} list={list} href={opens(row)} />
+        ))
+      )}
+    </div>
+  );
+}
+
 /** One ranked instrument as a card: its place, what it is, and the figure it was ranked by. */
 function MoverCard({
   row,
@@ -196,10 +236,10 @@ function MoverCard({
   list: MoverListName;
   href: string;
 }): React.JSX.Element {
-  const { measure, render, icon: Mark, tint } = MOVER_LISTS[list];
+  const { measure, render, rankedByChange, icon: Mark, tint } = MOVER_LISTS[list];
   return (
-    <Link to={href} className="block">
-      <Card className="transition-shadow hover:shadow-md">
+    <Link to={href} viewTransition className="block">
+      <Card className="h-full transition-shadow hover:shadow-md">
         <CardContent className="space-y-2">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
@@ -216,10 +256,13 @@ function MoverCard({
             <span className="text-lg font-bold tabular">{formatPrice(row.close)}</span>
             <Delta value={row.change_percent} />
           </div>
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{measure}</span>
-            <span className="font-medium text-foreground">{render(row)}</span>
-          </div>
+          {/* A gainer's ranked figure is the change just above it. */}
+          {!rankedByChange && (
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>{measure}</span>
+              <span className="font-medium text-foreground">{render(row)}</span>
+            </div>
+          )}
         </CardContent>
       </Card>
     </Link>

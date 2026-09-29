@@ -15,13 +15,14 @@ import { useSearchParams } from "react-router-dom";
 import type { SectorSummary } from "@/api/client";
 import { fetchSectors } from "@/api/client";
 import { AdvanceDeclineBar } from "@/components/AdvanceDeclineBar";
+import { CardsLoading } from "@/components/CardsLoading";
 import { type Column, DataTable } from "@/components/DataTable";
 import { Delta } from "@/components/Delta";
 import { Empty } from "@/components/Empty";
 import { Failed } from "@/components/Failed";
 import { Hint } from "@/components/Hint";
 import { PageHeader } from "@/components/PageHeader";
-import { PopulationCard, PopulationCardsLoading } from "@/components/PopulationCard";
+import { PopulationCard } from "@/components/PopulationCard";
 import { RotationChart, type RotationPoint } from "@/components/RotationChart";
 import { MomentumChip } from "@/components/Standing";
 import { ViewModeToggle, useViewMode } from "@/components/ViewModeToggle";
@@ -290,7 +291,7 @@ function SectorCards({ sectors }: { sectors: SectorSummary[] | null }): React.JS
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {sectors === null ? (
-        <PopulationCardsLoading />
+        <CardsLoading />
       ) : (
         sectors.map((one) => (
           <PopulationCard

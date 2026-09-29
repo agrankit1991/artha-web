@@ -51,6 +51,11 @@ export const MOVER_LISTS: Record<
     measure: string;
     render: (row: MoverRow) => React.ReactNode;
     /**
+     * Whether the figure it ranks on is the day's change itself, so that a
+     * separate change beside it would print the same number twice.
+     */
+    rankedByChange: boolean;
+    /**
      * The list's mark and its colour. From the tokens: rise and fall for the
      * two lists that are a rise and a fall, caution for the three that are
      * "worth a look", and the brand and a series colour for the rest.
@@ -61,6 +66,7 @@ export const MOVER_LISTS: Record<
 > = {
   "top-gainers": {
     title: "Top gainers",
+    rankedByChange: true,
     measure: "Change",
     render: (row) => <Delta value={row.value} />,
     icon: TrendingUp,
@@ -68,6 +74,7 @@ export const MOVER_LISTS: Record<
   },
   "top-losers": {
     title: "Top losers",
+    rankedByChange: true,
     measure: "Change",
     render: (row) => <Delta value={row.value} />,
     icon: TrendingDown,
@@ -75,6 +82,7 @@ export const MOVER_LISTS: Record<
   },
   "most-active": {
     title: "Most active",
+    rankedByChange: false,
     measure: "Volume",
     render: (row) => formatVolume(row.value),
     icon: Activity,
@@ -82,6 +90,7 @@ export const MOVER_LISTS: Record<
   },
   "most-volatile": {
     title: "Most volatile",
+    rankedByChange: false,
     measure: "Range",
     // A range is a size, not a move: no sign.
     render: (row) => formatPercentLevel(row.value),
@@ -90,6 +99,7 @@ export const MOVER_LISTS: Record<
   },
   "unusual-volume": {
     title: "Unusual volume",
+    rankedByChange: false,
     measure: "vs average",
     render: (row) => formatMultiple(row.value),
     icon: AlertTriangle,
@@ -97,6 +107,7 @@ export const MOVER_LISTS: Record<
   },
   "near-52wk-high": {
     title: "Near 52-week high",
+    rankedByChange: false,
     measure: "From high",
     // How far below its high, not a fall: a distance drawn as a red loss
     // made the whole list look like it was crashing.
@@ -108,6 +119,7 @@ export const MOVER_LISTS: Record<
   },
   "near-52wk-low": {
     title: "Near 52-week low",
+    rankedByChange: false,
     measure: "From low",
     render: (row) => (
       <span className="tabular text-muted-foreground">{formatPercent(row.value)}</span>
