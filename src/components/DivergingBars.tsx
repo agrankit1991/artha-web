@@ -27,6 +27,12 @@ interface DivergingBarsProps {
   rows: readonly DivergingRow[];
   /** What the list ranks, for a reader who cannot see the bars. */
   label: string;
+  /**
+   * The move a full half-bar stands for. By default the largest shown;
+   * lists read side by side pass one reach, or a +4% on one reads as long
+   * as a +50% on the other.
+   */
+  reach?: number;
   className?: string;
 }
 
@@ -36,10 +42,15 @@ interface DivergingBarsProps {
  * @param props - The rows, in the order they are to be read.
  * @returns The bars.
  */
-export function DivergingBars({ rows, label, className }: DivergingBarsProps): React.JSX.Element {
+export function DivergingBars({
+  rows,
+  label,
+  reach,
+  className,
+}: DivergingBarsProps): React.JSX.Element {
   // Scaled to the largest move shown, so the strongest bar reaches the edge
   // and the rest are read against it.
-  const largest = Math.max(...rows.map((row) => Math.abs(row.value)), Number.EPSILON);
+  const largest = reach ?? Math.max(...rows.map((row) => Math.abs(row.value)), Number.EPSILON);
 
   return (
     <ul aria-label={label} className={cn("space-y-1.5", className)}>

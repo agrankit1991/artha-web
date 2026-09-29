@@ -23,7 +23,8 @@ export const chartCalls = {
   subscribeCrosshairMove: vi.fn(),
   unsubscribeCrosshairMove: vi.fn(),
   applyOptions: vi.fn(),
-  setHeight: vi.fn(),
+  /** Called with the pane's index and the factor it was given. */
+  setStretchFactor: vi.fn(),
 };
 
 /**
@@ -116,9 +117,14 @@ export function chartModule(): Record<string, unknown> {
         unsubscribeVisibleLogicalRangeChange: chartCalls.unsubscribeVisibleLogicalRangeChange,
       }),
       priceScale: () => ({ applyOptions: chartCalls.applyOptions }),
-      // Two panes, so a test of a series in a band of its own has one to
-      // be put in.
-      panes: () => [{ setHeight: chartCalls.setHeight }, { setHeight: chartCalls.setHeight }],
+      // Three panes, so a test of a series in a band of its own has one to
+      // be put in, and of two bands, two.
+      panes: () =>
+        [0, 1, 2].map((index) => ({
+          setStretchFactor: (factor: number): void => {
+            chartCalls.setStretchFactor(index, factor);
+          },
+        })),
     })),
     LineSeries: "line",
     CandlestickSeries: "candlestick",

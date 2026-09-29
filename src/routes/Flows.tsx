@@ -404,6 +404,7 @@ function CumulativeFlows({
             label: BENCHMARK.name,
             colour: CHART_BENCHMARK,
             pane: 1,
+            scale: "price" as const,
             points: oldestFirst.flatMap((one) => {
               const close = toNumber(one.benchmark?.day.close);
               return close === null ? [] : [{ time: one.day, value: close }];
@@ -423,7 +424,8 @@ function CumulativeFlows({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Chart series={series} scale="price" height={320} loading={loading} />
+        {/* Sums in crore, whole and grouped; the index keeps its own scale. */}
+        <Chart series={series} scale="crore" height={320} loading={loading} />
       </CardContent>
     </Card>
   );

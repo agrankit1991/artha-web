@@ -34,4 +34,17 @@ describe("DivergingBars", () => {
     const bars = [...list.querySelectorAll<HTMLElement>(".bg-gain, .bg-loss")];
     expect(bars.map((bar) => bar.style.width)).toEqual(["50%", "25%"]);
   });
+
+  it("draws to a reach it is given, so lists side by side share one scale", () => {
+    render(
+      <MemoryRouter>
+        <DivergingBars label="Slowest" reach={8} rows={[{ label: "Paper", value: 2 }]} />
+      </MemoryRouter>,
+    );
+
+    const bar = screen
+      .getByRole("list", { name: "Slowest" })
+      .querySelector<HTMLElement>(".bg-gain");
+    expect(bar?.style.width).toBe("12.5%");
+  });
 });

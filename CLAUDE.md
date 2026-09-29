@@ -219,6 +219,16 @@ bottom. `PriceChart` carries its own controls (shape, and what is laid
 over the price) rather than taking them as props, so it drops into an
 instrument page with its settings intact.
 
+**`height` is the main plot's; each lower pane adds its own band**
+(`paneHeight`) under it, set through stretch factors (2026-09-30): three
+panes sharing one fixed height left the middle one about thirty pixels
+tall, and `setHeight` on the second of two bands took its room back from
+the first. The frame's margin is at most six bars at each end and a tenth
+of a short series (never under half a bar), so four yearly points fill the
+width. A sum in rupees crore uses the `crore` scale, whole and grouped the
+Indian way on the axis and in the reading ("1,43,55,186", not
+"14355186.00").
+
 **Full lists use `DataTable`'s `full` mode**, which is the shape the
 previous project's indices page settled on: a scrolling container, the
 header pinned as rows pass under it and the first column pinned as figures
@@ -475,7 +485,7 @@ call site.
   `UserMenu`, `AppShell`. Since the plan
   (`../UI-PLAN.md`): page furniture `PageHeader`, `SectionHeader`,
   `StatTile`/`StatGrid` (the one tile: a figure, its change or its tone, and a line qualifying it; `Statistic` merged into it 2026-09-30), `FactList`, `RangeMeter`, `Empty`, `Failed`,
-  `Hint`, `Chooser` (the one segmented control, with a sliding highlight), `Tabs`, `Callout` (a note set apart: info in teal, caution in amber, danger in red, progress with a spinner; `Failed` is its danger tone); `DivergingBars` (a ranked list either side of nought); `AdvanceDeclineBar` (the one risers-unchanged-fallers bar, over a neutral track: the sectors list once filled the rest with red); `PopulationCard` (an index or a sector as a card; the overview's `IndexCard` is one session of a headline index and stays apart); `RotationChart` (month against week in four quarters, plain HTML because Lightweight Charts has no scatter; on Sectors, only sectors with ten or more companies measured, since a median of two swings by tens of per cent); `SearchBox` in the header, built on `InstrumentPicker` (the one search-and-choose box, keyboard first, also adding to a comparison and to a watchlist; it was three, and only the header's took the keyboard); `Dialog` (own,
+  `Hint`, `Chooser` (the one segmented control, with a sliding highlight), `Tabs`, `Callout` (a note set apart: info in teal, caution in amber, danger in red, progress with a spinner; `Failed` is its danger tone); `DivergingBars` (a ranked list either side of nought); `AdvanceDeclineBar` (the one risers-unchanged-fallers bar, over a neutral track: the sectors list once filled the rest with red); `PopulationCard` (an index or a sector as a card; the overview's `IndexCard` is one session of a headline index and stays apart); `CardsLoading` (shimmering placeholder cards for any card grid); `GrowthCell` and `GrowingShare` (a growth figure with its sample, and the share growing as a plain level); `RotationChart` (month against week in four quarters, plain HTML because Lightweight Charts has no scatter; on Sectors, only sectors with ten or more companies measured, since a median of two swings by tens of per cent); `SearchBox` in the header, built on `InstrumentPicker` (the one search-and-choose box, keyboard first, also adding to a comparison and to a watchlist; it was three, and only the header's took the keyboard); `Dialog` (own,
   like `Menu`, so jsdom can drive it) and `ConfirmDialog` on it; `WatchButton`, `ShareButton`,
   `SessionPicker`, `EarningsPanel`, `ValuationPanel`,
   `ValuationHistoryChart`, `PopulationValuationPanel`,
@@ -605,6 +615,16 @@ the working plan with the reasoning is `docs/REDESIGN-PLAN.md`
 - **Bar strips without axes are inline SVG** (`FlowBars` for nets either
   side of nought, the delivery bars in the accent): `Chart`'s bar series is
   a volume overlay squeezed under the price and cannot draw them.
+- **Earnings charts draw only what most of the population reported**
+  (`src/lib/earningsCoverage.ts`, 2026-09-30): the platform groups
+  statements by the exact period end, so a company whose year ends in
+  January is a one-company "year" beside Marches of three thousand, and
+  the totals line was a sawtooth. A period is drawn when at least half as
+  many companies reported as in the best-covered one, and a growth point
+  when its sample is at least half the largest of that figure's; the table
+  lists every period end on request. Quarterly growth is drawn quarter on
+  quarter, since the year-ago quarter is held for a handful of companies.
+  The cleaner fix, grouping by financial year, belongs in the platform.
 - **Index contribution is approximate:** `lib/contribution.ts` weighs by
   market capitalisation, which the platform holds, not the free float an
   exchange uses, and every screen showing it says so.

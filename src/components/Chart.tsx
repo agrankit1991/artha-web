@@ -24,6 +24,7 @@ import {
   type ISeriesApi,
   LineSeries,
   type MouseEventParams,
+  type PriceFormatCustom,
   type SeriesType,
   createChart,
 } from "lightweight-charts";
@@ -34,7 +35,7 @@ import { RotateCcw } from "lucide-react";
 import { TradingViewLink } from "@/components/TradingViewLink";
 import { AVERAGE_WIDTH, FALL, NEUTRAL, PRICE_WIDTH, RISE, THRESHOLD } from "@/lib/chartPalette";
 import { tokenColour, translucent } from "@/lib/tokenColour";
-import { formatCount, formatDay, formatPrice } from "@/lib/format";
+import { formatCount, formatDay, formatPrice, formatWhole } from "@/lib/format";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -108,10 +109,12 @@ export type Series =
 
 /**
  * What a chart's figures are, which decides how they are written: a price,
- * a change in per cent (signed), a count, or a share in per cent (a level,
- * unsigned: 45.2% of contracts long did not rise by 45.2%).
+ * a change in per cent (signed), a count, a share in per cent (a level,
+ * unsigned: 45.2% of contracts long did not rise by 45.2%), or a sum in
+ * rupees crore (whole and grouped: the market's revenue on the price scale
+ * read "15000000.00").
  */
-export type Scale = "price" | "percent" | "count" | "share";
+export type Scale = "price" | "percent" | "count" | "share" | "crore";
 
 /** What the crosshair is over, what each series was worth, and where it is. */
 interface Hovered {
@@ -154,10 +157,12 @@ interface ChartProps {
 const DEFAULT_HEIGHT = 360;
 
 /**
- * How many bars of empty space to leave at each end.
+ * The most bars of empty space to leave at each end.
  *
- * Enough to be clearly a margin rather than a rounding error, and few
- * enough that a short series is still mostly series.
+ * Enough to be clearly a margin rather than a rounding error on a long
+ * history. A short series gets a tenth of its length, and never less than
+ * half a bar: six bars either side of four yearly points left the points
+ * in the middle quarter of the chart.
  */
 const EDGE_BARS = 6;
 
@@ -197,6 +202,12 @@ export function Chart({
   const { appearance } = useTheme();
   const drawable = series.filter((one) => one.points.length > 0);
   const hasBars = drawable.some((one) => one.kind === "bars");
+  // The main plot keeps its height and each pane under it adds its own
+  // band, rather than every pane carving room out of one fixed height:
+  // two bands in 360 pixels left the middle pane about thirty tall.
+  const lowerPanes = new Set(drawable.flatMap((one) => ((one.pane ?? 0) > 0 ? [one.pane] : [])))
+    .size;
+  const total = height + lowerPanes * paneHeight;
 
   useEffect(() => {
     const element = holder.current;
@@ -211,7 +222,7 @@ export function Chart({
     const grid = tokenColour("var(--chart-grid)");
     const crosshair = tokenColour("var(--chart-crosshair)");
     const created = createChart(element, {
-      height,
+      height: total,
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
         textColor: text,
@@ -255,11 +266,13 @@ export function Chart({
 
     // Panes past the first are given a fixed band rather than an equal
     // share: an oscillator is read for its shape against its thresholds,
-    // and half the chart is far more room than that needs.
-    const panes = created.panes();
-    for (const pane of panes.slice(1)) {
-      pane.setHeight(paneHeight);
-    }
+    // and half the chart is far more room than that needs. Set as stretch
+    // factors in proportion to the height they were added to, which the
+    // library honours for every pane at once; `setHeight` on the second of
+    // two bands took its room back from the first.
+    created.panes().forEach((pane, index) => {
+      pane.setStretchFactor(index === 0 ? height : paneHeight);
+    });
 
     if (hasBars) {
       created.priceScale(BAR_SCALE).applyOptions({
@@ -274,7 +287,8 @@ export function Chart({
     // there is somewhere to drag to and the first and last sessions are
     // not pressed against the edges of the frame.
     const longest = Math.max(...drawable.map((one) => one.points.length));
-    const frame = { from: -EDGE_BARS, to: longest - 1 + EDGE_BARS };
+    const edge = Math.max(0.5, Math.min(EDGE_BARS, longest / 10));
+    const frame = { from: -edge, to: longest - 1 + edge };
     opening.current = frame;
     created.timeScale().setVisibleLogicalRange(frame);
     setMoved(false);
@@ -357,7 +371,7 @@ export function Chart({
     // `drawable` is rebuilt on every render; `series` is what a caller
     // actually changes, and is what this should redraw for.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [series, height, appearance, scale, hasBars, paneHeight]);
+  }, [series, total, appearance, scale, hasBars, paneHeight]);
 
   const reset = useCallback(() => {
     const frame = opening.current;
@@ -476,7 +490,7 @@ export function Chart({
         )}
         <div
           ref={holder}
-          style={{ height }}
+          style={{ height: total }}
           data-testid="chart"
           className="motion-safe:animate-fade-in"
           // The conventional gesture, and the one somebody tries first. The
@@ -678,10 +692,14 @@ function placed(at: Hovered["at"]): React.CSSProperties {
  *   left to the default it read "40.00" people.
  */
 function priceFormat(scale: Scale): {
-  priceFormat?: { type: "percent" | "price"; precision?: number; minMove?: number };
+  priceFormat?:
+    { type: "percent" | "price"; precision?: number; minMove?: number } | PriceFormatCustom;
 } {
   if (scale === "percent" || scale === "share") {
     return { priceFormat: { type: "percent" } };
+  }
+  if (scale === "crore") {
+    return { priceFormat: { type: "custom", formatter: formatWhole, minMove: 1 } };
   }
   return scale === "count" ? { priceFormat: { type: "price", precision: 0, minMove: 1 } } : {};
 }
@@ -699,6 +717,9 @@ function written(value: number, scale: Scale): string {
   }
   if (scale === "share") {
     return `${value.toFixed(1)}%`;
+  }
+  if (scale === "crore") {
+    return formatWhole(value);
   }
   // A count is whole: two decimal places on a number of companies is
   // noise pretending to be precision.

@@ -10,23 +10,29 @@
  * three hundred is.
  */
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import type { Cadence, Earnings, EarningsPeriod, GrowthFigure } from "@/api/client";
 import { Chart, type Series } from "@/components/Chart";
 import { Chooser } from "@/components/Chooser";
 import { type Column, DataTable } from "@/components/DataTable";
-import { Delta } from "@/components/Delta";
 import { Empty } from "@/components/Empty";
-import { Hint } from "@/components/Hint";
+import { GrowingShare, GrowthCell } from "@/components/GrowthCell";
+import { Button } from "@/components/ui/button";
 import { OSCILLATOR, PRICE_WIDTH, PROFIT, REVENUE } from "@/lib/chartPalette";
+import { broadGrowth, broadPeriods } from "@/lib/earningsCoverage";
 import { ABSENT, formatDay, formatWhole, toNumber } from "@/lib/format";
 
 interface EarningsPanelProps {
   earnings: Earnings | null;
   loading?: boolean;
   cadence: Cadence;
-  onCadence: (cadence: Cadence) => void;
+  /**
+   * How to change the cadence, when the panel offers the choice itself.
+   * A page whose other sections follow the same choice puts it in its
+   * header instead and leaves this out.
+   */
+  onCadence?: (cadence: Cadence) => void;
 }
 
 /** The two series on offer, and what each can say. */
@@ -36,11 +42,11 @@ export const CADENCES: { key: Cadence; label: string }[] = [
 ];
 
 /** What each series can and cannot say, said once above the chart. */
-const NOTES: Record<Cadence, string> = {
+export const NOTES: Record<Cadence, string> = {
   annual:
-    "Year on year, over every March year-end held. The statements are broad from the year to March 2022 and reach further back for a hundred-odd companies. Growth is taken over the companies present in both years.",
+    "Year on year, over the companies present in both years. The chart draws what most of these companies reported: the years most of them filed, and growth where most were present in both. A company whose year ends in another month, and the few whose statements reach further back, are listed under every period end.",
   quarterly:
-    "Quarter on quarter over the quarters held. The provider keeps four quarters per company, so year on year appears only where the year-ago quarter is held.",
+    "Quarter on quarter, over the companies present in both quarters, drawn where most of them were. The provider keeps four quarters per company, so a year-ago quarter is seldom held: year on year is listed in the table, with its small sample, and not drawn.",
 };
 
 /**
@@ -55,14 +61,20 @@ export function EarningsPanel({
   cadence,
   onCadence,
 }: EarningsPanelProps): React.JSX.Element {
-  const periods = useMemo(() => [...(earnings?.periods ?? [])].reverse(), [earnings]);
-  const series = useMemo<Series[]>(() => drawn(periods), [periods]);
+  // Oldest first for the chart, and only the periods that speak for the
+  // population: see `broadPeriods`.
+  const series = useMemo<Series[]>(
+    () => drawn(broadPeriods([...(earnings?.periods ?? [])].reverse()), cadence),
+    [earnings, cadence],
+  );
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <p className="max-w-3xl text-sm text-muted-foreground">{NOTES[cadence]}</p>
-        <Chooser options={CADENCES} chosen={cadence} onChange={onCadence} label="Series" />
+        {onCadence !== undefined && (
+          <Chooser options={CADENCES} chosen={cadence} onChange={onCadence} label="Series" />
+        )}
       </div>
       {!loading && earnings !== null && earnings.periods.length === 0 ? (
         <Empty
@@ -72,7 +84,7 @@ export function EarningsPanel({
       ) : (
         <Chart
           series={series}
-          scale="price"
+          scale="crore"
           loading={loading}
           empty="No statements held for these companies"
           paneHeight={120}
@@ -86,10 +98,15 @@ export function EarningsPanel({
 /**
  * The three readings as series: totals, growth, and the share growing.
  *
- * @param periods - The periods, oldest first.
+ * Growth is year on year for the annual series and quarter on quarter for
+ * the quarterly one, whose year-ago quarter is held for a handful of
+ * companies: on the market's latest quarter, 123 against 3,911.
+ *
+ * @param periods - The periods to draw, oldest first.
+ * @param cadence - Which series they are.
  * @returns The series to draw.
  */
-function drawn(periods: EarningsPeriod[]): Series[] {
+function drawn(periods: EarningsPeriod[], cadence: Cadence): Series[] {
   if (periods.length === 0) {
     return [];
   }
@@ -98,39 +115,43 @@ function drawn(periods: EarningsPeriod[]): Series[] {
       const value = toNumber(of(one));
       return value === null ? [] : [{ time: one.period_end, value }];
     });
+  const quarterly = cadence === "quarterly";
+  const against = quarterly ? "quarter on quarter" : "year on year";
+  const revenueGrowth = broadGrowth(periods, (one) => growthOf(one, "revenue", cadence));
+  const profitGrowth = broadGrowth(periods, (one) => growthOf(one, "profit", cadence));
   const candidates: Series[] = [
     {
       kind: "line",
-      label: "Revenue (₹ crore)",
+      label: "Revenue (₹ cr)",
       colour: REVENUE,
       width: PRICE_WIDTH,
       points: points((one) => one.revenue),
     },
     {
       kind: "line",
-      label: "Profit (₹ crore)",
+      label: "Profit (₹ cr)",
       colour: PROFIT,
       width: PRICE_WIDTH,
       points: points((one) => one.profit),
     },
     {
       kind: "line",
-      label: "Revenue growth, year on year",
+      label: `Revenue growth, ${against}`,
       colour: REVENUE,
       width: PRICE_WIDTH,
       pane: 1,
       scale: "percent",
       thresholds: [{ value: 0 }],
-      points: points((one) => one.revenue_yoy?.percent ?? null),
+      points: points((one) => revenueGrowth(one)?.percent ?? null),
     },
     {
       kind: "line",
-      label: "Profit growth, year on year",
+      label: `Profit growth, ${against}`,
       colour: PROFIT,
       width: PRICE_WIDTH,
       pane: 1,
       scale: "percent",
-      points: points((one) => one.profit_yoy?.percent ?? null),
+      points: points((one) => profitGrowth(one)?.percent ?? null),
     },
     {
       kind: "line",
@@ -140,10 +161,28 @@ function drawn(periods: EarningsPeriod[]): Series[] {
       pane: 2,
       scale: "percent",
       thresholds: [{ value: 50, label: "Half" }],
-      points: points((one) => one.revenue_yoy?.growing ?? null),
+      points: points((one) => revenueGrowth(one)?.growing ?? null),
     },
   ];
   return candidates.filter((one) => one.points.length > 0);
+}
+
+/**
+ * The comparison a cadence is read by: a year before for the annual
+ * series, a quarter before for the quarterly one, whose year-ago quarter is
+ * seldom held.
+ *
+ * @param period - The period.
+ * @param figure - Revenue or profit.
+ * @param cadence - Which series it belongs to.
+ * @returns The growth figure, or null where none is held.
+ */
+function growthOf(
+  period: EarningsPeriod,
+  figure: "revenue" | "profit",
+  cadence: Cadence,
+): GrowthFigure | null {
+  return period[`${figure}_${cadence === "quarterly" ? "qoq" : "yoy"}`];
 }
 
 /** Every period as a row, with each figure's sample beside it. */
@@ -156,6 +195,9 @@ function PeriodTable({
   loading: boolean;
   cadence: Cadence;
 }): React.JSX.Element {
+  const [every, setEvery] = useState(false);
+  const broad = useMemo(() => broadPeriods(periods), [periods]);
+  const hidden = periods.length - broad.length;
   const columns = useMemo<Column<EarningsPeriod>[]>(() => {
     const always: Column<EarningsPeriod>[] = [
       {
@@ -192,8 +234,8 @@ function PeriodTable({
       {
         id: "growing",
         header: "Growing",
-        accessorFn: (row) => toNumber(row.revenue_yoy?.growing ?? null) ?? -1,
-        cell: ({ row }) => share(row.original.revenue_yoy),
+        accessorFn: (row) => toNumber(growthOf(row, "revenue", cadence)?.growing ?? null) ?? -1,
+        cell: ({ row }) => <GrowingShare figure={growthOf(row.original, "revenue", cadence)} />,
         meta: { align: "right" },
       },
     ];
@@ -203,16 +245,33 @@ function PeriodTable({
   }, [cadence]);
 
   return (
-    <DataTable
-      columns={columns}
-      rows={periods}
-      loading={loading}
-      empty="No periods to show"
-      placeholderRows={6}
-      label="Earnings by period"
-      full
-      maxHeight="28rem"
-    />
+    <div className="space-y-2">
+      <DataTable
+        columns={columns}
+        rows={every ? periods : broad}
+        loading={loading}
+        empty="No periods to show"
+        placeholderRows={6}
+        label="Earnings by period"
+        full
+        maxHeight="28rem"
+      />
+      {hidden > 0 && (
+        <Button
+          variant="link"
+          size="sm"
+          // A link's length on a phone: it wraps rather than widen the page.
+          className="h-auto whitespace-normal px-0 text-left"
+          onClick={() => {
+            setEvery(!every);
+          }}
+        >
+          {every
+            ? "Show only the periods most companies reported"
+            : `Show every period end (${String(hidden)} more, each reported by fewer companies)`}
+        </Button>
+      )}
+    </div>
   );
 }
 
@@ -234,44 +293,6 @@ function growth(
     cell: ({ row }) => <GrowthCell figure={row.original[field]} />,
     meta: { align: "right" },
   };
-}
-
-/** One growth figure with the sample it was taken over. */
-function GrowthCell({ figure }: { figure: GrowthFigure | null }): React.JSX.Element {
-  if (figure === null) {
-    return (
-      <Hint
-        term="a missing growth figure"
-        text="No comparison period is held for these companies, or fewer than three of them reported in both."
-      >
-        <span className="text-muted-foreground">{ABSENT}</span>
-      </Hint>
-    );
-  }
-  return (
-    <span className="inline-flex flex-col items-end leading-tight">
-      {figure.percent === null ? (
-        <Hint
-          term="n/a"
-          text="The earlier total was nought or a loss, and growth from a loss is not a percentage anybody means. The totals still stand."
-        >
-          <span className="text-muted-foreground">n/a</span>
-        </Hint>
-      ) : (
-        <Delta value={figure.percent} />
-      )}
-      <span className="text-[0.65rem] text-muted-foreground">n = {figure.sample}</span>
-    </span>
-  );
-}
-
-/** The share of companies growing, coloured by which side of half. */
-function share(figure: GrowthFigure | null): React.JSX.Element | string {
-  if (figure === null) {
-    return ABSENT;
-  }
-  const value = toNumber(figure.growing) ?? 0;
-  return <span className={value >= 50 ? "text-gain" : "text-loss"}>{value.toFixed(0)}%</span>;
 }
 
 /** A sum in crore, written whole. */

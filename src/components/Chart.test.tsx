@@ -8,7 +8,7 @@
  * draw.
  */
 
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -196,7 +196,37 @@ describe("Chart", () => {
     draw([LINE]);
 
     // Two points, so the data occupies logical 0 and 1.
-    expect(chartCalls.setVisibleLogicalRange).toHaveBeenCalledWith({ from: -6, to: 7 });
+    expect(chartCalls.setVisibleLogicalRange).toHaveBeenCalledWith({ from: -0.5, to: 1.5 });
+  });
+
+  it("leaves a long history six bars at each end, and a short one a tenth of itself", () => {
+    const sessions = (count: number): Series => ({
+      ...LINE,
+      points: Array.from({ length: count }, (_, index) => ({
+        time: `2026-${String(Math.floor(index / 28) + 1).padStart(2, "0")}-${String((index % 28) + 1).padStart(2, "0")}`,
+        value: index,
+      })),
+    });
+    draw([sessions(100)]);
+    expect(chartCalls.setVisibleLogicalRange).toHaveBeenLastCalledWith({ from: -6, to: 105 });
+
+    cleanup();
+    draw([sessions(30)]);
+    expect(chartCalls.setVisibleLogicalRange).toHaveBeenLastCalledWith({ from: -3, to: 32 });
+  });
+
+  it("adds each lower pane's band under the main plot rather than squeezing it", () => {
+    draw([LINE, { ...LINE, label: "Growth", pane: 1 }, { ...LINE, label: "Share", pane: 2 }]);
+
+    const options = chartCalls.createChart.mock.calls.at(-1)?.[1] as { height: number };
+    // 360 for the main plot and 110 for each of the two panes under it.
+    expect(options.height).toBe(580);
+    expect(screen.getByTestId("chart")).toHaveStyle({ height: "580px" });
+    expect(chartCalls.setStretchFactor.mock.calls).toEqual([
+      [0, 360],
+      [1, 110],
+      [2, 110],
+    ]);
   });
 
   it("frames to the longest series when they differ in length", () => {
@@ -216,7 +246,7 @@ describe("Chart", () => {
       },
     ]);
 
-    expect(chartCalls.setVisibleLogicalRange).toHaveBeenCalledWith({ from: -6, to: 9 });
+    expect(chartCalls.setVisibleLogicalRange).toHaveBeenCalledWith({ from: -0.5, to: 3.5 });
   });
 
   it("offers nothing to reset until the view has actually moved", () => {
@@ -243,7 +273,7 @@ describe("Chart", () => {
     draw([LINE]);
 
     act(() => {
-      reportRange({ from: -6.2, to: 7.1 });
+      reportRange({ from: -0.7, to: 1.6 });
     });
 
     expect(screen.queryByRole("button", { name: /Reset view/ })).not.toBeInTheDocument();
@@ -258,7 +288,7 @@ describe("Chart", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /Reset view/ }));
 
-    expect(chartCalls.setVisibleLogicalRange).toHaveBeenCalledWith({ from: -6, to: 7 });
+    expect(chartCalls.setVisibleLogicalRange).toHaveBeenCalledWith({ from: -0.5, to: 1.5 });
   });
 
   it("resets on a double click, which is what a reader tries first", () => {
@@ -270,7 +300,7 @@ describe("Chart", () => {
 
     fireEvent.doubleClick(screen.getByTestId("chart"));
 
-    expect(chartCalls.setVisibleLogicalRange).toHaveBeenCalledWith({ from: -6, to: 7 });
+    expect(chartCalls.setVisibleLogicalRange).toHaveBeenCalledWith({ from: -0.5, to: 1.5 });
   });
 
   it("stops listening when the page moves on", () => {
@@ -329,6 +359,23 @@ describe("Chart", () => {
 
     const reading = await screen.findByRole("group", { name: "Crosshair reading" });
     expect(within(reading).getByText("45.2%")).toBeInTheDocument();
+  });
+
+  it("writes a sum in crore whole and grouped, on the axis and in the reading", async () => {
+    // The market's revenue on the price scale read "15000000.00".
+    draw([{ ...LINE, label: "Revenue (₹ cr)" }], { scale: "crore" });
+
+    const options = chartCalls.addSeries.mock.calls.at(-1)?.[1] as {
+      priceFormat: { type: string; formatter: (value: number) => string };
+    };
+    expect(options.priceFormat.type).toBe("custom");
+    expect(options.priceFormat.formatter(14355186.22)).toBe("1,43,55,186");
+
+    act(() => {
+      moveCrosshair("2026-09-02", [14355186.22]);
+    });
+    const reading = await screen.findByRole("group", { name: "Crosshair reading" });
+    expect(within(reading).getByText("1,43,55,186")).toBeInTheDocument();
   });
 
   it("reads a candle by where the session closed", () => {

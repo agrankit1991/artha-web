@@ -143,7 +143,7 @@ describe("PriceChart", () => {
     await toggleIndicator("RSI");
 
     expect(seriesPanes()).toContain(1);
-    expect(chartCalls.setHeight).toHaveBeenCalled();
+    expect(chartCalls.setStretchFactor).toHaveBeenCalledWith(1, 110);
   });
 
   it("marks what an oscillator is read against", async () => {
