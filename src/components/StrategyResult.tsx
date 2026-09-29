@@ -67,7 +67,7 @@ export function StrategyResultPanel({ result }: StrategyResultProps): React.JSX.
           description="The companies it would hold on the last session of its history."
         />
         {backtest.error !== null ? (
-          <p className="text-sm text-loss">{backtest.error}</p>
+          <p className="text-sm text-destructive">{backtest.error}</p>
         ) : picks !== null ? (
           <BacktestPicksPanel picks={picks} />
         ) : (

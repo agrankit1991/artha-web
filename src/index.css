@@ -1,253 +1,120 @@
 @import "tailwindcss";
 
 /*
- * Theme tokens, light and dark.
+ * Theme tokens, light and dark: the brand palette, Samudra.
  *
  * Every colour in the application comes from one of these, so a screen
  * cannot disagree with another about what a surface or a falling price looks
- * like. `--gain` and `--loss` are the two this application adds to shadcn's
- * set: a market interface says "up" and "down" on nearly every screen, and
- * without a token for it each screen would invent its own green.
+ * like. Chosen from the logo (orange #ea580c, teal #0097b2) on 2026-09-29 and
+ * checked for contrast: every text pair reads at 4.5:1 or better in both
+ * modes (`docs/BRAND-PLAN.md`, and `palette.test.ts` keeps it so).
+ *
+ * The logo's teal leads: buttons, links, titles and the page you are on. Its
+ * orange is kept for where the brand speaks -- the logo, the name beside it,
+ * the rule under a page's title -- so it stays special, and so nothing the
+ * reader acts on is ever the colour of a warning.
  */
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * The palettes, carried over from the previous incarnation of this project
- * rather than invented again.
- *
  * Three surfaces, and the relationship between them is the point: the page
  * is a tinted off-white, a card is pure white sitting on top of it, and the
- * chrome -- sidebar and header -- is a third shade, deeper than both. A
- * palette where the page and the card are the same white has no depth to
- * it, which is what the first attempt at this produced.
+ * chrome -- sidebar, header, footer -- is a third shade, deeper than both.
+ * A palette where the page and the card are the same white has no depth,
+ * which is what the neutral palette this replaced had become.
  *
- * An accent is therefore a whole palette rather than a highlight colour.
- * Every token below moves with it, in one hue family, so the page, the
- * cards, the borders and the chrome all belong together.
- *
- * `--gain` and `--loss` are this application's own addition and are never
- * part of an accent: green has to mean "up" on every theme.
+ * `--gain`, `--loss` and `--caution` are this application's own additions
+ * and say rise, fall and "worth a look". Nothing else is painted in them:
+ * an error is `--destructive`, a status has its own badge, a brand moment is
+ * `--brand`.
  */
 
 :root {
   --radius: 0.5rem;
 
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.25 0.05 240);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --background: #f3f8f9;
+  --foreground: #0d1e24;
+  --card: #ffffff;
+  --card-foreground: #0d1e24;
+  --popover: #ffffff;
+  --popover-foreground: #0d1e24;
+  --primary: #00758a;
+  --primary-foreground: #ffffff;
+  --secondary: #e8f1f3;
+  --secondary-foreground: #0d1e24;
+  --muted: #edf4f6;
+  --muted-foreground: #4e646b;
+  --accent: #e3eef1;
+  --accent-foreground: #0d1e24;
+  /* red-700: an error message is small text, and red-600 is 4.8:1. */
+  --destructive: #b91c1c;
+  --destructive-foreground: #ffffff;
+  --border: #d3e0e3;
+  --input: #c3d5da;
+  --ring: #00758a;
 
-  --layout: hsl(210 40% 96%);
-  --layout-foreground: hsl(222.2 84% 4.9%);
-  --layout-accent: hsl(210 40% 92%);
-  --layout-border: hsl(214.3 31.8% 86%);
+  --chrome: #e4eff1;
+  --chrome-foreground: #0d1e24;
+  --chrome-accent: #d2e4e8;
+  --chrome-border: #d3e0e3;
 
-  /* Indian market convention: green for a rise. The exact green-600 and
-     red-600 of the previous project, whose figures the owner preferred;
-     colour is never the only signal, since every change also carries an
-     arrow and a sign. `--caution` is amber-600: streaks, "near 52-week"
-     and stale data -- things worth a look that are neither up nor down. */
-  --gain: oklch(0.627 0.194 149.214);
-  --loss: oklch(0.577 0.245 27.325);
-  --caution: oklch(0.666 0.179 58.318);
+  /* The logo's orange, for brand moments only. */
+  --brand: #ea580c;
+  /* The name beside the logo, in the logo's two colours: Artha the orange of
+     the letter, Science the teal of the S. Deeper than the logo's own shades,
+     which are 3.0:1 as small text on the chrome; these are 4.7 and 4.6:1. */
+  --wordmark-artha: #bb3f0b;
+  --wordmark-science: #00758a;
+  /* Behind the phone's sidebar and a dialog. */
+  --overlay: rgb(4 24 29 / 0.45);
+
+  /* Indian market convention: green for a rise. Green-700 rather than the
+     previous project's green-600, which is 3.3:1 on white and too faint for
+     the small figures most of this site is (owner's decision, 2026-09-30);
+     amber-700 for caution for the same reason. Red-600 already reads at
+     4.8:1. Colour is never the only signal: every change also carries an
+     arrow and a sign. */
+  --gain: #15803d;
+  --loss: #dc2626;
+  --caution: #b45309;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.7 0.1 240);
-  --primary-foreground: oklch(0.145 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --background: #0a1316;
+  --foreground: #e4f0f2;
+  --card: #101d21;
+  --card-foreground: #e4f0f2;
+  --popover: #101d21;
+  --popover-foreground: #e4f0f2;
+  --primary: #36b9d2;
+  --primary-foreground: #04181d;
+  --secondary: #16262b;
+  --secondary-foreground: #e4f0f2;
+  --muted: #142226;
+  --muted-foreground: #8fa8ae;
+  --accent: #1a2b30;
+  --accent-foreground: #e4f0f2;
+  --destructive: #f87171;
+  --destructive-foreground: #1a0505;
+  --border: #203238;
+  --input: #2a3f45;
+  --ring: #36b9d2;
 
-  --layout: oklch(0.205 0 0);
-  --layout-foreground: oklch(0.985 0 0);
-  --layout-accent: oklch(0.269 0 0);
-  --layout-border: oklch(1 0 0 / 10%);
+  --chrome: #0d181c;
+  --chrome-foreground: #e4f0f2;
+  --chrome-accent: #17282d;
+  --chrome-border: #203238;
 
-  /* Lifted to green-500 / red-500 / amber-500 for a dark surface, as the
-     previous project did: the light-mode shades read nearly black on it. */
-  --gain: oklch(0.723 0.219 149.579);
-  --loss: oklch(0.637 0.237 25.331);
-  --caution: oklch(0.769 0.188 70.08);
-}
+  --brand: #fb7a3c;
+  --wordmark-artha: #fb7a3c;
+  --wordmark-science: #2bb7d1;
+  --overlay: rgb(0 0 0 / 0.6);
 
-[data-accent="blue"] {
-  --background: hsl(210 40% 98%);
-  --foreground: hsl(222.2 84% 4.9%);
-  --card: hsl(0 0% 100%);
-  --card-foreground: hsl(222.2 84% 4.9%);
-  --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(222.2 84% 4.9%);
-  --primary: hsl(221.2 83.2% 53.3%);
-  --primary-foreground: hsl(210 40% 98%);
-  --secondary: hsl(210 40% 96.1%);
-  --secondary-foreground: hsl(222.2 47.4% 11.2%);
-  --muted: hsl(210 40% 96.1%);
-  --muted-foreground: hsl(215.4 16.3% 46.9%);
-  --accent: hsl(210 40% 94%);
-  --accent-foreground: hsl(222.2 47.4% 11.2%);
-  --border: hsl(214.3 31.8% 91.4%);
-  --input: hsl(214.3 31.8% 91.4%);
-  --ring: hsl(221.2 83.2% 53.3%);
-
-  --layout: hsl(210 45% 94%);
-  --layout-foreground: hsl(222.2 84% 4.9%);
-  --layout-accent: hsl(210 40% 90%);
-  --layout-border: hsl(214.3 31.8% 86%);
-}
-
-.dark[data-accent="blue"] {
-  --background: hsl(222.2 84% 4.9%);
-  --foreground: hsl(210 40% 98%);
-  --card: hsl(217.2 32.6% 12%);
-  --card-foreground: hsl(210 40% 98%);
-  --popover: hsl(217.2 32.6% 12%);
-  --popover-foreground: hsl(210 40% 98%);
-  --primary: hsl(217.2 91.2% 59.8%);
-  --primary-foreground: hsl(222.2 47.4% 11.2%);
-  --secondary: hsl(217.2 32.6% 17.5%);
-  --secondary-foreground: hsl(210 40% 98%);
-  --muted: hsl(217.2 32.6% 17.5%);
-  --muted-foreground: hsl(215 20.2% 65.1%);
-  --accent: hsl(217.2 32.6% 20%);
-  --accent-foreground: hsl(210 40% 98%);
-  --border: hsl(217.2 32.6% 17.5%);
-  --input: hsl(217.2 32.6% 17.5%);
-  --ring: hsl(224.3 76.3% 48%);
-
-  --layout: hsl(217.2 32.6% 10%);
-  --layout-foreground: hsl(210 40% 98%);
-  --layout-accent: hsl(217.2 32.6% 17.5%);
-  --layout-border: hsl(217.2 32.6% 17.5%);
-}
-
-[data-accent="green"] {
-  --background: hsl(150 40% 98%);
-  --foreground: hsl(160 10% 5%);
-  --card: hsl(0 0% 100%);
-  --card-foreground: hsl(160 10% 5%);
-  --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(160 10% 5%);
-  --primary: hsl(142.1 76.2% 36.3%);
-  --primary-foreground: hsl(355.7 100% 97.3%);
-  --secondary: hsl(140 30% 94%);
-  --secondary-foreground: hsl(140 5.9% 10%);
-  --muted: hsl(140 30% 94%);
-  --muted-foreground: hsl(140 3.8% 46.1%);
-  --accent: hsl(140 30% 92%);
-  --accent-foreground: hsl(140 5.9% 10%);
-  --border: hsl(140 5.9% 90%);
-  --input: hsl(140 5.9% 90%);
-  --ring: hsl(142.1 76.2% 36.3%);
-
-  --layout: hsl(150 45% 94%);
-  --layout-foreground: hsl(160 10% 5%);
-  --layout-accent: hsl(150 35% 90%);
-  --layout-border: hsl(140 5.9% 85%);
-}
-
-.dark[data-accent="green"] {
-  --background: hsl(160 15% 8%);
-  --foreground: hsl(0 0% 95%);
-  --card: hsl(155 15% 12%);
-  --card-foreground: hsl(0 0% 95%);
-  --popover: hsl(155 15% 12%);
-  --popover-foreground: hsl(0 0% 95%);
-  --primary: hsl(142.1 70.6% 45.3%);
-  --primary-foreground: hsl(144.9 80.4% 10%);
-  --secondary: hsl(140 10% 20%);
-  --secondary-foreground: hsl(0 0% 98%);
-  --muted: hsl(140 10% 20%);
-  --muted-foreground: hsl(140 5% 64.9%);
-  --accent: hsl(140 10% 23%);
-  --accent-foreground: hsl(0 0% 98%);
-  --border: hsl(140 10% 20%);
-  --input: hsl(140 10% 20%);
-  --ring: hsl(142.4 71.8% 29.2%);
-
-  --layout: hsl(160 15% 10%);
-  --layout-foreground: hsl(0 0% 95%);
-  --layout-accent: hsl(140 10% 20%);
-  --layout-border: hsl(140 10% 20%);
-}
-
-[data-accent="orange"] {
-  --background: hsl(30 40% 98%);
-  --foreground: hsl(24 10% 5%);
-  --card: hsl(0 0% 100%);
-  --card-foreground: hsl(24 10% 5%);
-  --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(24 10% 5%);
-  --primary: hsl(24.6 95% 53.1%);
-  --primary-foreground: hsl(60 9.1% 97.8%);
-  --secondary: hsl(30 30% 94%);
-  --secondary-foreground: hsl(24 9.8% 10%);
-  --muted: hsl(30 30% 94%);
-  --muted-foreground: hsl(25 5.3% 44.7%);
-  --accent: hsl(30 30% 92%);
-  --accent-foreground: hsl(24 9.8% 10%);
-  --border: hsl(20 5.9% 90%);
-  --input: hsl(20 5.9% 90%);
-  --ring: hsl(24.6 95% 53.1%);
-
-  --layout: hsl(30 45% 94%);
-  --layout-foreground: hsl(24 10% 5%);
-  --layout-accent: hsl(30 35% 90%);
-  --layout-border: hsl(20 5.9% 85%);
-}
-
-.dark[data-accent="orange"] {
-  --background: hsl(20 14.3% 4.1%);
-  --foreground: hsl(60 9.1% 97.8%);
-  --card: hsl(15 15% 12%);
-  --card-foreground: hsl(60 9.1% 97.8%);
-  --popover: hsl(15 15% 12%);
-  --popover-foreground: hsl(60 9.1% 97.8%);
-  --primary: hsl(20.5 90.2% 48.2%);
-  --primary-foreground: hsl(60 9.1% 97.8%);
-  --secondary: hsl(12 6.5% 15.1%);
-  --secondary-foreground: hsl(60 9.1% 97.8%);
-  --muted: hsl(12 6.5% 15.1%);
-  --muted-foreground: hsl(24 5.4% 63.9%);
-  --accent: hsl(12 6.5% 18%);
-  --accent-foreground: hsl(60 9.1% 97.8%);
-  --border: hsl(12 6.5% 15.1%);
-  --input: hsl(12 6.5% 15.1%);
-  --ring: hsl(20.5 90.2% 48.2%);
-
-  --layout: hsl(15 15% 9%);
-  --layout-foreground: hsl(60 9.1% 97.8%);
-  --layout-accent: hsl(12 6.5% 15.1%);
-  --layout-border: hsl(12 6.5% 15.1%);
+  /* Lifted to the 500 shades for a dark surface, as the previous project
+     did: the light-mode shades read nearly black on it. */
+  --gain: #22c55e;
+  --loss: #ef4444;
+  --caution: #f59e0b;
 }
 
 @theme inline {
@@ -276,10 +143,14 @@
 
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, "SFMono-Regular", monospace;
-  --color-layout: var(--layout);
-  --color-layout-foreground: var(--layout-foreground);
-  --color-layout-accent: var(--layout-accent);
-  --color-layout-border: var(--layout-border);
+  --color-chrome: var(--chrome);
+  --color-chrome-foreground: var(--chrome-foreground);
+  --color-chrome-accent: var(--chrome-accent);
+  --color-chrome-border: var(--chrome-border);
+  --color-brand: var(--brand);
+  --color-wordmark-artha: var(--wordmark-artha);
+  --color-wordmark-science: var(--wordmark-science);
+  --color-overlay: var(--overlay);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

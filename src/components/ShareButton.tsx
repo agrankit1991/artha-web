@@ -173,7 +173,7 @@ export function ShareButton({
         {points === null && problem === null && (
           <p className="text-xs text-muted-foreground">Drawing…</p>
         )}
-        {problem !== null && <p className="text-sm text-loss">{problem}</p>}
+        {problem !== null && <p className="text-sm text-destructive">{problem}</p>}
       </Dialog>
     </>
   );

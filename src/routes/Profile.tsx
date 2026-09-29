@@ -7,18 +7,7 @@
  * one that admits there is nothing to show.
  */
 
-import {
-  Check,
-  Copy,
-  LogOut,
-  Monitor,
-  Moon,
-  Palette,
-  SlidersHorizontal,
-  Sun,
-  User,
-  UserPlus,
-} from "lucide-react";
+import { Check, Copy, LogOut, Palette, SlidersHorizontal, User, UserPlus } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import type { Account } from "@/api/client";
@@ -32,19 +21,14 @@ import { resetPreferences, usePreferences, writePreferences } from "@/lib/prefer
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { initialsOf } from "@/components/UserMenu";
-import { ACCENT_NAMES, ACCENT_SWATCHES, ACCENTS, type ThemeChoice, useTheme } from "@/lib/theme";
+import { THEME_CHOICES } from "@/components/ThemeMenu";
+import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 interface ProfileProps {
   account: Account;
   onSignOut: () => void;
 }
-
-const MODES: { choice: ThemeChoice; label: string; icon: typeof Sun }[] = [
-  { choice: "light", label: "Light", icon: Sun },
-  { choice: "dark", label: "Dark", icon: Moon },
-  { choice: "system", label: "System", icon: Monitor },
-];
 
 /**
  * Render the profile page.
@@ -53,7 +37,7 @@ const MODES: { choice: ThemeChoice; label: string; icon: typeof Sun }[] = [
  * @returns The page.
  */
 export function Profile({ account, onSignOut }: ProfileProps): React.JSX.Element {
-  const { choice, appearance, accent, setChoice, setAccent } = useTheme();
+  const { choice, appearance, setChoice } = useTheme();
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -94,43 +78,15 @@ export function Profile({ account, onSignOut }: ProfileProps): React.JSX.Element
             Appearance
           </CardTitle>
           <CardDescription>
-            Remembered in this browser, not on the account — a different machine starts from its own
+            Remembered in this browser, not on the account: a different machine starts from its own
             setting.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
-            <p className="text-sm font-medium">Accent</p>
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Accent">
-              {ACCENTS.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  aria-pressed={option === accent}
-                  onClick={() => {
-                    setAccent(option);
-                  }}
-                  className={cn(
-                    "flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-accent",
-                    option === accent && "border-primary bg-primary/10",
-                  )}
-                >
-                  <span
-                    aria-hidden="true"
-                    className="h-4 w-4 rounded-full border border-border"
-                    style={{ backgroundColor: ACCENT_SWATCHES[option] }}
-                  />
-                  {ACCENT_NAMES[option]}
-                  {option === accent && <Check className="h-3.5 w-3.5" />}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-2">
             <p className="text-sm font-medium">Light and dark</p>
             <div className="flex flex-wrap gap-2" role="group" aria-label="Appearance">
-              {MODES.map((mode) => (
+              {THEME_CHOICES.map((mode) => (
                 <button
                   key={mode.choice}
                   type="button"
@@ -375,7 +331,7 @@ function InviteCard(): React.JSX.Element {
             </p>
           </div>
         )}
-        {problem !== null && <p className="text-sm text-loss">{problem}</p>}
+        {problem !== null && <p className="text-sm text-destructive">{problem}</p>}
       </CardContent>
     </Card>
   );

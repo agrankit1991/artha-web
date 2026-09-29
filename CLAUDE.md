@@ -412,7 +412,7 @@ call site.
   a flow; it slides away on a phone, where the header carries the button
   that brings it back.
 - **Profile** (`src/routes/Profile.tsx`) -- what the platform holds about
-  the sign-in, both theme choices, and signing out. Deliberately short: a
+  the sign-in, light or dark, and signing out. Deliberately short: a
   profile with an invented "activity" panel is worse than one that admits
   there is nothing to show.
 - **Visitors** (`src/routes/Visitors.tsx`, `/visitors`, 2026-09-29, the
@@ -479,33 +479,33 @@ call site.
 - **Debouncing** in `src/hooks/useDebounced.ts`: a search box that requests
   on every keystroke races its own answers, and the reply for "rel" can
   arrive after the reply for "relian" and leave the wrong results up.
-- **Theme** in `src/lib/theme.tsx`, on two axes. Light, dark or following
-  the system decides the lightness; the accent (neutral, blue, green,
-  orange -- the four the previous project had) decides the hue. Stored
-  apart, because changing one must never reset the other, and both work
-  when storage is blocked; they are just forgotten between visits.
+- **Theme** in `src/lib/theme.tsx`: light, dark or following the system.
+  The colours are the brand's -- one palette, **Samudra**, in
+  `src/index.css`, chosen by the owner on 2026-09-30 from the logo's orange
+  and teal (the reasoning and the rejected Kesari and Masi palettes are in
+  `docs/BRAND-PLAN.md`). The logo's teal leads (buttons, links, titles, the
+  page you are on); its orange is kept for brand moments (`--brand`, the
+  wordmark), so nothing a reader acts on is ever the colour of a warning.
+  **The four switchable accents are gone** (neutral, blue, green, orange,
+  carried over from the previous project): a brand has one palette, and
+  one of them was a green that said "rise". A stored `artha-accent` is
+  ignored.
 
-  **An accent is a whole palette, not a highlight colour.** The four
-  palettes in `src/index.css` are carried over from the previous
-  incarnation of this project rather than invented again, and the
-  relationship between their three surfaces is the point: the page is a
+  The relationship between the three surfaces is the point: the page is a
   tinted off-white, a card is pure white on top of it, and the chrome --
-  sidebar, header, footer, through the `--layout` tokens -- is a third
-  shade deeper than both. Two earlier attempts failed here. The first
-  moved `--primary` and `--ring` alone, which is a few icons and the
-  sidebar highlight, so applying an accent changed nothing visible. The
-  second derived every token from a hue and a tint, which tinted the page
-  but left it and the cards the same near-white, so the interface had no
-  depth. `--gain` and `--loss` are never part of an accent: green has to
-  mean "up" on every theme.
+  sidebar, header, footer, through the `--chrome*` tokens (called
+  `--layout*` before 2026-09-30, which named where they were rather than
+  what they are) -- is a third shade deeper than both. `--gain`, `--loss`
+  and `--caution` mean rise, fall and "worth a look" and nothing else; an
+  error is `--destructive`, never `--loss`. The sidebar name is drawn in
+  `--wordmark-artha` and `--wordmark-science`, the logo's two colours
+  deepened to read as small text.
 
-  `src/lib/accents.test.ts` pins all of that against the stylesheet --
-  that every accent restates every surface in both light and dark, that
-  the page, the card and the chrome are three different values, and that
-  the menu's swatch is the palette's own `--primary` rather than something
-  close to it. Nothing else in the build notices when the accent list and
-  the CSS disagree, which is exactly how the first attempt shipped looking
-  like it worked.
+  `src/lib/palette.test.ts` pins it against the stylesheet: every token
+  stated in both modes, three distinct surfaces, every text pair at 4.5:1
+  or better, and no brand colour equal to a market colour. Nothing else in
+  the build notices when a token goes missing from one mode: it falls back
+  silently to the other mode's value.
 
 ## Design conventions (redesign, 2026-09-23)
 
@@ -518,7 +518,7 @@ the working plan with the reasoning is `docs/REDESIGN-PLAN.md`
   `@fontsource-variable` in `main.tsx`. Figures use `.tabular`.
 - **A change is a `Delta`:** lucide `ArrowUpRight`/`ArrowDownRight` by
   default, a signed two-decimal percent, `text-gain`/`text-loss`
-  (green-600/red-600, 500 in dark), ASCII hyphen for a fall because a
+  (green-700/red-600, 500 in dark; green-600 was 3.3:1 on white), ASCII hyphen for a fall because a
   U+2212 minus breaks pasting into a spreadsheet. `badge` draws the tinted
   pill the index cards use; `arrow={false}` only where colour already says
   it (a tile, a pill beside a big arrow).

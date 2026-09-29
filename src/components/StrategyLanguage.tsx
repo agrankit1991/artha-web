@@ -21,7 +21,7 @@ export function StrategyLanguage(): React.JSX.Element {
     <details className="rounded-md border px-3 py-2 text-sm">
       <summary className="cursor-pointer font-medium">What a rule may use</summary>
       {language.error !== null ? (
-        <p className="mt-2 text-loss">{language.error}</p>
+        <p className="mt-2 text-destructive">{language.error}</p>
       ) : (
         language.data !== null && (
           <div className="mt-3 space-y-3">

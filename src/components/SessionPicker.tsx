@@ -78,7 +78,9 @@ export function SessionPicker({
             </Button>
           </>
         )}
-        {sessions.error !== null && <span className="text-xs text-loss">{sessions.error}</span>}
+        {sessions.error !== null && (
+          <span className="text-xs text-destructive">{sessions.error}</span>
+        )}
       </div>
     </div>
   );

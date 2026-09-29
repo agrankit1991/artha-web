@@ -57,7 +57,7 @@ export function StrategyEditor({ text, onChange }: StrategyEditorProps): React.J
           className="w-full rounded-md border border-input bg-transparent px-3 py-2 font-mono text-xs leading-relaxed shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
         />
         {check.error !== null ? (
-          <p role="status" className="text-sm text-loss">
+          <p role="status" className="text-sm text-destructive">
             Could not check it: {check.error}
           </p>
         ) : (
@@ -82,7 +82,7 @@ export function StrategyEditor({ text, onChange }: StrategyEditorProps): React.J
 function Verdict({ check }: { check: StrategyCheck }): React.JSX.Element {
   if (!check.valid) {
     return (
-      <p role="status" className="flex items-start gap-2 text-sm text-loss">
+      <p role="status" className="flex items-start gap-2 text-sm text-destructive">
         <CircleX className="mt-0.5 size-4 shrink-0" aria-hidden />
         <span className="font-mono text-xs leading-5">{check.message}</span>
       </p>

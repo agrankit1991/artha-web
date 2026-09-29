@@ -97,7 +97,7 @@ function NewStrategy(): React.JSX.Element {
         }
       />
       {problem !== null && (
-        <p role="alert" className="text-sm text-loss">
+        <p role="alert" className="text-sm text-destructive">
           {problem}
         </p>
       )}
@@ -228,7 +228,7 @@ function SavedStrategy({ id }: { id: number }): React.JSX.Element {
         }
       />
       {problem !== null && (
-        <p role="alert" className="text-sm text-loss">
+        <p role="alert" className="text-sm text-destructive">
           {problem}
         </p>
       )}
@@ -273,7 +273,7 @@ function SavedStrategy({ id }: { id: number }): React.JSX.Element {
 function RunStatus({ latest }: { latest: StrategyRequest }): React.JSX.Element | null {
   if (latest.status === "failed") {
     return (
-      <p role="alert" className="rounded-md bg-loss/10 px-3 py-2 text-sm text-loss">
+      <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
         The last run failed: <span className="font-mono text-xs">{latest.error}</span>
       </p>
     );

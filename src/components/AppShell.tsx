@@ -79,7 +79,7 @@ export function AppShell({
           page rather than sitting beside it. */}
       {open && (
         <div
-          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+          className="fixed inset-0 z-30 bg-overlay lg:hidden"
           aria-hidden="true"
           onClick={() => {
             setOpen(false);
@@ -88,11 +88,11 @@ export function AppShell({
       )}
 
       <div className="flex min-h-svh flex-col lg:pl-60">
-        <header className="sticky top-0 z-20 border-b border-layout-border bg-layout/95 text-layout-foreground backdrop-blur">
+        <header className="sticky top-0 z-20 border-b border-chrome-border bg-chrome/95 text-chrome-foreground backdrop-blur">
           <div className="flex h-14 items-center gap-3 px-4">
             <button
               type="button"
-              className="rounded-md p-2 hover:bg-layout-accent lg:hidden"
+              className="rounded-md p-2 hover:bg-chrome-accent lg:hidden"
               aria-label={open ? "Close navigation" : "Open navigation"}
               aria-expanded={open}
               onClick={() => {
@@ -113,7 +113,7 @@ export function AppShell({
 
         <main className="mx-auto w-full max-w-[1600px] flex-1 p-4">{children}</main>
 
-        <footer className="border-t border-layout-border bg-layout text-layout-foreground">
+        <footer className="border-t border-chrome-border bg-chrome text-chrome-foreground">
           <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs opacity-70">
             <span>Artha Science · end-of-day data for Indian markets</span>
             <span className="tabular">
@@ -141,14 +141,19 @@ function Sidebar({
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-layout-border bg-layout text-layout-foreground transition-transform lg:translate-x-0",
+        "fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-chrome-border bg-chrome text-chrome-foreground transition-transform lg:translate-x-0",
         open ? "translate-x-0" : "-translate-x-full",
       )}
     >
-      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-layout-border px-4">
+      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-chrome-border px-4">
         {/* Decorative: the name beside it says what it is. */}
         <img src="/brand/logo.svg" alt="" className="h-10 w-10" />
-        <span className="font-semibold">Artha Science</span>
+        {/* The name in the logo's two colours: Artha the orange of the
+            letter, Science the teal of the S. */}
+        <span className="font-semibold tracking-tight">
+          <span className="text-wordmark-artha">Artha</span>{" "}
+          <span className="text-wordmark-science">Science</span>
+        </span>
       </div>
       {/* The list scrolls on its own when the window is shorter than it, the
           name above it staying put; and a scroll that reaches its end does
@@ -175,7 +180,7 @@ function Sidebar({
                       "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
                       isActive
                         ? "bg-primary text-primary-foreground font-medium shadow-sm"
-                        : "opacity-70 hover:bg-layout-accent hover:opacity-100",
+                        : "opacity-70 hover:bg-chrome-accent hover:opacity-100",
                     )
                   }
                 >

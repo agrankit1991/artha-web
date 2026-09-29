@@ -64,7 +64,7 @@ export function ConfirmDialog({
         </>
       }
     >
-      {problem !== null && <p className="text-sm text-loss">{problem}</p>}
+      {problem !== null && <p className="text-sm text-destructive">{problem}</p>}
     </Dialog>
   );
 }

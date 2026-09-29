@@ -1,27 +1,33 @@
 /**
- * Choosing how the application looks.
+ * Choosing whether the application is drawn light or dark.
  *
- * Two axes in one menu, because they are one decision in a reader's head:
- * the accent it points at things with, and whether the surfaces are light,
- * dark or whatever the machine is set to.
- *
- * Every swatch carries its name as well as its colour. A row of coloured
- * circles is unusable to anybody who cannot tell them apart, and the tick
- * marking the one in force is announced rather than only drawn.
+ * The colours are the brand's and not a choice; what a reader chooses is
+ * light, dark or whatever the machine is set to. The trigger shows the icon
+ * of the choice in force, so the header says what is set without opening it.
  */
 
-import { Check, Monitor, Moon, Palette, Sun } from "lucide-react";
+import { Check, Monitor, Moon, Sun } from "lucide-react";
 
-import { Menu, MenuItem, MenuLabel, MenuSeparator } from "@/components/Menu";
-import { ACCENT_NAMES, ACCENT_SWATCHES, ACCENTS, type ThemeChoice, useTheme } from "@/lib/theme";
+import { Menu, MenuItem, MenuLabel } from "@/components/Menu";
+import { type ThemeChoice, useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
-/** The three light-and-dark choices, with the icon each is recognised by. */
-const MODES: { choice: ThemeChoice; label: string; icon: typeof Sun }[] = [
-  { choice: "light", label: "Light", icon: Sun },
-  { choice: "dark", label: "Dark", icon: Moon },
-  { choice: "system", label: "System", icon: Monitor },
-];
+/** One light-and-dark choice, with the icon it is recognised by. */
+export interface ThemeOption {
+  choice: ThemeChoice;
+  label: string;
+  icon: typeof Sun;
+}
+
+/** Each choice's name and icon, looked up by the choice itself. */
+const OPTIONS: Record<ThemeChoice, ThemeOption> = {
+  light: { choice: "light", label: "Light", icon: Sun },
+  dark: { choice: "dark", label: "Dark", icon: Moon },
+  system: { choice: "system", label: "System", icon: Monitor },
+};
+
+/** The three light-and-dark choices, in the order they are offered. */
+export const THEME_CHOICES: readonly ThemeOption[] = [OPTIONS.light, OPTIONS.dark, OPTIONS.system];
 
 /**
  * Render the theme menu.
@@ -29,49 +35,24 @@ const MODES: { choice: ThemeChoice; label: string; icon: typeof Sun }[] = [
  * @returns The menu.
  */
 export function ThemeMenu(): React.JSX.Element {
-  const { choice, accent, setChoice, setAccent } = useTheme();
+  const { choice, setChoice } = useTheme();
+  const current = OPTIONS[choice];
 
   return (
     <Menu
       label="Theme"
-      triggerClassName="h-9 gap-2 rounded-md border px-3 hover:bg-accent"
+      triggerClassName="h-9 gap-2 rounded-md border border-chrome-border px-3 hover:bg-chrome-accent"
       trigger={
         <>
-          <Palette className="h-4 w-4" />
+          <current.icon className="h-4 w-4" />
           <span className="hidden sm:inline">Theme</span>
-          <span
-            aria-hidden="true"
-            className="h-3 w-3 rounded-full border border-border"
-            style={{ backgroundColor: ACCENT_SWATCHES[accent] }}
-          />
         </>
       }
     >
       {(close) => (
         <>
-          <MenuLabel>Accent</MenuLabel>
-          {ACCENTS.map((option) => (
-            <MenuItem
-              key={option}
-              selected={option === accent}
-              onSelect={() => {
-                setAccent(option);
-                close();
-              }}
-            >
-              <span
-                aria-hidden="true"
-                className="h-4 w-4 shrink-0 rounded-full border border-border"
-                style={{ backgroundColor: ACCENT_SWATCHES[option] }}
-              />
-              <span className="flex-1">{ACCENT_NAMES[option]}</span>
-              <Check className={cn("h-4 w-4", option === accent ? "opacity-100" : "opacity-0")} />
-            </MenuItem>
-          ))}
-
-          <MenuSeparator />
           <MenuLabel>Appearance</MenuLabel>
-          {MODES.map((mode) => (
+          {THEME_CHOICES.map((mode) => (
             <MenuItem
               key={mode.choice}
               selected={mode.choice === choice}

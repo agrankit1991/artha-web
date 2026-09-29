@@ -185,7 +185,7 @@ describe("App", () => {
     await screen.findByText("Market Movers");
     await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
 
-    const overlay = container.querySelector(".bg-black\\/40");
+    const overlay = container.querySelector(".bg-overlay");
     await userEvent.click(overlay as HTMLElement);
 
     expect(screen.getByRole("button", { name: "Open navigation" })).toBeInTheDocument();

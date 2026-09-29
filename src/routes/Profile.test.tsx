@@ -11,7 +11,6 @@ import { ACCOUNT, renderPage, scopeOptions, stubPlatform } from "@/test/support"
 
 afterEach(() => {
   window.localStorage.clear();
-  document.documentElement.removeAttribute("data-accent");
   document.documentElement.classList.remove("dark");
 });
 
@@ -52,21 +51,6 @@ describe("Profile", () => {
     );
 
     expect(screen.getByText("Member")).toBeInTheDocument();
-  });
-
-  it("changes the accent from here as well as from the header", async () => {
-    // One setting, reachable from either place, and both write the same
-    // stored choice.
-    show();
-
-    await userEvent.click(
-      within(screen.getByRole("group", { name: "Accent" })).getByRole("button", {
-        name: /Blue/,
-      }),
-    );
-
-    expect(document.documentElement).toHaveAttribute("data-accent", "blue");
-    expect(window.localStorage.getItem("artha-accent")).toBe("blue");
   });
 
   it("changes light and dark from here too", async () => {

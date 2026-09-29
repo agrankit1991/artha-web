@@ -154,7 +154,7 @@ export function SearchBox(): React.JSX.Element {
           }, 150);
         }}
         onKeyDown={onKey}
-        className="h-9 w-full rounded-md border border-layout-border bg-background/60 pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+        className="h-9 w-full rounded-md border border-chrome-border bg-background/60 pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
       />
       {showing && (
         <ul

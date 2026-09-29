@@ -64,7 +64,7 @@ const COLUMNS: Column<StrategyRequest>[] = [
     accessorFn: (row) => row.error ?? "",
     cell: ({ row }) =>
       row.original.error !== null ? (
-        <span className="font-mono text-xs text-loss">{row.original.error}</span>
+        <span className="font-mono text-xs text-destructive">{row.original.error}</span>
       ) : row.original.backtest_id !== null ? (
         `Backtest ${String(row.original.backtest_id)}`
       ) : (

@@ -118,7 +118,9 @@ export function WatchButton({
           <>
             <MenuLabel>Watchlists</MenuLabel>
             {lists.error !== null || holding.error !== null ? (
-              <div className="px-2 py-1.5 text-xs text-loss">{lists.error ?? holding.error}</div>
+              <div className="px-2 py-1.5 text-xs text-destructive">
+                {lists.error ?? holding.error}
+              </div>
             ) : (lists.data ?? []).length === 0 ? (
               <div className="px-2 py-1.5 text-xs text-muted-foreground">
                 {lists.data === null ? "Loading…" : "No lists yet."}
@@ -137,7 +139,9 @@ export function WatchButton({
                 </MenuItem>
               ))
             )}
-            {problem !== null && <div className="px-2 py-1 text-xs text-loss">{problem}</div>}
+            {problem !== null && (
+              <div className="px-2 py-1 text-xs text-destructive">{problem}</div>
+            )}
             <MenuSeparator />
             <MenuItem
               onSelect={() => {
@@ -198,7 +202,7 @@ export function WatchButton({
               Make and add
             </Button>
           </div>
-          {problem !== null && <p className="text-sm text-loss">{problem}</p>}
+          {problem !== null && <p className="text-sm text-destructive">{problem}</p>}
         </form>
       </Dialog>
     </>
