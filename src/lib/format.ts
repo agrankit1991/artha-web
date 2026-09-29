@@ -79,6 +79,20 @@ export function formatPercent(value: string | null | undefined): string {
 }
 
 /**
+ * Render a percentage that is a level, not a change: `3.25%`.
+ *
+ * A day's range, a share of holders, a share of members: none of them rose
+ * or fell, and a "+" in front of one reads as a move that did not happen.
+ *
+ * @param value - The figure.
+ * @returns The percentage, unsigned unless below nought, or a dash.
+ */
+export function formatPercentLevel(value: string | null | undefined): string {
+  const parsed = toNumber(value);
+  return parsed === null ? ABSENT : `${parsed.toFixed(2)}%`;
+}
+
+/**
  * Render a percentage to one decimal place, signed: `+26.2%`.
  *
  * For figures published to one decimal, such as the strategy lab's

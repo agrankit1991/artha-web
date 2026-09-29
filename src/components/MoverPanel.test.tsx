@@ -45,7 +45,7 @@ describe("MoverPanelCard", () => {
         panel={panel({ name: "most-volatile", rows: [moverRow({ value: "6.4" })] })}
       />,
     );
-    expect(screen.getByText("+6.40%")).toBeInTheDocument();
+    expect(screen.getByText("6.40%")).toBeInTheDocument();
   });
 
   it("says how long each entry has been in the list", () => {
@@ -162,5 +162,21 @@ describe("MoverPanelCard", () => {
 
     renderPage(<MoverPanelCard panel={panel()} />);
     expect(screen.queryByRole("link", { name: "See all →" })).not.toBeInTheDocument();
+  });
+});
+
+describe("the distance lists", () => {
+  it("show how far from the high or low as a distance, not as a fall or a rise", () => {
+    // Near the 52-week high is a strong place to be; drawn as red losses,
+    // the whole list looked as if it were crashing.
+    renderPage(
+      <MoverPanelCard
+        panel={panel({ name: "near-52wk-high", rows: [moverRow({ value: "-1.25" })] })}
+      />,
+    );
+
+    const distance = screen.getByText("-1.25%");
+    expect(distance).not.toHaveClass("text-loss");
+    expect(distance).toHaveClass("text-muted-foreground");
   });
 });

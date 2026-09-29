@@ -12,6 +12,7 @@ import {
   formatMultiple,
   formatPercent,
   formatPercentagePoints,
+  formatPercentLevel,
   formatPercentTenths,
   formatPrice,
   formatSignedPrice,
@@ -174,5 +175,13 @@ describe("sentence", () => {
 
   it("leaves an empty message empty", () => {
     expect(sentence("")).toBe("");
+  });
+});
+
+describe("formatPercentLevel", () => {
+  it("writes a level without the sign a change would carry", () => {
+    expect(formatPercentLevel("3.254")).toBe("3.25%");
+    expect(formatPercentLevel("-0.5")).toBe("-0.50%");
+    expect(formatPercentLevel(null)).toBe("-");
   });
 });

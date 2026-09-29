@@ -30,6 +30,7 @@ import {
   formatDay,
   formatMultiple,
   formatPercent,
+  formatPercentLevel,
   formatPrice,
   formatVolume,
   toNumber,
@@ -42,7 +43,11 @@ export const MOVER_LISTS: Record<
     title: string;
     measure: string;
     render: (row: MoverRow) => React.ReactNode;
-    /** The list's mark and its colour, the pairs the previous project used. */
+    /**
+     * The list's mark and its colour. From the tokens: rise and fall for the
+     * two lists that are a rise and a fall, caution for the three that are
+     * "worth a look", and the brand and a series colour for the rest.
+     */
     icon: Icon;
     tint: string;
   }
@@ -66,35 +71,42 @@ export const MOVER_LISTS: Record<
     measure: "Volume",
     render: (row) => formatVolume(row.value),
     icon: Activity,
-    tint: "text-blue-600 dark:text-blue-400",
+    tint: "text-primary",
   },
   "most-volatile": {
     title: "Most volatile",
     measure: "Range",
-    render: (row) => formatPercent(row.value),
+    // A range is a size, not a move: no sign.
+    render: (row) => formatPercentLevel(row.value),
     icon: Flame,
-    tint: "text-purple-600 dark:text-purple-400",
+    tint: "text-[var(--chart-3)]",
   },
   "unusual-volume": {
     title: "Unusual volume",
     measure: "vs average",
     render: (row) => formatMultiple(row.value),
     icon: AlertTriangle,
-    tint: "text-orange-500",
+    tint: "text-caution",
   },
   "near-52wk-high": {
     title: "Near 52-week high",
     measure: "From high",
-    render: (row) => <Delta value={row.value} />,
+    // How far below its high, not a fall: a distance drawn as a red loss
+    // made the whole list look like it was crashing.
+    render: (row) => (
+      <span className="tabular text-muted-foreground">{formatPercent(row.value)}</span>
+    ),
     icon: ArrowUpFromLine,
-    tint: "text-green-700 dark:text-green-500",
+    tint: "text-caution",
   },
   "near-52wk-low": {
     title: "Near 52-week low",
     measure: "From low",
-    render: (row) => <Delta value={row.value} />,
+    render: (row) => (
+      <span className="tabular text-muted-foreground">{formatPercent(row.value)}</span>
+    ),
     icon: ArrowDownToLine,
-    tint: "text-red-700 dark:text-red-500",
+    tint: "text-caution",
   },
 };
 
