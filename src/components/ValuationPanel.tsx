@@ -47,7 +47,7 @@ export function ValuationPanel({
         <Tile label="Price to earnings" figure={valuation.pe} write={multiple} />
         <Tile label="Price to book" figure={valuation.pb} write={multiple} />
         <Tile label="Dividend yield" figure={valuation.dividend_yield} write={percent} />
-        <Tile label="Shares outstanding" figure={valuation.shares_outstanding} write={crore} />
+        <Tile label="Shares outstanding" figure={valuation.shares_outstanding} write={shares} />
         <Tile label="Trailing earnings" figure={valuation.earnings_ttm} write={crore} />
         <Tile label="Trailing EPS" figure={valuation.eps_ttm} write={rupees} />
         <Tile label="Book value" figure={valuation.book_value} write={crore} />
@@ -90,6 +90,11 @@ function Tile({
   );
 }
 
+/** A count of shares in crore: a number of shares, not rupees. */
+function shares(value: string): string {
+  return `${formatPrice(value)} cr shares`;
+}
+
 /** A sum in crore, written in lakh crore when it is that large. */
 function crore(value: string): string {
   const figure = toNumber(value);
@@ -103,7 +108,9 @@ function crore(value: string): string {
 
 /** A multiple. */
 function multiple(value: string): string {
-  return `${formatPrice(value)}×`;
+  // One decimal, as every multiple on the site is written.
+  const figure = toNumber(value);
+  return figure === null ? ABSENT : `${figure.toFixed(1)}×`;
 }
 
 /** A percentage, unsigned: a yield is not a change. */

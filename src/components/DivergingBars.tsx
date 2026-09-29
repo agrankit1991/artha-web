@@ -33,6 +33,8 @@ interface DivergingBarsProps {
    * as a +50% on the other.
    */
   reach?: number;
+  /** How a figure is written; a signed percentage by default. */
+  format?: (value: string | null | undefined) => string;
   className?: string;
 }
 
@@ -46,6 +48,7 @@ export function DivergingBars({
   rows,
   label,
   reach,
+  format,
   className,
 }: DivergingBarsProps): React.JSX.Element {
   // Scaled to the largest move shown, so the strongest bar reaches the edge
@@ -83,7 +86,7 @@ export function DivergingBars({
               />
             </span>
             <span className="text-right">
-              <Delta value={String(row.value)} />
+              <Delta value={String(row.value)} {...(format === undefined ? {} : { format })} />
             </span>
           </li>
         );

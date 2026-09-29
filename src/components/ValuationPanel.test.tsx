@@ -12,11 +12,12 @@ describe("ValuationPanel", () => {
     render(<ValuationPanel valuation={valuation()} />);
 
     expect(screen.getByText("₹16.78 lakh cr")).toBeInTheDocument();
-    expect(screen.getByText("42.79×")).toBeInTheDocument();
-    expect(screen.getByText("2.96×")).toBeInTheDocument();
+    // Multiples to one decimal, as everywhere on the site.
+    expect(screen.getByText("42.8×")).toBeInTheDocument();
+    expect(screen.getByText("3.0×")).toBeInTheDocument();
     expect(screen.getByText("0.48%")).toBeInTheDocument();
     expect(screen.getByText("₹28.98")).toBeInTheDocument();
-    expect(screen.getByText("₹1,353.43 cr")).toBeInTheDocument();
+    expect(screen.getByText("1,353.43 cr shares")).toBeInTheDocument();
   });
 
   it("explains each figure on hover, in the platform's own words", async () => {

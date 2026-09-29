@@ -22,7 +22,7 @@ describe("GrowthChart", () => {
       </ThemeProvider>,
     );
 
-    expect(screen.getByText("Revenue (consolidated)")).toBeInTheDocument();
+    expect(screen.getByText("Revenue, ₹ cr (consolidated)")).toBeInTheDocument();
     expect(seriesPanes()).toEqual([0, 1]);
     const [revenue] = chartCalls.setData.mock.calls;
     expect(revenue?.[0]).toEqual([
@@ -38,7 +38,7 @@ describe("GrowthChart", () => {
       </ThemeProvider>,
     );
 
-    expect(screen.getByText("Revenue (standalone)")).toBeInTheDocument();
+    expect(screen.getByText("Revenue, ₹ cr (standalone)")).toBeInTheDocument();
   });
 
   it("leaves out a line no period reported", () => {

@@ -57,7 +57,8 @@ describe("StatementTable", () => {
       }),
     );
 
-    expect(screen.getByText("+50.48%")).toBeInTheDocument();
+    // A holding is a level: no "+" in front of half the company.
+    expect(screen.getByText("50.48%")).toBeInTheDocument();
   });
 
   it("makes a provider's identifier readable", () => {

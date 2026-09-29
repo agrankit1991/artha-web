@@ -11,12 +11,16 @@
 
 import { RangeMeter } from "@/components/RangeMeter";
 import { Delta } from "@/components/Delta";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatDay, formatPrice, formatSignedPrice, toNumber } from "@/lib/format";
 import type { InstrumentOverview } from "@/api/client";
 
 interface InstrumentHeaderProps {
-  /** What it is called. */
-  name: string;
+  /**
+   * What it is called; null while that is on its way, drawn as a
+   * placeholder rather than as a provider key nobody reads.
+   */
+  name: string | null;
   /** The line under the name, such as `NSE • NIFTY 50 • 50 companies`. */
   subline?: React.ReactNode;
   /** Where and what it is: exchange-and-symbol, category, sector. */
@@ -25,12 +29,6 @@ interface InstrumentHeaderProps {
   overview?: InstrumentOverview | null | undefined;
   description?: string | null | undefined;
   actions?: React.ReactNode;
-  /**
-   * Whether to draw the day's and the year's range under the name. Off
-   * where the page's own figures follow with the same two ranges, so a
-   * reader does not meet them twice in one screen.
-   */
-  ranges?: boolean;
 }
 
 /**
@@ -46,7 +44,6 @@ export function InstrumentHeader({
   overview,
   description,
   actions,
-  ranges = true,
 }: InstrumentHeaderProps): React.JSX.Element {
   return (
     <header className="space-y-4">
@@ -55,13 +52,17 @@ export function InstrumentHeader({
           aria-hidden="true"
           className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-primary/10 shadow-sm"
         >
-          <span className="text-3xl font-bold text-primary">{monogram(name)}</span>
+          <span className="text-3xl font-bold text-primary">{monogram(name ?? "")}</span>
         </div>
         <div className="min-w-0 flex-1 space-y-2">
           {badges !== undefined && (
             <div className="flex flex-wrap items-center gap-2">{badges}</div>
           )}
-          <h1 className="text-2xl font-bold md:text-3xl">{name}</h1>
+          {name === null ? (
+            <Skeleton className="h-8 w-64" aria-label="Loading its name" />
+          ) : (
+            <h1 className="text-page font-bold tracking-tight">{name}</h1>
+          )}
           {subline !== undefined && (
             <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
               {subline}
@@ -73,7 +74,7 @@ export function InstrumentHeader({
           {overview != null && <Level overview={overview} />}
         </div>
       </div>
-      {overview != null && ranges && (
+      {overview != null && (
         <div className="grid gap-4 sm:grid-cols-2">
           <RangeMeter
             label="Day's range"

@@ -73,7 +73,7 @@ export function Future({ instrumentKey }: FutureProps): React.JSX.Element {
   return (
     <div className="space-y-6">
       <InstrumentHeader
-        name={contract?.symbol ?? instrumentKey}
+        name={contract?.symbol ?? null}
         overview={own}
         badges={
           found !== null && (

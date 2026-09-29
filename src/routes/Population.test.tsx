@@ -393,9 +393,9 @@ describe("Population", () => {
 
     expect(await screen.findByRole("heading", { name: "The index itself" })).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "Valuation" })).toBeInTheDocument();
-    // The figures carry the ranges, so the header does not repeat them.
-    expect(screen.getAllByText("Day range").length).toBeGreaterThan(0);
-    expect(screen.queryByText("Day's range")).not.toBeInTheDocument();
+    // The header carries the ranges, so the figures do not repeat them.
+    expect(screen.getByText("Day's range")).toBeInTheDocument();
+    expect(screen.queryByText("Day range")).not.toBeInTheDocument();
     expect(await screen.findByText("Median price to earnings")).toBeInTheDocument();
   });
 

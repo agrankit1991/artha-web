@@ -44,14 +44,14 @@ export function GrowthChart({ statements, loading = false }: GrowthChartProps): 
     const drawn: Series[] = [
       {
         kind: "line",
-        label: `Revenue (${basis})`,
+        label: `Revenue, ₹ cr (${basis})`,
         colour: REVENUE,
         width: PRICE_WIDTH,
         points: line(annual, "Revenue"),
       },
       {
         kind: "line",
-        label: `Profit after tax (${basis})`,
+        label: `Profit after tax, ₹ cr (${basis})`,
         colour: PROFIT,
         width: PRICE_WIDTH,
         pane: 1,
@@ -65,7 +65,7 @@ export function GrowthChart({ statements, loading = false }: GrowthChartProps): 
   return (
     <Chart
       series={series}
-      scale="price"
+      scale="crore"
       loading={loading}
       empty="No annual income statement filed for this company"
       paneHeight={140}
@@ -113,7 +113,8 @@ export function ShareholdingChart({
   return (
     <Chart
       series={series}
-      scale="percent"
+      // A share of the company held, not a move: unsigned.
+      scale="share"
       loading={loading}
       empty="No shareholding pattern filed for this company"
     />

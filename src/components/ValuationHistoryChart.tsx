@@ -86,9 +86,9 @@ export function ValuationHistoryChart({
         Against each financial year&rsquo;s standalone profit and shareholders&rsquo; funds, spread
         over today&rsquo;s share count so that they sit on the same footing as the bonus- and
         split-adjusted prices, and applied from sixty days after the year-end, which is the deadline
-        for audited results. The headline tiles above use the trailing four quarters instead; the
-        annual statements are held broadly from the year to March 2022, the quarters for one year. A
-        loss-making year has no price to earnings and leaves a gap.
+        for audited results. The headline tiles above use the trailing four quarters instead. The
+        line starts where this company&rsquo;s annual statements do, which for most companies is a
+        few years back, and a loss-making year has no price to earnings and leaves a gap.
       </p>
     </div>
   );

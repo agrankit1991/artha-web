@@ -16,7 +16,7 @@ import { useMemo } from "react";
 
 import type { Statement } from "@/api/client";
 import { type Column, DataTable } from "@/components/DataTable";
-import { ABSENT, formatDay, formatPercent, formatPrice, toNumber } from "@/lib/format";
+import { ABSENT, formatDay, formatPercentLevel, formatPrice, toNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 interface StatementTableProps {
@@ -50,7 +50,7 @@ export function StatementTable({
   statement,
   loading = false,
   empty = "Nothing reported",
-  label = "Financial Statements",
+  label = "Financial statements",
 }: StatementTableProps): React.JSX.Element {
   const lines = useMemo(() => linesOf(statement), [statement]);
   const periods = useMemo(() => statement?.periods ?? [], [statement]);
@@ -196,7 +196,8 @@ function movement(value: string, before: string | undefined, units: string): str
  * @returns The figure.
  */
 function written(value: string, units: string): string {
-  return units === "percent" ? formatPercent(value) : formatPrice(value);
+  // A holding is a level, not a move: 50.1% of the shares, never "+50.1%".
+  return units === "percent" ? formatPercentLevel(value) : formatPrice(value);
 }
 
 /**

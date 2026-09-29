@@ -347,11 +347,31 @@ fallback)`** (`src/hooks/useSearchParam.ts`): a value at its default is
   twelve of the latest filtered afterwards. The companies offered as
   filters are the ones actually written about, because a reader wanting
   one company's news should not have to spell its symbol.
+- **Entity pages say each figure once** (company, index or sector, futures
+  contract; 2026-09-30). `InstrumentHeader` is the glance: the name (a
+  placeholder while it loads, never a provider key), badges, the level, its
+  move and the day's and the year's range meters. `InstrumentFigures`
+  ("Key figures") is everything else, three cards three across: returns
+  (with YTD), trend and volume (distances from the 52-week high and low,
+  the deepest fall and the 200-day, drawn plainly), momentum and risk (RSI
+  as a level to one decimal). It lost its "Latest session" and "52-week
+  range" cards, which repeated the header. The 52-week range is the
+  platform's, **on closing prices**; an exchange's site quotes intraday
+  extremes, so its figures can differ.
+- **A company** (`src/routes/Company.tsx`, reworked 2026-09-30): the tab
+  (`?tab=`) and the session (`?as_of=`) are in the address, and a tab's
+  data is read when it is first opened and kept. The overview runs price
+  and performance, key figures, valuation (the tiles and the history in
+  one section), against the market (bars per benchmark in percentage
+  points, on one scale, and the peers), and trading activity (delivery and
+  bulk / block deals) last. The indices holding it are one header chip, "In
+  N indices", opening the list. A past session gets a note saying what it
+  re-dates. Each section reports its own failure.
 - **A population** (`src/routes/Population.tsx`) at `/index/:ref` and
   `/sector/:ref` -- one page for both, because an index and a sector are
   the same question asked of a different set of companies. In order
-  (brand redesign, 2026-09-30): the header (its level and move; the ranges
-  are left to the figures below, which carry them), the price and
+  (brand redesign, 2026-09-30): the header (its level, move and ranges),
+  the price and
   performance chart, the index's own figures, breadth over its own
   250-session window (it followed the chart's range, so five years of
   price meant five years of breadth), valuation, earnings, then its

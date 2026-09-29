@@ -1,10 +1,12 @@
 /**
- * Every derived figure for one instrument, grouped as they are read.
+ * Every derived figure for one instrument the header does not already
+ * give, grouped as they are read.
  *
- * Four groups rather than one grid of twenty numbers: what it did today,
- * what it has returned, where it sits in its own year, and how it is
- * trading. A reader arrives with one of those four questions and should
- * not have to scan the other fifteen figures to find it.
+ * Three groups, three across: what it has returned; where it stands in
+ * its year and its trend, and how it is trading; and its momentum and
+ * risk. The header above carries the level, the day's move and both
+ * ranges, so none of those is repeated here: a close and a range met
+ * twice in one screen is a reader checking whether they differ.
  *
  * Nothing here is computed in the browser. Every figure is the platform's,
  * so a reading on this page and the same reading in a rule or a backtest
@@ -14,12 +16,10 @@
 import type { InstrumentOverview } from "@/api/client";
 import { Delta } from "@/components/Delta";
 import { Empty } from "@/components/Empty";
-import { RangeMeter } from "@/components/RangeMeter";
 import { Sparkline } from "@/components/Sparkline";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   ABSENT,
-  formatDay,
   formatMultiple,
   formatPercent,
   formatPrice,
@@ -64,27 +64,7 @@ export function InstrumentFigures({
       return value === null ? null : toNumber(String(value));
     });
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-      <Group title="Latest Session" note={formatDay(overview.as_of)}>
-        <Line label="Close" value={formatPrice(day.close)} trail={trail((one) => one.day.close)} />
-        <Line
-          label="Change"
-          delta={day.change_percent}
-          trail={trail((one) => one.day.change_percent)}
-          baseline={0}
-        />
-        <Line label="Open" value={formatPrice(day.open)} />
-        <Line label="Gap" delta={day.gap_percent} />
-        <RangeMeter
-          label="Day range"
-          low={toNumber(day.low)}
-          high={toNumber(day.high)}
-          value={toNumber(day.close)}
-          format={(figure) => formatPrice(String(figure))}
-          className="pt-1"
-        />
-      </Group>
-
+    <div className="grid gap-4 md:grid-cols-3">
       <Group title="Returns">
         <Line
           label="1 week"
@@ -110,31 +90,14 @@ export function InstrumentFigures({
           trail={trail((one) => one.returns.one_year)}
           baseline={0}
         />
-        <Line label="This year" delta={returns.year_to_date} />
+        <Line label="YTD" delta={returns.year_to_date} />
       </Group>
 
-      <Group title="52-Week Range">
-        <Line
-          label="52-week high"
-          value={formatPrice(range.high)}
-          note={formatDay(range.high_day)}
-        />
-        <Line label="52-week low" value={formatPrice(range.low)} note={formatDay(range.low_day)} />
-        <Line label="From high" delta={range.from_high_percent} />
-        <Line label="From low" delta={range.from_low_percent} />
-        <Line label="Deepest fall" delta={range.max_drawdown_percent} />
-        <RangeMeter
-          label="Within the year"
-          low={toNumber(range.low)}
-          high={toNumber(range.high)}
-          value={toNumber(day.close)}
-          format={(figure) => formatPrice(String(figure))}
-          className="pt-1"
-        />
-      </Group>
-
-      <Group title="Trend & Volume">
-        <Line label="From 200-day" delta={trend.from_sma_200_percent} />
+      <Group title="Trend & volume">
+        <Line label="From 52-week high" distance={range.from_high_percent} />
+        <Line label="From 52-week low" distance={range.from_low_percent} />
+        <Line label="Deepest fall in the year" distance={range.max_drawdown_percent} />
+        <Line label="From 200-day" distance={trend.from_sma_200_percent} />
         <Line
           label="Sessions above it"
           value={
@@ -150,13 +113,12 @@ export function InstrumentFigures({
               : formatMultiple(volume.relative_to_average)
           }
         />
-        <Line
-          label="RSI"
-          value={momentum.rsi === null ? ABSENT : formatPercent(momentum.rsi).replace("%", "")}
-        />
+        <Line label="Gap at the open" delta={day.gap_percent} />
       </Group>
 
-      <Group title="Momentum & Risk">
+      <Group title="Momentum & risk">
+        {/* A level from nought to a hundred: no sign, one decimal. */}
+        <Line label="RSI (14)" value={level(momentum.rsi)} />
         <Line label="MACD" value={figure(momentum.macd)} />
         <Line label="Signal" value={figure(momentum.macd_signal)} />
         <Line label="Histogram" value={figure(momentum.macd_histogram)} />
@@ -178,6 +140,12 @@ export function InstrumentFigures({
   );
 }
 
+/** A reading from nought to a hundred, to one decimal. */
+function level(value: string | null): string {
+  const figure = toNumber(value);
+  return figure === null ? ABSENT : figure.toFixed(1);
+}
+
 /** A plain figure, or a dash. */
 function figure(value: string | null): string {
   return value === null ? ABSENT : formatPrice(value);
@@ -191,20 +159,15 @@ function annualised(value: string | null): string {
 /** One group of readings. */
 function Group({
   title,
-  note,
   children,
 }: {
   title: string;
-  note?: string;
   children: React.ReactNode;
 }): React.JSX.Element {
   return (
     <Card>
       <CardContent className="space-y-2 py-4">
-        <div className="flex items-baseline justify-between gap-2">
-          <h3 className="text-sm font-semibold">{title}</h3>
-          {note !== undefined && <span className="text-xs text-muted-foreground">{note}</span>}
-        </div>
+        <h3 className="text-sm font-semibold">{title}</h3>
         <dl className="space-y-1.5">{children}</dl>
       </CardContent>
     </Card>
@@ -214,22 +177,22 @@ function Group({
 /**
  * One reading.
  *
- * A figure is given either as a formatted value or as a percentage change,
- * which carries its own sign and colour. Both at once would be two
- * readings pretending to be one.
+ * A figure is given as a formatted value, as a change (which carries its
+ * sign and colour), or as a distance (signed, but plain: 12% under the
+ * year's high is where a price stands, not a fall). One of the three.
  */
 function Line({
   label,
   value,
   delta,
-  note,
+  distance,
   trail,
   baseline,
 }: {
   label: string;
   value?: string;
   delta?: string | null;
-  note?: string;
+  distance?: string | null;
   /** The reading over recent sessions, drawn small beside it. */
   trail?: (number | null)[];
   /** A level the trail is read against, such as nought for a change. */
@@ -248,9 +211,12 @@ function Line({
             className="h-4 w-14 self-center bg-transparent"
           />
         )}
-        {delta === undefined ? value : <Delta value={delta} />}
-        {note !== undefined && note !== ABSENT && (
-          <span className="ml-2 text-xs font-normal text-muted-foreground">{note}</span>
+        {delta !== undefined ? (
+          <Delta value={delta} />
+        ) : distance !== undefined ? (
+          <span className="text-muted-foreground">{formatPercent(distance)}</span>
+        ) : (
+          value
         )}
       </dd>
     </div>

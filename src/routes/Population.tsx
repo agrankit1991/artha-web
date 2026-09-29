@@ -229,9 +229,6 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
         // Its own name from the start: the key's tail ("Nifty 50") until the
         // platform says what it is called, never the raw key.
         name={found?.name ?? scopeKey.slice(scopeKey.lastIndexOf("|") + 1)}
-        // The figures below carry both ranges; drawn here too, a reader
-        // met each twice on one screen.
-        ranges={false}
         badges={
           <>
             {ownKey !== null && (

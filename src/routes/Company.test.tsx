@@ -4,6 +4,8 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { Route, Routes } from "react-router-dom";
+
 import { Company } from "./Company";
 import {
   chartPoints,
@@ -92,23 +94,30 @@ describe("Company", () => {
 
     renderPage(<Company instrumentKey={KEY} />);
 
-    expect(await screen.findByRole("link", { name: "Refineries" })).toHaveAttribute(
-      "href",
-      "/sector/refineries",
-    );
+    // Its badge in the header, and its bars against the market.
+    const links = await screen.findAllByRole("link", { name: "Refineries" });
+    expect(links.length).toBeGreaterThan(0);
+    for (const link of links) {
+      expect(link).toHaveAttribute("href", "/sector/refineries");
+    }
   });
 
   it("leads from each index holding it to that index's page", async () => {
     stubEverything();
 
-    renderPage(<Company instrumentKey={KEY} />);
+    renderPage(
+      <Routes>
+        <Route path="/" element={<Company instrumentKey={KEY} />} />
+        <Route path="/index/:ref" element={<p>The index page</p>} />
+      </Routes>,
+    );
 
-    // Named in the header's badges and in the full list, and both lead there.
-    const links = await screen.findAllByRole("link", { name: "Nifty 50" });
-    expect(links.length).toBeGreaterThan(0);
-    for (const link of links) {
-      expect(link).toHaveAttribute("href", "/index/nifty-50");
-    }
+    // One chip in the header, where two names, "+N more" and a card lower
+    // down said the same thing three ways.
+    await userEvent.click(await screen.findByRole("button", { name: /In 1 index/ }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Nifty 50" }));
+
+    expect(await screen.findByText("The index page")).toBeInTheDocument();
   });
 
   it("opens on its own price, set above its valuation", async () => {
@@ -118,7 +127,7 @@ describe("Company", () => {
 
     renderPage(<Company instrumentKey={KEY} />);
 
-    const price = await screen.findByRole("region", { name: "Price & Performance" });
+    const price = await screen.findByRole("region", { name: "Price & performance" });
     expect(screen.getByRole("tab", { name: "Price" })).toHaveAttribute("aria-selected", "true");
     expect(await within(price).findByLabelText("Series drawn")).toBeInTheDocument();
     const valuation = screen.getByRole("region", { name: "Valuation" });
@@ -130,7 +139,7 @@ describe("Company", () => {
   it("turns to relative strength and back", async () => {
     stubEverything();
     renderPage(<Company instrumentKey={KEY} />);
-    await screen.findByText("Price & Performance");
+    await screen.findByText("Price & performance");
 
     await userEvent.click(screen.getByRole("tab", { name: "Relative strength" }));
     expect(screen.getByRole("tab", { name: "Relative strength" })).toHaveAttribute(
@@ -151,12 +160,15 @@ describe("Company", () => {
 
     renderPage(<Company instrumentKey={KEY} />);
 
-    const table = await screen.findByRole("table", { name: "Relative strength" });
-    expect(within(table).getByText("Its sector")).toBeInTheDocument();
-    expect(within(table).getByRole("link", { name: /Refineries/ })).toHaveAttribute(
+    const bars = await screen.findByRole("list", { name: "Ahead of or behind Refineries" });
+    const card = bars.closest("[data-slot=card]") as HTMLElement;
+    expect(card).toHaveTextContent("Its sector");
+    expect(within(card).getByRole("link", { name: "Refineries" })).toHaveAttribute(
       "href",
       "/sector/refineries",
     );
+    // Gaps in percentage points, not per cent.
+    expect(within(bars).getAllByText(/ pp$/).length).toBeGreaterThan(0);
   });
 
   it("shows what it has reported", async () => {
@@ -167,7 +179,7 @@ describe("Company", () => {
 
     // Awaited inside: the table is drawn before its figures arrive, so a
     // query that resolves on the table alone runs against an empty one.
-    const table = screen.getByRole("table", { name: "Financial Statements" });
+    const table = screen.getByRole("table", { name: "Financial statements" });
     expect(await within(table).findByText("Revenue")).toBeInTheDocument();
     expect(within(table).getByText("Profit After Tax")).toBeInTheDocument();
   });
@@ -185,7 +197,7 @@ describe("Company", () => {
     });
 
     renderPage(<Company instrumentKey={KEY} />);
-    await userEvent.click(await screen.findByRole("tab", { name: "Corporate Actions" }));
+    await userEvent.click(await screen.findByRole("tab", { name: "Corporate actions" }));
 
     expect(await screen.findByText("Bonus")).toBeInTheDocument();
     const table = screen.getByRole("table", { name: "Corporate actions" });
@@ -193,22 +205,18 @@ describe("Company", () => {
     expect(within(table).getByText(/6.00 per share/)).toBeInTheDocument();
   });
 
-  it("sorts both its tables by any column", async () => {
-    // A company's rivals are read for who is ahead on a window, and its
-    // benchmarks for which it is furthest behind. Neither is answerable by
-    // reading down a name.
+  it("sorts its peers by any column", async () => {
+    // A company's rivals are read for who is ahead on a window, which is
+    // not answerable by reading down a name.
     stubEverything();
     renderPage(<Company instrumentKey={KEY} />);
-    await screen.findByRole("table", { name: "Competitors" });
+    const table = await screen.findByRole("table", { name: "Peers" });
 
-    for (const name of ["Relative strength", "Competitors"]) {
-      const table = screen.getByRole("table", { name });
-      for (const header of within(table).getAllByRole("button")) {
-        await userEvent.click(header);
-      }
+    for (const header of within(table).getAllByRole("button")) {
+      await userEvent.click(header);
     }
 
-    expect(screen.getByRole("table", { name: "Competitors" })).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Peers" })).toBeInTheDocument();
   });
 
   it("dashes a figure it has none of, and still sorts on that column", async () => {
@@ -235,6 +243,7 @@ describe("Company", () => {
               volume: null,
               one_year: null,
               change_percent: null,
+              from_high_percent: null,
             }),
             member({ instrument_key: "NSE_EQ|INE467B01029", symbol: "TCS" }),
           ],
@@ -243,25 +252,25 @@ describe("Company", () => {
     });
 
     renderPage(<Company instrumentKey={KEY} />);
-    const table = await screen.findByRole("table", { name: "Competitors" });
+    const table = await screen.findByRole("table", { name: "Peers" });
     expect(within(table).getAllByText("-").length).toBeGreaterThan(1);
 
-    for (const name of ["Relative strength", "Competitors"]) {
-      for (const header of within(screen.getByRole("table", { name })).getAllByRole("button")) {
-        await userEvent.click(header);
-      }
+    for (const header of within(table).getAllByRole("button")) {
+      await userEvent.click(header);
     }
+    // A benchmark with no gap on any window says so, rather than a row of noughts.
+    expect(screen.getByText("Nothing to measure it against yet")).toBeInTheDocument();
 
-    // Two indices hold it now, so the sentence counting them agrees.
-    expect(screen.getByText(/2 indices currently/)).toBeInTheDocument();
+    // Two indices hold it now, and the header's chip counts them.
+    expect(screen.getByRole("button", { name: "In 2 indices" })).toBeInTheDocument();
   });
 
-  it("leads from a competitor's name to its own page", async () => {
+  it("leads from a peer's name to its own page", async () => {
     stubEverything();
 
     renderPage(<Company instrumentKey={KEY} />);
 
-    const table = await screen.findByRole("table", { name: "Competitors" });
+    const table = await screen.findByRole("table", { name: "Peers" });
     expect(within(table).getByRole("link", { name: /BPCL/ })).toHaveAttribute(
       "href",
       "/company/BPCL",
@@ -285,9 +294,9 @@ describe("Company", () => {
   it("asks for more history when a longer range is chosen", async () => {
     const fetchMock = stubEverything();
     renderPage(<Company instrumentKey={KEY} />);
-    await screen.findByText("Price & Performance");
+    await screen.findByText("Price & performance");
 
-    const price = screen.getByRole("region", { name: "Price & Performance" });
+    const price = screen.getByRole("region", { name: "Price & performance" });
     await userEvent.click(within(price).getByRole("button", { name: "5Y" }));
 
     await waitFor(() => {
@@ -299,7 +308,8 @@ describe("Company", () => {
   it("draws its valuation over its own sessions, as far back as is asked", async () => {
     const fetchMock = stubEverything();
     renderPage(<Company instrumentKey={KEY} />);
-    const history = await screen.findByRole("region", { name: "Valuation History" });
+    // One section with the tiles: what it trades at, and how that has run.
+    const history = await screen.findByRole("region", { name: "Valuation" });
 
     expect(
       await within(history).findByRole("meter", { name: "Price to earnings" }),
@@ -322,7 +332,7 @@ describe("Company", () => {
     renderPage(<Company instrumentKey={KEY} />);
 
     expect(await screen.findByText(/No run/)).toBeInTheDocument();
-    expect(screen.getByText("Price & Performance")).toBeInTheDocument();
+    expect(screen.getByText("Price & performance")).toBeInTheDocument();
   });
 
   it("offers the whole feed when there is more news than it shows", async () => {
@@ -355,7 +365,7 @@ describe("Company", () => {
     });
 
     renderPage(<Company instrumentKey={KEY} />);
-    await screen.findByText("Price & Performance");
+    await screen.findByText("Price & performance");
 
     await userEvent.click(screen.getByRole("tab", { name: "Price" }));
     expect(await screen.findByText("Reliance Industries")).toBeInTheDocument();
@@ -419,7 +429,7 @@ describe("Company", () => {
 
     // Awaited on a tile: the section heading is drawn before the figures
     // arrive.
-    expect(await screen.findByText("42.79×")).toBeInTheDocument();
+    expect(await screen.findByText("42.8×")).toBeInTheDocument();
     expect(screen.getByText("₹16.78 lakh cr")).toBeInTheDocument();
     expect(screen.getByText("Valuation")).toBeInTheDocument();
   });
@@ -450,7 +460,7 @@ describe("Company", () => {
     expect(await screen.findByText("Promoters")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("tab", { name: "Financials" }));
-    expect(await screen.findByText(/Revenue \(consolidated\)/)).toBeInTheDocument();
+    expect(await screen.findByText(/Revenue, ₹ cr \(consolidated\)/)).toBeInTheDocument();
   });
 
   it("narrows the corporate events to one kind", async () => {
@@ -463,7 +473,7 @@ describe("Company", () => {
       },
     });
     renderPage(<Company instrumentKey={KEY} />);
-    await userEvent.click(await screen.findByRole("tab", { name: "Corporate Actions" }));
+    await userEvent.click(await screen.findByRole("tab", { name: "Corporate actions" }));
     await screen.findByText("Bonus");
 
     await userEvent.click(screen.getByRole("button", { name: "Dividends" }));
@@ -475,7 +485,7 @@ describe("Company", () => {
   it("offers a share card of the day", async () => {
     const fetched = stubEverything();
     renderPage(<Company instrumentKey={KEY} />);
-    await screen.findByText("Price & Performance");
+    await screen.findByText("Price & performance");
 
     await userEvent.click(screen.getByRole("button", { name: "Share" }));
 
@@ -489,7 +499,7 @@ describe("Company", () => {
   it("reads its figures as they stood on a chosen session, and draws each figure's shape", async () => {
     const fetched = stubEverything();
     renderPage(<Company instrumentKey={KEY} />);
-    await screen.findByText("Price & Performance");
+    await screen.findByText("Price & performance");
     // Two sessions of history: every reading with a shape carries a sparkline.
     expect(
       (await screen.findAllByRole("img", { name: /over recent sessions/ })).length,
@@ -519,7 +529,8 @@ describe("Company", () => {
 
     expect(await screen.findByText("NSE: RELIANCE")).toBeInTheDocument();
     expect(screen.getByText("BSE: RELIANCE")).toBeInTheDocument();
-    expect(await screen.findByText("+2 more")).toHaveAttribute("title", "Nifty 200, Nifty 500");
+    await userEvent.click(await screen.findByRole("button", { name: /In 4 indices/ }));
+    expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual(names);
     expect(await screen.findByText("Near 52W high")).toBeInTheDocument();
     expect(screen.queryByText("Near 52W low")).not.toBeInTheDocument();
   });
@@ -539,7 +550,8 @@ describe("Company", () => {
 
     renderPage(<Company instrumentKey={KEY} />);
 
-    expect(await screen.findByText("Near 52W low")).toBeInTheDocument();
+    // Worth a look, like a high: not painted as a fall.
+    expect(await screen.findByText("Near 52W low")).toHaveClass("text-caution");
     expect(screen.queryByText("Near 52W high")).not.toBeInTheDocument();
   });
 
@@ -613,5 +625,125 @@ describe("Company", () => {
     expect(within(deals).getByText("SOME FUND LLP")).toBeInTheDocument();
     expect(within(deals).getByText("Sell")).toHaveClass("text-loss");
     expect(within(deals).getByText("310.00")).toBeInTheDocument();
+  });
+
+  it("reads a tab's data only when the tab is first opened", async () => {
+    // Fourteen requests on arrival was mostly for tabs never opened.
+    const fetched = stubEverything();
+    renderPage(<Company instrumentKey={KEY} />);
+    await screen.findByRole("region", { name: "Key figures" });
+    const asked = (): string[] => fetched.mock.calls.map((call) => String(call[0]));
+    expect(asked().some((path) => path.includes("/fundamentals"))).toBe(false);
+    expect(asked().some((path) => path.includes("/corporate-actions"))).toBe(false);
+
+    await userEvent.click(screen.getByRole("tab", { name: "Financials" }));
+    await waitFor(() => {
+      expect(asked().some((path) => path.includes("/fundamentals"))).toBe(true);
+    });
+    const once = asked().filter((path) => path.includes("/fundamentals")).length;
+
+    // Kept: back to the overview and on to the shareholding reads nothing again.
+    await userEvent.click(screen.getByRole("tab", { name: "Overview" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Shareholding" }));
+    expect(asked().filter((path) => path.includes("/fundamentals"))).toHaveLength(once);
+  });
+
+  it("opens on the tab in its address", async () => {
+    stubEverything();
+
+    renderPage(<Company instrumentKey={KEY} />, { at: "/company/RELIANCE?tab=financials" });
+
+    expect(await screen.findByRole("tab", { name: "Financials" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(await screen.findByRole("table", { name: "Financial statements" })).toBeInTheDocument();
+  });
+
+  it("says what a past session re-dates, and what stays the latest", async () => {
+    stubEverything();
+
+    renderPage(<Company instrumentKey={KEY} />, { at: "/company/RELIANCE?as_of=2026-09-15" });
+
+    expect(await screen.findByText(/Read as of 15 Sept? 2026/)).toHaveTextContent(
+      "valuation, trading activity and peers show the latest",
+    );
+  });
+
+  it("reports a section that cannot be read in that section alone", async () => {
+    stubEverything({
+      "/api/companies/NSE_EQ%7CINE002A01018/fundamentals": {
+        status: 500,
+        body: { detail: "statements broke" },
+      },
+    });
+    renderPage(<Company instrumentKey={KEY} />, { at: "/company/RELIANCE?tab=financials" });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Statements broke");
+    expect(screen.getByRole("tab", { name: "Overview" })).toBeInTheDocument();
+  });
+
+  it("reports each overview section that cannot be read in that section", async () => {
+    const broke = (what: string): { status: number; body: { detail: string } } => ({
+      status: 500,
+      body: { detail: `${what} broke` },
+    });
+    stubEverything({
+      "/api/overviews": broke("figures"),
+      "/api/companies/NSE_EQ%7CINE002A01018/valuation": broke("valuation"),
+      "/api/companies/NSE_EQ%7CINE002A01018/delivery": broke("delivery"),
+      "/api/deals": broke("deals"),
+      "/api/figures": broke("chart"),
+      "/api/series": broke("comparison"),
+    });
+    renderPage(<Company instrumentKey={KEY} />);
+
+    for (const said of ["Figures broke", "Valuation broke", "Delivery broke", "Deals broke"]) {
+      expect(await screen.findByText(said)).toBeInTheDocument();
+    }
+    expect(await screen.findByText("Chart broke")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: "Relative strength" }));
+    expect(await screen.findByText("Comparison broke")).toBeInTheDocument();
+    // The page around them stands.
+    expect(screen.getByRole("heading", { name: "Key figures" })).toBeInTheDocument();
+  });
+
+  it("reports a tab that cannot be read, and reads an unknown tab as the overview", async () => {
+    stubEverything({
+      "/api/companies/NSE_EQ%7CINE002A01018/corporate-actions": {
+        status: 500,
+        body: { detail: "events broke" },
+      },
+      "/api/news": { status: 500, body: { detail: "news broke" } },
+    });
+    const { unmount } = renderPage(<Company instrumentKey={KEY} />, {
+      at: "/company/RELIANCE?tab=actions",
+    });
+    expect(await screen.findByText("Events broke")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: "News" }));
+    expect(await screen.findByText("News broke")).toBeInTheDocument();
+    unmount();
+
+    renderPage(<Company instrumentKey={KEY} />, { at: "/company/RELIANCE?tab=nope" });
+    expect(await screen.findByRole("tab", { name: "Overview" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
+  it("goes back to the latest session when the chosen one is cleared", async () => {
+    const fetched = stubEverything();
+    renderPage(<Company instrumentKey={KEY} />, { at: "/company/RELIANCE?as_of=2026-09-15" });
+    await screen.findByText(/Read as of/);
+
+    await userEvent.clear(screen.getByLabelText("As of"));
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Read as of/)).not.toBeInTheDocument();
+    });
+    const asked = fetched.mock.calls.map((call) => String(call[0]));
+    expect(
+      asked.some((path) => path.startsWith("/api/overviews?") && !path.includes("as_of")),
+    ).toBe(true);
   });
 });
