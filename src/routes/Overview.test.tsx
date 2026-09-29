@@ -185,7 +185,7 @@ describe("Overview", () => {
 
     renderOverview();
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("the lists are being rebuilt");
+    expect(await screen.findByRole("alert")).toHaveTextContent("The lists are being rebuilt");
   });
 
   it("passes a chosen instrument on to whoever asked for it", async () => {

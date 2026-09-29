@@ -150,6 +150,6 @@ describe("Scans", () => {
     stubPlatform({ "/api/screen/fields": { status: 500, body: { detail: "fields broke" } } });
     renderPage(<Scans />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("fields broke");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Fields broke");
   });
 });

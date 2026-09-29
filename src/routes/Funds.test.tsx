@@ -194,7 +194,7 @@ describe("Funds", () => {
 
     renderPage(<Funds />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("the values are being rebuilt");
+    expect(await screen.findByRole("alert")).toHaveTextContent("The values are being rebuilt");
   });
 
   it("carries what each scheme has returned, coloured and sortable", async () => {

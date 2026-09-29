@@ -10,6 +10,7 @@
 import { useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 
+import { Callout } from "@/components/Callout";
 import { type BacktestPlay, type BacktestYear, fetchBacktest } from "@/api/client";
 import { BacktestBaskets } from "@/components/BacktestBaskets";
 import { BacktestMeasures } from "@/components/BacktestMeasures";
@@ -173,12 +174,7 @@ export function Backtest(): React.JSX.Element {
         identifiers={`Run ${formatDay(shown.run_at.slice(0, 10))} · history to ${formatDay(shown.data_to)}`}
         badges={<Badge variant="outline">against the {index}</Badge>}
       />
-      <p
-        role="note"
-        className="rounded-md border border-caution/40 bg-caution/10 px-3 py-2 text-sm"
-      >
-        {shown.note}
-      </p>
+      <Callout tone="caution">{shown.note}</Callout>
 
       {verdict !== undefined && (
         <section aria-label="Verdict" className="space-y-3">

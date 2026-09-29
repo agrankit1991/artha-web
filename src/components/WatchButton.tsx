@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useResource } from "@/hooks/useResource";
 import { cn } from "@/lib/utils";
+import { sentence } from "@/lib/format";
 
 interface WatchButtonProps {
   instrumentKey: string;
@@ -119,7 +120,7 @@ export function WatchButton({
             <MenuLabel>Watchlists</MenuLabel>
             {lists.error !== null || holding.error !== null ? (
               <div className="px-2 py-1.5 text-xs text-destructive">
-                {lists.error ?? holding.error}
+                {sentence(lists.error ?? holding.error ?? "")}
               </div>
             ) : (lists.data ?? []).length === 0 ? (
               <div className="px-2 py-1.5 text-xs text-muted-foreground">
@@ -140,7 +141,7 @@ export function WatchButton({
               ))
             )}
             {problem !== null && (
-              <div className="px-2 py-1 text-xs text-destructive">{problem}</div>
+              <div className="px-2 py-1 text-xs text-destructive">{sentence(problem)}</div>
             )}
             <MenuSeparator />
             <MenuItem
@@ -202,7 +203,7 @@ export function WatchButton({
               Make and add
             </Button>
           </div>
-          {problem !== null && <p className="text-sm text-destructive">{problem}</p>}
+          {problem !== null && <p className="text-sm text-destructive">{sentence(problem)}</p>}
         </form>
       </Dialog>
     </>

@@ -45,6 +45,6 @@ describe("ReferencedPage", () => {
     });
     page("/company/NOSUCH");
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("no company is called NOSUCH");
+    expect(await screen.findByRole("alert")).toHaveTextContent("No company is called NOSUCH");
   });
 });

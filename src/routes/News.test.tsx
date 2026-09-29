@@ -225,7 +225,7 @@ describe("News", () => {
 
     render(<News />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("the feed is being rebuilt");
+    expect(await screen.findByRole("alert")).toHaveTextContent("The feed is being rebuilt");
   });
 
   it("shows an article with no picture without leaving a gap", async () => {

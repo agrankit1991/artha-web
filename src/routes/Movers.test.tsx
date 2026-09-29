@@ -116,7 +116,7 @@ describe("Movers", () => {
       "/api/movers/": { status: 500, body: { detail: "movers broke" } },
     });
     renderPage(page(), { at: "/movers/top-losers" });
-    expect(await screen.findByText(/movers broke/)).toBeInTheDocument();
+    expect(await screen.findByText(/Movers broke/)).toBeInTheDocument();
   });
 
   it("sorts by any column", async () => {

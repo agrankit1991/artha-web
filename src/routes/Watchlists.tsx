@@ -47,7 +47,7 @@ import { Input } from "@/components/ui/input";
 import { useDebounced } from "@/hooks/useDebounced";
 import { useResource } from "@/hooks/useResource";
 import { ENTITIES, MARKS } from "@/lib/entities";
-import { ABSENT, formatDay, formatPrice, formatVolume, toNumber } from "@/lib/format";
+import { ABSENT, formatDay, formatPrice, formatVolume, sentence, toNumber } from "@/lib/format";
 import { companyPath } from "@/lib/paths";
 import { cn } from "@/lib/utils";
 
@@ -599,7 +599,7 @@ function ListDialog({
             {state?.kind === "rename" ? "Save" : "Make list"}
           </Button>
         </div>
-        {problem !== null && <p className="text-sm text-destructive">{problem}</p>}
+        {problem !== null && <p className="text-sm text-destructive">{sentence(problem)}</p>}
       </form>
     </Dialog>
   );
@@ -660,7 +660,7 @@ function AddDialog({
           setTyped(event.target.value);
         }}
       />
-      {problem !== null && <p className="text-sm text-destructive">{problem}</p>}
+      {problem !== null && <p className="text-sm text-destructive">{sentence(problem)}</p>}
       <ul className="max-h-72 divide-y overflow-auto rounded-md border" aria-label="Matches">
         {query.length >= 2 && !found.loading && companies.length === 0 && (
           <li className="px-3 py-3 text-center text-sm text-muted-foreground">
@@ -814,7 +814,7 @@ function ItemDialog({
             className="mt-1"
           />
         </label>
-        {problem !== null && <p className="text-sm text-destructive">{problem}</p>}
+        {problem !== null && <p className="text-sm text-destructive">{sentence(problem)}</p>}
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel

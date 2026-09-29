@@ -321,7 +321,7 @@ describe("Company", () => {
     });
     renderPage(<Company instrumentKey={KEY} />);
 
-    expect(await screen.findByText(/no run/)).toBeInTheDocument();
+    expect(await screen.findByText(/No run/)).toBeInTheDocument();
     expect(screen.getByText("Price & Performance")).toBeInTheDocument();
   });
 
@@ -375,7 +375,7 @@ describe("Company", () => {
 
     renderPage(<Company instrumentKey={KEY} />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("nothing stored for that company");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Nothing stored for that company");
   });
 
   it("says a company has no figures rather than drawing an empty panel", async () => {

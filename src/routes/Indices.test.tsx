@@ -113,7 +113,7 @@ describe("Indices", () => {
     vi.unstubAllGlobals();
     stubPlatform({ "/api/indices": { status: 500, body: { detail: "indices broke" } } });
     renderPage(<Indices />);
-    expect(await screen.findByText(/indices broke/)).toBeInTheDocument();
+    expect(await screen.findByText(/Indices broke/)).toBeInTheDocument();
   });
 
   it("narrows by exchange", async () => {

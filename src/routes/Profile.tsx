@@ -23,6 +23,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { initialsOf } from "@/components/UserMenu";
 import { THEME_CHOICES } from "@/components/ThemeMenu";
 import { useTheme } from "@/lib/theme";
+import { sentence } from "@/lib/format";
 
 interface ProfileProps {
   account: Account;
@@ -317,7 +318,7 @@ function InviteCard(): React.JSX.Element {
             </p>
           </div>
         )}
-        {problem !== null && <p className="text-sm text-destructive">{problem}</p>}
+        {problem !== null && <p className="text-sm text-destructive">{sentence(problem)}</p>}
       </CardContent>
     </Card>
   );

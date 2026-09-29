@@ -154,15 +154,15 @@ describe("Compare", () => {
       "/api/screen/fields": { status: 500, body: { detail: "fields broke" } },
     });
     const { unmount } = renderPage(<Compare />, { at: `/compare?keys=${RELIANCE}` });
-    expect(await screen.findByText(/series broke/)).toBeInTheDocument();
-    expect(await screen.findByText(/figures broke/)).toBeInTheDocument();
-    expect(await screen.findByText(/fields broke/)).toBeInTheDocument();
+    expect(await screen.findByText(/Series broke/)).toBeInTheDocument();
+    expect(await screen.findByText(/Figures broke/)).toBeInTheDocument();
+    expect(await screen.findByText(/Fields broke/)).toBeInTheDocument();
     unmount();
 
     vi.unstubAllGlobals();
     stubPlatform({ "/api/instruments": { status: 500, body: { detail: "names broke" } } });
     renderPage(<Compare />, { at: `/compare?keys=${RELIANCE}` });
-    expect(await screen.findByText(/names broke/)).toBeInTheDocument();
+    expect(await screen.findByText(/Names broke/)).toBeInTheDocument();
   });
 
   it("sorts the returns by any column", async () => {

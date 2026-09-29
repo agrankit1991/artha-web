@@ -289,3 +289,14 @@ export function formatSince(value: string | null | undefined, now: Date = new Da
 export function todayInIndia(now: Date = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(now);
 }
+
+/**
+ * A message as a sentence: the platform writes its reasons in lower case
+ * ("email or password is wrong"), and a page shows them as sentences.
+ *
+ * @param message - The message.
+ * @returns It with its first letter capitalised.
+ */
+export function sentence(message: string): string {
+  return message.charAt(0).toUpperCase() + message.slice(1);
+}

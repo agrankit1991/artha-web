@@ -14,6 +14,7 @@
 
 import { useMemo } from "react";
 
+import { Callout } from "@/components/Callout";
 import type { BacktestPick, BacktestPicks } from "@/api/client";
 import { type Column, DataTable } from "@/components/DataTable";
 import { symbolColumn } from "@/components/identityColumns";
@@ -102,7 +103,7 @@ export function BacktestPicksPanel({ picks }: BacktestPicksProps): React.JSX.Ele
         )}
       </p>
       {!buying && (
-        <p role="status" className="rounded-md bg-muted/50 px-3 py-2 text-sm">
+        <Callout tone="info" role="status">
           {STANDINGS[picks.standing] ?? picks.standing}
           {picks.candidates.length > 0 && (
             <>
@@ -111,7 +112,7 @@ export function BacktestPicksPanel({ picks }: BacktestPicksProps): React.JSX.Ele
               once it may.
             </>
           )}
-        </p>
+        </Callout>
       )}
       {(buying || picks.candidates.length > 0) && (
         <DataTable

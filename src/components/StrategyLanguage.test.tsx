@@ -36,6 +36,6 @@ describe("StrategyLanguage", () => {
     renderPage(<StrategyLanguage />);
     await userEvent.click(screen.getByText("What a rule may use"));
 
-    expect(await screen.findByText("language broke")).toBeInTheDocument();
+    expect(await screen.findByText("Language broke")).toBeInTheDocument();
   });
 });

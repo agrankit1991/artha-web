@@ -94,6 +94,6 @@ describe("Strategies", () => {
     stubPlatform({ "/api/strategies": { status: 500, body: { detail: "strategies broke" } } });
     renderPage(<Strategies />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("strategies broke");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Strategies broke");
   });
 });

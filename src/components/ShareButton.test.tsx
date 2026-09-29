@@ -101,7 +101,7 @@ describe("ShareButton", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "Share" }));
 
-    expect(await screen.findByText(/no closes/)).toBeInTheDocument();
+    expect(await screen.findByText(/No closes/)).toBeInTheDocument();
     await waitFor(() => {
       expect(fillText).toHaveBeenCalledWith("₹1,240.00", expect.any(Number), expect.any(Number));
     });
@@ -144,7 +144,7 @@ describe("ShareButton", () => {
     );
     expect(screen.getByRole("button", { name: "Share" })).toHaveClass("ml-2");
     await userEvent.click(screen.getByRole("button", { name: "Share" }));
-    expect(await screen.findByText(/closes: not an array/)).toBeInTheDocument();
+    expect(await screen.findByText(/Closes: not an array/)).toBeInTheDocument();
   });
 
   it("falls back to plain words when what was thrown is not an Error", async () => {

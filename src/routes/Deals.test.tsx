@@ -88,6 +88,6 @@ describe("Deals", () => {
     stubPlatform({ "/api/deals": { status: 500, body: { detail: "deals broke" } } });
     renderPage(<Deals />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("deals broke");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Deals broke");
   });
 });

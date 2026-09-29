@@ -17,14 +17,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ThemeMenu } from "@/components/ThemeMenu";
+import { sentence } from "@/lib/format";
 
 /** Shortest password the platform accepts; said here so the form can say it first. */
 const MINIMUM_PASSWORD = 12;
-
-/** A message as a sentence: the platform writes its reasons in lower case. */
-function sentence(message: string): string {
-  return message.charAt(0).toUpperCase() + message.slice(1);
-}
 
 /**
  * Ask for an address and a password -- and, with an invitation, a name.

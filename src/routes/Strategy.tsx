@@ -12,7 +12,7 @@
  * never overwrites.
  */
 
-import { Loader2, Play, Save, Trash2 } from "lucide-react";
+import { Play, Save, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -25,6 +25,7 @@ import {
   runStrategy,
   updateStrategy,
 } from "@/api/client";
+import { Callout } from "@/components/Callout";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Empty } from "@/components/Empty";
 import { Failed } from "@/components/Failed";
@@ -273,20 +274,19 @@ function SavedStrategy({ id }: { id: number }): React.JSX.Element {
 function RunStatus({ latest }: { latest: StrategyRequest }): React.JSX.Element | null {
   if (latest.status === "failed") {
     return (
-      <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+      <Callout tone="danger">
         The last run failed: <span className="font-mono text-xs">{latest.error}</span>
-      </p>
+      </Callout>
     );
   }
   if (latest.status === "done") {
     return null;
   }
   return (
-    <p role="status" className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2 text-sm">
-      <Loader2 className="size-4 animate-spin" aria-hidden />
+    <Callout tone="progress">
       {latest.status === "queued"
         ? `Queued ${formatSince(latest.requested_at)}: the backtester runs one at a time.`
         : `Running since ${formatSince(latest.started_at)}: this page updates when it finishes.`}
-    </p>
+    </Callout>
   );
 }

@@ -260,7 +260,7 @@ describe("Ipos", () => {
 
     renderPage(<Ipos today={TODAY} />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("the feed is down");
+    expect(await screen.findByRole("alert")).toHaveTextContent("The feed is down");
   });
 
   it("searches an offering that has neither a symbol nor an industry", async () => {

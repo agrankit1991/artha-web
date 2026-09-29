@@ -94,7 +94,7 @@ describe("Futures", () => {
     vi.unstubAllGlobals();
     stubPlatform({ "/api/futures": { status: 500, body: { detail: "futures broke" } } });
     renderPage(<Futures />);
-    expect(await screen.findByText(/futures broke/)).toBeInTheDocument();
+    expect(await screen.findByText(/Futures broke/)).toBeInTheDocument();
   });
 });
 

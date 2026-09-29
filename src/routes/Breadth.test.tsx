@@ -107,7 +107,7 @@ describe("Breadth", () => {
 
     renderPage(<Breadth />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("the counts are being rebuilt");
+    expect(await screen.findByRole("alert")).toHaveTextContent("The counts are being rebuilt");
   });
 
   it("says a population has no sessions rather than showing a blank table", async () => {
@@ -386,7 +386,7 @@ describe("Breadth", () => {
     });
     renderPage(<Breadth />);
 
-    expect(await screen.findByText("participation broke")).toBeInTheDocument();
+    expect(await screen.findByText("Participation broke")).toBeInTheDocument();
     expect(screen.getByText("Daily Breadth")).toBeInTheDocument();
   });
 
@@ -399,7 +399,7 @@ describe("Breadth", () => {
     });
     renderPage(<Breadth />);
 
-    expect(await screen.findByText("scopes broke")).toBeInTheDocument();
+    expect(await screen.findByText("Scopes broke")).toBeInTheDocument();
   });
 });
 

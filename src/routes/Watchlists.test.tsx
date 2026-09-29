@@ -180,13 +180,13 @@ describe("Watchlists", () => {
       "/api/watchlists": { body: LISTS },
     });
     const broken = renderPage(<Watchlists />);
-    expect(await screen.findByText(/page broke/)).toBeInTheDocument();
+    expect(await screen.findByText(/Page broke/)).toBeInTheDocument();
     broken.unmount();
 
     vi.unstubAllGlobals();
     stubPlatform({ "/api/watchlists": { status: 500, body: { detail: "lists broke" } } });
     renderPage(<Watchlists />);
-    expect(await screen.findByText(/lists broke/)).toBeInTheDocument();
+    expect(await screen.findByText(/Lists broke/)).toBeInTheDocument();
   });
 
   it("sorts the instruments by any column", async () => {
@@ -247,7 +247,7 @@ describe("Watchlists", () => {
     await userEvent.type(within(edit).getByRole("spinbutton", { name: "Stop loss" }), "0");
     await userEvent.type(within(edit).getByRole("textbox", { name: "Tags" }), ", value");
     await userEvent.click(within(edit).getByRole("button", { name: "Save" }));
-    expect(await within(edit).findByText(/a stop is a positive price/)).toBeInTheDocument();
+    expect(await within(edit).findByText(/A stop is a positive price/)).toBeInTheDocument();
     await userEvent.click(within(edit).getByRole("button", { name: "Cancel" }));
 
     await userEvent.click(screen.getByRole("button", { name: /Add instrument/ }));
@@ -259,7 +259,7 @@ describe("Watchlists", () => {
     await userEvent.click(screen.getByRole("button", { name: /Delete list/ }));
     const confirm = screen.getByRole("dialog", { name: /Delete/ });
     await userEvent.click(within(confirm).getByRole("button", { name: "Delete list" }));
-    expect(await within(confirm).findByText(/could not delete/)).toBeInTheDocument();
+    expect(await within(confirm).findByText(/Could not delete/)).toBeInTheDocument();
   });
 
   it("shows why an instrument could not be added", async () => {
@@ -285,7 +285,7 @@ describe("Watchlists", () => {
     await userEvent.type(screen.getByRole("searchbox", { name: "Find a company" }), "inf");
     await userEvent.click(await screen.findByRole("button", { name: /INFY/ }));
 
-    expect(await screen.findByText(/could not add/)).toBeInTheDocument();
+    expect(await screen.findByText(/Could not add/)).toBeInTheDocument();
   });
 
   it("edits an instrument with no price yet, and clears a tag by pressing it again", async () => {

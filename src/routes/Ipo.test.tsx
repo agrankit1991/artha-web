@@ -47,6 +47,6 @@ describe("Ipo", () => {
 
     renderPage(<Ipo ipoId="x" />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("the feed is down");
+    expect(await screen.findByRole("alert")).toHaveTextContent("The feed is down");
   });
 });

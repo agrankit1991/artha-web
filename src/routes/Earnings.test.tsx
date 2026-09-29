@@ -147,7 +147,7 @@ describe("EarningsPage", () => {
 
     renderPage(<EarningsPage />);
 
-    expect(await screen.findByText(/sectors broke/)).toBeInTheDocument();
+    expect(await screen.findByText(/Sectors broke/)).toBeInTheDocument();
     expect(screen.getByRole("table", { name: "Earnings by period" })).toBeInTheDocument();
   });
 
@@ -159,7 +159,7 @@ describe("EarningsPage", () => {
 
     renderPage(<EarningsPage />);
 
-    expect(await screen.findByText(/market broke/)).toBeInTheDocument();
+    expect(await screen.findByText(/Market broke/)).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
   it("sorts by any column, with a period that has no comparison last", async () => {

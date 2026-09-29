@@ -48,7 +48,7 @@ describe("SessionPicker", () => {
     stubPlatform({ "/api/sessions": { status: 500, body: { detail: "sessions broke" } } });
     renderPage(<SessionPicker asOf={null} onChange={onChange} />);
 
-    expect(await screen.findByText(/sessions broke/)).toBeInTheDocument();
+    expect(await screen.findByText(/Sessions broke/)).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText("As of"), "2026-09-16");
     expect(onChange).toHaveBeenLastCalledWith("2026-09-16");
   });

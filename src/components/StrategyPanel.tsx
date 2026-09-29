@@ -17,6 +17,7 @@
 import { ArrowRight, Undo2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import { Callout } from "@/components/Callout";
 import type { ScreenField, ScreenHit } from "@/api/client";
 import { HowItWorks } from "@/components/HowItWorks";
 import { MarketSwitch } from "@/components/MarketSwitch";
@@ -75,28 +76,25 @@ export function StrategyPanel({
             {strategy.rowsHeld}
           </p>
           {offSession.length > 0 && (
-            <p
-              role="status"
-              className="rounded-md border border-caution/40 bg-caution/10 px-3 py-2 text-sm"
-            >
+            <Callout tone="info" role="status">
               {notYetSignals(offSession, hits.length)}
-            </p>
+            </Callout>
           )}
         </>
       ) : (
-        <div
+        <Callout
+          tone="info"
           role="status"
-          className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-caution/40 bg-caution/10 px-3 py-2 text-sm"
+          action={
+            <Button variant="outline" size="sm" onClick={onRestore}>
+              <Undo2 aria-hidden="true" className="mr-1 h-4 w-4" />
+              Restore the strategy&apos;s screen
+            </Button>
+          }
         >
-          <span>
-            The screen has been changed from the strategy&apos;s, so the rows below are not its
-            candidates.
-          </span>
-          <Button variant="outline" size="sm" onClick={onRestore}>
-            <Undo2 aria-hidden="true" className="mr-1 h-4 w-4" />
-            Restore the strategy&apos;s screen
-          </Button>
-        </div>
+          The screen has been changed from the strategy&apos;s, so the rows below are not its
+          candidates.
+        </Callout>
       )}
 
       {strategy.howItWorks.marketSwitch !== undefined && <MarketSwitch fields={fields} />}

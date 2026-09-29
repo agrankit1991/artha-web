@@ -138,7 +138,7 @@ describe("Flows", () => {
     stubPlatform({ "/api/flows": { status: 500, body: { detail: "flows broke" } } });
     renderPage(<Flows />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("flows broke");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Flows broke");
   });
 
   it("sorts both tables by any column", async () => {

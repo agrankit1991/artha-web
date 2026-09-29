@@ -11,14 +11,15 @@ import {
   formatMonth,
   formatMultiple,
   formatPercent,
-  formatPercentTenths,
   formatPercentagePoints,
+  formatPercentTenths,
   formatPrice,
   formatSignedPrice,
   formatSince,
   formatStreak,
   formatVolume,
   formatWhole,
+  sentence,
   todayInIndia,
   toNumber,
 } from "./format";
@@ -163,5 +164,15 @@ describe("the strategy lab's figures", () => {
     expect(formatDayMonth("not a day")).toBe(ABSENT);
     expect(formatMonth("2019-11")).toBe("Nov 2019");
     expect(formatMonth("never")).toBe(ABSENT);
+  });
+});
+
+describe("sentence", () => {
+  it("writes the platform's reason as a sentence", () => {
+    expect(sentence("email or password is wrong")).toBe("Email or password is wrong");
+  });
+
+  it("leaves an empty message empty", () => {
+    expect(sentence("")).toBe("");
   });
 });

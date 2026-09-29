@@ -164,6 +164,6 @@ describe("Visitors", () => {
 
     renderPage(<Visitors />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("the count broke");
+    expect(await screen.findByRole("alert")).toHaveTextContent("The count broke");
   });
 });

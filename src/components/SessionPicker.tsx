@@ -15,7 +15,7 @@ import type { SessionSummary } from "@/api/client";
 import { fetchSessions } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { useResource } from "@/hooks/useResource";
-import { formatDay } from "@/lib/format";
+import { formatDay, sentence } from "@/lib/format";
 
 interface SessionPickerProps {
   /** The session the page is read as of, or null for the latest. */
@@ -79,7 +79,7 @@ export function SessionPicker({
           </>
         )}
         {sessions.error !== null && (
-          <span className="text-xs text-destructive">{sessions.error}</span>
+          <span className="text-xs text-destructive">{sentence(sessions.error)}</span>
         )}
       </div>
     </div>

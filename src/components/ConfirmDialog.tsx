@@ -9,6 +9,7 @@ import { useState } from "react";
 
 import { Dialog } from "@/components/Dialog";
 import { Button } from "@/components/ui/button";
+import { sentence } from "@/lib/format";
 
 /**
  * Ask before something is deleted.
@@ -64,7 +65,7 @@ export function ConfirmDialog({
         </>
       }
     >
-      {problem !== null && <p className="text-sm text-destructive">{problem}</p>}
+      {problem !== null && <p className="text-sm text-destructive">{sentence(problem)}</p>}
     </Dialog>
   );
 }

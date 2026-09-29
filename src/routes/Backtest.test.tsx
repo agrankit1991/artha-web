@@ -275,6 +275,6 @@ describe("Backtest", () => {
     stubPlatform({ "/api/backtests/7": { status: 500, body: { detail: "backtest broke" } } });
     renderAt(7);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("backtest broke");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Backtest broke");
   });
 });

@@ -100,7 +100,7 @@ describe("WatchButton", () => {
     );
     await userEvent.click(await screen.findByRole("button", { name: "Watch RELIANCE" }));
     await userEvent.click(screen.getByRole("menuitem", { name: /Long term/ }));
-    expect(await screen.findByText(/list broke/)).toBeInTheDocument();
+    expect(await screen.findByText(/List broke/)).toBeInTheDocument();
     unmount();
 
     vi.unstubAllGlobals();
@@ -118,7 +118,7 @@ describe("WatchButton", () => {
     renderPage(<WatchButton instrumentKey="NSE_EQ|INE002A01018" symbol="RELIANCE" />);
     await userEvent.click(await screen.findByRole("button", { name: "Watch RELIANCE" }));
 
-    expect(await screen.findByText(/lists broke/)).toBeInTheDocument();
+    expect(await screen.findByText(/Lists broke/)).toBeInTheDocument();
   });
 
   it("keeps the new-list dialog open with the reason when the list is refused", async () => {
@@ -157,6 +157,6 @@ describe("WatchButton", () => {
     );
     await userEvent.click(await screen.findByRole("button", { name: "Watch RELIANCE" }));
 
-    expect(await screen.findByText(/holding broke/)).toBeInTheDocument();
+    expect(await screen.findByText(/Holding broke/)).toBeInTheDocument();
   });
 });

@@ -160,7 +160,7 @@ describe("Profile", () => {
     });
     const owner = renderPage(<Profile account={ACCOUNT} onSignOut={vi.fn()} />);
     await userEvent.click(screen.getByRole("button", { name: "Create invitation link" }));
-    expect(await screen.findByText(/only the owner may invite/)).toBeInTheDocument();
+    expect(await screen.findByText(/Only the owner may invite/)).toBeInTheDocument();
     owner.unmount();
 
     vi.unstubAllGlobals();

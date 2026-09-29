@@ -218,7 +218,7 @@ describe("Screener", () => {
       "/api/movers/scopes": { body: scopeOptions() },
     });
     const failed = renderPage(<Screener />);
-    expect(await screen.findByText(/screen broke/)).toBeInTheDocument();
+    expect(await screen.findByText(/Screen broke/)).toBeInTheDocument();
     failed.unmount();
 
     vi.unstubAllGlobals();
@@ -228,7 +228,7 @@ describe("Screener", () => {
       "/api/movers/scopes": { body: scopeOptions() },
     });
     renderPage(<Screener />);
-    expect(await screen.findByText(/no fields/)).toBeInTheDocument();
+    expect(await screen.findByText(/No fields/)).toBeInTheDocument();
   });
 
   it("writes each figure by its unit", async () => {

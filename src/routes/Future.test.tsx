@@ -91,8 +91,8 @@ describe("Future", () => {
       "/api/figures": { status: 500, body: { detail: "chart broke" } },
     });
     const { unmount } = renderPage(<Future instrumentKey="MCX_FO|1" />);
-    expect(await screen.findByText(/figures broke/)).toBeInTheDocument();
-    expect(await screen.findByText(/chart broke/)).toBeInTheDocument();
+    expect(await screen.findByText(/Figures broke/)).toBeInTheDocument();
+    expect(await screen.findByText(/Chart broke/)).toBeInTheDocument();
     unmount();
 
     vi.unstubAllGlobals();
@@ -100,7 +100,7 @@ describe("Future", () => {
       "/api/futures/": { status: 404, body: { detail: "no futures contract called x" } },
     });
     renderPage(<Future instrumentKey="x" />);
-    expect(await screen.findByText(/no futures contract called/)).toBeInTheDocument();
+    expect(await screen.findByText(/No futures contract called/)).toBeInTheDocument();
   });
 
   it("sorts the chain by any column", async () => {

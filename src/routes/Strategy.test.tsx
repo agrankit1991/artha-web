@@ -286,6 +286,6 @@ describe("a saved strategy", () => {
     stubPlatform({ ...QUIET, "/api/strategies/5": { status: 500, body: { detail: "broke" } } });
     draw("/strategy/5");
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("broke");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Broke");
   });
 });

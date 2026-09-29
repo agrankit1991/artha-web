@@ -38,6 +38,6 @@ describe("StrategyResultPanel", () => {
     stubPlatform({ "/api/backtests/7": { status: 500, body: { detail: "backtest broke" } } });
     renderPage(<StrategyResultPanel result={RESULT} />);
 
-    expect(await screen.findByText("backtest broke")).toBeInTheDocument();
+    expect(await screen.findByText("Backtest broke")).toBeInTheDocument();
   });
 });

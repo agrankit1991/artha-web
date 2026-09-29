@@ -252,7 +252,7 @@ describe("Population", () => {
 
     show();
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("no index called that");
+    expect(await screen.findByRole("alert")).toHaveTextContent("No index called that");
   });
 
   it("shows a population with no companies recorded without falling over", async () => {
@@ -347,7 +347,7 @@ describe("Population", () => {
     });
     renderPage(<Population kind="index" scopeKey="NSE_INDEX|Nifty 50" />);
 
-    expect(await screen.findByText(/no valuation/)).toBeInTheDocument();
+    expect(await screen.findByText(/No valuation/)).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "Earnings" })).toBeInTheDocument();
   });
 

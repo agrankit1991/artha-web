@@ -174,6 +174,6 @@ describe("Empty and Failed", () => {
   it("cannot be mistaken for an empty result", () => {
     render(<Failed message="the counts are being rebuilt" />);
 
-    expect(screen.getByRole("alert")).toHaveTextContent("the counts are being rebuilt");
+    expect(screen.getByRole("alert")).toHaveTextContent("The counts are being rebuilt");
   });
 });

@@ -100,7 +100,7 @@ describe("Sectors", () => {
     stubPlatform({ "/api/sectors": { status: 500, body: { detail: "sectors broke" } } });
     renderPage(<Sectors />);
 
-    expect(await screen.findByText(/sectors broke/)).toBeInTheDocument();
+    expect(await screen.findByText(/Sectors broke/)).toBeInTheDocument();
   });
 
   it("lays the sectors out as cards, each leading to its page", async () => {

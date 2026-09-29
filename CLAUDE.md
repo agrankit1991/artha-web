@@ -475,7 +475,7 @@ call site.
   `UserMenu`, `AppShell`. Since the plan
   (`../UI-PLAN.md`): page furniture `PageHeader`, `SectionHeader`,
   `StatTile`/`StatGrid` (the one tile: a figure, its change or its tone, and a line qualifying it; `Statistic` merged into it 2026-09-30), `FactList`, `RangeMeter`, `Empty`, `Failed`,
-  `Hint`, `Chooser`, `Tabs`; `SearchBox` in the header; `Dialog` (own,
+  `Hint`, `Chooser` (the one segmented control, with a sliding highlight), `Tabs`, `Callout` (a note set apart: info in teal, caution in amber, danger in red, progress with a spinner; `Failed` is its danger tone); `SearchBox` in the header; `Dialog` (own,
   like `Menu`, so jsdom can drive it) and `ConfirmDialog` on it; `WatchButton`, `ShareButton`,
   `SessionPicker`, `EarningsPanel`, `ValuationPanel`,
   `ValuationHistoryChart`, `PopulationValuationPanel`,

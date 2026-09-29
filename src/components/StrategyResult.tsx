@@ -18,7 +18,7 @@ import { StatGrid, StatTile } from "@/components/StatTile";
 import { Button } from "@/components/ui/button";
 import { useResource } from "@/hooks/useResource";
 import { percent, points } from "@/lib/backtestFigures";
-import { formatSince } from "@/lib/format";
+import { formatSince, sentence } from "@/lib/format";
 import { backtestPath } from "@/lib/paths";
 
 interface StrategyResultProps {
@@ -67,7 +67,7 @@ export function StrategyResultPanel({ result }: StrategyResultProps): React.JSX.
           description="The companies it would hold on the last session of its history."
         />
         {backtest.error !== null ? (
-          <p className="text-sm text-destructive">{backtest.error}</p>
+          <p className="text-sm text-destructive">{sentence(backtest.error)}</p>
         ) : picks !== null ? (
           <BacktestPicksPanel picks={picks} />
         ) : (

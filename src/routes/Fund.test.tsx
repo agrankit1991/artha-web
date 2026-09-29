@@ -127,7 +127,7 @@ describe("Fund", () => {
 
     renderPage(<Fund schemeCode="000000" />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("no scheme called 000000");
+    expect(await screen.findByRole("alert")).toHaveTextContent("No scheme called 000000");
   });
 
   it("opens on ten thousand rupees growing, with the other readings a tab away", async () => {

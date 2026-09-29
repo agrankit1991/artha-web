@@ -81,6 +81,6 @@ describe("StrategyYears", () => {
     stubPlatform({ "/api/strategies/years": { status: 500, body: { detail: "years broke" } } });
     renderPage(<StrategyYears />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("years broke");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Years broke");
   });
 });

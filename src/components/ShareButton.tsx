@@ -18,6 +18,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Dialog } from "@/components/Dialog";
 import { Button } from "@/components/ui/button";
 import { CARD_HEIGHT, CARD_WIDTH, type CardFacts, drawShareCard } from "@/lib/shareCard";
+import { sentence } from "@/lib/format";
 
 interface ShareButtonProps {
   /** What the card says, apart from the line. */
@@ -173,7 +174,7 @@ export function ShareButton({
         {points === null && problem === null && (
           <p className="text-xs text-muted-foreground">Drawing…</p>
         )}
-        {problem !== null && <p className="text-sm text-destructive">{problem}</p>}
+        {problem !== null && <p className="text-sm text-destructive">{sentence(problem)}</p>}
       </Dialog>
     </>
   );
