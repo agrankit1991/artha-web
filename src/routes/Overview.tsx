@@ -46,6 +46,7 @@ import { Failed } from "@/components/Failed";
 import { FlowsGlance } from "@/components/FlowsGlance";
 import { SectionHeader } from "@/components/SectionHeader";
 import { ENTITIES, MARKS } from "@/lib/entities";
+import { coloured } from "@/lib/chartPalette";
 import { useResource } from "@/hooks/useResource";
 import { readPreferences, writePreferences } from "@/lib/preferences";
 import { formatDay, formatPrice } from "@/lib/format";
@@ -86,11 +87,11 @@ const VIEWS = [
   { key: "price", label: BENCHMARK.name },
 ];
 
-/** The two lines of the comparison, and the colours they are drawn in. */
-const COMPARISON: ChartLine[] = [
-  { instrumentKey: BENCHMARK.key, label: BENCHMARK.name, colour: "#2563eb" },
-  { instrumentKey: GOLD.key, label: GOLD.name, colour: "#d97706" },
-];
+/** The two lines of the comparison: the logo's teal and orange, first and second. */
+const COMPARISON: ChartLine[] = coloured([
+  { instrumentKey: BENCHMARK.key, label: BENCHMARK.name },
+  { instrumentKey: GOLD.key, label: GOLD.name },
+]);
 
 /**
  * Render the overview.

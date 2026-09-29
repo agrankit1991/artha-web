@@ -22,7 +22,7 @@ import { Chart, type Series } from "@/components/Chart";
 import { Chooser } from "@/components/Chooser";
 import { Hint } from "@/components/Hint";
 import { RangeMeter } from "@/components/RangeMeter";
-import { CANDLE_UP, OSCILLATOR, PRICE_LINE, PRICE_WIDTH } from "@/lib/chartPalette";
+import { EARNINGS_PER_SHARE, OSCILLATOR, PRICE_LINE, PRICE_WIDTH } from "@/lib/chartPalette";
 import { ABSENT, formatPrice, toNumber } from "@/lib/format";
 
 interface ValuationHistoryChartProps {
@@ -172,7 +172,7 @@ function drawn(history: CompanyValuationHistory): Series[] {
     {
       kind: "line",
       label: "EPS (annual, ₹)",
-      colour: CANDLE_UP,
+      colour: EARNINGS_PER_SHARE,
       width: PRICE_WIDTH,
       pane: 2,
       points: points((one) => one.eps),

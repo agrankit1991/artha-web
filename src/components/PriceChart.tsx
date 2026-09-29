@@ -22,13 +22,13 @@ import { drawnBand } from "@/lib/forecastBands";
 import { readPreferences, writePreferences } from "@/lib/preferences";
 import {
   AVERAGE_COLOURS,
+  FALL,
   FORECAST_EDGE,
   FORECAST_MIDDLE,
   OSCILLATOR,
   PRICE_LINE,
   PRICE_WIDTH,
-  VOLUME_DOWN,
-  VOLUME_UP,
+  RISE,
 } from "@/lib/chartPalette";
 import { toNumber } from "@/lib/format";
 
@@ -124,8 +124,7 @@ export function PriceChart({
         points: sessions.map((point) => ({
           time: point.day,
           value: point.volume,
-          color:
-            (toNumber(point.close) ?? 0) >= (toNumber(point.open) ?? 0) ? VOLUME_UP : VOLUME_DOWN,
+          color: (toNumber(point.close) ?? 0) >= (toNumber(point.open) ?? 0) ? RISE : FALL,
         })),
       });
     }

@@ -19,7 +19,7 @@ import { type Column, DataTable } from "@/components/DataTable";
 import { Delta } from "@/components/Delta";
 import { Empty } from "@/components/Empty";
 import { Hint } from "@/components/Hint";
-import { CANDLE_UP, OSCILLATOR, PRICE_LINE, PRICE_WIDTH } from "@/lib/chartPalette";
+import { OSCILLATOR, PRICE_WIDTH, PROFIT, REVENUE } from "@/lib/chartPalette";
 import { ABSENT, formatDay, formatWhole, toNumber } from "@/lib/format";
 
 interface EarningsPanelProps {
@@ -102,21 +102,21 @@ function drawn(periods: EarningsPeriod[]): Series[] {
     {
       kind: "line",
       label: "Revenue (₹ crore)",
-      colour: PRICE_LINE,
+      colour: REVENUE,
       width: PRICE_WIDTH,
       points: points((one) => one.revenue),
     },
     {
       kind: "line",
       label: "Profit (₹ crore)",
-      colour: CANDLE_UP,
+      colour: PROFIT,
       width: PRICE_WIDTH,
       points: points((one) => one.profit),
     },
     {
       kind: "line",
       label: "Revenue growth, year on year",
-      colour: PRICE_LINE,
+      colour: REVENUE,
       width: PRICE_WIDTH,
       pane: 1,
       scale: "percent",
@@ -126,7 +126,7 @@ function drawn(periods: EarningsPeriod[]): Series[] {
     {
       kind: "line",
       label: "Profit growth, year on year",
-      colour: CANDLE_UP,
+      colour: PROFIT,
       width: PRICE_WIDTH,
       pane: 1,
       scale: "percent",

@@ -29,7 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { useResource } from "@/hooks/useResource";
 import { percent, points, ratio, share } from "@/lib/backtestFigures";
 import { growthLines } from "@/lib/backtestReadings";
-import { PRICE_LINE, THRESHOLD } from "@/lib/chartPalette";
+import { BENCHMARK, PRICE_LINE, PRICE_WIDTH } from "@/lib/chartPalette";
 import { ABSENT, formatDay } from "@/lib/format";
 
 /** How the benchmarks are named on the page. */
@@ -152,8 +152,14 @@ export function Backtest(): React.JSX.Element {
     shown.periods.find((period) => period.name === "out-of-sample") ??
     shown.periods.find((period) => period.name === "whole");
   const series: Series[] = [
-    { kind: "line", label: shown.name, colour: PRICE_LINE, points: lines.playbook },
-    { kind: "line", label: index, colour: THRESHOLD, points: lines.benchmark, width: 1 },
+    {
+      kind: "line",
+      label: shown.name,
+      colour: PRICE_LINE,
+      points: lines.playbook,
+      width: PRICE_WIDTH,
+    },
+    { kind: "line", label: index, colour: BENCHMARK, points: lines.benchmark, width: 1 },
   ];
   const whole = shown.periods.find((period) => period.name === "whole");
   const breadth = new Map((shown.market ?? []).map((year) => [year.year, year.breadth]));

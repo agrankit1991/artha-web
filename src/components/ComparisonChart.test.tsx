@@ -100,22 +100,24 @@ describe("ComparisonChart", () => {
   });
 
   it("draws itself in the theme the rest of the page is in", () => {
-    // A chart that keeps its own light palette on a dark page is the most
-    // visible way a theme can be half-applied.
+    // Its colours are read from the stylesheet as it is built, so a chart on
+    // a dark page is drawn in the dark page's colours.
+    const sheet = document.createElement("style");
+    sheet.textContent = ":root { --chart-text: #111111; } .dark { --chart-text: #eeeeee; }";
+    document.head.append(sheet);
+
     window.localStorage.setItem("artha-theme", "dark");
     draw([priceSeries(NIFTY, [100, 110])]);
-    const dark = chartCalls.createChart.mock.calls[0]?.[1] as {
-      layout: { textColor: string };
-    };
+    const dark = chartCalls.createChart.mock.calls[0]?.[1] as { layout: { textColor: string } };
 
     vi.clearAllMocks();
     window.localStorage.setItem("artha-theme", "light");
     draw([priceSeries(NIFTY, [100, 110])]);
-    const light = chartCalls.createChart.mock.calls[0]?.[1] as {
-      layout: { textColor: string };
-    };
+    const light = chartCalls.createChart.mock.calls[0]?.[1] as { layout: { textColor: string } };
+    sheet.remove();
 
-    expect(dark.layout.textColor).not.toBe(light.layout.textColor);
+    expect(dark.layout.textColor).toBe("#eeeeee");
+    expect(light.layout.textColor).toBe("#111111");
   });
 
   it("falls back to the instrument key for a line nobody named", () => {

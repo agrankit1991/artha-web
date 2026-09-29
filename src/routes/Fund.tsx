@@ -29,7 +29,7 @@ import { type Tab, Tabs } from "@/components/Tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useResource } from "@/hooks/useResource";
-import { CANDLE_DOWN, OSCILLATOR, PRICE_LINE, PRICE_WIDTH } from "@/lib/chartPalette";
+import { DRAWDOWN, OSCILLATOR, PRICE_LINE, PRICE_WIDTH } from "@/lib/chartPalette";
 import { MARKS } from "@/lib/entities";
 import { ABSENT, formatDay, formatPercent, formatPrice, toNumber } from "@/lib/format";
 import {
@@ -342,7 +342,7 @@ function drawn(view: View, rolling: RollingReturn[], held: Reading[]): Series[] 
         {
           kind: "area",
           label: "Below peak",
-          colour: CANDLE_DOWN,
+          colour: DRAWDOWN,
           points: drawdown(held).map((one) => ({ time: one.day, value: one.value })),
         },
       ];

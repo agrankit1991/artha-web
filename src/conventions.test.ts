@@ -50,14 +50,7 @@ const PALETTES = new Set(["index.css", "lib/chartPalette.ts", "lib/shareCard.ts"
  * brand redesign (`docs/BRAND-PLAN.md`). The list only shrinks: a file that
  * no longer offends fails the test until it is taken off.
  */
-const KNOWN = new Set([
-  "components/Chart.tsx",
-  "components/ComparisonChart.tsx",
-  "components/FundamentalsChart.tsx",
-  "components/MoverPanel.tsx",
-  "routes/Overview.tsx",
-  "routes/Watchlists.tsx",
-]);
+const KNOWN = new Set(["components/MoverPanel.tsx", "routes/Watchlists.tsx"]);
 
 describe("the source", () => {
   it("writes a plain hyphen, never an en dash, an em dash or a minus sign", () => {

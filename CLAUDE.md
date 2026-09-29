@@ -183,13 +183,27 @@ domain data into series and own the one thing that is theirs, the moving
 averages and the rebasing respectively.
 
 Every colour a chart draws with is in `src/lib/chartPalette.ts`, not in
-the component that happens to draw it: a reader who has learnt that the
-red line is the two-hundred-session average on one screen should not have
-to learn it again on the next. Those colours are deliberately apart from
-the theme's accent, because a chart's own series must stay recognisable
-whichever accent is chosen. The averages run light to heavy as they
-lengthen, and are drawn thin -- three of them at two pixels each is a
-chart of moving averages with a price somewhere behind it.
+the component that happens to draw it, and named for what it means
+(`PRICE_LINE`, `RISE`, `PROFIT`, `BENCHMARK`, `AVERAGE_COLOURS`): a reader
+who has learnt that the heavy violet line is the two-hundred-session
+average on one screen should not have to learn it again on the next. Each
+is a reference to a `--chart-*` token in `index.css`, so light and dark are
+decided there; `Chart` resolves a reference to its colour when it draws
+(`src/lib/tokenColour.ts`), and HTML beside a chart uses the reference as
+it is. `ThemeProvider` changes the `dark` class in a layout effect so a
+chart rebuilding on the change reads the new colours.
+
+**Seven series colours** (teal, orange, violet, magenta, indigo, olive,
+blue), in an order checked for colour blindness and normal vision in both
+modes, with no green, red or amber: those are rise, fall and caution, and
+nothing else is drawn in them (profit and fund holders were once in the
+rising candle's green). No eighth hue passed without being mistaken for
+caution amber, so Compare takes seven instruments, and `coloured()` throws
+rather than cycle. The averages are one violet hue, light to heavy as they
+lengthen (they were green, orange and red until 2026-09-30), and are drawn
+thin -- three of them at two pixels each is a chart of moving averages
+with a price somewhere behind it. A forecast is dashed in the price's own
+teal.
 
 The crosshair carries a reading: the session, and what every line was
 worth on it, over the plot rather than beside it so the eye does not leave

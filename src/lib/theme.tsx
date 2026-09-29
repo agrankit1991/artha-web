@@ -13,7 +13,15 @@
  * machine does.
  */
 
-import { createContext, use, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  use,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from "react";
 
 /** What the reader chose, which is not the same as what is showing. */
 export type ThemeChoice = "light" | "dark" | "system";
@@ -80,7 +88,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }): Reac
 
   const appearance: Appearance = choice === "system" ? (systemDark ? "dark" : "light") : choice;
 
-  useEffect(() => {
+  // A layout effect, so the class has changed before any child's ordinary
+  // effect runs: a chart rebuilding on the change reads its colours from
+  // the stylesheet, and must read the new ones.
+  useLayoutEffect(() => {
     const root = document.documentElement;
     root.classList.toggle("dark", appearance === "dark");
     // A phone's address bar in the chrome's colour, read back from the

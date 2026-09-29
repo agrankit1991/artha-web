@@ -14,7 +14,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { PriceChart } from "./PriceChart";
 import { forgetForTests, readPreferences } from "@/lib/preferences";
 import { chartCalls, dataFor, seriesKinds, seriesPanes } from "@/test/chartStub";
-import { AVERAGE_COLOURS, FORECAST_MIDDLE, PRICE_LINE } from "@/lib/chartPalette";
+import { AVERAGE_COLOURS, FALL, FORECAST_MIDDLE, PRICE_LINE, RISE } from "@/lib/chartPalette";
 import { chartPoints, priceBands } from "@/test/support";
 import { ThemeProvider } from "@/lib/theme";
 
@@ -111,9 +111,10 @@ describe("PriceChart", () => {
       ],
     });
 
+    // The rise and fall colours, which the chart resolves and makes faint.
     const traded = dataFor("histogram") as { color: string }[];
-    expect(traded[0]?.color).toContain("22,163,74");
-    expect(traded[1]?.color).toContain("220,38,38");
+    expect(traded[0]?.color).toBe(RISE);
+    expect(traded[1]?.color).toBe(FALL);
   });
 
   it("adds an average when one is asked for", async () => {

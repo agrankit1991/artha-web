@@ -15,7 +15,7 @@ import { useMemo } from "react";
 
 import type { Statement } from "@/api/client";
 import { Chart, type Series } from "@/components/Chart";
-import { CANDLE_UP, OSCILLATOR, PRICE_LINE, PRICE_WIDTH } from "@/lib/chartPalette";
+import { coloured, PRICE_WIDTH, PROFIT, REVENUE } from "@/lib/chartPalette";
 import { toNumber } from "@/lib/format";
 
 interface GrowthChartProps {
@@ -45,14 +45,14 @@ export function GrowthChart({ statements, loading = false }: GrowthChartProps): 
       {
         kind: "line",
         label: `Revenue (${basis})`,
-        colour: PRICE_LINE,
+        colour: REVENUE,
         width: PRICE_WIDTH,
         points: line(annual, "Revenue"),
       },
       {
         kind: "line",
         label: `Profit after tax (${basis})`,
-        colour: CANDLE_UP,
+        colour: PROFIT,
         width: PRICE_WIDTH,
         pane: 1,
         thresholds: [{ value: 0 }],
@@ -73,14 +73,14 @@ export function GrowthChart({ statements, loading = false }: GrowthChartProps): 
   );
 }
 
-/** The holders the pattern is filed under, in the order it is read. */
-const HOLDERS: { item: string; label: string; colour: string }[] = [
-  { item: "promoters", label: "Promoters", colour: PRICE_LINE },
-  { item: "fii", label: "Foreign institutions", colour: OSCILLATOR },
-  { item: "mutual_funds", label: "Mutual funds", colour: CANDLE_UP },
-  { item: "other_dii", label: "Other domestic institutions", colour: "#d97706" },
-  { item: "retail_and_other", label: "Retail and others", colour: "#a855f7" },
-];
+/** The holders the pattern is filed under, in the order it is read, each in a series colour. */
+const HOLDERS: { item: string; label: string; colour: string }[] = coloured([
+  { item: "promoters", label: "Promoters" },
+  { item: "fii", label: "Foreign institutions" },
+  { item: "mutual_funds", label: "Mutual funds" },
+  { item: "other_dii", label: "Other domestic institutions" },
+  { item: "retail_and_other", label: "Retail and others" },
+]);
 
 /**
  * Who has owned the company, quarter by quarter.

@@ -147,6 +147,12 @@ describe("Chart", () => {
   });
 
   it("draws itself in the theme the rest of the page is in", () => {
+    // Its colours are read from the stylesheet as it is built, so a chart on
+    // a dark page is drawn in the dark page's colours.
+    const sheet = document.createElement("style");
+    sheet.textContent = ":root { --chart-text: #111111; } .dark { --chart-text: #eeeeee; }";
+    document.head.append(sheet);
+
     window.localStorage.setItem("artha-theme", "dark");
     draw([LINE]);
     const dark = chartCalls.createChart.mock.calls[0]?.[1] as { layout: { textColor: string } };
@@ -155,8 +161,10 @@ describe("Chart", () => {
     window.localStorage.setItem("artha-theme", "light");
     draw([LINE]);
     const light = chartCalls.createChart.mock.calls[0]?.[1] as { layout: { textColor: string } };
+    sheet.remove();
 
-    expect(dark.layout.textColor).not.toBe(light.layout.textColor);
+    expect(dark.layout.textColor).toBe("#eeeeee");
+    expect(light.layout.textColor).toBe("#111111");
   });
 
   it("lets go of the chart when the page moves on", () => {

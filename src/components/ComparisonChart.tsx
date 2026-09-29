@@ -11,7 +11,7 @@ import { useMemo } from "react";
 
 import type { KnownSymbol, PriceSeries } from "@/api/client";
 import { Chart, type ChartInstrument, type Series } from "@/components/Chart";
-import { AVERAGE_WIDTH, PRICE_WIDTH } from "@/lib/chartPalette";
+import { AVERAGE_WIDTH, BENCHMARK, PRICE_WIDTH } from "@/lib/chartPalette";
 import { rebase } from "@/lib/rebase";
 
 /** What to call each series, and how to draw it. */
@@ -58,7 +58,7 @@ export function ComparisonChart({
       rebased.map((line) => ({
         kind: "line",
         label: named.get(line.instrumentKey)?.label ?? line.instrumentKey,
-        colour: named.get(line.instrumentKey)?.colour ?? "#71717a",
+        colour: named.get(line.instrumentKey)?.colour ?? BENCHMARK,
         width: named.get(line.instrumentKey)?.subdued === true ? AVERAGE_WIDTH : PRICE_WIDTH,
         points: line.points.map((point) => ({ time: point.day, value: point.percent })),
       })),

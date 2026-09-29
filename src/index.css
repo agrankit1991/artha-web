@@ -77,6 +77,32 @@
   --gain: #15803d;
   --loss: #dc2626;
   --caution: #b45309;
+
+  /* Charts. Seven series colours in an order checked for colour blindness
+     (every neighbouring pair at least ΔE 14.7 as a protanope sees it) and
+     for normal vision, with no green, red or amber: those say rise, fall and
+     caution. The first two are the logo's teal and orange. Seven, not eight:
+     no eighth hue passed without being mistaken for caution amber. */
+  --chart-1: #0097b2;
+  --chart-2: #eb6834;
+  --chart-3: #5a4bd0;
+  --chart-4: #d4508a;
+  --chart-5: #3c3fb8;
+  --chart-6: #7d7d1f;
+  --chart-7: #2a78d6;
+  --chart-text: var(--muted-foreground);
+  --chart-grid: #e8f0f2;
+  --chart-crosshair: #6b8288;
+  /* A benchmark drawn beside the subject, and a rule across a chart. */
+  --chart-benchmark: #6b8288;
+  --chart-threshold: #9fb3b8;
+  /* The forecast band's edges: the price's own teal, lighter. */
+  --chart-forecast-edge: #7cc6d4;
+  /* The moving averages, one hue light to heavy as they lengthen: the
+     200-day is the one that decides whether a market is in an uptrend. */
+  --chart-average-short: #a78bfa;
+  --chart-average-medium: #7c3aed;
+  --chart-average-long: #4c1d95;
 }
 
 .dark {
@@ -115,6 +141,23 @@
   --gain: #22c55e;
   --loss: #ef4444;
   --caution: #f59e0b;
+
+  --chart-1: #15a0b9;
+  --chart-2: #e06a2c;
+  --chart-3: #9085e9;
+  --chart-4: #d55181;
+  --chart-5: #7b7ff0;
+  --chart-6: #8c8c22;
+  --chart-7: #3987e5;
+  --chart-grid: #182a2f;
+  --chart-crosshair: #5e777d;
+  --chart-benchmark: #8fa8ae;
+  --chart-threshold: #3c5358;
+  --chart-forecast-edge: #0f6a7b;
+  /* Heavy is bright on a dark surface. */
+  --chart-average-short: #6d5bd0;
+  --chart-average-medium: #9d8ff0;
+  --chart-average-long: #d2c9fb;
 }
 
 @theme inline {

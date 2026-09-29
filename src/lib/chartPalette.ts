@@ -1,52 +1,92 @@
 /**
- * The colours every chart draws with.
+ * The colours every chart draws with, named for what they mean.
  *
  * One place, so two charts cannot disagree about what a moving average
- * looks like. A reader who has learnt that the red line is the
+ * looks like: a reader who has learnt that the heavy violet line is the
  * two-hundred-session average on one screen should not have to learn it
  * again on the next.
  *
- * These are deliberately apart from the theme's accent: an accent recolours
- * the interface, and a chart's own series have to stay recognisable
- * whichever accent is chosen. Chosen to read on both a white and a dark
- * surface, which rules out the palest shades.
+ * Each is a reference to a token in `index.css` (`var(--chart-1)`), not a
+ * colour, so the stylesheet decides the value for light and dark in one
+ * place. `Chart` resolves a reference to its colour when it draws (the
+ * canvas cannot read a token), and HTML beside a chart -- a legend swatch,
+ * a compare chip -- uses the reference as it is and follows the theme by
+ * itself.
+ *
+ * Rise, fall and caution are the market's colours and nothing else is drawn
+ * in them: profit, earnings per share and fund holders each have a series
+ * colour of their own, never the rising candle's green.
  */
 
-/** A rising candle, and a falling one. */
-export const CANDLE_UP = "#16a34a";
-export const CANDLE_DOWN = "#dc2626";
-
-/** Volume, tinted by which way the session closed and kept faint. */
-export const VOLUME_UP = "rgba(22,163,74,0.35)";
-export const VOLUME_DOWN = "rgba(220,38,38,0.35)";
-
-/** The price itself, when drawn as a line or an area rather than candles. */
-export const PRICE_LINE = "#2563eb";
+/** A token of the stylesheet, as something a style or `Chart` can take. */
+const token = (name: string): string => `var(--${name})`;
 
 /**
- * The forecast band: its middle, and its two edges drawn lighter. Violet,
- * because no price, average or oscillator is, and a forecast must never be
- * mistaken for a record of what happened.
+ * The series colours, in the order they are handed out.
+ *
+ * Checked in both modes for colour blindness and normal vision between
+ * neighbours; the first two are the logo's teal and orange.
  */
-export const FORECAST_MIDDLE = "#8b5cf6";
-export const FORECAST_EDGE = "#c4b5fd";
+export const SERIES_COLOURS = [1, 2, 3, 4, 5, 6, 7].map((slot) => token(`chart-${String(slot)}`));
 
-/** An oscillator, and the rules it is read against. */
-export const OSCILLATOR = "#0ea5e9";
-export const THRESHOLD = "#a1a1aa";
+/** The most series one chart can colour apart; more have to be folded or split. */
+export const MOST_SERIES = SERIES_COLOURS.length;
+
+/** A session that closed up, and one that closed down: candles and volume. */
+export const RISE = token("gain");
+export const FALL = token("loss");
+
+/**
+ * A series with no colour of its own, in a legend or a crosshair reading:
+ * candles, which are both colours at once.
+ */
+export const NEUTRAL = token("chart-text");
+
+/**
+ * The price itself, as a line or an area: the first series colour, because
+ * the first line on any chart is the instrument the page is about.
+ */
+export const PRICE_LINE = token("chart-1");
+
+/**
+ * The forecast band: its middle in the price's own colour, dashed, and its
+ * edges a lighter teal. A forecast of the price is drawn as the price's
+ * likely range; the dashes keep it from being read as a record.
+ */
+export const FORECAST_MIDDLE = PRICE_LINE;
+export const FORECAST_EDGE = token("chart-forecast-edge");
+
+/** An oscillator in its own pane: the last series colour, blue. */
+export const OSCILLATOR = token("chart-7");
+
+/** A rule a series is read against: nought, a median, seventy and thirty. */
+export const THRESHOLD = token("chart-threshold");
+
+/** A benchmark drawn beside the subject: the index a playbook is judged against. */
+export const BENCHMARK = token("chart-benchmark");
+
+/** How far below its peak something stood. */
+export const DRAWDOWN = FALL;
+
+/** Reported figures, wherever they are drawn: revenue first, profit second. */
+export const REVENUE = token("chart-1");
+export const PROFIT = token("chart-2");
+export const EARNINGS_PER_SHARE = token("chart-3");
 
 /**
  * The moving averages.
  *
- * Light to heavy as the average lengthens, so the weight of the colour
- * matches the weight a reader should give it: the twenty-session line is
- * noise most days, and the two-hundred is the one that decides whether a
- * market is in an uptrend at all.
+ * One hue, light to heavy as the average lengthens, so the weight of the
+ * colour matches the weight a reader should give it: the twenty-session
+ * line is noise most days, and the two-hundred is the one that decides
+ * whether a market is in an uptrend at all. Violet, which no other line on
+ * a price chart is. (They were green, orange and red until 2026-09-30, the
+ * colours of a rise, a warning and a fall.)
  */
 export const AVERAGE_COLOURS = {
-  sma_20: "#4ade80",
-  sma_50: "#fb923c",
-  sma_200: "#ef4444",
+  sma_20: token("chart-average-short"),
+  sma_50: token("chart-average-medium"),
+  sma_200: token("chart-average-long"),
 } as const;
 
 /**
@@ -60,46 +100,35 @@ export const AVERAGE_WIDTH = 1;
 export const PRICE_WIDTH = 2;
 
 /**
- * The colours a chart of several instruments draws them in, in order.
+ * Hand out the series colours in order, and refuse to start again.
  *
- * Distinct from the moving averages above: those mean a particular thing
- * wherever they appear, while these only have to be told apart. The first
- * is the price blue, because the first line on such a chart is the
- * instrument the page is about.
- */
-const SERIES_COLOURS: readonly [string, ...string[]] = [
-  PRICE_LINE,
-  "#71717a",
-  OSCILLATOR,
-  "#d97706",
-  "#a855f7",
-];
-
-/**
- * Hand out the series colours, repeating once they run out.
+ * Cycling would give the eighth line the first line's colour, and two lines
+ * in one colour on one chart are one line to a reader.
  *
- * @param colours - The wheel to cycle.
- * @yields Each colour in turn, for ever.
+ * @param colours - The colours, in order.
+ * @yields Each colour once.
+ * @throws {Error} When asked for one more than there are.
  */
-function* cycle(colours: readonly [string, ...string[]]): Generator<string, never> {
-  for (;;) {
-    yield* colours;
-  }
+function* inOrder(colours: readonly string[]): Generator<string, never> {
+  yield* colours;
+  throw new Error(
+    `a chart can colour ${String(colours.length)} series apart; fold the rest or split the chart`,
+  );
 }
 
 /**
  * Pair each thing to be drawn with the colour to draw it in.
  *
- * Handed out from an endless wheel rather than looked up by position,
- * deliberately. Indexing an array is `string | undefined` under this
- * project's compiler settings however certain the arithmetic makes us, so
- * indexing would need a fallback colour that could never be reached --
- * and an unreachable line is a claim about the code that is not true.
+ * Handed out from a generator rather than looked up by position: indexing
+ * an array is `string | undefined` under this project's compiler settings
+ * however certain the arithmetic, and a generator that never returns is
+ * typed as always yielding a colour.
  *
  * @param items - What is to be drawn, in the order it should be coloured.
  * @returns The same things, each with a colour.
+ * @throws {Error} Given more than `MOST_SERIES` items.
  */
 export function coloured<Item>(items: readonly Item[]): (Item & { colour: string })[] {
-  const wheel = cycle(SERIES_COLOURS);
-  return items.map((item) => ({ ...item, colour: wheel.next().value }));
+  const colours = inOrder(SERIES_COLOURS);
+  return items.map((item) => ({ ...item, colour: colours.next().value }));
 }

@@ -1,7 +1,8 @@
 /**
  * Several instruments side by side.
  *
- * Up to eight companies or indices, rebased to the first session they
+ * Up to seven companies or indices (as many as the chart palette can tell
+ * apart), rebased to the first session they
  * share and drawn on one chart; their trailing returns as a table; and
  * every figure the platform holds for them as a matrix, one column each,
  * so "which of these is the most extended" is read across a row rather
@@ -36,7 +37,7 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { Input } from "@/components/ui/input";
 import { useDebounced } from "@/hooks/useDebounced";
 import { useResource } from "@/hooks/useResource";
-import { coloured } from "@/lib/chartPalette";
+import { MOST_SERIES, coloured } from "@/lib/chartPalette";
 import { readPreferences } from "@/lib/preferences";
 import { ENTITIES, MARKS } from "@/lib/entities";
 import { figureAt, writtenFigure } from "@/lib/figures";
@@ -45,7 +46,7 @@ import { hitPath } from "@/lib/paths";
 import { cn } from "@/lib/utils";
 
 /** How many instruments one comparison may hold: what the series endpoint serves at once. */
-export const MOST = 8;
+export const MOST = MOST_SERIES;
 
 /** What one row of the returns table is about. */
 interface Compared {

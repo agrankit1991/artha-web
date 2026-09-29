@@ -32,10 +32,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { RotateCcw } from "lucide-react";
 
 import { TradingViewLink } from "@/components/TradingViewLink";
-import { AVERAGE_WIDTH, CANDLE_DOWN, CANDLE_UP, PRICE_WIDTH, THRESHOLD } from "@/lib/chartPalette";
+import { AVERAGE_WIDTH, FALL, NEUTRAL, PRICE_WIDTH, RISE, THRESHOLD } from "@/lib/chartPalette";
+import { tokenColour, translucent } from "@/lib/tokenColour";
 import { formatCount, formatDay, formatPrice } from "@/lib/format";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+
+/** How opaque volume bars are drawn: faint, under the price. */
+const BAR_OPACITY = 0.35;
 
 /** One session of a candle series. */
 export interface Candle {
@@ -196,17 +200,22 @@ export function Chart({
       return undefined;
     }
 
-    const dark = appearance === "dark";
+    // Read from the stylesheet as the chart is built, which is every time
+    // the theme changes (`appearance` below): a canvas cannot follow a
+    // token by itself.
+    const text = tokenColour("var(--chart-text)");
+    const grid = tokenColour("var(--chart-grid)");
+    const crosshair = tokenColour("var(--chart-crosshair)");
     const created = createChart(element, {
       height,
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
-        textColor: dark ? "#a1a1aa" : "#52525b",
+        textColor: text,
         attributionLogo: false,
       },
       grid: {
-        vertLines: { color: dark ? "#27272a" : "#f4f4f5" },
-        horzLines: { color: dark ? "#27272a" : "#f4f4f5" },
+        vertLines: { color: grid },
+        horzLines: { color: grid },
       },
       rightPriceScale: {
         borderVisible: false,
@@ -223,7 +232,12 @@ export function Chart({
         fixLeftEdge: false,
         fixRightEdge: false,
       },
-      crosshair: { mode: CrosshairMode.Normal },
+      // The library's own crosshair labels are a dark navy in both themes.
+      crosshair: {
+        mode: CrosshairMode.Normal,
+        vertLine: { color: crosshair, labelBackgroundColor: crosshair },
+        horzLine: { color: crosshair, labelBackgroundColor: crosshair },
+      },
       autoSize: true,
     });
     chart.current = created;
@@ -376,10 +390,12 @@ export function Chart({
                 <span
                   aria-hidden="true"
                   className="h-0.5 w-3 rounded"
-                  style={{
-                    backgroundColor:
-                      one.kind === "line" || one.kind === "area" ? one.colour : "#71717a",
-                  }}
+                  style={
+                    one.kind === "line" || one.kind === "area"
+                      ? { backgroundColor: one.colour }
+                      : // Candles are both colours at once.
+                        { backgroundImage: `linear-gradient(90deg, ${RISE} 50%, ${FALL} 50%)` }
+                  }
                 />
                 <span className="text-muted-foreground">{one.label}</span>
                 {readings
@@ -488,7 +504,7 @@ function draw(chart: IChartApi, series: Series, scale: Scale): ISeriesApi<Series
   for (const threshold of series.thresholds ?? []) {
     drawn.createPriceLine({
       price: threshold.value,
-      color: THRESHOLD,
+      color: tokenColour(THRESHOLD),
       lineWidth: AVERAGE_WIDTH,
       lineStyle: DASHED,
       axisLabelVisible: true,
@@ -517,7 +533,7 @@ function figureOf(point: unknown): number | null {
  * @returns Its colour, or the neutral one for shapes that carry none.
  */
 function colourOf(series: Series): string {
-  return series.kind === "line" || series.kind === "area" ? series.colour : CANDLE_UP;
+  return series.kind === "line" || series.kind === "area" ? series.colour : NEUTRAL;
 }
 
 /**
@@ -536,15 +552,11 @@ function add(
   pane: number,
 ): ReturnType<IChartApi["addSeries"]> {
   if (series.kind === "candles") {
+    const up = tokenColour(RISE);
+    const down = tokenColour(FALL);
     const candles = chart.addSeries(
       CandlestickSeries,
-      {
-        upColor: CANDLE_UP,
-        downColor: CANDLE_DOWN,
-        borderVisible: false,
-        wickUpColor: CANDLE_UP,
-        wickDownColor: CANDLE_DOWN,
-      },
+      { upColor: up, downColor: down, borderVisible: false, wickUpColor: up, wickDownColor: down },
       pane,
     );
     candles.setData(series.points);
@@ -557,17 +569,34 @@ function add(
       { priceFormat: { type: "volume" }, priceScaleId: BAR_SCALE },
       pane,
     );
-    bars.setData(series.points);
+    // Each bar's own colour, faint: volume is context for the price, not a
+    // figure to compete with it. Resolved once per colour, not per bar.
+    const shades = new Map<string, string>();
+    const shade = (colour: string): string => {
+      const known = shades.get(colour);
+      if (known !== undefined) {
+        return known;
+      }
+      const made = translucent(tokenColour(colour), BAR_OPACITY);
+      shades.set(colour, made);
+      return made;
+    };
+    bars.setData(
+      series.points.map((point) =>
+        point.color === undefined ? point : { ...point, color: shade(point.color) },
+      ),
+    );
     return bars;
   }
 
   if (series.kind === "area") {
+    const colour = tokenColour(series.colour);
     const area = chart.addSeries(
       AreaSeries,
       {
-        lineColor: series.colour,
-        topColor: `${series.colour}55`,
-        bottomColor: `${series.colour}05`,
+        lineColor: colour,
+        topColor: translucent(colour, 0.33),
+        bottomColor: translucent(colour, 0.02),
         lineWidth: PRICE_WIDTH,
         ...priceFormat(scale),
       },
@@ -580,7 +609,7 @@ function add(
   const line = chart.addSeries(
     LineSeries,
     {
-      color: series.colour,
+      color: tokenColour(series.colour),
       lineWidth: series.width === PRICE_WIDTH ? PRICE_WIDTH : AVERAGE_WIDTH,
       ...(series.dashed === true ? { lineStyle: DASHED } : {}),
       lastValueVisible: false,
