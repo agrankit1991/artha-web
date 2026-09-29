@@ -394,6 +394,17 @@ call site.
   Strategies as _By year_) ranks every saved strategy by calendar year beside
   the market and names what the leaders had in common. It is hindsight, and
   the page says so.
+- **The brand** (`public/brand/`, 2026-09-29): the owner's own logo, an
+  orange letter that reads as both अ and A, a teal cursive S and a tail
+  rising into an arrow. The old site had it only as a small raster (its
+  `brand.svg` wraps a 392x276 PNG), so it was **traced** into vectors
+  (`logo.svg`), strokes thickened a little so the hairlines survive small
+  sizes; `icon.svg` is the अ/A alone in white on the orange tile, for the
+  favicon and the sidebar. `icon-32.png` and `apple-touch-icon.png` (square:
+  iOS rounds it) are rendered from them. The trace script, the source and
+  the rejected explorations (redesigns drawn with a broad-nib pen, gold and
+  kesar palettes) are in `../research/logo/`; the owner chose the redrawn
+  original. Regenerate rather than hand-edit.
 - **The frame** (`src/components/AppShell.tsx`): navigation down the side,
   the account and theme across the top, the running build at the bottom.
   The sidebar is the navigation because this is a set of places rather than

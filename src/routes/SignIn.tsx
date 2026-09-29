@@ -93,6 +93,8 @@ export function SignIn({
     <div className="flex min-h-svh items-center justify-center p-6">
       <Card className="w-full max-w-sm">
         <CardHeader>
+          {/* Decorative: the title below names it. */}
+          <img src="/brand/logo.svg" alt="" className="mb-2 h-24 w-24" />
           <CardTitle>Artha Science</CardTitle>
           <CardDescription>
             {joining

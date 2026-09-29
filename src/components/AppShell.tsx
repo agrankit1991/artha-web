@@ -146,12 +146,8 @@ function Sidebar({
       )}
     >
       <div className="flex h-14 shrink-0 items-center gap-2 border-b border-layout-border px-4">
-        <span
-          aria-hidden="true"
-          className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground"
-        >
-          A
-        </span>
+        {/* Decorative: the name beside it says what it is. */}
+        <img src="/brand/icon.svg" alt="" className="h-7 w-7" />
         <span className="font-semibold">Artha Science</span>
       </div>
       {/* The list scrolls on its own when the window is shorter than it, the
