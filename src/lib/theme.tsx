@@ -81,7 +81,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }): Reac
   const appearance: Appearance = choice === "system" ? (systemDark ? "dark" : "light") : choice;
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", appearance === "dark");
+    const root = document.documentElement;
+    root.classList.toggle("dark", appearance === "dark");
+    // A phone's address bar in the chrome's colour, read back from the
+    // stylesheet so the colour is decided in one place. Nothing to read
+    // until the stylesheet has loaded.
+    const chrome = getComputedStyle(root).getPropertyValue("--chrome").trim();
+    if (chrome !== "") {
+      document.querySelector('meta[name="theme-color"]')?.setAttribute("content", chrome);
+    }
   }, [appearance]);
 
   const setChoice = useCallback((next: ThemeChoice) => {

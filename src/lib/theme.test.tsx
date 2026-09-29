@@ -166,6 +166,45 @@ describe("theme", () => {
     expect(screen.getByTestId("state")).toHaveTextContent("system/light");
   });
 
+  it("paints the browser's own furniture in the chrome's colour", () => {
+    // A phone's address bar follows the page; the colour is read back from
+    // the stylesheet rather than written out a second time here.
+    const meta = document.createElement("meta");
+    meta.name = "theme-color";
+    meta.content = "#e4eff1";
+    document.head.append(meta);
+    document.documentElement.style.setProperty("--chrome", "#0d181c");
+    window.localStorage.setItem("artha-theme", "dark");
+    stubSystem(false);
+
+    render(
+      <ThemeProvider>
+        <Probe />
+      </ThemeProvider>,
+    );
+
+    expect(meta.content).toBe("#0d181c");
+    meta.remove();
+    document.documentElement.style.removeProperty("--chrome");
+  });
+
+  it("leaves the theme colour alone until the stylesheet has one", () => {
+    const meta = document.createElement("meta");
+    meta.name = "theme-color";
+    meta.content = "#e4eff1";
+    document.head.append(meta);
+    stubSystem(false);
+
+    render(
+      <ThemeProvider>
+        <Probe />
+      </ThemeProvider>,
+    );
+
+    expect(meta.content).toBe("#e4eff1");
+    meta.remove();
+  });
+
   it("refuses to be used outside its provider", () => {
     // A wiring mistake, not a state worth rendering around.
     vi.spyOn(console, "error").mockImplementation(() => undefined);

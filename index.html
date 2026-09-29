@@ -11,6 +11,28 @@
     <link rel="icon" type="image/svg+xml" href="/brand/logo.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="/brand/logo-32.png" />
     <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- The browser's own furniture (scroll bars, form controls, a phone's
+         address bar) in the site's colours. The theme colour is the chrome;
+         ThemeProvider keeps it in step with a choice made on the page. -->
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#e4eff1" />
+    <!-- Applies a dark choice before the first paint, so a dark reader never
+         sees the page flash light while the application loads; ThemeProvider
+         takes over from here. The key and the rule are theme.tsx's. -->
+    <script>
+      try {
+        var choice = localStorage.getItem("artha-theme");
+        if (
+          choice === "dark" ||
+          (choice !== "light" && matchMedia("(prefers-color-scheme: dark)").matches)
+        ) {
+          document.documentElement.classList.add("dark");
+        }
+      } catch (blocked) {
+        // Storage blocked: the application decides once it loads.
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

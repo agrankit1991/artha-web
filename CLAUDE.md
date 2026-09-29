@@ -501,6 +501,14 @@ call site.
   `--wordmark-artha` and `--wordmark-science`, the logo's two colours
   deepened to read as small text.
 
+  **No light flash for a dark reader:** a few lines in `index.html` apply
+  a stored or system dark choice before the first paint, repeating the
+  storage key (`artha-theme`) and rule from `theme.tsx` -- change one, change
+  both. `ThemeProvider` also writes the chrome's colour, read back from the
+  stylesheet, into `<meta name="theme-color">`, so a phone's address bar
+  follows a choice made on the page. `public/manifest.webmanifest` names
+  the site and gives the logo at 192 and 512 px for a home screen.
+
   `src/lib/palette.test.ts` pins it against the stylesheet: every token
   stated in both modes, three distinct surfaces, every text pair at 4.5:1
   or better, and no brand colour equal to a market colour. Nothing else in
