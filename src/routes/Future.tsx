@@ -10,7 +10,7 @@
  */
 
 import { Link } from "react-router-dom";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 
 import type { ContractSummary } from "@/api/client";
 import { fetchFigures, fetchFuture, fetchOverviews } from "@/api/client";
@@ -18,15 +18,16 @@ import { type Column, DataTable } from "@/components/DataTable";
 import { Delta } from "@/components/Delta";
 import { Failed } from "@/components/Failed";
 import { InstrumentFigures } from "@/components/InstrumentFigures";
-import { PageHeader } from "@/components/PageHeader";
+import { InstrumentHeader } from "@/components/InstrumentHeader";
 import { PriceChart } from "@/components/PriceChart";
 import { PRICE_RANGES, RangeSelector } from "@/components/RangeSelector";
 import { SectionHeader } from "@/components/SectionHeader";
 import { ShareButton } from "@/components/ShareButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useChartRange } from "@/hooks/useChartRange";
 import { useResource } from "@/hooks/useResource";
-import { ENTITIES, MARKS } from "@/lib/entities";
+import { MARKS } from "@/lib/entities";
 import {
   ABSENT,
   formatCount,
@@ -44,8 +45,6 @@ interface FutureProps {
   instrumentKey: string;
 }
 
-const DEFAULT_RANGE = 125;
-
 /**
  * Render the page.
  *
@@ -53,7 +52,7 @@ const DEFAULT_RANGE = 125;
  * @returns The page.
  */
 export function Future({ instrumentKey }: FutureProps): React.JSX.Element {
-  const [sessions, setSessions] = useState(DEFAULT_RANGE);
+  const [sessions, setSessions] = useChartRange();
   const load = useCallback(() => fetchFuture(instrumentKey), [instrumentKey]);
   const loadOverview = useCallback(() => fetchOverviews([instrumentKey]), [instrumentKey]);
   const loadChart = useCallback(
@@ -73,13 +72,13 @@ export function Future({ instrumentKey }: FutureProps): React.JSX.Element {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={contract?.symbol ?? instrumentKey}
+      <InstrumentHeader
+        name={contract?.symbol ?? instrumentKey}
+        overview={own}
         badges={
           found !== null && (
             <>
               <Badge variant="outline">{found.underlying.exchange}</Badge>
-              <Badge variant="secondary">{found.underlying.name}</Badge>
               <Badge
                 variant="outline"
                 className={
@@ -95,11 +94,16 @@ export function Future({ instrumentKey }: FutureProps): React.JSX.Element {
             </>
           )
         }
-        description={
-          found === null
-            ? null
-            : `One of ${String(found.underlying.contracts)} ${found.underlying.symbol} contracts listed today.`
-        }
+        {...(found === null
+          ? {}
+          : {
+              subline: (
+                <span>
+                  {found.underlying.name} · one of {formatCount(found.underlying.contracts)}{" "}
+                  {found.underlying.symbol} contracts listed today
+                </span>
+              ),
+            })}
         actions={
           found !== null &&
           contract !== null && (
@@ -127,32 +131,7 @@ export function Future({ instrumentKey }: FutureProps): React.JSX.Element {
         }
       />
 
-      {found !== null && (
-        <section className="space-y-3" aria-labelledby="chain-heading">
-          <SectionHeader
-            id="chain-heading"
-            icon={MARKS.dates}
-            title="Expiry Chain"
-            description="Every contract on the same underlying, nearest first, with each one's premium or discount to this contract."
-          />
-          <Chain chain={found.chain} subject={found.contract} />
-        </section>
-      )}
-
-      <section className="space-y-3" aria-labelledby="figures-heading">
-        <SectionHeader
-          id="figures-heading"
-          icon={ENTITIES.future.icon}
-          title="The Contract Itself"
-          description="Its level, range, trend, volume and momentum - the same figures a company carries, because a contract trades."
-        />
-        {overview.error !== null ? (
-          <Failed message={overview.error} />
-        ) : (
-          <InstrumentFigures overview={own} loading={overview.loading} />
-        )}
-      </section>
-
+      {/* The chart first: a contract's page is read for its price. */}
       <section className="space-y-3" aria-labelledby="price-heading">
         <SectionHeader
           id="price-heading"
@@ -171,6 +150,32 @@ export function Future({ instrumentKey }: FutureProps): React.JSX.Element {
             instrument={{ label: contract?.symbol ?? instrumentKey }}
             loading={chart.loading}
           />
+        )}
+      </section>
+
+      {found !== null && (
+        <section className="space-y-3" aria-labelledby="chain-heading">
+          <SectionHeader
+            id="chain-heading"
+            icon={MARKS.dates}
+            title="Expiry chain"
+            description="Every contract on the same underlying, nearest first, with each one's price above or below this contract's."
+          />
+          <Chain chain={found.chain} subject={found.contract} />
+        </section>
+      )}
+
+      <section className="space-y-3" aria-labelledby="figures-heading">
+        <SectionHeader
+          id="figures-heading"
+          icon={MARKS.figures}
+          title="The contract itself"
+          description="Its level, range, trend, volume and momentum: the same figures a company carries, because a contract trades."
+        />
+        {overview.error !== null ? (
+          <Failed message={overview.error} />
+        ) : (
+          <InstrumentFigures overview={own} loading={overview.loading} />
         )}
       </section>
     </div>
@@ -231,10 +236,12 @@ function Chain({
       accessorFn: (row) => spread(here, row.close) ?? Number.NEGATIVE_INFINITY,
       cell: ({ row }) => {
         const gap = spread(here, row.original.close);
+        // A distance from this contract, not a move: a later contract
+        // above this one (contango) is neither good news nor bad.
         return gap === null || row.original.instrument_key === subject.instrument_key ? (
           <span className="text-muted-foreground">{ABSENT}</span>
         ) : (
-          <Delta value={gap.toFixed(2)} />
+          <span className="tabular text-muted-foreground">{formatPercent(gap.toFixed(2))}</span>
         );
       },
       meta: { align: "right" },

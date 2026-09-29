@@ -78,7 +78,9 @@ describe("Futures", () => {
     const table = await screen.findByRole("table", { name: "Underlyings" });
     await within(table).findByRole("link", { name: /CRUDEOIL/ });
     for (const name of [
-      /^Underlying/,
+      /^Symbol/,
+      /^Name/,
+      /^Exchange/,
       /^Nearest expiry/,
       /^Price/,
       /^Change/,
@@ -94,7 +96,54 @@ describe("Futures", () => {
     vi.unstubAllGlobals();
     stubPlatform({ "/api/futures": { status: 500, body: { detail: "futures broke" } } });
     renderPage(<Futures />);
-    expect(await screen.findByText(/Futures broke/)).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Futures broke");
+    // The page stays, so the family can be changed away from the failure.
+    expect(screen.getByRole("heading", { name: "Futures", level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Currency" })).toBeInTheDocument();
+  });
+
+  it("counts the underlyings, and what the letters leave of them", async () => {
+    stubPlatform({ "/api/futures": { body: TWO } });
+    renderPage(<Futures />);
+    const table = await screen.findByRole("table", { name: "Underlyings" });
+    await within(table).findByRole("link", { name: /CRUDEOIL/ });
+
+    expect(screen.getByText("2 underlyings")).toBeInTheDocument();
+    expect(screen.queryByText("2 of 2")).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole("searchbox", { name: "Find an underlying" }), "gol");
+    expect(screen.getByText("1 of 2")).toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole("searchbox", { name: "Find an underlying" }), "xx");
+    expect(within(table).getByText("No underlying matches")).toBeInTheDocument();
+  });
+
+  it("opens on the family and the letters in its address", async () => {
+    const fetched = stubPlatform({ "/api/futures": { body: TWO } });
+    const { unmount } = renderPage(<Futures />, { at: "/futures?family=CURRENCY&q=gol" });
+
+    const table = await screen.findByRole("table", { name: "Underlyings" });
+    expect(await within(table).findByRole("link", { name: /GOLD/ })).toBeInTheDocument();
+    expect(within(table).queryByRole("link", { name: /CRUDEOIL/ })).not.toBeInTheDocument();
+    expect(fetched.mock.calls.some((call) => String(call[0]).includes("segment=CURRENCY"))).toBe(
+      true,
+    );
+    unmount();
+
+    // A family it does not know reads as the first.
+    renderPage(<Futures />, { at: "/futures?family=BONDS" });
+    expect(await screen.findByRole("button", { name: "Commodities" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("says a family has nothing today when nothing is listed in it", async () => {
+    stubPlatform({ "/api/futures": { body: [] } });
+    renderPage(<Futures />);
+
+    expect(await screen.findByText("No futures in this family today")).toBeInTheDocument();
+    expect(screen.getByText("0 underlyings")).toBeInTheDocument();
   });
 });
 

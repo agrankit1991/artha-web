@@ -70,8 +70,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useChartRange } from "@/hooks/useChartRange";
 import { useResource } from "@/hooks/useResource";
-import { readPreferences, writePreferences } from "@/lib/preferences";
 import { coloured } from "@/lib/chartPalette";
 import { ENTITIES, MARKS } from "@/lib/entities";
 import {
@@ -123,11 +123,7 @@ const PARTS: Tab<Part>[] = [
  * @returns The page.
  */
 export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
-  const [sessions, setSessionsOnly] = useState(() => readPreferences().range);
-  const setSessions = (next: number): void => {
-    setSessionsOnly(next);
-    writePreferences({ range: next });
-  };
+  const [sessions, setSessions] = useChartRange();
   const [view, setView] = useState<View>("price");
   const [part, setPart] = useState<Part>("overview");
   // The session the page is read as of, kept in the address; null is the latest.

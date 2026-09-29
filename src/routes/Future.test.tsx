@@ -4,6 +4,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { readPreferences } from "@/lib/preferences";
 import { Future, spread } from "./Future";
 import { chartPoints, futureContract, overview, renderPage, stubPlatform } from "@/test/support";
 
@@ -34,10 +35,18 @@ describe("Future", () => {
     const chain = screen.getByRole("table", { name: "Expiry chain" });
     const october = within(chain).getByRole("link", { name: /CRUDEOIL26OCTFUT/ });
     expect(october).toHaveAttribute("href", "/future/MCX_FO%7C2");
-    // October at 6,180 against September's 6,100 is a 1.31% premium.
-    expect(october.closest("tr")).toHaveTextContent("+1.31%");
+    // October at 6,180 against September's 6,100 is a 1.31% premium: a
+    // distance, drawn plainly, not a rise.
+    const premium = within(october.closest("tr") as HTMLElement).getByText("+1.31%");
+    expect(premium).toHaveClass("text-muted-foreground");
+    expect(premium).not.toHaveClass("text-gain");
     expect(within(chain).getByText("this page")).toBeInTheDocument();
-    expect(await screen.findByRole("heading", { name: "The Contract Itself" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "The contract itself" })).toBeInTheDocument();
+    // The chart comes first, then the chain, then the figures.
+    const order = screen
+      .getAllByRole("heading", { level: 2 })
+      .map((heading) => heading.textContent);
+    expect(order).toEqual(["Price", "Expiry chain", "The contract itself"]);
   });
 
   it("asks for more sessions when a longer range is chosen, and offers Compare and Share", async () => {
@@ -45,12 +54,19 @@ describe("Future", () => {
     renderPage(<Future instrumentKey="MCX_FO|1" />);
     await screen.findByRole("heading", { name: "CRUDEOIL26SEPFUT" });
 
-    await userEvent.click(screen.getByRole("button", { name: "1Y" }));
+    // Opens at the range chosen on any chart, and remembers a new one.
     await waitFor(() => {
       expect(fetched.mock.calls.some((call) => String(call[0]).includes("sessions=250"))).toBe(
         true,
       );
     });
+    await userEvent.click(screen.getByRole("button", { name: "5Y" }));
+    await waitFor(() => {
+      expect(fetched.mock.calls.some((call) => String(call[0]).includes("sessions=1250"))).toBe(
+        true,
+      );
+    });
+    expect(readPreferences().range).toBe(1250);
     expect(screen.getByRole("link", { name: /Compare/ })).toHaveAttribute(
       "href",
       "/compare?keys=MCX_FO%7C1",

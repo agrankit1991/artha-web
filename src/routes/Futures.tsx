@@ -8,7 +8,7 @@
  * page, where the whole chain is.
  */
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 
 import type { FuturesSegment, UnderlyingSummary } from "@/api/client";
 import { fetchFutures } from "@/api/client";
@@ -16,9 +16,11 @@ import { Chooser } from "@/components/Chooser";
 import { type Column, DataTable } from "@/components/DataTable";
 import { Delta } from "@/components/Delta";
 import { Failed } from "@/components/Failed";
+import { nameColumn, symbolColumn } from "@/components/identityColumns";
 import { PageHeader } from "@/components/PageHeader";
 import { Input } from "@/components/ui/input";
 import { useResource } from "@/hooks/useResource";
+import { useSearchParam } from "@/hooks/useSearchParam";
 import { ABSENT, formatCount, formatDay, formatPrice, formatVolume, toNumber } from "@/lib/format";
 import { futurePath } from "@/lib/paths";
 
@@ -37,13 +39,15 @@ const NOTES: Record<FuturesSegment, string> = {
 };
 
 /**
- * Render the page.
+ * Render the page. The family and the letters are in the address, so a
+ * reader who opens a contract and comes Back finds the same list.
  *
  * @returns The page.
  */
 export function Futures(): React.JSX.Element {
-  const [segment, setSegment] = useState<FuturesSegment>("COMMODITY");
-  const [typed, setTyped] = useState("");
+  const [chosen, setSegment] = useSearchParam("family", "COMMODITY");
+  const [typed, setTyped] = useSearchParam("q");
+  const segment = SEGMENTS.find((one) => one.key === chosen)?.key ?? "COMMODITY";
   const load = useCallback(() => fetchFutures(segment), [segment]);
   const futures = useResource(load);
 
@@ -59,18 +63,14 @@ export function Futures(): React.JSX.Element {
 
   const columns = useMemo<Column<UnderlyingSummary>[]>(
     () => [
+      // Symbol and name apart, as every list of instruments has them.
+      symbolColumn((row) => row),
+      nameColumn((row) => row),
       {
-        id: "symbol",
-        header: "Underlying",
-        accessorFn: (row) => row.symbol,
-        cell: ({ row }) => (
-          <div className="min-w-0">
-            <div className="truncate font-medium">{row.original.symbol}</div>
-            <div className="truncate text-xs text-muted-foreground">
-              {row.original.name} · {row.original.exchange}
-            </div>
-          </div>
-        ),
+        id: "exchange",
+        header: "Exchange",
+        accessorFn: (row) => row.exchange,
+        cell: ({ row }) => row.original.exchange,
       },
       {
         id: "expiry",
@@ -127,21 +127,23 @@ export function Futures(): React.JSX.Element {
         id: "contracts",
         header: "Contracts",
         accessorFn: (row) => row.contracts,
-        cell: ({ row }) => row.original.contracts,
+        cell: ({ row }) => formatCount(row.original.contracts),
         meta: { align: "right" },
       },
     ],
     [],
   );
 
-  if (futures.error !== null) {
-    return <Failed message={futures.error} />;
-  }
-
+  const count = futures.data?.length;
   return (
     <div className="space-y-6">
       <PageHeader
         title="Futures"
+        count={
+          count === undefined
+            ? undefined
+            : `${formatCount(count)} ${count === 1 ? "underlying" : "underlyings"}`
+        }
         description="Every underlying with contracts listed today, with its nearest contract's price, move, volume and open interest. Each leads to the contract and its chain."
       />
       <div className="flex flex-wrap items-center gap-3">
@@ -156,18 +158,28 @@ export function Futures(): React.JSX.Element {
           }}
           className="w-64"
         />
+        {/* The total is in the header; here only what the letters leave. */}
+        {futures.data !== null && shown.length !== futures.data.length && (
+          <span className="text-xs text-muted-foreground">
+            {formatCount(shown.length)} of {formatCount(futures.data.length)}
+          </span>
+        )}
         <span className="text-xs text-muted-foreground">{NOTES[segment]}</span>
       </div>
-      <DataTable
-        columns={columns}
-        rows={shown}
-        loading={futures.loading}
-        empty="No futures in this family today"
-        placeholderRows={10}
-        label="Underlyings"
-        full
-        linkTo={(row) => futurePath(row.nearest.instrument_key)}
-      />
+      {futures.error !== null ? (
+        <Failed message={futures.error} />
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={shown}
+          loading={futures.loading}
+          empty={typed.trim() === "" ? "No futures in this family today" : "No underlying matches"}
+          placeholderRows={10}
+          label="Underlyings"
+          full
+          linkTo={(row) => futurePath(row.nearest.instrument_key)}
+        />
+      )}
     </div>
   );
 }
