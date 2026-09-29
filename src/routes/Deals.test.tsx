@@ -30,6 +30,38 @@ function deal(overrides: Partial<Deal>): Deal {
 }
 
 describe("Deals", () => {
+  it("keeps the kind and the window in the address, and draws each day's net value", async () => {
+    // A filtered view is bookmarkable; the days' net says what the list
+    // cannot at a glance.
+    const fetched = stubPlatform({
+      "/api/deals": {
+        body: [
+          deal({ session_date: "2026-09-24", side: "BUY", value_crore: "40.00" }),
+          deal({ session_date: "2026-09-24", side: "SELL", value_crore: "10.00" }),
+          deal({ session_date: "2026-09-25", side: "SELL", value_crore: "25.50" }),
+        ],
+      },
+    });
+    renderPage(<Deals />, { at: "/deals?kind=BULK&window=7" });
+
+    await screen.findByRole("table", { name: "Disclosed deals" });
+    expect(fetched.mock.calls.map((call) => String(call[0]))).toContain(
+      "/api/deals?days=7&kind=BULK",
+    );
+    expect(screen.getByRole("button", { name: "Bulk" })).toHaveAttribute("aria-pressed", "true");
+    const bars = screen.getByRole("img", { name: "Net value of deals by day" });
+    expect(bars).toHaveTextContent("+30.00 Cr");
+    expect(bars).toHaveTextContent("-25.50 Cr");
+  });
+
+  it("keeps the page's header when the deals cannot be read", async () => {
+    stubPlatform({ "/api/deals": { status: 500, body: { detail: "deals broke" } } });
+    renderPage(<Deals />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Deals broke");
+    expect(screen.getByRole("heading", { name: "Bulk & block deals" })).toBeInTheDocument();
+  });
+
   it("lists each deal with its side as a badge, leading to the company when it has one", async () => {
     const fetched = stubPlatform({
       "/api/deals": {
@@ -65,14 +97,15 @@ describe("Deals", () => {
     const asked = fetched.mock.calls.map((call) => String(call[0]));
     expect(asked.at(-1)).toBe("/api/deals?days=90&kind=BLOCK");
 
+    // The company first, as every list of companies leads with it.
     for (const name of [
-      /^Date/,
       /^Symbol/,
-      /^Security/,
+      /^Name/,
+      /^Date/,
       /^Client/,
       /^Kind/,
       /^Side/,
-      /^Quantity/,
+      /^Shares/,
       /^Price/,
       /^Value/,
     ]) {

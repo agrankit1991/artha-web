@@ -7,12 +7,11 @@
  * crore, the unit written once in the heading.
  */
 
-import { Link } from "react-router-dom";
-
 import type { Deal } from "@/api/client";
 import { type Column, DataTable } from "@/components/DataTable";
+import { nameColumn, symbolColumn } from "@/components/identityColumns";
 import { Badge } from "@/components/ui/badge";
-import { formatDay, formatPrice, formatVolume, toNumber } from "@/lib/format";
+import { formatCount, formatDay, formatPrice, toNumber } from "@/lib/format";
 import { companyPath } from "@/lib/paths";
 import { cn } from "@/lib/utils";
 
@@ -39,41 +38,23 @@ export function DealsTable({
   label = "Deals",
 }: DealsTableProps): React.JSX.Element {
   const columns: Column<Deal>[] = [
+    // The company first, as every list of companies here leads with it: its
+    // symbol is the way to its page, its name beside it. On a company's own
+    // page it goes without saying.
+    ...(forCompany
+      ? []
+      : [
+          symbolColumn<Deal>((row) => ({ symbol: row.symbol, name: row.security_name })),
+          nameColumn<Deal>((row) => ({ symbol: row.symbol, name: row.security_name }), undefined, {
+            compact: true,
+          }),
+        ]),
     {
       id: "session_date",
       header: "Date",
       accessorFn: (row) => row.session_date,
       cell: ({ row }) => formatDay(row.original.session_date),
     },
-    ...(forCompany
-      ? []
-      : ([
-          {
-            id: "symbol",
-            header: "Symbol",
-            accessorFn: (row) => row.symbol,
-            // A deal in a symbol no listing carries has no page to lead to.
-            cell: ({ row }) =>
-              row.original.instrument_key === null ? (
-                <span className="font-medium">{row.original.symbol}</span>
-              ) : (
-                <Link
-                  to={companyPath(row.original.instrument_key, row.original.symbol)}
-                  className="font-medium text-primary hover:underline"
-                >
-                  {row.original.symbol}
-                </Link>
-              ),
-          },
-          {
-            id: "security_name",
-            header: "Security",
-            accessorFn: (row) => row.security_name,
-            cell: ({ row }) => (
-              <span className="block max-w-[14rem] truncate">{row.original.security_name}</span>
-            ),
-          },
-        ] satisfies Column<Deal>[])),
     {
       id: "client_name",
       header: "Client",
@@ -109,9 +90,11 @@ export function DealsTable({
     },
     {
       id: "quantity",
-      header: "Quantity",
+      // A count of shares, grouped as one: in lakh and crore it sat beside a
+      // value in rupees crore, and "Cr" meant two things in one table.
+      header: "Shares",
       accessorFn: (row) => row.quantity,
-      cell: ({ row }) => formatVolume(row.original.quantity),
+      cell: ({ row }) => formatCount(row.original.quantity),
       meta: { align: "right" },
     },
     {
@@ -131,6 +114,7 @@ export function DealsTable({
       meta: { align: "right" },
     },
   ];
+
   return (
     <DataTable
       columns={columns}
@@ -140,6 +124,12 @@ export function DealsTable({
       placeholderRows={8}
       label={label}
       full
+      {...(forCompany
+        ? {}
+        : {
+            linkTo: (row: Deal) =>
+              row.instrument_key === null ? null : companyPath(row.instrument_key, row.symbol),
+          })}
     />
   );
 }
