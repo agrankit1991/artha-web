@@ -169,7 +169,9 @@ export function formatVolume(value: number | string | null | undefined): string 
  * @returns The number, or a dash.
  */
 export function formatCount(value: number | null | undefined): string {
-  return value === null || value === undefined ? ABSENT : String(value);
+  // Grouped the Indian way (5,274; 1,23,456): open interest on one page and
+  // ungrouped on another was the same figure written two ways.
+  return value === null || value === undefined ? ABSENT : value.toLocaleString("en-IN");
 }
 
 /**

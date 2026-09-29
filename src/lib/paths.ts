@@ -9,6 +9,8 @@
  * so they are encoded into a path rather than laid into it raw.
  */
 
+import type { Scope } from "@/components/ScopeSelector";
+
 /** The screens reachable from the navigation. */
 export const PATHS = {
   overview: "/",
@@ -203,6 +205,42 @@ export function moversPath(list: string, kind = "companies", key: string | null 
     parameters.set("scope_key", key);
   }
   return `/movers/${list}?${parameters.toString()}`;
+}
+
+/**
+ * The population an address names, in the `scope_kind` and `scope_key`
+ * that `moversPath` writes: an index or a sector by its key, or a whole
+ * market. One reader of the convention, for every page that keeps its
+ * population in the address.
+ *
+ * @param params - The address's query.
+ * @returns The population; all companies when the address names none.
+ */
+export function scopeFromParams(params: URLSearchParams): Scope {
+  const kind = params.get("scope_kind");
+  const key = params.get("scope_key");
+  if ((kind === "index" || kind === "sector") && key !== null) {
+    return { kind, key };
+  }
+  return { kind: kind === "indices" ? "indices" : "companies", key: null };
+}
+
+/**
+ * Write a population into an address's query, beside whatever else it holds.
+ *
+ * @param params - The query as it is.
+ * @param scope - The population to name.
+ * @returns A new query naming it.
+ */
+export function withScope(params: URLSearchParams, scope: Scope): URLSearchParams {
+  const next = new URLSearchParams(params);
+  next.set("scope_kind", scope.kind);
+  if (scope.key === null) {
+    next.delete("scope_key");
+  } else {
+    next.set("scope_key", scope.key);
+  }
+  return next;
 }
 
 /**

@@ -79,7 +79,7 @@ describe("BreadthHeatmap", () => {
       within(table).getByLabelText(/Nifty 50, 22 Sept? 2026: 85% above the 50-day average/),
     ).toHaveClass("bg-gain/80");
     expect(within(table).getByLabelText(/Bank Nifty, 22 Sept? 2026: 50%/)).toHaveClass(
-      "bg-caution/45",
+      "bg-muted-foreground/25",
     );
     expect(within(table).getByLabelText(/Bank Nifty, 21 Sept? 2026: not counted/)).toHaveClass(
       "bg-muted",

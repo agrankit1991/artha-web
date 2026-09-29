@@ -50,7 +50,7 @@ describe("Breadth", () => {
 
     renderPage(<Breadth />);
 
-    await screen.findByText("Daily Breadth");
+    await screen.findByText("Daily breadth");
     const history = screen.getByRole("region", { name: "Session history" });
     const [, firstRow] = within(history).getAllByRole("row");
     expect(within(firstRow as HTMLElement).getByText(/^18 Sept? 2026$/)).toBeInTheDocument();
@@ -59,7 +59,7 @@ describe("Breadth", () => {
   it("re-counts for whichever population is chosen", async () => {
     const fetchMock = stubEverything();
     renderPage(<Breadth />);
-    await screen.findByText("Daily Breadth");
+    await screen.findByText("Daily breadth");
 
     await userEvent.click(screen.getByRole("button", { name: "Nifty 50" }));
 
@@ -74,7 +74,7 @@ describe("Breadth", () => {
   it("asks for a longer run when a longer window is chosen", async () => {
     const fetchMock = stubEverything();
     renderPage(<Breadth />);
-    await screen.findByText("Daily Breadth");
+    await screen.findByText("Daily breadth");
 
     // The heatmap offers a 5Y of its own; this is the page's window.
     await userEvent.click(
@@ -110,6 +110,57 @@ describe("Breadth", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("The counts are being rebuilt");
   });
 
+  it("opens on the population and the window the address names", async () => {
+    // A reading of breadth is a page somebody bookmarks, and Back should
+    // not lose it.
+    const fetched = stubEverything();
+    renderPage(<Breadth />, {
+      at: `/breadth?scope_kind=index&scope_key=${encodeURIComponent("NSE_INDEX|Nifty 50")}&window=65`,
+    });
+
+    await waitFor(() => {
+      const asked = fetched.mock.calls.map((call) =>
+        decodeURIComponent(String(call[0])).replaceAll("+", " "),
+      );
+      expect(
+        asked.some(
+          (path) =>
+            path.startsWith("/api/breadth?") &&
+            path.includes("scope_key=NSE_INDEX|Nifty 50") &&
+            path.includes("sessions=65"),
+        ),
+      ).toBe(true);
+    });
+  });
+
+  it("takes a year when the address asks for a window the page does not offer", async () => {
+    const fetched = stubEverything();
+    renderPage(<Breadth />, { at: "/breadth?window=7" });
+
+    await waitFor(() => {
+      const asked = fetched.mock.calls.map((call) => String(call[0]));
+      expect(
+        asked.some((path) => path.startsWith("/api/breadth?") && path.includes("sessions=250")),
+      ).toBe(true);
+    });
+  });
+
+  it("keeps the participation and the grid when the counts cannot be read", async () => {
+    // They have sources of their own; one failure should not blank them.
+    stubPlatform({
+      "/api/movers/scopes": { body: scopeOptions() },
+      "/api/breadth/grid": { body: breadthGrid() },
+      "/api/breadth/participation": { body: participation() },
+      "/api/breadth": { status: 500, body: { detail: "the counts are being rebuilt" } },
+    });
+    renderPage(<Breadth />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("The counts are being rebuilt");
+    expect(screen.getByRole("heading", { name: /Participation over time/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Sector and index breadth/ })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /Daily breadth/ })).not.toBeInTheDocument();
+  });
+
   it("says a population has no sessions rather than showing a blank table", async () => {
     stubPlatform({
       "/api/movers/scopes": { body: scopeOptions() },
@@ -139,7 +190,7 @@ describe("Breadth", () => {
       },
     });
     renderPage(<Breadth />);
-    await screen.findByText("Daily Breadth");
+    await screen.findByText("Daily breadth");
     const table = within(screen.getByRole("region", { name: "Session history" })).getByRole(
       "table",
     );
@@ -179,7 +230,7 @@ describe("Breadth", () => {
     });
 
     renderPage(<Breadth />);
-    await screen.findByText("Daily Breadth");
+    await screen.findByText("Daily breadth");
     const table = within(screen.getByRole("region", { name: "Session history" })).getByRole(
       "table",
     );
@@ -218,7 +269,7 @@ describe("Breadth", () => {
 
     renderPage(<Breadth />);
 
-    expect(await screen.findByText("Sector & Index Breadth")).toBeInTheDocument();
+    expect(await screen.findByText("Sector and index breadth")).toBeInTheDocument();
     expect(screen.getByText("IT - Software")).toBeInTheDocument();
     expect(screen.getByText("Pharmaceuticals")).toBeInTheDocument();
   });
@@ -226,7 +277,7 @@ describe("Breadth", () => {
   it("lays the indices out on the same question", async () => {
     const fetchMock = stubEverything();
     renderPage(<Breadth />);
-    await screen.findByText("Sector & Index Breadth");
+    await screen.findByText("Sector and index breadth");
 
     // "Indices" names both a whole population to count and a kind to lay
     // out, so the query has to say which control it means.
@@ -249,7 +300,7 @@ describe("Breadth", () => {
     // which leads away to the sector's own page instead.
     const fetchMock = stubEverything();
     renderPage(<Breadth />);
-    await screen.findByText("Sector & Index Breadth");
+    await screen.findByText("Sector and index breadth");
 
     const cells = within(
       screen.getByText("Pharmaceuticals").closest("tr") as HTMLElement,
@@ -271,7 +322,7 @@ describe("Breadth", () => {
     // "show me this sector", not "count it here".
     stubEverything();
     renderPage(<Breadth />);
-    await screen.findByText("Sector & Index Breadth");
+    await screen.findByText("Sector and index breadth");
 
     expect(screen.getByRole("link", { name: /Pharmaceuticals/ })).toHaveAttribute(
       "href",
@@ -288,8 +339,8 @@ describe("Breadth", () => {
 
     // Named in two places on this page -- as a column of the history and
     // as a line on this chart -- so the chart is asked for by its own region.
-    await screen.findByText("Daily Breadth");
-    const drawn = screen.getByRole("region", { name: "Advance-Decline Trend" });
+    await screen.findByText("Daily breadth");
+    const drawn = screen.getByRole("region", { name: "Advance-decline trend" });
     expect(within(drawn).getByText("Net advancing")).toBeInTheDocument();
     expect(within(drawn).getByText("McClellan oscillator")).toBeInTheDocument();
   });
@@ -387,7 +438,7 @@ describe("Breadth", () => {
     renderPage(<Breadth />);
 
     expect(await screen.findByText("Participation broke")).toBeInTheDocument();
-    expect(screen.getByText("Daily Breadth")).toBeInTheDocument();
+    expect(screen.getByText("Daily breadth")).toBeInTheDocument();
   });
 
   it("says so when the headline indices cannot be named", async () => {

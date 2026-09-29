@@ -76,8 +76,8 @@ describe("BreadthChart", () => {
 
     const [balance] = chartCalls.setData.mock.calls;
     expect(balance?.[0]).toEqual([
-      { time: "2026-09-15", value: -52.862745, detail: "1202 up · 3898 down" },
-      { time: "2026-09-16", value: -8.334991, detail: "2304 up · 2723 down" },
+      { time: "2026-09-15", value: -52.862745, detail: "1,202 up · 3,898 down" },
+      { time: "2026-09-16", value: -8.334991, detail: "2,304 up · 2,723 down" },
     ]);
   });
 
@@ -125,7 +125,7 @@ describe("BreadthChart", () => {
 
     const reading = screen.getByRole("group", { name: "Crosshair reading" });
     expect(within(reading).getByText(/16 Sept? 2026/)).toBeInTheDocument();
-    expect(within(reading).getByText("2304 up · 2723 down")).toBeInTheDocument();
+    expect(within(reading).getByText("2,304 up · 2,723 down")).toBeInTheDocument();
     // Its own unit, not the chart's: the oscillator is no percentage.
     expect(within(reading).getByText("-8.33%")).toBeInTheDocument();
     expect(within(reading).getByText("-37")).toBeInTheDocument();

@@ -10,6 +10,7 @@
 
 import { Activity, Grid3x3, LayoutGrid, Table as TableIcon } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import type { BreadthSession } from "@/api/client";
 import { fetchBreadth, fetchBreadthGrid, fetchParticipation, fetchScopes } from "@/api/client";
@@ -31,10 +32,10 @@ import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
 import { useResource } from "@/hooks/useResource";
 import { headlinePopulations, heatmapRows } from "@/lib/participationPopulations";
-import { populationPath } from "@/lib/paths";
+import { populationPath, scopeFromParams, withScope } from "@/lib/paths";
 import { usePreferences, writePreferences } from "@/lib/preferences";
 import { readings } from "@/lib/breadthReadings";
-import { ABSENT, formatDay, formatVolume, toNumber } from "@/lib/format";
+import { ABSENT, formatCount, formatDay, toNumber } from "@/lib/format";
 
 const DEFAULT_WINDOW = 250;
 
@@ -50,8 +51,22 @@ const GRIDS: Option<"sector" | "index">[] = [
  * @returns The page.
  */
 export function Breadth(): React.JSX.Element {
-  const [scope, setScope] = useState<Scope>({ kind: "companies", key: null });
-  const [sessions, setSessions] = useState(DEFAULT_WINDOW);
+  // The population and the window live in the address: a reading of breadth
+  // is a page somebody bookmarks, and Back should not lose it.
+  const [params, setParams] = useSearchParams();
+  const scope = useMemo(() => scopeFromParams(params), [params]);
+  const asked = Number(params.get("window"));
+  const sessions = BREADTH_RANGES.some((range) => range.sessions === asked)
+    ? asked
+    : DEFAULT_WINDOW;
+  const setScope = (next: Scope): void => {
+    setParams(withScope(params, next), { replace: true });
+  };
+  const setSessions = (next: number): void => {
+    const query = new URLSearchParams(params);
+    query.set("window", String(next));
+    setParams(query, { replace: true });
+  };
   const [gridKind, setGridKind] = useState<"sector" | "index">("sector");
 
   const loadScopes = useCallback(() => fetchScopes(), []);
@@ -140,135 +155,151 @@ export function Breadth(): React.JSX.Element {
             ))}
           </section>
 
-          <BreadthPanel breadth={breadth.data} loading={breadth.loading} />
+          {/* Today's split and the shares above each average. The trend
+              readings are the tiles above and the chart below, so the panel
+              does not repeat them. */}
+          <BreadthPanel
+            breadth={breadth.data}
+            loading={breadth.loading}
+            title="Today"
+            trends={false}
+          />
+        </>
+      )}
 
-          <Card>
-            <CardHeader>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Grid3x3 aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
-                    Participation Over Time
-                  </CardTitle>
-                  <CardDescription>
-                    How much of each index stood above its moving average, day by day. A longer span
-                    scrolls sideways, the newest session at the right.
-                  </CardDescription>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <RangeSelector
-                    ranges={PARTICIPATION_RANGES}
-                    sessions={span}
-                    onChange={setSpan}
-                    label="Span"
-                  />
-                  <Chooser
-                    options={MEASURES}
-                    chosen={measure}
-                    onChange={setMeasure}
-                    label="Moving average"
-                  />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {participation.error !== null ? (
-                <Failed message={participation.error} />
-              ) : chosen === null && scopes.error !== null ? (
-                <Failed message={scopes.error} />
-              ) : populations.length === 0 && !awaitingHeadlines ? (
-                <Empty
-                  title="No populations to compare"
-                  reason="Add an index or a sector below, or reset to the headline indices."
-                />
-              ) : (
-                <BreadthHeatmap
-                  days={participation.data?.days ?? []}
-                  rows={rows}
-                  measureLabel={MEASURES.find((one) => one.key === measure)?.label ?? ""}
-                  loading={participation.loading || awaitingHeadlines}
-                  yearly={span > HEATMAP_SESSIONS}
-                />
-              )}
-              <ParticipationPopulations
-                populations={populations}
-                options={scopes.data}
-                onChange={(next) => {
-                  writePreferences({ participation: next });
-                }}
-                onReset={
-                  chosen === null
-                    ? null
-                    : () => {
-                        writePreferences({ participation: null });
-                      }
-                }
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Activity className="h-4 w-4 text-muted-foreground" />
-                Advance-Decline Trend
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <CardTitle as="h2" className="flex items-center gap-2">
+                <Grid3x3 aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
+                Participation over time
               </CardTitle>
               <CardDescription>
-                How one-sided each session was: above the rule more companies rose than fell, below
-                it more fell than rose. Hover for the counts themselves. The McClellan oscillator
-                keeps a band of its own.
+                How much of each index stood above its moving average, day by day. A longer span
+                scrolls sideways, the newest session at the right.
               </CardDescription>
-            </CardHeader>
-            <CardContent role="region" aria-label="Advance-Decline Trend">
-              <BreadthChart sessions={breadth.data?.sessions ?? []} loading={breadth.loading} />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <LayoutGrid className="h-4 w-4 text-muted-foreground" />
-                    Sector & Index Breadth
-                  </CardTitle>
-                  <CardDescription>
-                    Every population of one kind, strongest participation first.
-                  </CardDescription>
-                </div>
-                <Chooser
-                  options={GRIDS}
-                  chosen={gridKind}
-                  onChange={setGridKind}
-                  label="Grid population"
-                />
-              </div>
-            </CardHeader>
-            <CardContent role="region" aria-label="Population grid">
-              <BreadthGridPanel
-                scopes={grid.data?.scopes ?? []}
-                comparedWith={grid.data?.compared_with}
-                loading={grid.loading}
-                onSelect={(scopeKey) => {
-                  setScope({ kind: gridKind, key: scopeKey });
-                }}
-                linkTo={(scopeKey) => populationPath(gridKind, scopeKey)}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <RangeSelector
+                ranges={PARTICIPATION_RANGES}
+                sessions={span}
+                onChange={setSpan}
+                label="Span"
               />
-            </CardContent>
-          </Card>
+              <Chooser
+                options={MEASURES}
+                chosen={measure}
+                onChange={setMeasure}
+                label="Moving average"
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {participation.error !== null ? (
+            <Failed message={participation.error} />
+          ) : chosen === null && scopes.error !== null ? (
+            <Failed message={scopes.error} />
+          ) : populations.length === 0 && !awaitingHeadlines ? (
+            <Empty
+              title="No populations to compare"
+              reason="Add an index or a sector below, or reset to the headline indices."
+            />
+          ) : (
+            <BreadthHeatmap
+              days={participation.data?.days ?? []}
+              rows={rows}
+              measureLabel={MEASURES.find((one) => one.key === measure)?.label ?? ""}
+              loading={participation.loading || awaitingHeadlines}
+              yearly={span > HEATMAP_SESSIONS}
+            />
+          )}
+          <ParticipationPopulations
+            populations={populations}
+            options={scopes.data}
+            onChange={(next) => {
+              writePreferences({ participation: next });
+            }}
+            onReset={
+              chosen === null
+                ? null
+                : () => {
+                    writePreferences({ participation: null });
+                  }
+            }
+          />
+        </CardContent>
+      </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <TableIcon className="h-4 w-4 text-muted-foreground" />
-                Daily Breadth
+      {breadth.error === null && (
+        <Card>
+          <CardHeader>
+            <CardTitle as="h2" className="flex items-center gap-2">
+              <Activity className="h-4 w-4 text-muted-foreground" />
+              Advance-decline trend
+            </CardTitle>
+            <CardDescription>
+              How one-sided each session was: above the rule more companies rose than fell, below it
+              more fell than rose. Hover for the counts themselves. The McClellan oscillator keeps a
+              band of its own.
+            </CardDescription>
+          </CardHeader>
+          <CardContent role="region" aria-label="Advance-decline trend">
+            <BreadthChart sessions={breadth.data?.sessions ?? []} loading={breadth.loading} />
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <CardTitle as="h2" className="flex items-center gap-2">
+                <LayoutGrid className="h-4 w-4 text-muted-foreground" />
+                Sector and index breadth
               </CardTitle>
-            </CardHeader>
-            <CardContent role="region" aria-label="Session history">
-              <SessionTable sessions={history} loading={breadth.loading} />
-            </CardContent>
-          </Card>
-        </>
+              <CardDescription>
+                Every population of one kind, strongest participation first.
+              </CardDescription>
+            </div>
+            <Chooser
+              options={GRIDS}
+              chosen={gridKind}
+              onChange={setGridKind}
+              label="Grid population"
+            />
+          </div>
+        </CardHeader>
+        <CardContent role="region" aria-label="Population grid">
+          {grid.error !== null ? (
+            <Failed message={grid.error} />
+          ) : (
+            <BreadthGridPanel
+              scopes={grid.data?.scopes ?? []}
+              comparedWith={grid.data?.compared_with}
+              loading={grid.loading}
+              onSelect={(scopeKey) => {
+                setScope({ kind: gridKind, key: scopeKey });
+              }}
+              linkTo={(scopeKey) => populationPath(gridKind, scopeKey)}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {breadth.error === null && (
+        <Card>
+          <CardHeader>
+            <CardTitle as="h2" className="flex items-center gap-2">
+              <TableIcon className="h-4 w-4 text-muted-foreground" />
+              Daily breadth
+            </CardTitle>
+          </CardHeader>
+          <CardContent role="region" aria-label="Session history">
+            <SessionTable sessions={history} loading={breadth.loading} />
+          </CardContent>
+        </Card>
       )}
     </div>
   );
@@ -290,7 +321,10 @@ function SessionTable({
         accessorFn: (row) => row.as_of,
         cell: ({ row }) => formatDay(row.original.as_of),
       },
-      count("instruments", "Counted", (row) => row.instruments),
+      // Those with a move measured, the total the split is of: the same
+      // figure the panel above calls counted (the platform's instruments
+      // include a few with no move on the day).
+      count("counted", "Counted", (row) => row.advancing + row.declining + row.unchanged),
       count("advancing", "Advancing", (row) => row.advancing, "text-gain"),
       count("declining", "Declining", (row) => row.declining, "text-loss"),
       count("unchanged", "Unchanged", (row) => row.unchanged),
@@ -321,7 +355,8 @@ function SessionTable({
         id: "advance_decline_line",
         header: "A/D line",
         accessorFn: (row) => toNumber(row.advance_decline_line) ?? 0,
-        cell: ({ row }) => formatVolume(toNumber(row.original.advance_decline_line)),
+        // A running count, grouped as one; not a volume in lakh and crore.
+        cell: ({ row }) => formatCount(toNumber(row.original.advance_decline_line)),
         meta: { align: "right" },
       },
     ],
@@ -335,6 +370,9 @@ function SessionTable({
       loading={loading}
       empty="No sessions counted for this population"
       placeholderRows={8}
+      // A year or more of sessions, scrolled in place with the header pinned.
+      full
+      maxHeight="36rem"
     />
   );
 }
@@ -350,7 +388,7 @@ function count(
     id,
     header,
     accessorFn: of,
-    cell: ({ row }) => <span className={className}>{of(row.original)}</span>,
+    cell: ({ row }) => <span className={className}>{formatCount(of(row.original))}</span>,
     meta: { align: "right" },
   };
 }
@@ -364,7 +402,7 @@ function figure(value: string | null, places: number): string {
 /** A percentage, or a dash. */
 function percent(value: string | null): string {
   const parsed = toNumber(value);
-  return parsed === null ? ABSENT : `${parsed.toFixed(0)}%`;
+  return parsed === null ? ABSENT : `${parsed.toFixed(1)}%`;
 }
 
 /** How many sessions the heatmap spans until a longer span is chosen: about ten weeks, as StockEdge's does. */

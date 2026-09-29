@@ -46,11 +46,17 @@ interface BreadthHeatmapProps {
   yearly?: boolean;
 }
 
-/** The five steps a share falls into, lowest first, with their colour. */
+/**
+ * The five steps a share falls into, lowest first, with their colour: a
+ * diverging scale, weak through a neutral grey to strong. The middle band
+ * was caution amber, which said "worth a look" about the most ordinary
+ * reading there is; a stretched market (80% and over) is named by the
+ * regime above, not by a colour here.
+ */
 const STEPS: readonly { below: number; className: string; label: string }[] = [
   { below: 20, className: "bg-loss/80", label: "under 20%" },
   { below: 40, className: "bg-loss/40", label: "20-40%" },
-  { below: 60, className: "bg-caution/45", label: "40-60%" },
+  { below: 60, className: "bg-muted-foreground/25", label: "40-60%" },
   { below: 80, className: "bg-gain/40", label: "60-80%" },
   { below: Number.POSITIVE_INFINITY, className: "bg-gain/80", label: "80% and over" },
 ];

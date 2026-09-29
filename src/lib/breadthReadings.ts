@@ -9,7 +9,7 @@
  */
 
 import type { BreadthRegime, BreadthResponse } from "@/api/client";
-import { ABSENT, formatVolume, toNumber } from "@/lib/format";
+import { ABSENT, toNumber } from "@/lib/format";
 import type { Tone } from "@/components/StatTile";
 
 /** One measure, ready to show. */
@@ -64,20 +64,21 @@ export function describeOscillator(reading: number | null): string {
  * @param breadth - The reading, with its run of sessions.
  * @returns The direction as a phrase, and whether it is good news.
  */
-function trend(breadth: BreadthResponse): { hint: string; tone: Tone } {
+function trend(breadth: BreadthResponse): { hint: string; tone: Tone; change: number | null } {
   const line = breadth.sessions.map((session) => toNumber(session.advance_decline_line));
   const latest = line[line.length - 1] ?? null;
   const earlier = line[Math.max(0, line.length - 1 - TREND_WINDOW)] ?? null;
   if (latest === null || earlier === null || line.length < 2) {
-    return { hint: "Not enough sessions", tone: "neutral" };
+    return { hint: "Not enough sessions", tone: "neutral", change: null };
   }
-  if (latest > earlier) {
-    return { hint: `Rising over ${String(TREND_WINDOW)} sessions`, tone: "good" };
+  const change = latest - earlier;
+  if (change > 0) {
+    return { hint: `Rising over ${String(TREND_WINDOW)} sessions`, tone: "good", change };
   }
-  if (latest < earlier) {
-    return { hint: `Falling over ${String(TREND_WINDOW)} sessions`, tone: "bad" };
+  if (change < 0) {
+    return { hint: `Falling over ${String(TREND_WINDOW)} sessions`, tone: "bad", change };
   }
-  return { hint: "Flat", tone: "neutral" };
+  return { hint: "Flat", tone: "neutral", change };
 }
 
 /**
@@ -111,9 +112,16 @@ export function readings(breadth: BreadthResponse | null): Reading[] {
 
   return [
     {
-      label: "Advance-decline line",
-      value: reading(breadth.advance_decline_line, (parsed) => formatVolume(parsed)),
-      ...direction,
+      // The line's change over the window, not its level: the level is an
+      // arbitrary running total that means nothing by itself (it was once
+      // printed in lakh and crore, like a volume).
+      label: `A/D line, ${String(TREND_WINDOW)} sessions`,
+      value:
+        direction.change === null
+          ? ABSENT
+          : `${direction.change > 0 ? "+" : ""}${direction.change.toLocaleString("en-IN")}`,
+      hint: direction.hint,
+      tone: direction.tone,
     },
     {
       label: "McClellan oscillator",

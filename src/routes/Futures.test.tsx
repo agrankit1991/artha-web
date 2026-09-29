@@ -42,7 +42,7 @@ describe("Futures", () => {
     expect(crude).toHaveAttribute("href", "/future/MCX_FO%7C1");
     const row = crude.closest("tr");
     expect(row).toHaveTextContent("10 days left");
-    expect(row).toHaveTextContent("12345");
+    expect(row).toHaveTextContent("12,345");
     // Nothing traded yet: dashes, and the day itself.
     const gold = within(table).getByRole("link", { name: /GOLD/ }).closest("tr");
     expect(gold).toHaveTextContent("expires today");

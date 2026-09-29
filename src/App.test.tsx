@@ -280,7 +280,7 @@ describe("App", () => {
 
     await userEvent.click(screen.getByRole("link", { name: "Breadth" }));
 
-    expect(await screen.findByText("Daily Breadth")).toBeInTheDocument();
+    expect(await screen.findByText("Daily breadth")).toBeInTheDocument();
   });
 
   it("opens straight onto whichever screen the address names", async () => {
@@ -289,7 +289,7 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(await screen.findByText("Daily Breadth")).toBeInTheDocument();
+    expect(await screen.findByText("Daily breadth")).toBeInTheDocument();
   });
 
   it("takes the overview's own way through to breadth", async () => {
@@ -299,7 +299,7 @@ describe("App", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /See breadth in full/ }));
 
-    expect(await screen.findByText("Daily Breadth")).toBeInTheDocument();
+    expect(await screen.findByText("Daily breadth")).toBeInTheDocument();
   });
 
   it("routes to the news page and back", async () => {
@@ -409,7 +409,7 @@ describe("App", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Movers" });
     await userEvent.click(screen.getByRole("link", { name: "Breadth" }));
-    await screen.findByText("Sector & Index Breadth");
+    await screen.findByText("Sector and index breadth");
 
     await userEvent.click(screen.getByRole("link", { name: /IT - Software/ }));
 

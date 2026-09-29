@@ -21,6 +21,11 @@ interface BreadthPanelProps {
   loading?: boolean;
   /** What it is the breadth of: the whole market, or one population by name. */
   title?: string;
+  /**
+   * Whether to show the trend readings (the A/D line, the McClellan
+   * oscillator, the extremes). Off on a page that shows them at length.
+   */
+  trends?: boolean;
 }
 
 /**
@@ -33,6 +38,7 @@ export function BreadthPanel({
   breadth,
   loading = false,
   title = "Market breadth",
+  trends = true,
 }: BreadthPanelProps): React.JSX.Element {
   const latest = breadth?.latest ?? null;
 
@@ -45,7 +51,8 @@ export function BreadthPanel({
             ? loading
               ? "Counting…"
               : "Nothing counted yet"
-            : `${String(latest.instruments)} instruments · ${formatDay(latest.as_of)}`}
+            : // Those with a move measured: the same total the split is of.
+              `${(latest.advancing + latest.declining + latest.unchanged).toLocaleString("en-IN")} counted · ${formatDay(latest.as_of)}`}
         </CardDescription>
       </CardHeader>
       {latest === null ? (
@@ -87,20 +94,24 @@ export function BreadthPanel({
               caption={describeRank(toNumber(breadth?.percentiles?.above_sma_200))}
             />
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Trend
-              label="Advance-decline line"
-              hint="Its direction matters, not its level"
-              values={(breadth?.sessions ?? []).map((s) => toNumber(s.advance_decline_line))}
-            />
-            <Trend
-              label="McClellan oscillator"
-              hint={describeOscillator(toNumber(breadth?.mcclellan_oscillator))}
-              values={(breadth?.sessions ?? []).map((s) => toNumber(s.mcclellan_oscillator))}
-              reading={toNumber(breadth?.mcclellan_oscillator)}
-            />
-          </div>
-          <Extremes latest={latest} highLow={toNumber(breadth?.high_low_index)} />
+          {trends && (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Trend
+                  label="Advance-decline line"
+                  hint="Its direction matters, not its level"
+                  values={(breadth?.sessions ?? []).map((s) => toNumber(s.advance_decline_line))}
+                />
+                <Trend
+                  label="McClellan oscillator"
+                  hint={describeOscillator(toNumber(breadth?.mcclellan_oscillator))}
+                  values={(breadth?.sessions ?? []).map((s) => toNumber(s.mcclellan_oscillator))}
+                  reading={toNumber(breadth?.mcclellan_oscillator)}
+                />
+              </div>
+              <Extremes latest={latest} highLow={toNumber(breadth?.high_low_index)} />
+            </>
+          )}
         </CardContent>
       )}
     </Card>

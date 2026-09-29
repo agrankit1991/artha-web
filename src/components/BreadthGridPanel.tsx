@@ -127,6 +127,10 @@ export function BreadthGridPanel({
       loading={loading}
       empty="Nothing counted for this kind of population"
       placeholderRows={8}
+      // A hundred and fifty-eight sectors: scrolled in place, the header and
+      // the names pinned, rather than making the page fifteen screens long.
+      full
+      maxHeight="36rem"
       {...(onSelect
         ? {
             onSelect: (row: ScopeBreadth) => {

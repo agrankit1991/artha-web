@@ -27,7 +27,7 @@ import { ViewModeToggle, useViewMode } from "@/components/ViewModeToggle";
 import { Card, CardContent } from "@/components/ui/card";
 import { useResource } from "@/hooks/useResource";
 import { formatDay, formatPrice, toNumber } from "@/lib/format";
-import { companyPath, moversPath, populationPath } from "@/lib/paths";
+import { companyPath, moversPath, populationPath, scopeFromParams } from "@/lib/paths";
 import { cn } from "@/lib/utils";
 
 /** How deep a list is read: as deep as the platform keeps it. */
@@ -45,14 +45,7 @@ export function Movers(): React.JSX.Element {
   const { list = "" } = useParams();
   const [params] = useSearchParams();
   const name = NAMES.find((one) => one === list) ?? null;
-  const scope = useMemo<Scope>(() => {
-    const kind = params.get("scope_kind");
-    const key = params.get("scope_key");
-    if ((kind === "index" || kind === "sector") && key !== null) {
-      return { kind, key };
-    }
-    return { kind: kind === "indices" ? "indices" : "companies", key: null };
-  }, [params]);
+  const scope = useMemo<Scope>(() => scopeFromParams(params), [params]);
 
   const loadScopes = useCallback(() => fetchScopes(), []);
   const loadList = useCallback(

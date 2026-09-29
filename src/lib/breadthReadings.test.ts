@@ -37,8 +37,8 @@ describe("readings", () => {
 
   it("reports the direction of the advance-decline line, not its level", () => {
     // Its level depends on when counting started, so it means nothing.
-    expect(labelled("Advance-decline line").hint).toBe("Rising over 20 sessions");
-    expect(labelled("Advance-decline line").tone).toBe("good");
+    expect(labelled("A/D line, 20 sessions").hint).toBe("Rising over 20 sessions");
+    expect(labelled("A/D line, 20 sessions").tone).toBe("good");
   });
 
   it("calls a falling line bad news", () => {
@@ -48,7 +48,7 @@ describe("readings", () => {
       ),
     });
 
-    expect(labelled("Advance-decline line", falling).tone).toBe("bad");
+    expect(labelled("A/D line, 20 sessions", falling).tone).toBe("bad");
   });
 
   it("calls a line that went nowhere flat", () => {
@@ -56,13 +56,13 @@ describe("readings", () => {
       sessions: Array.from({ length: 30 }, () => breadthSession({ advance_decline_line: "1000" })),
     });
 
-    expect(labelled("Advance-decline line", flat).hint).toBe("Flat");
+    expect(labelled("A/D line, 20 sessions", flat).hint).toBe("Flat");
   });
 
   it("will not call a direction from a single session", () => {
     const one = breadth({ sessions: [breadthSession()] });
 
-    expect(labelled("Advance-decline line", one).hint).toBe("Not enough sessions");
+    expect(labelled("A/D line, 20 sessions", one).hint).toBe("Not enough sessions");
   });
 
   it("marks a thrust against Zweig's own threshold", () => {
@@ -109,7 +109,7 @@ describe("readings", () => {
     });
 
     expect(readings(young).map((reading) => reading.value)).toEqual([
-      "1,390",
+      "+200",
       "-",
       "-",
       "-",
@@ -118,7 +118,7 @@ describe("readings", () => {
     ]);
     expect(
       readings(young).every(
-        (reading) => reading.label === "Advance-decline line" || reading.tone === "neutral",
+        (reading) => reading.label === "A/D line, 20 sessions" || reading.tone === "neutral",
       ),
     ).toBe(true);
   });
