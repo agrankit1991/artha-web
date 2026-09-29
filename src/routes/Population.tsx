@@ -8,9 +8,9 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 
-import type { Cadence, KnownSymbol, Member } from "@/api/client";
+import type { KnownSymbol, Member } from "@/api/client";
 import {
   fetchBreadth,
   fetchEarnings,
@@ -25,6 +25,7 @@ import {
   fetchSeries,
 } from "@/api/client";
 import { BreadthPanel } from "@/components/BreadthPanel";
+import { Callout } from "@/components/Callout";
 import { type ChartLine, ComparisonChart } from "@/components/ComparisonChart";
 import { EarningsPanel } from "@/components/EarningsPanel";
 import { InstrumentFigures } from "@/components/InstrumentFigures";
@@ -32,7 +33,9 @@ import { PopulationValuationPanel } from "@/components/PopulationValuationPanel"
 import { type Column, DataTable } from "@/components/DataTable";
 import { nameColumn, symbolColumn } from "@/components/identityColumns";
 import { Delta } from "@/components/Delta";
+import { Empty } from "@/components/Empty";
 import { Heatmap } from "@/components/Heatmap";
+import { MoveSpread } from "@/components/MoveSpread";
 import { PriceChart } from "@/components/PriceChart";
 import { SessionPicker } from "@/components/SessionPicker";
 import { ShareButton } from "@/components/ShareButton";
@@ -45,17 +48,20 @@ import { IndexChanges } from "@/components/IndexChanges";
 import { InstrumentHeader } from "@/components/InstrumentHeader";
 import { SectionHeader } from "@/components/SectionHeader";
 import { ENTITIES, MARKS } from "@/lib/entities";
+import { useChartRange } from "@/hooks/useChartRange";
 import { useResource } from "@/hooks/useResource";
+import { useSearchParam } from "@/hooks/useSearchParam";
 import { categoryLabel } from "@/lib/indices";
-import { readPreferences, writePreferences } from "@/lib/preferences";
 import { coloured } from "@/lib/chartPalette";
 import { companyPath } from "@/lib/paths";
 import { monthOfCloses } from "@/lib/sharing";
 import { type Contribution, contributions } from "@/lib/contribution";
 import {
   ABSENT,
+  formatCount,
   formatDay,
   formatPercent,
+  formatPercentLevel,
   formatPrice,
   formatSignedPrice,
   formatVolume,
@@ -84,37 +90,27 @@ const VIEWS: Tab<View>[] = [
  * @returns The page.
  */
 export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Element {
-  const [sessions, setSessionsOnly] = useState(() => readPreferences().range);
-  const setSessions = (next: number): void => {
-    setSessionsOnly(next);
-    writePreferences({ range: next });
-  };
+  const [sessions, setSessions] = useChartRange();
   // Its own price first, as the owner reads a page (2026-09-23); how it is
   // doing against the market is one tab away.
   const [view, setView] = useState<View>("price");
 
-  // The session the page is read as of, kept in the address; null is the latest.
-  const [params, setParams] = useSearchParams();
-  const asOf = params.get("as_of");
+  // The session the page is read as of, kept in the address; none is the latest.
+  const [chosenDay, setChosenDay] = useSearchParam("as_of");
+  const asOf = chosenDay === "" ? null : chosenDay;
   const setAsOf = (next: string | null): void => {
-    const query = new URLSearchParams(params);
-    if (next === null) {
-      query.delete("as_of");
-    } else {
-      query.set("as_of", next);
-    }
-    setParams(query, { replace: true });
+    setChosenDay(next ?? "");
   };
   const load = useCallback(() => fetchPopulation(kind, scopeKey, asOf), [kind, scopeKey, asOf]);
-  const loadBreadth = useCallback(
-    () => fetchBreadth(kind, scopeKey, sessions),
-    [kind, scopeKey, sessions],
-  );
+  // Breadth over its own window, the one the overview reads: tied to the
+  // chart's range, five years of price meant five years of breadth.
+  const loadBreadth = useCallback(() => fetchBreadth(kind, scopeKey), [kind, scopeKey]);
   const population = useResource(load);
   const breadth = useResource(loadBreadth);
 
   // What the population's companies earned, summed period by period.
-  const [cadence, setCadence] = useState<Cadence>("annual");
+  const [chosenCadence, setCadence] = useSearchParam("cadence", "annual");
+  const cadence = chosenCadence === "quarterly" ? "quarterly" : "annual";
   const loadEarnings = useCallback(
     () => fetchEarnings(kind, scopeKey, cadence),
     [kind, scopeKey, cadence],
@@ -162,9 +158,14 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
   // Each member's part in the day's move, weighed by capitalisation; in
   // index points where the population has a level, in per cent where not.
   const previousLevel = toNumber(own.data?.[0]?.day.previous_close);
+  // Only for the latest session: the valuation is always today's, so a
+  // past session's contribution would weigh a past move by today's caps.
   const parts = useMemo(
-    () => contributions(valuation.data?.members ?? [], kind === "index" ? previousLevel : null),
-    [valuation.data, kind, previousLevel],
+    () =>
+      asOf === null
+        ? contributions(valuation.data?.members ?? [], kind === "index" ? previousLevel : null)
+        : new Map<string, Contribution>(),
+    [valuation.data, kind, previousLevel, asOf],
   );
 
   // The subject and every benchmark it was measured against, so the chart
@@ -215,11 +216,17 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
   }
 
   const found = population.data;
+  const inPoints = kind === "index";
 
   return (
     <div className="space-y-6">
       <InstrumentHeader
-        name={found?.name ?? scopeKey}
+        // Its own name from the start: the key's tail ("Nifty 50") until the
+        // platform says what it is called, never the raw key.
+        name={found?.name ?? scopeKey.slice(scopeKey.lastIndexOf("|") + 1)}
+        // The figures below carry both ranges; drawn here too, a reader
+        // met each twice on one screen.
+        ranges={false}
         badges={
           <>
             {ownKey !== null && (
@@ -235,19 +242,15 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
             <Badge variant="secondary">{ENTITIES[kind].label}</Badge>
           </>
         }
-        subline={
-          <>
-            {ownKey !== null && (
-              <>
-                <span className="font-medium">{ownKey.split("_")[0]}</span>
-                <span aria-hidden="true">•</span>
-              </>
-            )}
-            <span>
-              {members.length} {members.length === 1 ? "company" : "companies"}
-            </span>
-          </>
-        }
+        {...(found === null
+          ? {}
+          : {
+              subline: (
+                <span>
+                  {formatCount(members.length)} {members.length === 1 ? "company" : "companies"}
+                </span>
+              ),
+            })}
         overview={own.data?.[0]}
         description={found?.description}
         actions={
@@ -270,13 +273,21 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
       />
 
       <SessionPicker asOf={asOf} onChange={setAsOf} />
+      {asOf !== null && (
+        // Said plainly, because only part of the page can go back in time.
+        <Callout tone="info">
+          Read as of {formatDay(asOf)}: the level, the figures and the companies. The chart,
+          breadth, valuation and earnings show the latest, and each company&apos;s part in the move
+          is given for the latest session only.
+        </Callout>
+      )}
 
       {found !== null && instrument !== null && (
         <section className="space-y-3" aria-labelledby="price-heading">
           <SectionHeader
             id="price-heading"
             icon={MARKS.price}
-            title="Price & Performance"
+            title="Price & performance"
             description={
               view === "compare"
                 ? "Against the market and the size bands, all rebased to the first session they share."
@@ -319,9 +330,9 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
         <section className="space-y-3" aria-labelledby="figures-heading">
           <SectionHeader
             id="figures-heading"
-            icon={ENTITIES.index.icon}
-            title="The Index Itself"
-            description="Its own level, range, trend, volume and momentum - the same figures a company carries, because an index trades."
+            icon={MARKS.figures}
+            title="The index itself"
+            description="Its own level, range, trend, volume and momentum: the same figures a company carries, because an index trades."
           />
           <InstrumentFigures
             overview={own.data?.[0] ?? null}
@@ -336,9 +347,9 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
       <section className="space-y-3" aria-labelledby="valuation-heading">
         <SectionHeader
           id="valuation-heading"
-          icon={ENTITIES.company.icon}
-          title="Valuation & Contribution"
-          description="What the typical company trades at, and which companies moved the most money today."
+          icon={MARKS.financials}
+          title="Valuation"
+          description="What the typical company trades at, and what the whole is worth."
         />
         {valuation.error !== null ? (
           <Failed message={valuation.error} />
@@ -366,45 +377,57 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
         )}
       </section>
 
-      {members.length > 0 && (
-        <>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Performance Heatmap</CardTitle>
-              <CardDescription>
-                Every company counting once, coloured by its move - the same reading the breadth
-                counts above are taken from.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Heatmap
-                members={members}
-                linkTo={(one) => companyPath(one.instrument_key, one.symbol)}
-              />
-            </CardContent>
-          </Card>
+      <section className="space-y-4" aria-labelledby="members-heading">
+        <SectionHeader
+          id="members-heading"
+          icon={ENTITIES.company.icon}
+          title="Its companies"
+          description="How each moved, who moved the whole, who joined and left, and the full list."
+        />
+        {!population.loading && members.length === 0 ? (
+          // Said, where four sections used to vanish without a word.
+          <Empty
+            title="No companies recorded for this population"
+            reason="Its membership has not been captured yet, so there is nothing to count or rank."
+          />
+        ) : (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle>Performance heatmap</CardTitle>
+                <CardDescription>
+                  Every company counting once, coloured by its move: the same reading the breadth
+                  counts above are taken from.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Heatmap
+                  members={members}
+                  linkTo={(one) => companyPath(one.instrument_key, one.symbol)}
+                />
+              </CardContent>
+            </Card>
 
-          <IndexChanges changes={changes.data ?? []} />
+            <TodaysMoves members={members} parts={parts} inPoints={inPoints} asOf={asOf} />
 
-          {parts.size > 0 && (
-            <LeadingTheMove members={members} parts={parts} inPoints={kind === "index"} />
-          )}
+            <IndexChanges changes={changes.data ?? []} />
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Constituents</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Members
-                members={members}
-                loading={population.loading}
-                parts={parts}
-                inPoints={kind === "index"}
-              />
-            </CardContent>
-          </Card>
-        </>
-      )}
+            <Card>
+              <CardHeader>
+                <CardTitle>Constituents</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Members
+                  members={members}
+                  loading={population.loading}
+                  parts={parts}
+                  inPoints={inPoints}
+                />
+              </CardContent>
+            </Card>
+          </>
+        )}
+      </section>
     </div>
   );
 }
@@ -440,37 +463,14 @@ function Members({
         meta: { align: "right" },
       },
       change("change", "Change", (row) => row.change_percent),
-      {
-        id: "weight",
-        header: "Weight %",
-        accessorFn: (row) => parts.get(row.instrument_key)?.weight ?? Number.NEGATIVE_INFINITY,
-        cell: ({ row }) => {
-          const weight = parts.get(row.original.instrument_key)?.weight;
-          return weight === undefined ? ABSENT : weight.toFixed(2);
-        },
-        meta: { align: "right" },
-      },
-      {
-        id: "contribution",
-        header: inPoints ? "Contribution pts" : "Contribution %",
-        accessorFn: (row) =>
-          partOf(parts.get(row.instrument_key), inPoints) ?? Number.NEGATIVE_INFINITY,
-        cell: ({ row }) => (
-          <Delta
-            value={toText(partOf(parts.get(row.original.instrument_key), inPoints))}
-            format={formatSignedPrice}
-            arrow={false}
-          />
-        ),
-        meta: { align: "right" },
-      },
+      ...(parts.size === 0 ? [] : contributionColumns(parts, inPoints)),
       change("one_week", "1W", (row) => row.one_week),
       change("one_month", "1M", (row) => row.one_month),
       change("three_months", "3M", (row) => row.three_months),
       change("one_year", "1Y", (row) => row.one_year),
-      change("from_high", "From high", (row) => row.from_high_percent),
-      change("from_low", "From low", (row) => row.from_low_percent),
-      change("from_sma_200", "From 200-day", (row) => row.from_sma_200_percent),
+      distance("from_high", "From high", (row) => row.from_high_percent),
+      distance("from_low", "From low", (row) => row.from_low_percent),
+      distance("from_sma_200", "From 200-day", (row) => row.from_sma_200_percent),
       {
         id: "volume",
         header: "Volume",
@@ -497,6 +497,47 @@ function Members({
 }
 
 /**
+ * Each member's weight and its part in the day's move, with their units:
+ * the weight in per cent, the part in index points where the population
+ * has a level and in percentage points where it has none.
+ *
+ * @param parts - Each member's contribution, by instrument key.
+ * @param inPoints - Whether the part is in index points.
+ * @returns The two columns.
+ */
+function contributionColumns(
+  parts: Map<string, Contribution>,
+  inPoints: boolean,
+): Column<Member>[] {
+  return [
+    {
+      id: "weight",
+      header: "Weight",
+      accessorFn: (row) => parts.get(row.instrument_key)?.weight ?? Number.NEGATIVE_INFINITY,
+      cell: ({ row }) => {
+        const weight = parts.get(row.original.instrument_key)?.weight;
+        return weight === undefined ? ABSENT : formatPercentLevel(weight.toFixed(2));
+      },
+      meta: { align: "right" },
+    },
+    {
+      id: "contribution",
+      header: inPoints ? "Contribution (pts)" : "Contribution (pp)",
+      accessorFn: (row) =>
+        partOf(parts.get(row.instrument_key), inPoints) ?? Number.NEGATIVE_INFINITY,
+      cell: ({ row }) => (
+        <Delta
+          value={toText(partOf(parts.get(row.original.instrument_key), inPoints))}
+          format={formatSignedPrice}
+          arrow={false}
+        />
+      ),
+      meta: { align: "right" },
+    },
+  ];
+}
+
+/**
  * A column of percentages, coloured by direction.
  *
  * @param id - The column's identity.
@@ -508,8 +549,30 @@ function change(id: string, header: string, of: (row: Member) => string | null):
   return {
     id,
     header,
-    accessorFn: (row) => toNumber(of(row)) ?? 0,
+    // A company with no figure sorts last, not among the flat ones.
+    accessorFn: (row) => toNumber(of(row)) ?? Number.NEGATIVE_INFINITY,
     cell: ({ row }) => <Delta value={of(row.original)} />,
+    meta: { align: "right" },
+  };
+}
+
+/**
+ * A column of distances in per cent: signed, but plain, because being 12%
+ * under the year's high is where a price stands, not a fall that happened.
+ *
+ * @param id - The column's identity.
+ * @param header - What to call it.
+ * @param of - Which figure it reads.
+ * @returns The column.
+ */
+function distance(id: string, header: string, of: (row: Member) => string | null): Column<Member> {
+  return {
+    id,
+    header,
+    accessorFn: (row) => toNumber(of(row)) ?? Number.NEGATIVE_INFINITY,
+    cell: ({ row }) => (
+      <span className="tabular text-muted-foreground">{formatPercent(of(row.original))}</span>
+    ),
     meta: { align: "right" },
   };
 }
@@ -525,28 +588,46 @@ function partOf(part: Contribution | undefined, inPoints: boolean): number | nul
   return inPoints ? part.points : part.percent;
 }
 
-/** A computed figure as the text the formatters read. */
-function toText(value: number | null): string | null {
-  return value === null ? null : value.toFixed(2);
+/**
+ * A computed figure as the text the formatters read, to two decimals.
+ *
+ * A part that rounds to nought is written "0.00": left as "-0.00", a
+ * company that barely moved a sector of two hundred read as a fall.
+ */
+export function toText(value: number | null): string | null {
+  if (value === null) {
+    return null;
+  }
+  const written = value.toFixed(2);
+  return written === "-0.00" ? "0.00" : written;
 }
 
-/** How many members each side of "Leading the move" names. */
+/** How many members each side of the leaders names. */
 const LEADERS = 5;
 
 /**
- * The members that did most to move the population today, each way.
+ * The day's moves: who moved the whole each way, and how the moves were
+ * spread across every company.
  *
- * Weighted by market capitalisation, not the free float an exchange uses,
- * so the figures are close rather than exact, and the card says so.
+ * The leaders are weighed by market capitalisation, not the free float an
+ * exchange uses, so the figures are close rather than exact, and the card
+ * says so. They are the one place the page names them: the valuation panel
+ * listed the same companies again by rupees moved.
+ *
+ * @param props - The members, their parts in the move (none when reading
+ *   a past session), the unit, and the session being read.
+ * @returns The card.
  */
-function LeadingTheMove({
+function TodaysMoves({
   members,
   parts,
   inPoints,
+  asOf,
 }: {
   members: Member[];
   parts: Map<string, Contribution>;
   inPoints: boolean;
+  asOf: string | null;
 }): React.JSX.Element {
   const ranked = members
     .flatMap((one) => {
@@ -562,44 +643,54 @@ function LeadingTheMove({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Leading the Move</CardTitle>
-        <CardDescription>
-          Each company's weight times its move,{" "}
-          {inPoints ? "in index points" : "in percentage points"}. Weights are by market
-          capitalisation, not free float, so these are close rather than exact.
-        </CardDescription>
+        <CardTitle>{asOf === null ? "Today's moves" : `The moves of ${formatDay(asOf)}`}</CardTitle>
+        {ranked.length > 0 && (
+          <CardDescription>
+            Who moved it most: each company&apos;s weight times its move,{" "}
+            {inPoints ? "in index points" : "in percentage points"}. Weights are by market
+            capitalisation, not free float, so these are close rather than exact.
+          </CardDescription>
+        )}
       </CardHeader>
-      <CardContent className="grid gap-6 sm:grid-cols-2">
-        {(
-          [
-            ["Lifted by", lifted],
-            ["Dragged by", dragged],
-          ] as const
-        ).map(([title, rows]) => (
-          <div key={title} className="space-y-2">
-            <h3 className="text-xs font-medium uppercase text-muted-foreground">{title}</h3>
-            {rows.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nobody today</p>
-            ) : (
-              <ol className="space-y-1.5">
-                {rows.map(({ member, value }) => (
-                  <li
-                    key={member.instrument_key}
-                    className="flex items-baseline justify-between gap-3 text-sm"
-                  >
-                    <Link
-                      to={companyPath(member.instrument_key, member.symbol)}
-                      className="truncate font-medium text-primary hover:underline"
-                    >
-                      {member.symbol}
-                    </Link>
-                    <Delta value={toText(value)} format={formatSignedPrice} arrow={false} />
-                  </li>
-                ))}
-              </ol>
-            )}
+      <CardContent className="space-y-6">
+        {ranked.length > 0 && (
+          <div className="grid gap-6 sm:grid-cols-2">
+            {(
+              [
+                ["Lifted by", lifted],
+                ["Dragged by", dragged],
+              ] as const
+            ).map(([title, rows]) => (
+              <div key={title} className="space-y-2">
+                <h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  {title}
+                </h4>
+                {rows.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nobody today</p>
+                ) : (
+                  <ol className="space-y-1.5">
+                    {rows.map(({ member, value }) => (
+                      <li
+                        key={member.instrument_key}
+                        className="flex items-baseline justify-between gap-3 text-sm"
+                      >
+                        <Link
+                          to={companyPath(member.instrument_key, member.symbol)}
+                          viewTransition
+                          className="truncate font-medium text-primary hover:underline"
+                        >
+                          {member.symbol}
+                        </Link>
+                        <Delta value={toText(value)} format={formatSignedPrice} arrow={false} />
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            ))}
           </div>
-        ))}
+        )}
+        <MoveSpread changes={members.map((one) => one.change_percent)} />
       </CardContent>
     </Card>
   );

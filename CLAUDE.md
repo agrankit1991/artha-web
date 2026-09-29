@@ -335,17 +335,29 @@ fallback)`** (`src/hooks/useSearchParam.ts`): a value at its default is
   one company's news should not have to spell its symbol.
 - **A population** (`src/routes/Population.tsx`) at `/index/:ref` and
   `/sector/:ref` -- one page for both, because an index and a sector are
-  the same question asked of a different set of companies. What it is,
-  how it is doing against the market and the size bands, its own price,
-  its breadth, a heatmap of its companies and the full list of them. A
-  sector has no instrument of its own, so it gets no price chart and its
+  the same question asked of a different set of companies. In order
+  (brand redesign, 2026-09-30): the header (its level and move; the ranges
+  are left to the figures below, which carry them), the price and
+  performance chart, the index's own figures, breadth over its own
+  250-session window (it followed the chart's range, so five years of
+  price meant five years of breadth), valuation, earnings, then its
+  companies: the heatmap, the day's moves (who lifted and dragged it, in
+  index points or percentage points for a sector, and the spread of moves),
+  index changes and the constituents. Each company's part in the move is
+  named once there and in the table's column; the valuation panel's
+  rupees-moved lists were a third telling in the same order and are gone.
+  A sector has no instrument of its own, so it gets no price chart and its
   performance stands on the median of its members.
 
-  **Relative strength is a chart, not a table.** It opens on the
-  comparison -- the population against the market and the three size
-  bands, rebased to the first session they share -- with its own price one
-  tab away. The gaps are read off the legend's totals over whichever range
-  is chosen.
+  **`?as_of=` re-dates only part of the page, and a note says which:**
+  the level, the figures and the companies. The chart, breadth, valuation
+  and earnings stay latest, and contribution is hidden for a past session
+  (it would weigh a past move by today's capitalisations).
+
+  **The chart opens on its own price** (the owner's order, 2026-09-23),
+  with relative strength one tab away: the population against the market
+  and the three size bands, rebased to the first session they share. The
+  gaps are read off the legend's totals over whichever range is chosen.
 
 - **Market breadth** (`src/routes/Breadth.tsx`) -- the same counts at
   length: any population over any of five windows; the regime the

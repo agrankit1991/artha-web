@@ -25,6 +25,12 @@ interface InstrumentHeaderProps {
   overview?: InstrumentOverview | null | undefined;
   description?: string | null | undefined;
   actions?: React.ReactNode;
+  /**
+   * Whether to draw the day's and the year's range under the name. Off
+   * where the page's own figures follow with the same two ranges, so a
+   * reader does not meet them twice in one screen.
+   */
+  ranges?: boolean;
 }
 
 /**
@@ -40,6 +46,7 @@ export function InstrumentHeader({
   overview,
   description,
   actions,
+  ranges = true,
 }: InstrumentHeaderProps): React.JSX.Element {
   return (
     <header className="space-y-4">
@@ -66,7 +73,7 @@ export function InstrumentHeader({
           {overview != null && <Level overview={overview} />}
         </div>
       </div>
-      {overview != null && (
+      {overview != null && ranges && (
         <div className="grid gap-4 sm:grid-cols-2">
           <RangeMeter
             label="Day's range"

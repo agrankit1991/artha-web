@@ -4,7 +4,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { Population } from "./Population";
+import { Population, toText } from "./Population";
 import {
   type Reply,
   breadth,
@@ -176,7 +176,7 @@ describe("Population", () => {
 
     show();
 
-    expect(await screen.findByText("Performance Heatmap")).toBeInTheDocument();
+    expect(await screen.findByText("Performance heatmap")).toBeInTheDocument();
     expect(screen.getByRole("list", { name: "Companies by move" })).toBeInTheDocument();
   });
 
@@ -242,6 +242,46 @@ describe("Population", () => {
       const asked = fetchMock.mock.calls.map((call) => String(call[0]));
       expect(asked.some((path) => path.includes("sessions=1250"))).toBe(true);
     });
+    // Breadth keeps its own window whatever the chart's range.
+    const breadthAsked = fetchMock.mock.calls
+      .map((call) => String(call[0]))
+      .filter((path) => path.includes("/api/breadth"));
+    expect(breadthAsked.length).toBeGreaterThan(0);
+    expect(breadthAsked.every((path) => path.endsWith("sessions=250"))).toBe(true);
+  });
+
+  it("says what a past session re-dates, and gives no contribution for it", async () => {
+    stubEverything(population(), {
+      "/api/overviews": { body: [overview({ instrument_key: "NSE_INDEX|Nifty Bank" })] },
+    });
+    renderPage(<Population kind="index" scopeKey="NSE_INDEX|Nifty Bank" />, {
+      at: "/index/nifty-bank?as_of=2026-09-15",
+    });
+
+    expect(await screen.findByText(/Read as of 15 Sept? 2026/)).toBeInTheDocument();
+    expect(await screen.findByText(/The moves of 15 Sept? 2026/)).toBeInTheDocument();
+    const table = await screen.findByRole("table", { name: "Constituents" });
+    await within(table).findByRole("link", { name: "RELIANCE" });
+    expect(within(table).queryByRole("button", { name: /^Contribution/ })).not.toBeInTheDocument();
+    expect(within(table).queryByRole("button", { name: /^Weight/ })).not.toBeInTheDocument();
+    expect(screen.queryByText("Lifted by")).not.toBeInTheDocument();
+  });
+
+  it("draws a distance from a high plainly, not as a fall", async () => {
+    stubEverything();
+    show();
+
+    const table = await screen.findByRole("table", { name: "Constituents" });
+    const reliance = (await within(table).findByRole("link", { name: "RELIANCE" })).closest(
+      "tr",
+    ) as HTMLElement;
+    // 8.2% under its high and 15.9% over its low: where it stands, not moves.
+    for (const figure of ["-8.20%", "+15.90%", "+5.60%"]) {
+      const cell = within(reliance).getByText(figure);
+      expect(cell).toHaveClass("text-muted-foreground");
+      expect(cell).not.toHaveClass("text-loss");
+      expect(cell).not.toHaveClass("text-gain");
+    }
   });
 
   it("reports a failure rather than showing an empty page", async () => {
@@ -260,7 +300,10 @@ describe("Population", () => {
 
     show();
 
-    await screen.findByRole("heading", { name: "Nifty Bank" });
+    // Said, rather than four sections vanishing without a word.
+    expect(
+      await screen.findByText("No companies recorded for this population"),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Constituents")).not.toBeInTheDocument();
   });
 
@@ -296,7 +339,7 @@ describe("Population", () => {
     expect(screen.queryByRole("link", { name: /TradingView/ })).not.toBeInTheDocument();
   });
 
-  it("names itself by its key until the platform says what it is called", async () => {
+  it("names itself from the start, never by its raw key", async () => {
     // The page draws before the fetch lands, and a heading that is blank
     // for a moment reads as a page that has lost its subject.
     stubPlatform({
@@ -309,8 +352,12 @@ describe("Population", () => {
 
     show("index", "NSE_INDEX|Nifty Bank");
 
-    expect(screen.getByRole("heading", { name: "NSE_INDEX|Nifty Bank" })).toBeInTheDocument();
-    expect(await screen.findByRole("heading", { name: "Nifty Bank" })).toBeInTheDocument();
+    // The key's tail stands in until the platform's own name arrives.
+    expect(screen.getByRole("heading", { name: "Nifty Bank" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /NSE_INDEX/ })).not.toBeInTheDocument();
+    // And the platform's own name once it lands.
+    await screen.findByRole("table", { name: "Constituents" });
+    expect(screen.getByRole("heading", { name: "Nifty Bank", level: 1 })).toBeInTheDocument();
   });
 
   it("carries an index's own figures, which a sector has none of", async () => {
@@ -319,10 +366,11 @@ describe("Population", () => {
     });
     renderPage(<Population kind="index" scopeKey="NSE_INDEX|Nifty 50" />);
 
-    expect(await screen.findByRole("heading", { name: "The Index Itself" })).toBeInTheDocument();
-    expect(
-      await screen.findByRole("heading", { name: "Valuation & Contribution" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "The index itself" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Valuation" })).toBeInTheDocument();
+    // The figures carry the ranges, so the header does not repeat them.
+    expect(screen.getAllByText("Day range").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Day's range")).not.toBeInTheDocument();
     expect(await screen.findByText("Median price to earnings")).toBeInTheDocument();
   });
 
@@ -333,7 +381,7 @@ describe("Population", () => {
     renderPage(<Population kind="sector" scopeKey="IT - Software" />);
 
     expect(await screen.findByText("Median price to earnings")).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "The Index Itself" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "The index itself" })).not.toBeInTheDocument();
   });
 
   it("reports a valuation that cannot be read without losing the page", async () => {
@@ -356,7 +404,7 @@ describe("Population", () => {
       "/api/overviews": { body: [overview({ instrument_key: "NSE_INDEX|Nifty Bank" })] },
     });
     renderPage(<Population kind="index" scopeKey="NSE_INDEX|Nifty Bank" />);
-    await screen.findByRole("heading", { name: "The Index Itself" });
+    await screen.findByRole("heading", { name: "The index itself" });
 
     await userEvent.click(screen.getByRole("button", { name: "Share" }));
 
@@ -386,7 +434,8 @@ describe("Population", () => {
     });
     show();
 
-    expect(await screen.findByText("Leading the Move")).toBeInTheDocument();
+    expect(await screen.findByText("Today's moves")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /0 to 2%/ })).toBeInTheDocument();
     // RELIANCE: 16,78,254 of 20,00,000 crore, up 1.5%, on a previous close of 24,659.
     const table = screen.getByRole("table", { name: "Constituents" });
     const reliance = (await within(table).findByRole("link", { name: "RELIANCE" })).closest("tr");
@@ -395,8 +444,11 @@ describe("Population", () => {
     await waitFor(() => {
       expect(reliance).toHaveTextContent("+310.38");
     });
-    expect(reliance).toHaveTextContent("83.91");
-    expect(within(table).getByRole("button", { name: /^Contribution pts/ })).toBeInTheDocument();
+    // The weight says its unit.
+    expect(reliance).toHaveTextContent("83.91%");
+    expect(
+      within(table).getByRole("button", { name: /^Contribution \(pts\)/ }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/not free float/)).toBeInTheDocument();
   });
 
@@ -408,7 +460,7 @@ describe("Population", () => {
 
     const table = await screen.findByRole("table", { name: "Constituents" });
     expect(
-      await within(table).findByRole("button", { name: /^Contribution %/ }),
+      await within(table).findByRole("button", { name: /^Contribution \(pp\)/ }),
     ).toBeInTheDocument();
   });
 
@@ -445,5 +497,13 @@ describe("Population", () => {
       "href",
       "/company/TCS",
     );
+  });
+});
+
+describe("toText", () => {
+  it("writes a part that rounds to nought without a sign", () => {
+    expect(toText(-0.001)).toBe("0.00");
+    expect(toText(-0.3)).toBe("-0.30");
+    expect(toText(null)).toBeNull();
   });
 });
