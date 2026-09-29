@@ -537,6 +537,26 @@ call site.
   the build notices when a token goes missing from one mode: it falls back
   silently to the other mode's value.
 
+## Motion (brand redesign, 2026-09-30)
+
+Short and purposeful, never something a reader waits on, and none at all
+for a reader whose system asks for less (one `prefers-reduced-motion` rule
+in `index.css` stops animations, transitions and view transitions).
+
+- **Moving between pages** uses the browser's view transitions: sidebar
+  links, `DataTable`'s row links and search results pass `viewTransition`,
+  and only `main` (named `page`) fades and rises, so the frame stays put.
+  A link elsewhere may opt in the same way.
+- **Surfaces arrive:** `Menu` and `Dialog` panels use `animate-surface-in`
+  (160ms), a dialog's backdrop and a drawn chart `animate-fade-in`.
+- **Loading shimmers:** `Skeleton` passes a sheen over the muted surface
+  instead of pulsing; tests find it by `[data-slot=skeleton]`.
+- **Highlights slide:** `Tabs` moves one highlight to the chosen tab,
+  measured by `useSlidingIndicator` and moved by a CSS transition -- no
+  animation library. The chosen tab marks itself until it is measured.
+- The curve is `ease-brand`; the animations are `@theme` tokens, so they
+  are Tailwind utilities (`motion-safe:animate-surface-in`).
+
 ## Design conventions (redesign, 2026-09-23)
 
 The owner prefers the previous project's interface

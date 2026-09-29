@@ -56,6 +56,6 @@ describe("RegimeBanner", () => {
     const { container } = render(<RegimeBanner regime={null} share={null} rank={null} loading />);
 
     expect(screen.queryByText(/Nothing counted/)).not.toBeInTheDocument();
-    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+    expect(container.querySelectorAll("[data-slot=skeleton]").length).toBeGreaterThan(0);
   });
 });

@@ -474,6 +474,7 @@ export function Chart({
           ref={holder}
           style={{ height }}
           data-testid="chart"
+          className="motion-safe:animate-fade-in"
           // The conventional gesture, and the one somebody tries first. The
           // button above says it is there; this is how it is reached
           // without looking away from the chart.

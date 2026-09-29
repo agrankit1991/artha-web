@@ -145,7 +145,7 @@ describe("BreadthHeatmap", () => {
       </MemoryRouter>,
     );
 
-    expect(container.querySelector(".animate-pulse")).not.toBeNull();
+    expect(container.querySelector("[data-slot=skeleton]")).not.toBeNull();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 });

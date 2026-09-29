@@ -65,7 +65,7 @@ describe("NewsFeed", () => {
     const { container } = render(<NewsFeed items={null} loading />);
 
     expect(screen.queryByText("No news stored yet")).not.toBeInTheDocument();
-    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+    expect(container.querySelectorAll("[data-slot=skeleton]").length).toBeGreaterThan(0);
   });
 
   it("shows the publisher's picture", () => {

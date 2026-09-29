@@ -216,6 +216,78 @@
   --text-panel--line-height: 1.5rem;
   --text-micro: 0.6875rem;
   --text-micro--line-height: 1rem;
+
+  /* Motion: short and purposeful, never something a reader waits on.
+     Menus and dialogs arrive in 160ms, a page in 240ms; everything stops
+     for a reader whose system asks for less motion (below). */
+  --ease-brand: cubic-bezier(0.2, 0, 0, 1);
+  --animate-surface-in: surface-in 160ms var(--ease-brand);
+  --animate-fade-in: fade-in 200ms var(--ease-brand);
+  --animate-shimmer: shimmer 1.6s linear infinite;
+
+  @keyframes surface-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.98);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes shimmer {
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: -100% 0;
+    }
+  }
+}
+
+/*
+ * Moving between pages. Only the page itself moves (`main` carries the
+ * transition's name): the sidebar and header stay where they are, so the
+ * frame reads as fixed and the content as what changed. Browsers without
+ * view transitions simply switch.
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+::view-transition-old(page) {
+  animation: 100ms ease-out both page-out;
+}
+::view-transition-new(page) {
+  animation: 240ms var(--ease-brand) both page-in;
+}
+@keyframes page-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* A reader whose system asks for less motion gets none. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }
 
 @layer base {

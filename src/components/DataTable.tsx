@@ -228,6 +228,7 @@ export function DataTable<Row extends RowData>({
                     {page !== null ? (
                       <Link
                         to={page}
+                        viewTransition
                         className="block hover:text-primary hover:underline"
                         onClick={(event) => {
                           // Choosing a row and opening it are separate

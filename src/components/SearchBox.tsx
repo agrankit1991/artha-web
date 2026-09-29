@@ -94,7 +94,7 @@ export function SearchBox(): React.JSX.Element {
     setTyped("");
     setOpen(false);
     input.current?.blur();
-    void navigate(hitPath(hit));
+    void navigate(hitPath(hit), { viewTransition: true });
   };
 
   const onKey = (event: React.KeyboardEvent<HTMLInputElement>): void => {

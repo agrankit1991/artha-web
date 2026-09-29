@@ -11,7 +11,9 @@
  * view to get to the last one.
  */
 
-import { useId } from "react";
+import { useId, useRef } from "react";
+
+import { useSlidingIndicator } from "@/hooks/useSlidingIndicator";
 
 import { cn } from "@/lib/utils";
 
@@ -57,6 +59,8 @@ export function Tabs<Key extends string>({
   className,
 }: TabsProps<Key>): React.JSX.Element {
   const group = useId();
+  const strip = useRef<HTMLDivElement>(null);
+  const indicator = useSlidingIndicator(strip, '[aria-selected="true"]', active);
   const at = tabs.findIndex((tab) => tab.key === active);
 
   const move = (event: React.KeyboardEvent): void => {
@@ -77,11 +81,24 @@ export function Tabs<Key extends string>({
     <div className={cn("space-y-3", className)}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div
+          ref={strip}
           role="tablist"
           aria-label={label}
           onKeyDown={move}
-          className="inline-flex gap-1 rounded-lg border bg-muted/40 p-1"
+          className="relative inline-flex gap-1 rounded-lg border bg-muted/40 p-1"
         >
+          {/* The highlight, sliding to the chosen tab rather than jumping. */}
+          {indicator !== null && (
+            <span
+              aria-hidden="true"
+              className="absolute left-0 top-0 rounded-md bg-background shadow-sm transition-[transform,width,height] duration-200 ease-brand"
+              style={{
+                width: indicator.width,
+                height: indicator.height,
+                transform: `translate(${String(indicator.left)}px, ${String(indicator.top)}px)`,
+              }}
+            />
+          )}
           {tabs.map((tab) => (
             <button
               key={tab.key}
@@ -98,10 +115,13 @@ export function Tabs<Key extends string>({
                 onChange(tab.key);
               }}
               className={cn(
-                "rounded-md px-3 py-1.5 text-sm transition-colors",
+                "relative rounded-md px-3 py-1.5 text-sm transition-colors",
                 tab.key === active
-                  ? "bg-background font-medium text-foreground shadow-sm"
+                  ? "font-medium text-foreground"
                   : "text-muted-foreground hover:text-foreground",
+                // Until the highlight has been measured, the chosen tab
+                // marks itself.
+                tab.key === active && indicator === null && "bg-background shadow-sm",
               )}
             >
               {tab.label}

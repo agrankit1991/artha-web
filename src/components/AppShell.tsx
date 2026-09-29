@@ -111,7 +111,11 @@ export function AppShell({
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-[1600px] flex-1 p-4">{children}</main>
+        {/* Named for the page transition: only this moves between pages, so
+            the frame around it reads as fixed. */}
+        <main className="mx-auto w-full max-w-[1600px] flex-1 p-4 [view-transition-name:page]">
+          {children}
+        </main>
 
         <footer className="border-t border-chrome-border bg-chrome text-chrome-foreground">
           <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs opacity-70">
@@ -174,6 +178,7 @@ function Sidebar({
                   key={screen.path}
                   to={screen.path}
                   end={screen.exact ?? false}
+                  viewTransition
                   onClick={onClose}
                   className={({ isActive }) =>
                     cn(

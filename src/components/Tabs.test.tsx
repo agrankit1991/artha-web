@@ -110,4 +110,20 @@ describe("Tabs", () => {
 
     expect(screen.getByRole("tabpanel")).not.toHaveAccessibleName();
   });
+
+  it("slides one highlight to the chosen tab rather than painting the tab", () => {
+    // The chosen tab's background is the highlight's; the tab itself only
+    // marks itself until the highlight has been measured.
+    show();
+
+    const strip = screen.getByRole("tablist");
+    expect(strip.querySelectorAll('span[aria-hidden="true"]')).toHaveLength(1);
+    expect(screen.getByRole("tab", { name: "Nifty 50 vs Gold" })).not.toHaveClass("bg-background");
+  });
+
+  it("has no highlight to slide when no tab is chosen", () => {
+    show("nothing-like-this");
+
+    expect(screen.getByRole("tablist").querySelector('span[aria-hidden="true"]')).toBeNull();
+  });
 });

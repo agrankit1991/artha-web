@@ -95,7 +95,8 @@ export function Menu({
           aria-label={label}
           className={cn(
             "absolute z-50 mt-2 min-w-56 overflow-hidden rounded-lg border bg-popover p-1 text-popover-foreground shadow-lg",
-            align === "end" ? "right-0" : "left-0",
+            align === "end" ? "right-0 origin-top-right" : "left-0 origin-top-left",
+            "motion-safe:animate-surface-in",
           )}
         >
           {children(() => {

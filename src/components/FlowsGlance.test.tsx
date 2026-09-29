@@ -63,6 +63,6 @@ describe("FlowsGlance", () => {
   it("holds a place while the flows load", () => {
     const { container } = draw(null, true);
 
-    expect(container.querySelector(".animate-pulse")).not.toBeNull();
+    expect(container.querySelector("[data-slot=skeleton]")).not.toBeNull();
   });
 });

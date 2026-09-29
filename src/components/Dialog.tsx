@@ -83,7 +83,7 @@ export function Dialog({
   }
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-4 backdrop-blur-sm motion-safe:animate-fade-in"
       onMouseDown={(event) => {
         // The backdrop, not a click inside the panel that bubbled up.
         if (event.target === event.currentTarget) {
@@ -100,7 +100,7 @@ export function Dialog({
         aria-describedby={description === undefined ? undefined : descriptionId}
         tabIndex={-1}
         className={cn(
-          "w-full max-w-lg rounded-lg border bg-card p-5 text-card-foreground shadow-xl focus:outline-none",
+          "w-full max-w-lg rounded-lg border bg-card p-5 text-card-foreground shadow-xl focus:outline-none motion-safe:animate-surface-in",
           className,
         )}
       >
