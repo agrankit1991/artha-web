@@ -26,7 +26,6 @@ import {
   addWatchlistItem,
   createWatchlist,
   deleteWatchlist,
-  fetchSearch,
   fetchWatchlist,
   fetchWatchlists,
   removeWatchlistItem,
@@ -40,13 +39,13 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Dialog } from "@/components/Dialog";
 import { Empty } from "@/components/Empty";
 import { Failed } from "@/components/Failed";
+import { InstrumentPicker } from "@/components/InstrumentPicker";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useDebounced } from "@/hooks/useDebounced";
 import { useResource } from "@/hooks/useResource";
-import { ENTITIES, MARKS } from "@/lib/entities";
+import { MARKS } from "@/lib/entities";
 import { ABSENT, formatDay, formatPrice, formatVolume, sentence, toNumber } from "@/lib/format";
 import { companyPath } from "@/lib/paths";
 import { cn } from "@/lib/utils";
@@ -617,19 +616,10 @@ function AddDialog({
   onClose: () => void;
   onDone: () => void;
 }): React.JSX.Element {
-  const [typed, setTyped] = useState("");
   const [problem, setProblem] = useState<string | null>(null);
-  const query = useDebounced(typed.trim());
-  const load = useCallback(
-    () => (query.length < 2 ? Promise.resolve<SearchHit[]>([]) : fetchSearch(query)),
-    [query],
-  );
-  const found = useResource(load);
-  const companies = (found.data ?? []).filter((hit) => hit.kind === "company");
 
   useEffect(() => {
     if (!open) {
-      setTyped("");
       setProblem(null);
     }
   }, [open]);
@@ -651,42 +641,16 @@ function AddDialog({
       title="Add an instrument"
       description="Type a few letters of a company's name or symbol."
     >
-      <Input
-        type="search"
-        aria-label="Find a company"
+      <InstrumentPicker
+        label="Find a company"
         placeholder="Reliance, TCS, HDFCBANK…"
-        value={typed}
-        onChange={(event) => {
-          setTyped(event.target.value);
+        kinds={["company"]}
+        layout="inline"
+        onPick={(hit) => {
+          void add(hit);
         }}
       />
       {problem !== null && <p className="text-sm text-destructive">{sentence(problem)}</p>}
-      <ul className="max-h-72 divide-y overflow-auto rounded-md border" aria-label="Matches">
-        {query.length >= 2 && !found.loading && companies.length === 0 && (
-          <li className="px-3 py-3 text-center text-sm text-muted-foreground">
-            No company called &ldquo;{query}&rdquo;
-          </li>
-        )}
-        {companies.map((hit) => (
-          <li key={hit.key}>
-            <button
-              type="button"
-              onClick={() => {
-                void add(hit);
-              }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent"
-            >
-              <ENTITIES.company.icon aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">{hit.label}</span>
-                {hit.detail !== null && (
-                  <span className="block truncate text-xs text-muted-foreground">{hit.detail}</span>
-                )}
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
     </Dialog>
   );
 }

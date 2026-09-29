@@ -44,9 +44,21 @@ function stubEverything(page = watchlistPage()): ReturnType<typeof stubPlatform>
           key: "NSE_EQ|INE009A01021",
           label: "INFY",
           detail: "Infosys",
-          weight: 3,
+          exchanges: [],
+          category: null,
+          close: null,
+          change_percent: null,
         },
-        { kind: "index", key: "NSE_INDEX|Nifty IT", label: "Nifty IT", detail: null, weight: 1 },
+        {
+          kind: "index",
+          key: "NSE_INDEX|Nifty IT",
+          label: "Nifty IT",
+          detail: null,
+          exchanges: [],
+          category: null,
+          close: null,
+          change_percent: null,
+        },
       ],
     },
   });
@@ -135,9 +147,9 @@ describe("Watchlists", () => {
     await screen.findByRole("link", { name: /RELIANCE/ });
 
     await userEvent.click(screen.getByRole("button", { name: /Add instrument/ }));
-    await userEvent.type(screen.getByRole("searchbox", { name: "Find a company" }), "inf");
+    await userEvent.type(screen.getByRole("combobox", { name: "Find a company" }), "inf");
     // Only companies are offered; the index the search also found is not.
-    const match = await screen.findByRole("button", { name: /INFY/ });
+    const match = await screen.findByRole("option", { name: /INFY/ });
     expect(screen.queryByRole("button", { name: /Nifty IT/ })).not.toBeInTheDocument();
     await userEvent.click(match);
     await waitFor(() => {
@@ -252,8 +264,8 @@ describe("Watchlists", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /Add instrument/ }));
     const add = screen.getByRole("dialog", { name: "Add an instrument" });
-    await userEvent.type(within(add).getByRole("searchbox", { name: "Find a company" }), "zz");
-    expect(await within(add).findByText(/No company called/)).toBeInTheDocument();
+    await userEvent.type(within(add).getByRole("combobox", { name: "Find a company" }), "zz");
+    expect(await within(add).findByText(/Nothing called/)).toBeInTheDocument();
     await userEvent.click(within(add).getByRole("button", { name: "Close" }));
 
     await userEvent.click(screen.getByRole("button", { name: /Delete list/ }));
@@ -274,7 +286,10 @@ describe("Watchlists", () => {
             key: "NSE_EQ|INE009A01021",
             label: "INFY",
             detail: "Infosys",
-            weight: 3,
+            exchanges: [],
+            category: null,
+            close: null,
+            change_percent: null,
           },
         ],
       },
@@ -282,8 +297,8 @@ describe("Watchlists", () => {
     renderPage(<Watchlists />);
     await screen.findByRole("link", { name: /RELIANCE/ });
     await userEvent.click(screen.getByRole("button", { name: /Add instrument/ }));
-    await userEvent.type(screen.getByRole("searchbox", { name: "Find a company" }), "inf");
-    await userEvent.click(await screen.findByRole("button", { name: /INFY/ }));
+    await userEvent.type(screen.getByRole("combobox", { name: "Find a company" }), "inf");
+    await userEvent.click(await screen.findByRole("option", { name: /INFY/ }));
 
     expect(await screen.findByText(/Could not add/)).toBeInTheDocument();
   });

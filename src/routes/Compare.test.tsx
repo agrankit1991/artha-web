@@ -52,8 +52,26 @@ function stubEverything(): ReturnType<typeof stubPlatform> {
     "/api/screen/fields": { body: screenFields() },
     "/api/search": {
       body: [
-        { kind: "index", key: NIFTY, label: "NIFTY 50", detail: "Nifty 50", weight: 9 },
-        { kind: "sector", key: "IT - Software", label: "IT - Software", detail: null, weight: 1 },
+        {
+          kind: "index",
+          key: NIFTY,
+          label: "NIFTY 50",
+          detail: "Nifty 50",
+          exchanges: [],
+          category: null,
+          close: null,
+          change_percent: null,
+        },
+        {
+          kind: "sector",
+          key: "IT - Software",
+          label: "IT - Software",
+          detail: null,
+          exchanges: [],
+          category: null,
+          close: null,
+          change_percent: null,
+        },
       ],
     },
   });
@@ -89,9 +107,9 @@ describe("Compare", () => {
     renderPage(<Compare />, { at: `/compare?keys=${RELIANCE}&keys=${TCS}` });
     await screen.findByRole("button", { name: "Remove TCS" });
 
-    await userEvent.type(screen.getByRole("searchbox", { name: "Add a company or index" }), "nif");
+    await userEvent.type(screen.getByRole("combobox", { name: "Add a company or index" }), "nif");
     // A sector has no series and is not offered.
-    const hit = await screen.findByRole("button", { name: /NIFTY 50/ });
+    const hit = await screen.findByRole("option", { name: /NIFTY 50/ });
     expect(screen.queryByRole("button", { name: /IT - Software/ })).not.toBeInTheDocument();
     await userEvent.click(hit);
     expect(await screen.findByRole("button", { name: "Remove NIFTY 50" })).toBeInTheDocument();

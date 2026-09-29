@@ -13,17 +13,12 @@
  * button starts one with that company already on it.
  */
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import type { InstrumentOverview, InstrumentSummary, ScreenField, SearchHit } from "@/api/client";
-import {
-  fetchInstruments,
-  fetchOverviews,
-  fetchScreenFields,
-  fetchSearch,
-  fetchSeries,
-} from "@/api/client";
+import type { InstrumentOverview, InstrumentSummary, ScreenField } from "@/api/client";
+import { fetchInstruments, fetchOverviews, fetchScreenFields, fetchSeries } from "@/api/client";
+import { InstrumentPicker } from "@/components/InstrumentPicker";
 import { Chip } from "@/components/Chip";
 import { type ChartLine, ComparisonChart } from "@/components/ComparisonChart";
 import { type Column, DataTable } from "@/components/DataTable";
@@ -34,12 +29,10 @@ import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
 import { PRICE_RANGES, RangeSelector } from "@/components/RangeSelector";
 import { SectionHeader } from "@/components/SectionHeader";
-import { Input } from "@/components/ui/input";
-import { useDebounced } from "@/hooks/useDebounced";
 import { useResource } from "@/hooks/useResource";
 import { MOST_SERIES, coloured } from "@/lib/chartPalette";
 import { readPreferences } from "@/lib/preferences";
-import { ENTITIES, MARKS } from "@/lib/entities";
+import { MARKS } from "@/lib/entities";
 import { figureAt, writtenFigure } from "@/lib/figures";
 import { formatDay, formatPrice, toNumber } from "@/lib/format";
 import { hitPath } from "@/lib/paths";
@@ -236,7 +229,7 @@ export function Compare(): React.JSX.Element {
   );
 }
 
-/** A search box that adds a company or an index. */
+/** A search box that adds a company or an index not already in the set. */
 function Adder({
   excluded,
   onAdd,
@@ -244,69 +237,17 @@ function Adder({
   excluded: string[];
   onAdd: (key: string) => void;
 }): React.JSX.Element {
-  const [typed, setTyped] = useState("");
-  const query = useDebounced(typed.trim());
-  const load = useCallback(
-    () => (query.length < 2 ? Promise.resolve<SearchHit[]>([]) : fetchSearch(query)),
-    [query],
-  );
-  const found = useResource(load);
-  const hits = (found.data ?? []).filter(
-    (hit) => (hit.kind === "company" || hit.kind === "index") && !excluded.includes(hit.key),
-  );
   return (
-    <div className="relative">
-      <Input
-        type="search"
-        aria-label="Add a company or index"
-        placeholder="Add a company or index…"
-        value={typed}
-        onChange={(event) => {
-          setTyped(event.target.value);
-        }}
-        className="w-64"
-      />
-      {query.length >= 2 && (
-        <ul
-          className="absolute left-0 top-full z-40 mt-1 max-h-72 w-80 overflow-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-lg"
-          aria-label="Matches"
-        >
-          {hits.length === 0 && !found.loading && (
-            <li className="px-2 py-2 text-center text-sm text-muted-foreground">
-              Nothing called &ldquo;{query}&rdquo;
-            </li>
-          )}
-          {hits.map((hit) => {
-            const Mark = ENTITIES[hit.kind].icon;
-            return (
-              <li key={`${hit.kind}:${hit.key}`}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onAdd(hit.key);
-                    setTyped("");
-                  }}
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
-                >
-                  <Mark aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{hit.label}</span>
-                    {hit.detail !== null && (
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {hit.detail}
-                      </span>
-                    )}
-                  </span>
-                  <span className="text-[0.65rem] uppercase tracking-wider text-muted-foreground">
-                    {ENTITIES[hit.kind].label}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
+    <InstrumentPicker
+      label="Add a company or index"
+      placeholder="Add a company or index…"
+      kinds={["company", "index"]}
+      excluded={excluded}
+      onPick={(hit) => {
+        onAdd(hit.key);
+      }}
+      className="w-72"
+    />
   );
 }
 
