@@ -141,11 +141,11 @@ function Sidebar({
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-40 w-60 border-r border-layout-border bg-layout text-layout-foreground transition-transform lg:translate-x-0",
+        "fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-layout-border bg-layout text-layout-foreground transition-transform lg:translate-x-0",
         open ? "translate-x-0" : "-translate-x-full",
       )}
     >
-      <div className="flex h-14 items-center gap-2 border-b border-layout-border px-4">
+      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-layout-border px-4">
         <span
           aria-hidden="true"
           className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground"
@@ -154,7 +154,13 @@ function Sidebar({
         </span>
         <span className="font-semibold">Artha Science</span>
       </div>
-      <nav className="space-y-4 p-3" aria-label="Screens">
+      {/* The list scrolls on its own when the window is shorter than it, the
+          name above it staying put; and a scroll that reaches its end does
+          not carry on into the page behind. */}
+      <nav
+        className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-3"
+        aria-label="Screens"
+      >
         {GROUPS.filter((group) => screens.some((screen) => screen.group === group)).map((group) => {
           const members = screens.filter((screen) => screen.group === group);
           return (
