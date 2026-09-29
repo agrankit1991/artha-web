@@ -640,10 +640,16 @@ function placed(at: Hovered["at"]): React.CSSProperties {
  *
  * @param scale - What the figures are.
  * @returns The options to pass the library, which are none for a price --
- *   its own default.
+ *   its own default. A count's axis is written whole, as its reading is:
+ *   left to the default it read "40.00" people.
  */
-function priceFormat(scale: Scale): { priceFormat?: { type: "percent"; precision?: number } } {
-  return scale === "percent" ? { priceFormat: { type: "percent" as const } } : {};
+function priceFormat(scale: Scale): {
+  priceFormat?: { type: "percent" | "price"; precision?: number; minMove?: number };
+} {
+  if (scale === "percent") {
+    return { priceFormat: { type: "percent" } };
+  }
+  return scale === "count" ? { priceFormat: { type: "price", precision: 0, minMove: 1 } } : {};
 }
 
 /**

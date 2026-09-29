@@ -53,8 +53,9 @@ describe("BreadthChart", () => {
     draw();
 
     const [balance, oscillator] = chartCalls.addSeries.mock.calls;
-    expect(balance?.[1]).toHaveProperty("priceFormat");
-    expect(oscillator?.[1]).not.toHaveProperty("priceFormat");
+    expect(balance?.[1]).toMatchObject({ priceFormat: { type: "percent" } });
+    // Written whole on its axis, as its reading is written.
+    expect(oscillator?.[1]).toMatchObject({ priceFormat: { type: "price", precision: 0 } });
   });
 
   it("draws each session's balance, keeping its counts alongside", () => {
