@@ -399,12 +399,13 @@ call site.
   rising into an arrow. The old site had it only as a small raster (its
   `brand.svg` wraps a 392x276 PNG), so it was **traced** into vectors
   (`logo.svg`), strokes thickened a little so the hairlines survive small
-  sizes; `icon.svg` is the अ/A alone in white on the orange tile, for the
-  favicon and the sidebar. `icon-32.png` and `apple-touch-icon.png` (square:
-  iOS rounds it) are rendered from them. The trace script, the source and
-  the rejected explorations (redesigns drawn with a broad-nib pen, gold and
-  kesar palettes) are in `../research/logo/`; the owner chose the redrawn
-  original. Regenerate rather than hand-edit.
+  sizes. **The whole logo is used everywhere** -- sidebar, favicon, sign-in:
+  an icon of the अ/A alone was tried and the owner rejected it ("it only has
+  1st char"). `logo-32.png` and `apple-touch-icon.png` (the logo on white,
+  square: iOS rounds it) are rendered from `logo.svg`. The trace script, the
+  source and the rejected explorations (redesigns drawn with a broad-nib
+  pen, gold and kesar palettes) are in `../research/logo/`. Regenerate
+  rather than hand-edit.
 - **The frame** (`src/components/AppShell.tsx`): navigation down the side,
   the account and theme across the top, the running build at the bottom.
   The sidebar is the navigation because this is a set of places rather than
