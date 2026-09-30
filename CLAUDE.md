@@ -460,6 +460,16 @@ fallback)`** (`src/hooks/useSearchParam.ts`): a value at its default is
   is one badge (`RunState`), a failure in the error colour. Backtests use
   "strategy" throughout ("playbook" is retired from copy) and India's date
   for a run (`formatDayInIndia`).
+- **What worked each year, as charts** (2026-09-30): each year's best
+  strategy against the Nifty 500 as paired bars (`DivergingBars` takes an
+  optional second figure per row, drawn thin and neutral, with a legend),
+  then every strategy in every year as one coloured table
+  (`StrategyYearGrid`), coloured as the heatmap colours a year through
+  `useHeatPalette` (the heat tokens, re-read when the theme changes; the
+  heatmap uses it too). The year table marks the year chosen. The laptop
+  holds no saved strategies, so the page was checked there with stubbed
+  data (`scratchpad` script intercepting `/api/strategies/years`), not
+  against real figures.
 - **Scans** (`src/routes/Scans.tsx`, reworked 2026-09-30) -- the named
   scans of `src/lib/scans.ts`, each a set of screener conditions, grouped
   by category, each card saying how many companies it finds today and

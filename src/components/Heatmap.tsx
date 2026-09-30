@@ -34,7 +34,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useElementWidth } from "@/hooks/useElementWidth";
-import { type HeatPeriod, heatPaint, heatPalette, heatShare } from "@/lib/heatColour";
+import { useHeatPalette } from "@/hooks/useHeatPalette";
+import { type HeatPalette, type HeatPeriod, heatPaint, heatShare } from "@/lib/heatColour";
 import {
   formatCrore,
   ABSENT,
@@ -44,7 +45,6 @@ import {
   formatWhole,
   toNumber,
 } from "@/lib/format";
-import { useTheme } from "@/lib/theme";
 import { type Rect, type Sized, squarifyGroups } from "@/lib/treemap";
 import { cn } from "@/lib/utils";
 
@@ -133,10 +133,7 @@ export function Heatmap({ tiles, label, linkTo }: HeatmapProps): React.JSX.Eleme
     : width < 640
       ? PHONE_HEIGHT
       : HEIGHT;
-  const { appearance } = useTheme();
-  // Read again when the mode changes: a tile's colour is worked out here.
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- the stylesheet is the input
-  const palette = useMemo(() => heatPalette(), [appearance]);
+  const palette = useHeatPalette();
   const { reach, label: periodLabel } = periodOf(period);
 
   // What is drawn: the chosen sector's companies or every one, with a size,
@@ -464,7 +461,7 @@ function Legend({
   palette,
 }: {
   reach: number;
-  palette: ReturnType<typeof heatPalette>;
+  palette: HeatPalette | null;
 }): React.JSX.Element {
   const stops = [-1, -0.5, 0, 0.5, 1].map((share) => heatPaint(share, palette).fill);
   return (

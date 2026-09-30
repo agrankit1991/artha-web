@@ -1,11 +1,14 @@
 /**
  * What worked each year: every saved strategy's calendar years beside the market's.
  *
- * One row per year, newest first: the market that year and the strategy that
- * did best, with what the leaders had in common -- the trait of their rules
- * (a market gate, few holdings, less invested in weak markets, a stop, a
- * target, switching) that most separated the strategies having it from the
- * rest. Choosing a year lists every strategy's result in it.
+ * First each year's best strategy against the market, as paired bars, so
+ * the gap is seen before it is read; then every strategy in every year as
+ * one coloured table, so a strategy that held up and a year nothing escaped
+ * both show at a glance. Then one row per year, newest first: the market
+ * that year and the strategy that did best, with what the leaders had in
+ * common (the trait of their rules, such as a market gate, few holdings, a
+ * stop or switching, that most separated the strategies having it from the
+ * rest). Choosing a year lists every strategy's result in it.
  *
  * It is hindsight: it says what worked once a year was over. Picking a
  * strategy for a year still to come needs a condition known at its start,
@@ -22,14 +25,19 @@ import {
   fetchStrategyYears,
 } from "@/api/client";
 import { type Column, DataTable } from "@/components/DataTable";
+import { Delta } from "@/components/Delta";
+import { DivergingBars } from "@/components/DivergingBars";
 import { Empty } from "@/components/Empty";
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
 import { SectionHeader } from "@/components/SectionHeader";
+import { StrategyYearGrid } from "@/components/StrategyYearGrid";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useResource } from "@/hooks/useResource";
 import { percent, points, share } from "@/lib/backtestFigures";
-import { ABSENT } from "@/lib/format";
+import { MARKS } from "@/lib/entities";
+import { ABSENT, formatPercentTenths } from "@/lib/format";
 import { strategyPath } from "@/lib/paths";
 
 /** How each class of year reads, by the Nifty 500's return. */
@@ -38,6 +46,21 @@ const KINDS: Record<string, string> = {
   average: "Average year",
   bad: "Bad year",
 };
+
+/**
+ * A year's return, as a move to one decimal.
+ *
+ * @param value - The return, per cent, if known.
+ * @returns The move, or a dash.
+ */
+function move(value: number | null | undefined): React.ReactNode {
+  return (
+    <Delta
+      value={value === null || value === undefined ? null : String(value)}
+      format={formatPercentTenths}
+    />
+  );
+}
 
 /**
  * A trait's gap in words.
@@ -59,15 +82,20 @@ const YEAR_COLUMNS: Column<YearReview>[] = [
   {
     id: "kind",
     header: "Market",
+    accessorFn: (row) => row.kind ?? "",
+    cell: ({ row }) =>
+      row.original.kind === null ? (
+        ABSENT
+      ) : (
+        <Badge variant="outline">{KINDS[row.original.kind] ?? row.original.kind}</Badge>
+      ),
+  },
+  {
+    id: "nifty500",
+    header: "Nifty 500",
     accessorFn: (row) => row.market?.nifty500 ?? null,
-    cell: ({ row }) => (
-      <span className="inline-flex items-center gap-2">
-        {row.original.kind !== null && (
-          <Badge variant="outline">{KINDS[row.original.kind] ?? row.original.kind}</Badge>
-        )}
-        {percent(row.original.market?.nifty500)}
-      </span>
-    ),
+    cell: ({ row }) => move(row.original.market?.nifty500),
+    meta: { align: "right" },
   },
   {
     id: "drawdown",
@@ -100,7 +128,7 @@ const YEAR_COLUMNS: Column<YearReview>[] = [
     id: "best_change",
     header: "Its return",
     accessorFn: (row) => row.strategies[0]?.change ?? null,
-    cell: ({ row }) => percent(row.original.strategies[0]?.change),
+    cell: ({ row }) => move(row.original.strategies[0]?.change),
     meta: { align: "right", emphasis: true },
   },
   {
@@ -122,7 +150,7 @@ const STRATEGY_COLUMNS: Column<StrategyYear>[] = [
     id: "change",
     header: "Return",
     accessorFn: (row) => row.change,
-    cell: ({ row }) => percent(row.original.change),
+    cell: ({ row }) => move(row.original.change),
     meta: { align: "right", emphasis: true },
   },
   {
@@ -167,21 +195,71 @@ export function StrategyYears(): React.JSX.Element {
           reason="Run a backtest of a strategy on its page, and its years appear here."
         />
       ) : (
-        <DataTable
-          columns={YEAR_COLUMNS}
-          rows={reviews.data ?? []}
-          loading={reviews.loading}
-          onSelect={(row) => {
-            setChosen(row.year);
-          }}
-          label="Years"
-        />
+        <>
+          <section aria-label="Best against the market" className="space-y-3">
+            <SectionHeader
+              icon={MARKS.returns}
+              title="Each year's best against the market"
+              description="The strategy that did best in each calendar year, against the Nifty 500 that year. Hindsight: which one led changes from year to year."
+            />
+            {reviews.data === null ? (
+              <Skeleton className="h-48 w-full" />
+            ) : (
+              <DivergingBars
+                label="Each year's best strategy against the Nifty 500"
+                legend={{ value: "Best strategy", against: "Nifty 500" }}
+                format={formatPercentTenths}
+                rows={reviews.data.flatMap((review) => {
+                  const best = review.strategies[0];
+                  return best === undefined
+                    ? []
+                    : [
+                        {
+                          label: `${String(review.year)}: ${best.name}`,
+                          value: best.change,
+                          against: review.market?.nifty500 ?? null,
+                        },
+                      ];
+                })}
+              />
+            )}
+          </section>
+          <section aria-label="Every strategy, every year" className="space-y-3">
+            <SectionHeader
+              icon={MARKS.figures}
+              title="Every strategy, every year"
+              description="Each strategy's return in each calendar year from its latest backtest, coloured as the heatmap colours a year: a row that stays green held up, a column red everywhere was a year nothing escaped."
+            />
+            {reviews.data === null ? (
+              <Skeleton className="h-48 w-full" />
+            ) : (
+              <StrategyYearGrid reviews={reviews.data} />
+            )}
+          </section>
+          <section aria-label="Year by year" className="space-y-3">
+            <SectionHeader
+              icon={MARKS.dates}
+              title="Year by year"
+              description="The market each year, the strategy that did best and what the leaders had in common. Choose a year to list every strategy in it."
+            />
+            <DataTable
+              columns={YEAR_COLUMNS}
+              rows={reviews.data ?? []}
+              loading={reviews.loading}
+              onSelect={(row) => {
+                setChosen(row.year);
+              }}
+              selected={(row) => row.year === shown?.year}
+              label="Years"
+            />
+          </section>
+        </>
       )}
       {shown !== undefined && (
         <section aria-label="The year chosen" className="space-y-3">
           <SectionHeader
             title={`${String(shown.year)}: every strategy`}
-            description="Choose a year above to see it here."
+            description={`Every strategy's return in ${String(shown.year)}, best first.`}
           />
           <Reading review={shown} />
           <DataTable
@@ -189,8 +267,6 @@ export function StrategyYears(): React.JSX.Element {
             rows={shown.strategies}
             linkTo={(row) => strategyPath(row.strategy_id)}
             label={`Strategies in ${String(shown.year)}`}
-            full
-            maxHeight="32rem"
           />
         </section>
       )}
