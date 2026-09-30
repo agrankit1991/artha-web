@@ -20,9 +20,11 @@ import { BacktestPlays } from "@/components/BacktestPlays";
 import { BacktestTradesTable } from "@/components/BacktestTradesTable";
 import { Chart, type Series } from "@/components/Chart";
 import { type Column, DataTable } from "@/components/DataTable";
+import { DivergingBars } from "@/components/DivergingBars";
 import { Empty } from "@/components/Empty";
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
+import { type BarSection, SectionBar } from "@/components/SectionBar";
 import { SectionHeader } from "@/components/SectionHeader";
 import { StrategyExplanationPanel } from "@/components/StrategyExplanationPanel";
 import { VerdictTiles, periodName, verdictPeriod } from "@/components/BacktestVerdict";
@@ -30,9 +32,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useResource } from "@/hooks/useResource";
 import { benchmarkName, percent, points, share } from "@/lib/backtestFigures";
-import { growthLines } from "@/lib/backtestReadings";
-import { BENCHMARK, PRICE_LINE, PRICE_WIDTH } from "@/lib/chartPalette";
-import { ABSENT, formatDay, formatDayInIndia } from "@/lib/format";
+import { growthLines, underwater } from "@/lib/backtestReadings";
+import { BENCHMARK, DRAWDOWN, PRICE_LINE, PRICE_WIDTH } from "@/lib/chartPalette";
+import { ABSENT, formatDay, formatDayInIndia, formatPercentTenths } from "@/lib/format";
 
 /** A year of the run, beside the breadth of the market that year. */
 type YearRow = BacktestYear & { breadth: number | null };
@@ -155,6 +157,26 @@ export function Backtest(): React.JSX.Element {
       width: PRICE_WIDTH,
     },
     { kind: "line", label: index, colour: BENCHMARK, points: lines.benchmark, width: 1 },
+    {
+      kind: "area",
+      label: "Below peak",
+      colour: DRAWDOWN,
+      pane: 1,
+      scale: "percent",
+      points: underwater(shown.equity),
+    },
+  ];
+  // The bar leads to the sections this backtest has; older ones lack some.
+  const sections: BarSection[] = [
+    ...(verdict === undefined ? [] : [{ id: "verdict", label: "Verdict" }]),
+    ...(shown.picks === null ? [] : [{ id: "picks", label: "Picks" }]),
+    { id: "growth", label: "Growth" },
+    { id: "periods", label: "Periods" },
+    ...(shown.periods.some((period) => period.detail) ? [{ id: "risk", label: "Risk" }] : []),
+    ...((shown.baskets ?? []).length > 0 ? [{ id: "baskets", label: "Baskets" }] : []),
+    { id: "years", label: "Years" },
+    { id: "rules", label: "Rules" },
+    { id: "trades", label: "Trades" },
   ];
   const whole = shown.periods.find((period) => period.name === "whole");
   const breadth = new Map((shown.market ?? []).map((year) => [year.year, year.breadth]));
@@ -169,9 +191,10 @@ export function Backtest(): React.JSX.Element {
         badges={<Badge variant="outline">against the {index}</Badge>}
       />
       <Callout tone="caution">{shown.note}</Callout>
+      <SectionBar label="Sections of this backtest" sections={sections} />
 
       {verdict !== undefined && (
-        <section aria-label="Verdict" className="space-y-3">
+        <section id="verdict" aria-label="Verdict" className="scroll-mt-28 space-y-3">
           <SectionHeader
             title={periodName(verdict)}
             description={`${formatDay(verdict.first_session)} - ${formatDay(verdict.last_session)}`}
@@ -181,7 +204,7 @@ export function Backtest(): React.JSX.Element {
       )}
 
       {shown.picks !== null && (
-        <section aria-label="Picks today" className="space-y-3">
+        <section id="picks" aria-label="Picks today" className="scroll-mt-28 space-y-3">
           <SectionHeader
             title="Picks today"
             description="The companies the strategy would hold on the last session of its history."
@@ -190,15 +213,15 @@ export function Backtest(): React.JSX.Element {
         </section>
       )}
 
-      <section aria-label="Growth" className="space-y-3">
+      <section id="growth" aria-label="Growth" className="scroll-mt-28 space-y-3">
         <SectionHeader
           title="Growth"
-          description={`The strategy against the ${index}, from its first session.`}
+          description={`The strategy against the ${index}, from its first session; underneath, how far it sat below its own peak, since how deep and how long its falls ran is the question after how much it made.`}
         />
         <Chart series={series} scale="percent" empty="No closes to draw" />
       </section>
 
-      <section aria-label="Periods" className="space-y-3">
+      <section id="periods" aria-label="Periods" className="scroll-mt-28 space-y-3">
         <SectionHeader
           title="Periods"
           description="Each run from cash. The median calendar is the strategy rebalanced on every day of its cycle; the edge is that less the median of random picks under the same rules."
@@ -207,7 +230,7 @@ export function Backtest(): React.JSX.Element {
       </section>
 
       {shown.periods.some((period) => period.detail) && (
-        <section aria-label="Risk and streaks" className="space-y-3">
+        <section id="risk" aria-label="Risk and streaks" className="scroll-mt-28 space-y-3">
           <SectionHeader
             title="Risk and streaks"
             description="How deep and how long its worst fall was, its longest runs up and down, what its trades won and lost, and how many companies it held."
@@ -217,7 +240,7 @@ export function Backtest(): React.JSX.Element {
       )}
 
       {(shown.baskets ?? []).length > 0 && (
-        <section aria-label="Basket size" className="space-y-3">
+        <section id="baskets" aria-label="Basket size" className="scroll-mt-28 space-y-3">
           <SectionHeader
             title="Basket size"
             description="The same rules holding at most 10, 20, 30, 40 or 50 companies, over the whole stretch; in- and out-of-sample are that run's two parts."
@@ -226,12 +249,26 @@ export function Backtest(): React.JSX.Element {
         </section>
       )}
 
-      <section aria-label="Years" className="space-y-3">
-        <SectionHeader title="Year by year" />
+      <section id="years" aria-label="Years" className="scroll-mt-28 space-y-3">
+        <SectionHeader
+          title="Year by year"
+          description={`Each calendar year's return against the ${index}'s.`}
+        />
+        <DivergingBars
+          label={`Each year against the ${index}`}
+          legend={{ value: "Strategy", against: index }}
+          format={formatPercentTenths}
+          // In the table's order, oldest first, so the two read alike.
+          rows={shown.years.map((year) => ({
+            label: String(year.year),
+            value: year.playbook,
+            against: year.benchmark,
+          }))}
+        />
         <DataTable columns={YEAR_COLUMNS} rows={years} label="Years" />
       </section>
 
-      <section aria-label="Rules" className="space-y-3">
+      <section id="rules" aria-label="Rules" className="scroll-mt-28 space-y-3">
         <SectionHeader title="Rules" />
         {shown.explanation && (
           <section aria-label="In plain words" className="space-y-3 rounded-lg border bg-card p-4">
@@ -247,7 +284,7 @@ export function Backtest(): React.JSX.Element {
         />
       </section>
 
-      <section aria-label="Trades" className="space-y-3">
+      <section id="trades" aria-label="Trades" className="scroll-mt-28 space-y-3">
         <SectionHeader
           title="Trades"
           description={`${String(shown.trades.length)} sales, newest first.`}

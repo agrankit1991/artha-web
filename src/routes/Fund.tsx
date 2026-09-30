@@ -34,13 +34,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useResource } from "@/hooks/useResource";
 import { DRAWDOWN, OSCILLATOR, PRICE_LINE, PRICE_WIDTH } from "@/lib/chartPalette";
+import { drawdown } from "@/lib/drawdown";
 import { MARKS } from "@/lib/entities";
 import { ABSENT, formatDay, formatPercent, formatPrice, toNumber } from "@/lib/format";
 import {
   STAKE,
   type Reading,
   calendarYears,
-  drawdown,
   extremes,
   growthOfStake,
   readings,

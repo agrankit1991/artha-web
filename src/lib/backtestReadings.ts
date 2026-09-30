@@ -10,6 +10,7 @@
 
 import type { BacktestEquityPoint } from "@/api/client";
 import type { Point } from "@/components/Chart";
+import { drawdown } from "@/lib/drawdown";
 
 /** A backtest's growth and its benchmark's, in percent from the first close. */
 export interface GrowthLines {
@@ -30,6 +31,20 @@ export function growthLines(equity: readonly BacktestEquityPoint[]): GrowthLines
       point.benchmark === null ? [] : [{ time: point.session, value: (point.benchmark - 1) * 100 }],
     ),
   };
+}
+
+/**
+ * How far the strategy sat below its own peak at every close: the underwater
+ * curve, drawn under its growth, since the depth and length of its falls are
+ * the question after how much it made.
+ *
+ * @param equity - The portfolio at every close.
+ * @returns The fall from the peak to date, in per cent, at each close.
+ */
+export function underwater(equity: readonly BacktestEquityPoint[]): Point[] {
+  return drawdown(equity.map((point) => ({ day: point.session, value: point.value }))).map(
+    (one) => ({ time: one.day, value: one.value }),
+  );
 }
 
 /** One setting of a strategy, named, and whether it is an expression. */

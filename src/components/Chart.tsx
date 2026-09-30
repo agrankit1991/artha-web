@@ -246,6 +246,11 @@ export function Chart({
         // either end to look at it.
         fixLeftEdge: false,
         fixRightEdge: false,
+        // Down from the library's half a pixel, so a long series opens
+        // whole: twenty years of closes (a backtest from 2005, a fund's
+        // Max) is over five thousand points, which at half a pixel apiece
+        // would not fit, and the chart opened on only its last few years.
+        minBarSpacing: 0.05,
       },
       // The library's own crosshair labels are a dark navy in both themes.
       crosshair: {

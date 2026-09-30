@@ -10,6 +10,7 @@
  */
 
 import type { RollingReturn, SchemeValue } from "@/api/client";
+import { drawdown } from "@/lib/drawdown";
 import { ABSENT, toNumber } from "@/lib/format";
 
 /** A value on a day, parsed. */
@@ -51,24 +52,6 @@ export function growthOfStake(held: Reading[]): Reading[] {
     return [];
   }
   return held.map((one) => ({ day: one.day, value: (one.value / first.value) * STAKE }));
-}
-
-/**
- * How far below its highest value to date each day sits, in per cent.
- *
- * Nought on a day the fund made a new high; negative between highs. The
- * deepest point is the worst a holder who bought at the wrong moment has
- * had to sit through, which is the fact a volatility figure hides.
- *
- * @param held - The readings, oldest first.
- * @returns The drawdown on each day, never above nought.
- */
-export function drawdown(held: Reading[]): Reading[] {
-  let peak = 0;
-  return held.flatMap((one) => {
-    peak = Math.max(peak, one.value);
-    return peak <= 0 ? [] : [{ day: one.day, value: ((one.value - peak) / peak) * 100 }];
-  });
 }
 
 /** The highest and lowest readings, and the deepest fall. */

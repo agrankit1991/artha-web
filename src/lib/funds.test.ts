@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   calendarYears,
-  drawdown,
   extremes,
   growthOfStake,
   readings,
@@ -34,24 +33,6 @@ describe("growthOfStake", () => {
   it("draws nothing from a first value of nought", () => {
     // No unit is worth nothing, and dividing by it makes every point infinite.
     expect(growthOfStake(readings([{ nav_date: "2026-01-01", nav: "0" }]))).toEqual([]);
-  });
-});
-
-describe("drawdown", () => {
-  it("has no peak to fall from until a value is above nought", () => {
-    const late = readings([
-      { nav_date: "2026-01-01", nav: "0" },
-      { nav_date: "2026-01-02", nav: "10" },
-    ]);
-
-    expect(drawdown(late)).toEqual([{ day: "2026-01-02", value: 0 }]);
-  });
-
-  it("is nought at a new high and the fall from the peak between highs", () => {
-    const falls = drawdown(HELD).map((one) => one.value);
-
-    expect(falls.slice(0, 3)).toEqual([0, 0, -25]);
-    expect(falls[3]).toBeCloseTo(-25 / 3, 10);
   });
 });
 

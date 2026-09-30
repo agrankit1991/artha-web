@@ -99,6 +99,13 @@ describe("Backtest", () => {
       within(verdict).getByText("Median start day +26.1% against random picks' +13.1%"),
     ).toBeInTheDocument();
     expect(fetched).toHaveBeenCalledWith("/api/backtests/7", expect.anything());
+    // A bar leads to each section it has, and the growth has its fall beneath.
+    const bar = screen.getByRole("navigation", { name: "Sections of this backtest" });
+    expect(within(bar).getByRole("link", { name: "Trades" })).toHaveAttribute("href", "#trades");
+    expect(document.getElementById("trades")).toHaveAttribute("aria-label", "Trades");
+    expect(screen.getByText("Below peak")).toBeInTheDocument();
+    const yearBars = screen.getByRole("list", { name: /^Each year against the / });
+    expect(within(yearBars).getAllByRole("listitem").length).toBeGreaterThan(0);
 
     const periods = screen.getByRole("table", { name: "Periods" });
     expect(within(periods).getByText("Whole stretch")).toBeInTheDocument();

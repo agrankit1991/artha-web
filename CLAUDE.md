@@ -470,6 +470,16 @@ fallback)`** (`src/hooks/useSearchParam.ts`): a value at its default is
   holds no saved strategies, so the page was checked there with stubbed
   data (`scratchpad` script intercepting `/api/strategies/years`), not
   against real figures.
+- **A backtest's page, navigable and drawn** (2026-09-30): a sticky bar
+  of links to its sections (`SectionBar`, plain anchors, the section in
+  view marked through `IntersectionObserver` where there is one); the
+  growth chart with the **underwater curve** as a pane beneath
+  (`underwater` in `src/lib/backtestReadings.ts`, on the same `drawdown`
+  as a fund's, now in `src/lib/drawdown.ts`); each year against the index
+  as paired bars above the year table, in its order. The one `Chart`
+  allows bars as close as 0.05 px (`minBarSpacing`): at the library's
+  0.5 px a twenty-year series (5,368 closes) could not open whole and
+  showed only its last years.
 - **Scans** (`src/routes/Scans.tsx`, reworked 2026-09-30) -- the named
   scans of `src/lib/scans.ts`, each a set of screener conditions, grouped
   by category, each card saying how many companies it finds today and

@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { growthLines, readRules } from "./backtestReadings";
+import { growthLines, readRules, underwater } from "./backtestReadings";
 
 describe("growthLines", () => {
   it("turns the equity and the benchmark into growth from the first close", () => {
@@ -91,6 +91,22 @@ describe("readRules", () => {
       "quarterly",
       "no: holdings stay until they leave by their own rules",
       "60 sessions",
+    ]);
+  });
+});
+
+describe("underwater", () => {
+  it("measures each close against the portfolio's peak to date", () => {
+    const equity = [
+      { session: "2026-01-01", value: 1, invested: 100, benchmark: 1 },
+      { session: "2026-01-02", value: 1.25, invested: 100, benchmark: 1 },
+      { session: "2026-01-05", value: 1, invested: 100, benchmark: 1 },
+    ];
+
+    expect(underwater(equity)).toEqual([
+      { time: "2026-01-01", value: 0 },
+      { time: "2026-01-02", value: 0 },
+      { time: "2026-01-05", value: -20 },
     ]);
   });
 });
