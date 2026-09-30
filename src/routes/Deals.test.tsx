@@ -30,15 +30,28 @@ function deal(overrides: Partial<Deal>): Deal {
 }
 
 describe("Deals", () => {
-  it("keeps the kind and the window in the address, and draws each day's net value", async () => {
-    // A filtered view is bookmarkable; the days' net says what the list
-    // cannot at a glance.
+  it("keeps the kind and the window in the address, and ranks where the deal money went", async () => {
+    // A filtered view is bookmarkable; the companies most bought and most
+    // sold say what the list of deals cannot at a glance.
     const fetched = stubPlatform({
       "/api/deals": {
         body: [
-          deal({ session_date: "2026-09-24", side: "BUY", value_crore: "40.00" }),
-          deal({ session_date: "2026-09-24", side: "SELL", value_crore: "10.00" }),
-          deal({ session_date: "2026-09-25", side: "SELL", value_crore: "25.50" }),
+          deal({ side: "BUY", value_crore: "40.00" }),
+          deal({ side: "SELL", value_crore: "10.00" }),
+          deal({
+            symbol: "ZETA",
+            security_name: "Zeta Limited",
+            instrument_key: "NSE_EQ|INE0ZETA001",
+            side: "SELL",
+            value_crore: "25.50",
+          }),
+          deal({
+            symbol: "UNMAPPED",
+            security_name: "Unmapped Limited",
+            instrument_key: null,
+            side: "BUY",
+            value_crore: "5.00",
+          }),
         ],
       },
     });
@@ -49,9 +62,35 @@ describe("Deals", () => {
       "/api/deals?days=7&kind=BULK",
     );
     expect(screen.getByRole("button", { name: "Bulk" })).toHaveAttribute("aria-pressed", "true");
-    const bars = screen.getByRole("img", { name: "Net value of deals by day" });
-    expect(bars).toHaveTextContent("+30.00 Cr");
-    expect(bars).toHaveTextContent("-25.50 Cr");
+    const bought = screen.getByRole("list", { name: "Companies most bought in disclosed deals" });
+    const [aastha, unmapped] = within(bought).getAllByRole("listitem");
+    expect(aastha).toHaveTextContent("Aastha Spintex Limited");
+    expect(aastha).toHaveTextContent("+30.00 Cr");
+    expect(within(aastha as HTMLElement).getByRole("link")).toHaveAttribute(
+      "href",
+      "/company/AASTHA",
+    );
+    // A symbol that maps to no listing is named, with nowhere to lead.
+    expect(within(unmapped as HTMLElement).queryByRole("link")).not.toBeInTheDocument();
+    const sold = screen.getByRole("list", { name: "Companies most sold in disclosed deals" });
+    expect(sold).toHaveTextContent("Zeta Limited");
+    expect(sold).toHaveTextContent("-25.50 Cr");
+  });
+
+  it("says when nothing was net bought, or nothing net sold", async () => {
+    stubPlatform({ "/api/deals": { body: [deal({ side: "SELL", value_crore: "3.00" })] } });
+    const { unmount } = renderPage(<Deals />);
+
+    expect(await screen.findByText("No company was net bought.")).toBeInTheDocument();
+    expect(
+      screen.getByRole("list", { name: "Companies most sold in disclosed deals" }),
+    ).toHaveTextContent("-3.00 Cr");
+    unmount();
+
+    vi.unstubAllGlobals();
+    stubPlatform({ "/api/deals": { body: [deal({ side: "BUY", value_crore: "3.00" })] } });
+    renderPage(<Deals />);
+    expect(await screen.findByText("No company was net sold.")).toBeInTheDocument();
   });
 
   it("reads a kind or window it does not know as the default", async () => {

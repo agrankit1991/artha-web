@@ -500,6 +500,28 @@ fallback)`** (`src/hooks/useSearchParam.ts`): a value at its default is
   `palette.test.ts` fails when they drift from the stylesheet. The dialog
   waits for the fonts and the logo with the month's closes before drawing:
   a card drawn in a fallback font is not drawn again.
+- **Movers rank liquid companies unless asked for all** (2026-09-30, the
+  owner: "only the companies which are liquid and has decent market cap,
+  basically which are safe to buy as retail buyer"). Liquid is at least
+  ₹1,000 crore of market value and ₹10 crore traded a session on average
+  over twenty, the owner's choice of four (966 of 4,901 companies on 25
+  Sept 2026) and the bar the scans call liquid. The platform ranks every
+  company population twice, the liquid lists being rankings of their own
+  (`MoverUniverse`, `LIQUID_CONDITIONS`, migration 0035), so they run as
+  deep and count their own runs of days; the indices, ranked against each
+  other, are not companies and are ranked once. The choice is one
+  preference (`movers`, liquid by default) behind one switch
+  (`MoverUniverseSwitch`) on the overview and the movers page, and
+  `fetchMovers` / `fetchMoverList` pass it as `universe`.
+- **Indices with no level are left out** of the indices page (the Bharat
+  Bond indices, 4 of 217 on 30 Sept 2026), with a line saying how many.
+- **Deals rank where the money went** (2026-09-30): the owner found the
+  "net value by day" bars neither useful nor readable, a day's net across
+  unrelated companies saying little. They are replaced by the companies
+  most bought and most sold in the window's disclosed deals
+  (`netByCompany`), two `DivergingBars` on one scale, each company leading
+  to its page. The description says a deal's other side is disclosed only
+  when it crosses the threshold too.
 - **Scans** (`src/routes/Scans.tsx`, reworked 2026-09-30) -- the named
   scans of `src/lib/scans.ts`, each a set of screener conditions, grouped
   by category, each card saying how many companies it finds today and
