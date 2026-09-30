@@ -614,7 +614,10 @@ fallback)`** (`src/hooks/useSearchParam.ts`): a value at its default is
 - **Profile** (`src/routes/Profile.tsx`) -- what the platform holds about
   the sign-in, light or dark, and signing out. Deliberately short: a
   profile with an invented "activity" panel is worse than one that admits
-  there is nothing to show.
+  there is nothing to show. Since 2026-09-30 who is signed in is the
+  shared `PageHeader` (name, email, role as a badge), said once; the
+  account card that repeated all three is gone. Then Appearance,
+  Preferences, the owner's invitations, and Session last.
 - **Visitors** (`src/routes/Visitors.tsx`, `/visitors`, 2026-09-29, the
   owner asked to see "how many users are accessing my website and how
   many times, and maybe which page", with names and emails) -- every
@@ -628,7 +631,10 @@ fallback)`** (`src/hooks/useSearchParam.ts`): a value at its default is
   (the owner's choice); a browser is told apart by a random identifier it
   keeps (`src/lib/visitor.ts`), and no address or device is sent. A
   failed recording is ignored. History starts on the deploy of
-  2026-09-29; last seen reaches back further, from sessions.
+  2026-09-29; last seen reaches back further, from sessions. Choosing a
+  person marks their row and narrows the totals to them under their name
+  (2026-09-30); rows stay while a choice is fetched rather than blinking
+  to placeholders.
 - **Shared components** in `src/components`: `DataTable`, `Delta`,
   `MoverPanel`, `IndexCard`, `MiniCandlestick`, `ScopeSelector`,
   `ScopePicker`, `ThemeToggle`, `Meter`, `Sparkline`,

@@ -1,26 +1,31 @@
 /**
  * The account page: who is signed in, and what they have chosen.
  *
+ * Who is signed in is the header (name, email, role), said once; an
+ * account card beside it repeated all three. Then how the site looks, the
+ * choices remembered, invitations for the owner, and signing out last.
+ *
  * Deliberately short. It shows what the platform actually knows about the
  * account and what this side of it remembers, and nothing invented to fill
  * the page -- a profile with an empty "activity" panel on it is worse than
  * one that admits there is nothing to show.
  */
 
-import { Check, Copy, LogOut, Palette, SlidersHorizontal, User, UserPlus } from "lucide-react";
+import { Check, Copy, LogOut, Palette, SlidersHorizontal, UserPlus } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import type { Account } from "@/api/client";
 import { createInvitation, fetchScopes } from "@/api/client";
 import { OVERLAYS } from "@/components/ChartControls";
 import { Chooser } from "@/components/Chooser";
+import { PageHeader } from "@/components/PageHeader";
 import { PRICE_RANGES } from "@/lib/priceRanges";
 import { ScopePicker } from "@/components/ScopePicker";
 import { useResource } from "@/hooks/useResource";
 import { resetPreferences, usePreferences, writePreferences } from "@/lib/preferences";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { initialsOf } from "@/components/UserMenu";
 import { THEME_CHOICES } from "@/components/ThemeMenu";
 import { useTheme } from "@/lib/theme";
 import { sentence } from "@/lib/format";
@@ -41,40 +46,16 @@ export function Profile({ account, onSignOut }: ProfileProps): React.JSX.Element
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <header className="flex items-center gap-4">
-        <span
-          aria-hidden="true"
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-lg font-semibold text-primary-foreground"
-        >
-          {initialsOf(account.display_name)}
-        </span>
-        <div className="min-w-0">
-          <h1 className="truncate text-xl font-semibold">{account.display_name}</h1>
-          <p className="truncate text-sm text-muted-foreground">{account.email}</p>
-        </div>
-      </header>
+      <PageHeader
+        title={account.display_name}
+        identifiers={account.email}
+        badges={<Badge variant="outline">{account.is_owner ? "Owner" : "Member"}</Badge>}
+      />
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <User className="h-4 w-4" />
-            Account
-          </CardTitle>
-          <CardDescription>What the platform holds about this sign-in.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <dl className="grid gap-4 sm:grid-cols-3">
-            <Fact label="Name" value={account.display_name} />
-            <Fact label="Email" value={account.email} />
-            <Fact label="Role" value={account.is_owner ? "Owner" : "Member"} />
-          </dl>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Palette className="h-4 w-4" />
+            <Palette aria-hidden="true" className="h-4 w-4 text-primary" />
             Appearance
           </CardTitle>
           <CardDescription>
@@ -100,32 +81,25 @@ export function Profile({ account, onSignOut }: ProfileProps): React.JSX.Element
         </CardContent>
       </Card>
 
+      <PreferencesCard />
+      {account.is_owner && <InviteCard />}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Session</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <LogOut aria-hidden="true" className="h-4 w-4 text-primary" />
+            Session
+          </CardTitle>
           <CardDescription>
             Signing out ends this session on the platform, not only in this browser.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Button variant="outline" onClick={onSignOut}>
-            <LogOut className="h-4 w-4" />
+            <LogOut aria-hidden="true" className="h-4 w-4" />
             Sign out
           </Button>
         </CardContent>
       </Card>
-      <PreferencesCard />
-      {account.is_owner && <InviteCard />}
-    </div>
-  );
-}
-
-/** One thing the platform knows, labelled. */
-function Fact({ label, value }: { label: string; value: string }): React.JSX.Element {
-  return (
-    <div className="min-w-0">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="truncate text-sm font-medium">{value}</dd>
     </div>
   );
 }
@@ -177,6 +151,7 @@ function PreferencesCard(): React.JSX.Element {
               <label key={overlay.key} className="flex items-center gap-1.5 text-sm">
                 <input
                   type="checkbox"
+                  className="h-4 w-4 accent-primary"
                   checked={preferences.overlays.includes(overlay.key)}
                   onChange={(event) => {
                     writePreferences({

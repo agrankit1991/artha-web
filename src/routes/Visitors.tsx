@@ -18,12 +18,13 @@ import { Chooser } from "@/components/Chooser";
 import { type Column, DataTable } from "@/components/DataTable";
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
-import { StatTile } from "@/components/StatTile";
+import { SectionHeader } from "@/components/SectionHeader";
+import { StatGrid, StatTile } from "@/components/StatTile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useResource } from "@/hooks/useResource";
 import { coloured } from "@/lib/chartPalette";
-import { ABSENT, formatCount, formatDay, formatSince } from "@/lib/format";
+import { ABSENT, formatCount, formatDayInIndia, formatSince } from "@/lib/format";
 
 /** The spans on offer, as the number of days the platform is asked for. */
 const SPANS = [
@@ -52,50 +53,73 @@ export function Visitors(): React.JSX.Element {
   const active = people.filter((one) => one.page_views > 0).length;
   const opened =
     people.reduce((total, one) => total + one.page_views, 0) + (anonymous?.page_views ?? 0);
+  // Placeholders only before the first answer: a choice asks again, and the
+  // rows on screen stay until the new ones arrive rather than blinking out.
+  const waiting = visitors.loading && visitors.data === null;
+  const spanWords = SPANS.find((one) => one.key === span)?.label.toLowerCase() ?? "";
 
   return (
     <div className="space-y-6">
-      <header className="space-y-3">
-        <PageHeader
-          title="Visitors"
-          description="Who uses Artha Science, how often, and which pages. Only you can see this page."
-        />
-        <Chooser
-          options={SPANS}
-          chosen={span}
-          onChange={(key) => {
-            setSpan(key);
-          }}
-          label="Span"
-        />
-      </header>
+      <PageHeader
+        title="Visitors"
+        description="Who uses Artha Science, how often, and which pages. Only you can see this page."
+        actions={
+          <Chooser
+            options={SPANS}
+            chosen={span}
+            onChange={(key) => {
+              setSpan(key);
+            }}
+            label="Span"
+          />
+        }
+      />
 
       {visitors.error !== null ? (
         <Failed message={visitors.error} />
       ) : (
         <>
-          <section className="grid gap-3 sm:grid-cols-3" aria-label="Totals">
-            <StatTile
-              label="People active"
-              value={
-                visitors.data === null ? ABSENT : `${String(active)} of ${String(people.length)}`
-              }
-              hint="Accounts that opened a page in the span."
-            />
-            <StatTile
-              label="Page views"
-              value={visitors.data === null ? ABSENT : formatCount(opened)}
-              hint="Pages opened, by anyone."
-            />
-            <StatTile
-              label="Not signed in"
-              value={anonymous === undefined ? ABSENT : formatCount(anonymous.visitors)}
-              hint={
-                anonymous === undefined
-                  ? "Browsers at the sign-in page."
-                  : `Browsers at the sign-in page, ${formatCount(anonymous.page_views)} views.`
+          <section className="space-y-3" aria-label="Totals">
+            <SectionHeader
+              title={person === null ? "Everyone" : person.name}
+              description={
+                person === null
+                  ? `Over ${spanWords}.`
+                  : `Only ${person.name}, over ${spanWords}. Choose them again for everyone.`
               }
             />
+            {person === null ? (
+              <StatGrid className="lg:grid-cols-3">
+                <StatTile
+                  label="People active"
+                  value={`${String(active)} of ${String(people.length)}`}
+                  loading={waiting}
+                  hint="Accounts that opened a page in the span."
+                />
+                <StatTile
+                  label="Page views"
+                  value={formatCount(opened)}
+                  loading={waiting}
+                  hint="Pages opened, by anyone."
+                />
+                <StatTile
+                  label="Not signed in"
+                  value={anonymous === undefined ? ABSENT : formatCount(anonymous.visitors)}
+                  loading={waiting}
+                  {...(anonymous === undefined
+                    ? {}
+                    : {
+                        hint: `Browsers at the sign-in page, ${formatCount(anonymous.page_views)} views.`,
+                      })}
+                />
+              </StatGrid>
+            ) : (
+              <StatGrid className="lg:grid-cols-3">
+                <StatTile label="Days active" value={formatCount(person.active_days)} />
+                <StatTile label="Visits" value={formatCount(person.visits)} />
+                <StatTile label="Page views" value={formatCount(person.page_views)} />
+              </StatGrid>
+            )}
           </section>
 
           <Card>
@@ -109,7 +133,8 @@ export function Visitors(): React.JSX.Element {
             <CardContent>
               <PeopleTable
                 people={people}
-                loading={visitors.loading}
+                loading={waiting}
+                chosen={person?.account_id ?? null}
                 onSelect={(chosen) => {
                   setPerson(chosen.account_id === person?.account_id ? null : chosen);
                 }}
@@ -144,7 +169,7 @@ export function Visitors(): React.JSX.Element {
               </div>
             </CardHeader>
             <CardContent>
-              <PagesTable pages={visitors.data?.pages ?? []} loading={visitors.loading} />
+              <PagesTable pages={visitors.data?.pages ?? []} loading={waiting} />
             </CardContent>
           </Card>
 
@@ -157,7 +182,7 @@ export function Visitors(): React.JSX.Element {
               </CardDescription>
             </CardHeader>
             <CardContent role="region" aria-label="Day by day">
-              <DayChart days={visitors.data?.days ?? []} loading={visitors.loading} />
+              <DayChart days={visitors.data?.days ?? []} loading={waiting} />
             </CardContent>
           </Card>
         </>
@@ -170,10 +195,13 @@ export function Visitors(): React.JSX.Element {
 function PeopleTable({
   people,
   loading,
+  chosen,
   onSelect,
 }: {
   people: PersonUse[];
   loading: boolean;
+  /** The account whose pages are shown, marked in the table; null for everyone's. */
+  chosen: number | null;
   onSelect: (person: PersonUse) => void;
 }): React.JSX.Element {
   const columns = useMemo<Column<PersonUse>[]>(
@@ -184,7 +212,7 @@ function PeopleTable({
         id: "joined_at",
         header: "Joined",
         accessorFn: (row) => row.joined_at,
-        cell: ({ row }) => formatDay(row.original.joined_at.slice(0, 10)),
+        cell: ({ row }) => formatDayInIndia(row.original.joined_at),
       },
       {
         id: "last_seen_at",
@@ -204,6 +232,7 @@ function PeopleTable({
       rows={people}
       loading={loading}
       onSelect={onSelect}
+      selected={(row) => row.account_id === chosen}
       empty="No accounts yet"
       label="People"
     />

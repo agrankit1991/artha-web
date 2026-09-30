@@ -114,6 +114,15 @@ describe("Visitors", () => {
     await waitFor(() => {
       expect(asked(fetchMock)).toContain("/api/visitors?days=30&account_id=2");
     });
+    // Their row is marked, and the totals narrow to them under their name.
+    expect(within(people).getByText("A Member").closest("tr")).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+    const totals = screen.getByRole("region", { name: "Totals" });
+    expect(within(totals).getByRole("heading", { name: "A Member" })).toBeInTheDocument();
+    expect(within(totals).getByText("Days active")).toBeInTheDocument();
+    expect(within(totals).queryByText("Not signed in")).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Everyone's pages" }));
 
