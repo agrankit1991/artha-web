@@ -298,4 +298,26 @@ describe("Fund", () => {
     // jsdom has no canvas: the card says so rather than failing quietly.
     expect(await within(dialog).findByText(/cannot draw the card/)).toBeInTheDocument();
   });
+
+  it("says when the value changed scale inside the window drawn, and only then", async () => {
+    // A 1:10 split would draw as a fall of ninety per cent; the platform
+    // redraws the earlier values in today's unit, and the page says so.
+    stubPlatform({
+      "/api/funds/120503": {
+        body: fund({
+          rescales: [
+            { nav_date: "2020-01-10", factor: "10" },
+            { nav_date: "2026-09-17", factor: "0.1" },
+          ],
+        }),
+      },
+    });
+
+    renderPage(<Fund schemeCode="120503" />);
+
+    const note = await screen.findByText(/changed scale on/);
+    expect(note).toHaveTextContent(/17 Sept? 2026/);
+    expect(note).not.toHaveTextContent("2020");
+    expect(note).toHaveTextContent(/not a gain or a loss/);
+  });
 });

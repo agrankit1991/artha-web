@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Funds } from "./Funds";
-import { fundScheme, renderPage, schemePage, stubPlatform } from "@/test/support";
+import { fundGroups, fundScheme, renderPage, schemePage, stubPlatform } from "@/test/support";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -16,6 +16,7 @@ function stubEverything(replies: Parameters<typeof stubPlatform>[0] = {}) {
     "/api/funds/filters": {
       body: { categories: ["Equity Scheme - Large Cap"], fund_houses: ["Axis Mutual Fund"] },
     },
+    "/api/funds/groups": { body: fundGroups() },
     "/api/funds": { body: schemePage() },
     ...replies,
   });
@@ -189,6 +190,7 @@ describe("Funds", () => {
   it("reports a failure rather than showing an empty page", async () => {
     stubPlatform({
       "/api/funds/filters": { body: { categories: [], fund_houses: [] } },
+      "/api/funds/groups": { body: fundGroups() },
       "/api/funds": { status: 500, body: { detail: "the values are being rebuilt" } },
     });
 
@@ -226,12 +228,12 @@ describe("Funds", () => {
     });
   });
 
-  it("counts every scheme that matches, not the batch on screen", async () => {
+  it("counts every fund that matches, not the batch on screen", async () => {
     stubEverything({ "/api/funds": { body: schemePage({ total: 1284 }) } });
 
     renderPage(<Funds />);
 
-    expect(await screen.findByText("1,284 schemes")).toBeInTheDocument();
+    expect(await screen.findByText("1,284 funds")).toBeInTheDocument();
   });
 
   it("carries what each scheme has returned, coloured and sortable", async () => {
@@ -255,8 +257,9 @@ describe("Funds", () => {
     renderPage(<Funds />);
     const table = await screen.findByRole("table", { name: "Schemes" });
 
-    expect(within(table).getByText("+12.30%")).toHaveClass("text-gain");
-    expect(within(table).getByText("-3.00%")).toHaveClass("text-loss");
+    // Tinted as the heatmap tints a move; without a stylesheet the colour is mixed in it.
+    expect(within(table).getByText("+12.30%").style.backgroundColor).toContain("var(--heat-gain)");
+    expect(within(table).getByText("-3.00%").style.backgroundColor).toContain("var(--heat-loss)");
     expect(within(table).getByRole("button", { name: /3Y p.a./ })).toBeInTheDocument();
   });
 
@@ -318,7 +321,7 @@ describe("Funds", () => {
     expect(within(table).queryByRole("button", { name: /^Category/ })).not.toBeInTheDocument();
   });
 
-  it("names the plan plainly and explains what it costs", async () => {
+  it("names the plan plainly when every plan is listed, and explains what it costs", async () => {
     stubEverything({
       "/api/funds": {
         body: schemePage({
@@ -326,7 +329,7 @@ describe("Funds", () => {
         }),
       },
     });
-    renderPage(<Funds />);
+    renderPage(<Funds />, { at: "/funds?plans=all" });
     const table = await screen.findByRole("table", { name: "Schemes" });
 
     expect(within(table).getByText("Direct")).toBeInTheDocument();
@@ -346,5 +349,166 @@ describe("Funds", () => {
 
     expect(within(table).getByText("Large Cap Fund")).toBeInTheDocument();
     expect(within(table).queryByText(/Open Ended Schemes/)).not.toBeInTheDocument();
+  });
+
+  it("opens on the funds still publishing, one plan each, best over three years first", async () => {
+    const fetchMock = stubEverything();
+
+    renderPage(<Funds />);
+
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      expect(
+        asked.some(
+          (path) =>
+            path.startsWith("/api/funds?") &&
+            path.includes("live=true") &&
+            path.includes("one_per_fund=true") &&
+            path.includes("sort=three_years") &&
+            path.includes("order=desc"),
+        ),
+      ).toBe(true);
+      expect(asked).toContain("/api/funds/groups?live=true&one_per_fund=true");
+    });
+    const table = await screen.findByRole("table", { name: "Schemes" });
+    expect(within(table).getByRole("columnheader", { name: /3Y p.a./ })).toHaveAttribute(
+      "aria-sort",
+      "descending",
+    );
+  });
+
+  it("widens to every plan and the closed schemes when asked", async () => {
+    const fetchMock = stubEverything({ "/api/funds": { body: schemePage({ total: 20393 }) } });
+    renderPage(<Funds />);
+    await screen.findByText("20,393 funds");
+
+    await userEvent.click(screen.getByRole("button", { name: "Every plan" }));
+
+    expect(await screen.findByText("20,393 schemes")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Closed too" }));
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      expect(asked).toContain("/api/funds/groups");
+      expect(
+        asked.some(
+          (path) =>
+            path.startsWith("/api/funds?") &&
+            !path.includes("live=") &&
+            !path.includes("one_per_fund="),
+        ),
+      ).toBe(true);
+    });
+  });
+
+  it("shows each group's middle fund, and narrows to a group when it is chosen", async () => {
+    const fetchMock = stubEverything({
+      "/api/funds": {
+        bodyFor: (path: string) =>
+          schemePage({
+            items: [
+              fundScheme({
+                name: path.includes("limit=10") ? "Leading Mid Cap Fund" : "Listed Mid Cap Fund",
+                returns: { ...fundScheme().returns, three_years: "31.40" },
+              }),
+            ],
+          }),
+      },
+    });
+    renderPage(<Funds />, { at: "/funds?category=Equity%20Scheme%20-%20Large%20Cap" });
+    const tiles = await screen.findByRole("group", { name: "Groups of funds" });
+    const midCap = within(tiles).getByRole("button", { name: /Mid cap/ });
+    expect(midCap).toHaveTextContent("20 funds");
+    expect(midCap).toHaveTextContent("+22.10%");
+    // No gold fund among those shown: nothing to narrow to.
+    expect(within(tiles).getByRole("button", { name: /Gold/ })).toBeDisabled();
+
+    await userEvent.click(midCap);
+
+    expect(midCap).toHaveAttribute("aria-pressed", "true");
+    expect(await screen.findByText("Mid cap: best over three years")).toBeInTheDocument();
+    const leaders = await screen.findByRole("list", {
+      name: /Mid cap funds, best over three years/,
+    });
+    expect(within(leaders).getByRole("link", { name: "Leading Mid Cap Fund" })).toHaveAttribute(
+      "href",
+      "/fund/120503",
+    );
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      // The group replaces the category chosen before it.
+      expect(
+        asked.some(
+          (path) =>
+            path.startsWith("/api/funds?") &&
+            path.includes("group=mid_cap") &&
+            !path.includes("category="),
+        ),
+      ).toBe(true);
+    });
+
+    await userEvent.click(midCap);
+
+    expect(midCap).toHaveAttribute("aria-pressed", "false");
+    expect(screen.queryByText("Mid cap: best over three years")).not.toBeInTheDocument();
+  });
+
+  it("clears the group when a category is chosen instead", async () => {
+    const fetchMock = stubEverything();
+    renderPage(<Funds />, { at: "/funds?group=mid_cap" });
+    await screen.findByText("Mid cap: best over three years");
+
+    await userEvent.click(screen.getByLabelText("Category"));
+    await userEvent.click(await screen.findByRole("option", { name: /Large Cap/ }));
+
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      expect(
+        asked.some(
+          (path) =>
+            path.startsWith("/api/funds?") &&
+            path.includes("category=Equity") &&
+            !path.includes("group="),
+        ),
+      ).toBe(true);
+    });
+    expect(screen.queryByText("Mid cap: best over three years")).not.toBeInTheDocument();
+  });
+
+  it("ignores a group the address names that does not exist", async () => {
+    const fetchMock = stubEverything();
+
+    renderPage(<Funds />, { at: "/funds?group=crypto" });
+
+    await screen.findByRole("table", { name: "Schemes" });
+    const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+    expect(asked.some((path) => path.includes("group="))).toBe(false);
+  });
+
+  it("reports the groups or the leaders failing without losing the list", async () => {
+    stubEverything({
+      "/api/funds/groups": { status: 500, body: { detail: "the groups are being counted" } },
+      "/api/funds": {
+        statusFor: (path: string) => (path.includes("limit=10") ? 500 : 200),
+        bodyFor: (path: string) =>
+          path.includes("limit=10") ? { detail: "the leaders are being ranked" } : schemePage(),
+      },
+    });
+
+    renderPage(<Funds />, { at: "/funds?group=mid_cap" });
+
+    expect(await screen.findByText("The groups are being counted")).toBeInTheDocument();
+    expect(await screen.findByText("The leaders are being ranked")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Axis Bluechip Fund - Direct Plan - Growth"),
+    ).toBeInTheDocument();
+  });
+
+  it("leaves the plan out when each fund is listed once, the page having said which", async () => {
+    stubEverything();
+    renderPage(<Funds />);
+    const table = await screen.findByRole("table", { name: "Schemes" });
+
+    expect(within(table).queryByRole("columnheader", { name: "Plan" })).not.toBeInTheDocument();
+    expect(screen.getByText(/one plan per fund: the direct plan with growth/)).toBeInTheDocument();
   });
 });

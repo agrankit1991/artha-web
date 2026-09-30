@@ -9,7 +9,7 @@
  * the comparison chart already does here.
  */
 
-import type { RollingReturn, SchemeValue } from "@/api/client";
+import type { FundGroup, RollingReturn, SchemeValue } from "@/api/client";
 import { drawdown } from "@/lib/drawdown";
 import { ABSENT, toNumber } from "@/lib/format";
 
@@ -205,10 +205,14 @@ export function shortCategory(category: string | null): string {
   if (category === null) {
     return ABSENT;
   }
-  const inner = /\(([^)]*)\)/.exec(category)?.[1] ?? category;
+  // To the last bracket, not the first: "(Exchange Traded Funds (ETFs) -
+  // Equity ETF)" holds a bracket of its own, and stopping at it wrote
+  // "Exchange Traded Funds (ETFs".
+  const inner = /\((.*)\)/.exec(category)?.[1] ?? category;
   return inner
     .slice(inner.lastIndexOf(" - ") + 1)
     .replace(/^- /, "")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -220,4 +224,34 @@ export function shortCategory(category: string | null): string {
  */
 export function shortOption(option: string): string {
   return option.replace(/\s*option\s*$/i, "").trim();
+}
+
+/**
+ * What each group of funds is called, in the platform's order. The groups
+ * themselves, and which AMFI categories fall in each, are the platform's
+ * (`artha.domain.fund_category`); only the words are decided here.
+ */
+export const FUND_GROUPS: Record<FundGroup, string> = {
+  large_cap: "Large cap",
+  large_and_mid_cap: "Large & mid cap",
+  mid_cap: "Mid cap",
+  small_cap: "Small cap",
+  flexi_cap: "Flexi cap",
+  elss: "Tax saving (ELSS)",
+  sectoral: "Sectoral & thematic",
+  index: "Index funds & ETFs",
+  debt: "Debt",
+  hybrid: "Hybrid",
+  gold: "Gold",
+  international: "International",
+};
+
+/**
+ * Whether a value names one of the groups.
+ *
+ * @param value - A value from the address.
+ * @returns True for a group's key.
+ */
+export function isFundGroup(value: string): value is FundGroup {
+  return Object.hasOwn(FUND_GROUPS, value);
 }

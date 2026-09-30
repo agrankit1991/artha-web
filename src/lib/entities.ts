@@ -38,6 +38,7 @@ import {
   Rocket,
   Scaling,
   ScanSearch,
+  Shapes,
   SlidersHorizontal,
   Star,
   Table2,
@@ -91,6 +92,8 @@ export const MARKS = {
   heatmap: LayoutGrid,
   // Who owns it: shareholding.
   holders: ChartPie,
+  // The kinds of fund a buyer picks by: large cap, debt, gold.
+  kinds: Shapes,
   // How fast a price is moving: RSI, MACD, a momentum score.
   momentum: Gauge,
   // Its own icon: it used to share breadth's, and two neighbours in the

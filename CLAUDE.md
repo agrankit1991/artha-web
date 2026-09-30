@@ -580,7 +580,26 @@ fallback)`** (`src/hooks/useSearchParam.ts`): a value at its default is
   Load more, since the listed ones alone were 136 cards; the table is
   whole.
 - **Mutual funds** (`src/routes/Funds.tsx`, `src/routes/Fund.tsx`,
-  reworked 2026-09-30): the list keeps its search, fund house, category
+  reworked 2026-09-30, and again the same day after the owner found the
+  list "very basic"): the list opens on the funds still publishing (a
+  value within 30 days of the newest; 11,627 of 20,393 schemes had
+  stopped), one scheme per fund (its direct growth plan, or its
+  best-valued growth option where AMFI names no plan, as for ETFs; 2,070
+  funds on the laptop), best over three years first
+  (`useSortParams(fallback)`); "Every plan" and "Closed too" widen it
+  (`?plans=all`, `?schemes=closed`). Above it, twelve groups a buyer picks
+  by (`FundGroupTiles`, `GET /api/funds/groups`: count and median 1Y and
+  3Y over the same schemes, so a tile's count is the list's total), the
+  grouping of AMFI's categories being the platform's (`FUND_GROUPS` holds
+  only the words); a chosen group (`?group=`) narrows the list and draws
+  its ten best over three years as bars. A group and a category clear each
+  other in one change (`useSearchParamsWriter`, since two
+  `useSearchParam` setters do not compose). Returns are heat-tinted
+  (`HeatCell`, `HEAT_REACH.yearly_rate` for 3Y and 5Y p.a.). **Unit
+  splits** (an ETF's 1:10, a new face value) read as -90% or +900% until
+  the platform's `nav_rescales` (migration 0036) measured every return and
+  chart in the latest value's unit; a fund's page says when one falls in
+  the window drawn. The list keeps its search, fund house, category
   and sort in the address (`?q=`, `?house=`, `?category=`, `?sort=`),
   counts every match in its header, and shows a failure under the search
   rather than instead of the page. The plan is said one way on both pages

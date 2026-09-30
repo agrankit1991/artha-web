@@ -39,6 +39,8 @@ export const HEAT_REACH = {
   six_months: 30,
   year_to_date: 30,
   one_year: 50,
+  /** A yearly rate over several years, as a fund's three- and five-year returns are. */
+  yearly_rate: 25,
 } as const;
 
 /** A colour's red, green and blue, each 0 to 255. */

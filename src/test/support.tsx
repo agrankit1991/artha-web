@@ -35,6 +35,8 @@ import type {
   Earnings,
   EarningsPeriod,
   Fund as FundResponse,
+  FundGroup,
+  FundGroupStanding,
   FutureContract,
   GrowthFigure,
   HeatmapTile,
@@ -651,6 +653,33 @@ export function schemePage(overrides: Partial<SchemePage> = {}): SchemePage {
   };
 }
 
+/**
+ * Every group of funds, as the platform orders them: mid caps at a 22.10%
+ * yearly rate over three years, and no gold fund among those shown.
+ */
+export function fundGroups(): FundGroupStanding[] {
+  const groups: FundGroup[] = [
+    "large_cap",
+    "large_and_mid_cap",
+    "mid_cap",
+    "small_cap",
+    "flexi_cap",
+    "elss",
+    "sectoral",
+    "index",
+    "debt",
+    "hybrid",
+    "gold",
+    "international",
+  ];
+  return groups.map((group) => ({
+    group,
+    funds: group === "gold" ? 0 : 20,
+    one_year: group === "gold" ? null : group === "mid_cap" ? "8.50" : "5.00",
+    three_years: group === "gold" ? null : group === "mid_cap" ? "22.10" : "12.00",
+  }));
+}
+
 /** Build one scheme's record and values. */
 export function fund(overrides: Partial<FundResponse> = {}): FundResponse {
   return {
@@ -672,6 +701,7 @@ export function fund(overrides: Partial<FundResponse> = {}): FundResponse {
       { nav_date: "2026-09-17", percent: "11.90" },
       { nav_date: "2026-09-18", percent: "12.30" },
     ],
+    rescales: [],
     ...overrides,
   };
 }

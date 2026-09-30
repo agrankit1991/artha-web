@@ -95,6 +95,15 @@ describe("labels", () => {
     );
     expect(shortCategory("Close Ended Schemes ( Income )")).toBe("Income");
     expect(shortCategory("Debt")).toBe("Debt");
+    expect(shortCategory("Open Ended Schemes(Exchange Traded Funds (ETFs) - Equity ETF)")).toBe(
+      "Equity ETF",
+    );
+    expect(
+      shortCategory(
+        "Open Ended Schemes(Fund of Funds Scheme (Domestic) - Fund of Funds Scheme (Domestic))",
+      ),
+    ).toBe("Fund of Funds Scheme (Domestic)");
+    expect(shortCategory("Open Ended Schemes(Other Scheme - Other  ETFs)")).toBe("Other ETFs");
     expect(shortCategory(null)).toBe("-");
   });
 

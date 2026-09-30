@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 
 import { renderPage } from "@/test/support";
 
-import { useSearchParam } from "./useSearchParam";
+import { useSearchParam, useSearchParamsWriter } from "./useSearchParam";
 
 /** Two filters and the address they write. */
 function Filters(): React.JSX.Element {
@@ -61,4 +61,31 @@ describe("useSearchParam", () => {
 
     expect(screen.getByLabelText("Address")).toHaveTextContent("?q=tata");
   });
+
+  it("writes several parameters in one change, where two setters would not compose", async () => {
+    renderPage(<Chooser />, { at: "/funds?category=Liquid&q=tata" });
+
+    await userEvent.click(screen.getByRole("button", { name: "Mid caps" }));
+
+    expect(screen.getByLabelText("Address")).toHaveTextContent("?q=tata&group=mid_cap");
+  });
 });
+
+/** A choice that sets one parameter and clears another. */
+function Chooser(): React.JSX.Element {
+  const write = useSearchParamsWriter();
+  const { search } = useLocation();
+  return (
+    <div>
+      <output aria-label="Address">{search}</output>
+      <button
+        type="button"
+        onClick={() => {
+          write({ group: "mid_cap", category: null });
+        }}
+      >
+        Mid caps
+      </button>
+    </div>
+  );
+}

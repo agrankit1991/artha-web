@@ -13,6 +13,7 @@ import {
   moversResponse,
   company,
   fund,
+  fundGroups,
   newsPage,
   offering,
   schemePage,
@@ -373,6 +374,7 @@ describe("App", () => {
       ...DATA,
       "/api/ipos": { body: [offering()] },
       "/api/funds/filters": { body: { categories: [], fund_houses: [] } },
+      "/api/funds/groups": { body: fundGroups() },
       "/api/funds": { body: schemePage() },
     });
     render(<App />);
@@ -391,6 +393,7 @@ describe("App", () => {
       ...DATA,
       "/api/ipos": { body: [] },
       "/api/funds/filters": { body: { categories: [], fund_houses: [] } },
+      "/api/funds/groups": { body: fundGroups() },
       "/api/funds/120503": { body: fund() },
       "/api/funds": { body: schemePage() },
     });

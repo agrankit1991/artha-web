@@ -42,3 +42,31 @@ export function useSearchParam(name: string, fallback = ""): [string, (value: st
   );
   return [params.get(name) ?? fallback, set];
 }
+
+/**
+ * Write several parameters of the address in one change.
+ *
+ * Two `useSearchParam` setters in one event do not compose, so a choice
+ * that changes two -- choosing a group of funds clears the category chosen
+ * before it -- writes them here, together.
+ *
+ * @returns A setter taking each parameter's new value, null removing it.
+ *   Like the others it replaces the history entry, and it is not stable.
+ */
+export function useSearchParamsWriter(): (changes: Record<string, string | null>) => void {
+  const [params, setParams] = useSearchParams();
+  return useCallback(
+    (changes: Record<string, string | null>) => {
+      const next = new URLSearchParams(params);
+      for (const [name, value] of Object.entries(changes)) {
+        if (value === null) {
+          next.delete(name);
+        } else {
+          next.set(name, value);
+        }
+      }
+      setParams(next, { replace: true });
+    },
+    [params, setParams],
+  );
+}

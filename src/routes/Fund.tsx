@@ -15,8 +15,9 @@
 
 import { useCallback, useMemo, useState } from "react";
 
-import type { RollingReturn, Scheme } from "@/api/client";
+import type { NavRescale, RollingReturn, Scheme } from "@/api/client";
 import { fetchFund, fetchFunds } from "@/api/client";
+import { Callout } from "@/components/Callout";
 import { Chart, type Series } from "@/components/Chart";
 import { Chooser } from "@/components/Chooser";
 import { type Column, DataTable } from "@/components/DataTable";
@@ -129,6 +130,7 @@ export function Fund({ schemeCode }: FundProps): React.JSX.Element {
   const range = useMemo(() => extremes(held), [held]);
   const rolled = useMemo(() => summariseRolling(fund.data?.rolling ?? []), [fund.data]);
   const years = useMemo(() => calendarYears(held), [held]);
+  const rescaled = useMemo(() => rescalesDrawn(fund.data?.rescales ?? [], held), [fund.data, held]);
 
   if (fund.error !== null) {
     return <Failed message={fund.error} />;
@@ -204,6 +206,14 @@ export function Fund({ schemeCode }: FundProps): React.JSX.Element {
             empty="No values published for this scheme"
           />
         </Tabs>
+        {rescaled.length > 0 && (
+          <Callout tone="info">
+            The value per unit changed scale on{" "}
+            {rescaled.map((one) => formatDay(one.nav_date)).join(", ")} (a unit split or a new face
+            value, not a gain or a loss). Values before it are drawn in today&apos;s unit, as the
+            returns are measured, so they differ from what AMFI published then.
+          </Callout>
+        )}
       </section>
 
       {range !== null && (
@@ -512,4 +522,17 @@ function returnColumn(field: keyof Scheme["returns"], header: string): Column<Sc
       ),
     meta: { align: "right" },
   };
+}
+
+/**
+ * The rescales that fall inside the window drawn, which the chart's
+ * earlier values were redrawn across.
+ *
+ * @param rescales - Every day the scheme's value changed unit.
+ * @param held - The values drawn, oldest first.
+ * @returns Those after the first value drawn, oldest first.
+ */
+function rescalesDrawn(rescales: NavRescale[], held: Reading[]): NavRescale[] {
+  const first = held[0];
+  return first === undefined ? [] : rescales.filter((one) => one.nav_date > first.day);
 }

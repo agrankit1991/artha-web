@@ -1256,24 +1256,70 @@ export interface RollingReturn {
   percent: string;
 }
 
-/** One scheme, its record, and its published values. */
+/**
+ * A day a scheme's value per unit changed by a power of ten: a unit split,
+ * a new face value, or a value published at the wrong scale. Values before
+ * it are drawn in today's unit, so a split is not a fall.
+ */
+export interface NavRescale {
+  /** The first value in the new unit. */
+  nav_date: string;
+  /** What the value was multiplied by: "0.1" for a 1:10 split. */
+  factor: string;
+}
+
+/** One scheme, its record, and its values. */
 export interface Fund {
   scheme: Scheme;
   returns: SchemeReturns;
+  /** Each in the latest value's unit: as published unless a rescale came after it. */
   values: SchemeValue[];
   /** The one-year return on every day in the window it can be measured. */
   rolling: RollingReturn[];
+  /** Every day its value changed unit, oldest first; none for almost every scheme. */
+  rescales: NavRescale[];
 }
 
-/** Which schemes a reader is asking for. */
 /** What the scheme list can be ordered by, across every scheme, on the platform. */
 export type FundSort =
   "name" | "nav" | "one_month" | "three_months" | "one_year" | "three_years" | "five_years";
 
+/** A kind of fund a buyer asks for, gathered by the platform from AMFI's categories. */
+export type FundGroup =
+  | "large_cap"
+  | "large_and_mid_cap"
+  | "mid_cap"
+  | "small_cap"
+  | "flexi_cap"
+  | "elss"
+  | "sectoral"
+  | "index"
+  | "debt"
+  | "hybrid"
+  | "gold"
+  | "international";
+
+/** How one group of funds has done, in the middle. */
+export interface FundGroupStanding {
+  group: FundGroup;
+  /** How many of its schemes are counted. */
+  funds: number;
+  /** The median one-year return of those with one. */
+  one_year: string | null;
+  /** The median three-year yearly rate of those with one. */
+  three_years: string | null;
+}
+
+/** Which schemes a reader is asking for. */
 export interface FundQuery {
   text?: string | null;
   category?: string | null;
+  group?: FundGroup | null;
   amc?: string | null;
+  /** Only schemes still publishing. */
+  live?: boolean;
+  /** Only each fund's direct growth plan, and schemes that name no plan. */
+  onePerFund?: boolean;
   sort?: FundSort | null;
   descending?: boolean;
   limit?: number;
@@ -1312,8 +1358,17 @@ export function fetchFunds(query: FundQuery = {}): Promise<SchemePage> {
   if (query.category) {
     parameters.set("category", query.category);
   }
+  if (query.group) {
+    parameters.set("group", query.group);
+  }
   if (query.amc) {
     parameters.set("amc", query.amc);
+  }
+  if (query.live === true) {
+    parameters.set("live", "true");
+  }
+  if (query.onePerFund === true) {
+    parameters.set("one_per_fund", "true");
   }
   if (query.sort) {
     parameters.set("sort", query.sort);
@@ -1329,6 +1384,25 @@ export function fetchFunds(query: FundQuery = {}): Promise<SchemePage> {
  */
 export function fetchFundFilters(): Promise<SchemeFilters> {
   return request<SchemeFilters>("/api/funds/filters");
+}
+
+/**
+ * Fetch how each group of funds has done, over the schemes the list shows.
+ *
+ * @param live - Only schemes still publishing.
+ * @param onePerFund - Only each fund's direct growth plan, and schemes that name no plan.
+ * @returns Every group, in the platform's order, with its count and median returns.
+ */
+export function fetchFundGroups(live: boolean, onePerFund: boolean): Promise<FundGroupStanding[]> {
+  const parameters = new URLSearchParams();
+  if (live) {
+    parameters.set("live", "true");
+  }
+  if (onePerFund) {
+    parameters.set("one_per_fund", "true");
+  }
+  const query = parameters.toString();
+  return request<FundGroupStanding[]>(`/api/funds/groups${query === "" ? "" : `?${query}`}`);
 }
 
 /**
