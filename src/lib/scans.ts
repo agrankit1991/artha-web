@@ -465,11 +465,15 @@ export const SCANS: readonly Scan[] = [
   },
   {
     key: "long-uptrend",
-    label: "A year above the 200-day",
+    label: "200 sessions above the 200-day",
     category: "Trend",
-    description: "Above its 200-day average for 250 sessions running, profitable, ₹10 Cr traded.",
+    description:
+      "Above its 200-day average for 200 sessions running, about ten months, profitable, ₹10 Cr traded.",
+    // Not a year: the platform summarises about 410 sessions of history, and
+    // the average needs 200 of them before it exists, so no run it reports
+    // passes about 210. Asked for 250, this scan could never find anything.
     conditions: [
-      { field: "sessions_above_sma_200", operator: "gte", value: "250" },
+      { field: "sessions_above_sma_200", operator: "gte", value: "200" },
       { field: "profit_ttm", operator: "gt", value: "0" },
       { field: "traded_value", operator: "gte", value: "10" },
     ],

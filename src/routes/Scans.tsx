@@ -26,8 +26,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useResource } from "@/hooks/useResource";
 import { formatCount } from "@/lib/format";
+import { type Icon, MARKS } from "@/lib/entities";
 import { PATHS } from "@/lib/paths";
 import { SCANS, SCAN_CATEGORIES, type Scan, type ScanCategory, scanPath } from "@/lib/scans";
+
+/** Each category's icon, from the one vocabulary. */
+const MARK: Record<ScanCategory, Icon> = {
+  Strategies: MARKS.strategies,
+  Fundamentals: MARKS.financials,
+  Size: MARKS.size,
+  Price: MARKS.price,
+  Trend: MARKS.trend,
+  Momentum: MARKS.momentum,
+  Volume: MARKS.volume,
+  Volatility: MARKS.volatility,
+};
 
 /** What a category is about, said under its name where it needs saying. */
 const ABOUT: Partial<Record<ScanCategory, React.ReactNode>> = {
@@ -72,6 +85,7 @@ export function Scans(): React.JSX.Element {
         <section key={category} className="space-y-3" aria-label={category}>
           <SectionHeader
             title={category}
+            icon={MARK[category]}
             {...(ABOUT[category] === undefined ? {} : { description: ABOUT[category] })}
           />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

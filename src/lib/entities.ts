@@ -15,11 +15,14 @@ import {
   ChartCandlestick,
   ChartColumn,
   ChartLine,
+  ChartNoAxesColumn,
   ChartPie,
+  ChartSpline,
   ExternalLink,
   Eye,
   FileText,
   FlaskConical,
+  Gauge,
   GitCompareArrows,
   Globe,
   Handshake,
@@ -33,6 +36,7 @@ import {
   PiggyBank,
   ReceiptIndianRupee,
   Rocket,
+  Scaling,
   ScanSearch,
   SlidersHorizontal,
   Star,
@@ -41,6 +45,7 @@ import {
   User,
   Users,
   Workflow,
+  Zap,
 } from "lucide-react";
 
 /** The kinds of thing this platform has pages about. */
@@ -86,6 +91,8 @@ export const MARKS = {
   heatmap: LayoutGrid,
   // Who owns it: shareholding.
   holders: ChartPie,
+  // How fast a price is moving: RSI, MACD, a momentum score.
+  momentum: Gauge,
   // Its own icon: it used to share breadth's, and two neighbours in the
   // sidebar looked alike.
   movers: TrendingUp,
@@ -100,6 +107,14 @@ export const MARKS = {
   returns: Percent,
   scans: ScanSearch,
   screen: SlidersHorizontal,
+  // A company's size: its market capitalisation and rank by it.
+  size: Scaling,
+  // A price against its moving averages.
+  trend: ChartSpline,
   visitors: Eye,
+  // How widely a price swings: a gap, a day's range.
+  volatility: Zap,
+  // How much changed hands.
+  volume: ChartNoAxesColumn,
   watchlist: Star,
 } as const satisfies Record<string, Icon>;
