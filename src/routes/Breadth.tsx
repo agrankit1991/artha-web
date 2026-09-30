@@ -85,7 +85,7 @@ export function Breadth(): React.JSX.Element {
   // indices until they choose. Its own span rather than the page's window,
   // so twenty years here does not load twenty years into the table below.
   const [measure, setMeasure] = useState<BreadthMeasure>("above_sma_50");
-  const [span, setSpan] = useState(HEATMAP_SESSIONS);
+  const [span, setSpan] = useState(PARTICIPATION_DEFAULT);
   const { participation: chosen } = usePreferences();
   const populations = useMemo(
     () => chosen ?? headlinePopulations(scopes.data),
@@ -212,7 +212,7 @@ export function Breadth(): React.JSX.Element {
               rows={rows}
               measureLabel={MEASURES.find((one) => one.key === measure)?.label ?? ""}
               loading={participation.loading || awaitingHeadlines}
-              yearly={span > HEATMAP_SESSIONS}
+              yearly={span > UNDATED_SPAN}
             />
           )}
           <ParticipationPopulations
@@ -405,8 +405,15 @@ function percent(value: string | null): string {
   return parsed === null ? ABSENT : `${parsed.toFixed(1)}%`;
 }
 
-/** How many sessions the heatmap spans until a longer span is chosen: about ten weeks, as StockEdge's does. */
-const HEATMAP_SESSIONS = 50;
+/**
+ * How many sessions the heatmap spans until another span is chosen: a
+ * year, the owner's choice (2026-09-30), where it was ten weeks as
+ * StockEdge's is. The grid opens scrolled to the newest session.
+ */
+const PARTICIPATION_DEFAULT = 250;
+
+/** The longest span whose dates are written without their year: ten weeks. */
+const UNDATED_SPAN = 50;
 
 /** The averages the heatmap can measure against. */
 const MEASURES: readonly { key: BreadthMeasure; label: string }[] = [

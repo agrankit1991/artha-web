@@ -17,6 +17,19 @@ describe("BreadthGridPanel", () => {
     expect(screen.getByText("Risk-off")).toBeInTheDocument();
   });
 
+  it("draws the long, middle and short shares alike, as meters", () => {
+    render(<BreadthGridPanel scopes={[scopeBreadth()]} />);
+
+    for (const sessions of [200, 50, 20]) {
+      expect(
+        screen.getByRole("meter", { name: `IT - Software above their ${String(sessions)}-day` }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: new RegExp(`^Above ${String(sessions)}-day`) }),
+      ).toBeInTheDocument();
+    }
+  });
+
   it("says which way a population turned, in points rather than per cent", () => {
     // A sector going from 50% to 60% has gained ten points and twenty per
     // cent, and saying the wrong one makes the column ambiguous.

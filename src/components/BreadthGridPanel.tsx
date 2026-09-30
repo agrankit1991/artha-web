@@ -70,25 +70,9 @@ export function BreadthGridPanel({
         // offer a second control that does the same thing.
         enableSorting: false,
       },
-      {
-        id: "above_sma_200",
-        header: "Above 200-day",
-        accessorFn: (row) => toNumber(row.above_sma_200) ?? 0,
-        cell: ({ row }) => (
-          <Meter
-            label={`${label(row.original.scope_key)} above their 200-day`}
-            percent={toNumber(row.original.above_sma_200)}
-            className="min-w-32"
-          />
-        ),
-      },
-      {
-        id: "above_sma_50",
-        header: "Above 50-day",
-        accessorFn: (row) => toNumber(row.above_sma_50) ?? 0,
-        cell: ({ row }) => percent(row.original.above_sma_50),
-        meta: { align: "right" },
-      },
+      share("above_sma_200", 200, (row) => row.above_sma_200),
+      share("above_sma_50", 50, (row) => row.above_sma_50),
+      share("above_sma_20", 20, (row) => row.above_sma_20),
       {
         id: "rotation",
         header: comparedWith ? `Since ${formatDay(comparedWith)}` : "Change",
@@ -178,10 +162,33 @@ function Rotation({ points }: { points: number | null }): React.JSX.Element {
   );
 }
 
-/** A percentage, or a dash. */
-function percent(value: string | null): string {
-  const parsed = toNumber(value);
-  return parsed === null ? ABSENT : `${parsed.toFixed(0)}%`;
+/**
+ * A column of one average's share, drawn as a meter so the three can be
+ * read down and across alike: long, middle and short, the short turning
+ * first.
+ *
+ * @param id - The column's id.
+ * @param sessions - The average's length.
+ * @param of - The share, per cent, as the platform sends it.
+ * @returns The column.
+ */
+function share(
+  id: string,
+  sessions: number,
+  of: (row: ScopeBreadth) => string | null,
+): Column<ScopeBreadth> {
+  return {
+    id,
+    header: `Above ${String(sessions)}-day`,
+    accessorFn: (row) => toNumber(of(row)) ?? 0,
+    cell: ({ row }) => (
+      <Meter
+        label={`${label(row.original.scope_key)} above their ${String(sessions)}-day`}
+        percent={toNumber(of(row.original))}
+        className="min-w-28"
+      />
+    ),
+  };
 }
 
 /**

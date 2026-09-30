@@ -119,6 +119,8 @@ export interface ScopeBreadth {
   declining: number;
   above_sma_200: string | null;
   above_sma_50: string | null;
+  /** The short reading, which turns first. */
+  above_sma_20: string | null;
   regime: BreadthRegime | null;
   rotation: string | null;
 }

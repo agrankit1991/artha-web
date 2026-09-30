@@ -345,7 +345,7 @@ describe("Breadth", () => {
     expect(within(drawn).getByText("McClellan oscillator")).toBeInTheDocument();
   });
 
-  it("asks for every population's participation in one request, fifty sessions to begin with", async () => {
+  it("asks for every population's participation in one request, a year to begin with", async () => {
     const fetchMock = stubEverything();
 
     renderPage(<Breadth />);
@@ -353,7 +353,7 @@ describe("Breadth", () => {
     // The headline indices the platform counts, and nothing it does not.
     await waitFor(() => {
       expect(participationAsked(fetchMock)).toContain(
-        "/api/breadth/participation?sessions=50&scope=index:NSE_INDEX|Nifty 50",
+        "/api/breadth/participation?sessions=250&scope=index:NSE_INDEX|Nifty 50",
       );
     });
   });
@@ -423,7 +423,7 @@ describe("Breadth", () => {
 
     await waitFor(() => {
       expect(participationAsked(fetchMock)).toContain(
-        "/api/breadth/participation?sessions=50&scope=sector:IT - Software",
+        "/api/breadth/participation?sessions=250&scope=sector:IT - Software",
       );
     });
   });

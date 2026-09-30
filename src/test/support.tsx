@@ -311,6 +311,7 @@ export function scopeBreadth(overrides: Partial<ScopeBreadth> = {}): ScopeBreadt
     declining: 12,
     above_sma_200: "76.190000",
     above_sma_50: "61.900000",
+    above_sma_20: "52.380000",
     regime: "over-extended",
     rotation: "4.500000",
     ...overrides,
