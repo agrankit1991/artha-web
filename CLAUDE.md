@@ -492,6 +492,14 @@ fallback)`** (`src/hooks/useSearchParam.ts`): a value at its default is
   table), sorting nearest first. The list and the table share one
   shrinkable column on a phone: an implicit grid column is as wide as the
   widest table, and the page scrolled sideways.
+- **The share card** (`src/lib/shareCard.ts`, rebranded 2026-09-30): the
+  dark mode's surfaces and its rise and fall, Geist for words and figures,
+  the name in the logo's two colours with the logo before it. A canvas
+  cannot read a token and the card is dark in either mode, so its colours
+  are the dark tokens' values written out (`CARD_COLOURS`), and
+  `palette.test.ts` fails when they drift from the stylesheet. The dialog
+  waits for the fonts and the logo with the month's closes before drawing:
+  a card drawn in a fallback font is not drawn again.
 - **Scans** (`src/routes/Scans.tsx`, reworked 2026-09-30) -- the named
   scans of `src/lib/scans.ts`, each a set of screener conditions, grouped
   by category, each card saying how many companies it finds today and

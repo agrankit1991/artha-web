@@ -53,6 +53,13 @@ function recorder(): { context: CardContext; calls: string[]; texts: string[]; f
       calls.push("fill");
     },
     createLinearGradient: () => gradient,
+    // Ten pixels a character: enough to place the two halves of the name.
+    measureText: (text) => ({ width: text.length * 10 }),
+    drawImage: (_image, x, y, width, height) => {
+      calls.push(
+        `drawImage ${[x, y, width, height].map((one) => String(Math.round(one))).join(",")}`,
+      );
+    },
   };
   return { context, calls, texts, fills };
 }
@@ -84,7 +91,9 @@ describe("drawShareCard", () => {
       "₹1,240.00",
       "+1.50%",
       "As of 16 Sep 2026",
-      "Artha Science",
+      // The name in its two colours, the first word then the rest.
+      "Artha",
+      "Science",
     ]);
     // Four points: a filled area under the line, then a stroked line through them.
     expect(calls.filter((one) => one === "fill")).toHaveLength(1);
@@ -107,7 +116,7 @@ describe("drawShareCard", () => {
 
     const unknown = recorder();
     drawShareCard(unknown.context, facts({ changePercent: null, changeText: "-" }));
-    expect(unknown.fills[1]).toBe("#a1a1aa");
+    expect(unknown.fills[1]).toBe("#8fa8ae");
   });
 
   it("draws no line for fewer than two points, and a flat one for a flat month", () => {
@@ -122,5 +131,19 @@ describe("drawShareCard", () => {
     expect(
       flat.calls.filter((one) => one.startsWith("lineTo") && one.endsWith(",550")),
     ).toHaveLength(3 + 1 + 2);
+  });
+
+  it("draws the logo before the name when it has one, and is whole without it", () => {
+    const plain = recorder();
+    drawShareCard(plain.context, facts());
+    expect(plain.calls.some((one) => one.startsWith("drawImage"))).toBe(false);
+
+    const branded = recorder();
+    drawShareCard(branded.context, facts(), {} as CanvasImageSource);
+    // "Artha " and "Science" measure 60 and 70 at ten a character, so the
+    // name starts 130 short of the right margin and the logo 12 before it.
+    expect(branded.calls).toContain(
+      `drawImage ${String(CARD_WIDTH - 72 - 130 - 12 - 44)},556,44,44`,
+    );
   });
 });

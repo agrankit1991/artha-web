@@ -18,6 +18,7 @@ const FACTS = {
 
 /** A 2D context that accepts every call the card makes, with the text call kept to assert on. */
 const fillText = vi.fn();
+const drawImage = vi.fn();
 
 function fakeContext(): CanvasRenderingContext2D {
   const gradient = { addColorStop: vi.fn() };
@@ -31,6 +32,8 @@ function fakeContext(): CanvasRenderingContext2D {
     stroke: vi.fn(),
     fill: vi.fn(),
     createLinearGradient: vi.fn(() => gradient),
+    measureText: vi.fn((text: string) => ({ width: text.length * 10 })),
+    drawImage,
   } as unknown as CanvasRenderingContext2D;
 }
 
@@ -57,6 +60,36 @@ describe("ShareButton", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it("draws the logo on the card where the browser can decode it, and none where it fails", async () => {
+    const decode = vi.fn(() => Promise.resolve());
+    Object.defineProperty(HTMLImageElement.prototype, "decode", {
+      configurable: true,
+      value: decode,
+    });
+    const { unmount } = renderPage(
+      <ShareButton facts={FACTS} loadPoints={() => Promise.resolve([100, 110])} filename="r" />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Share" }));
+
+    await waitFor(() => {
+      expect(drawImage).toHaveBeenCalled();
+    });
+    unmount();
+
+    drawImage.mockClear();
+    decode.mockImplementation(() => Promise.reject(new Error("no image")));
+    renderPage(
+      <ShareButton facts={FACTS} loadPoints={() => Promise.resolve([100, 110])} filename="r" />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Share" }));
+    await screen.findByRole("img", { name: "Reliance Industries: ₹1,240.00, +1.50%" });
+    await waitFor(() => {
+      expect(fillText).toHaveBeenCalled();
+    });
+    expect(drawImage).not.toHaveBeenCalled();
+    Reflect.deleteProperty(HTMLImageElement.prototype, "decode");
   });
 
   it("draws the card when opened, copies the link, and downloads the picture", async () => {

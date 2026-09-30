@@ -7,6 +7,12 @@
  * tested with a context that records what it was asked to draw -- jsdom
  * has no canvas -- and so the dialog that shows it does nothing but hand
  * it a real one.
+ *
+ * In the brand since 2026-09-30: the dark mode's surfaces and its rise and
+ * fall, Geist for the words and figures, and the name in the logo's two
+ * colours. A canvas cannot read a token, and the card is dark whatever the
+ * page's mode, so the colours are the dark tokens' values written out;
+ * `palette.test.ts` fails when they drift from the stylesheet.
  */
 
 /** A link preview's size, which is also a phone's landscape screen. */
@@ -52,26 +58,66 @@ export interface CardContext {
   stroke(): void;
   fill(): void;
   createLinearGradient(x0: number, y0: number, x1: number, y1: number): CanvasGradient;
+  measureText(text: string): { width: number };
+  drawImage(image: CanvasImageSource, x: number, y: number, width: number, height: number): void;
 }
 
-/** The card's palette: the application's dark surface, and its gain and loss. */
-const INK = "#fafafa";
-const MUTED = "#a1a1aa";
-const PAPER = "#18181b";
-const PAPER_EDGE = "#27272a";
-const GAIN = "#22c55e";
-const LOSS = "#ef4444";
-const FLAT = "#a1a1aa";
+/**
+ * The card's colours, each the dark mode's value of the token named beside
+ * it in `index.css`.
+ */
+export const CARD_COLOURS = {
+  /** `--foreground` */
+  ink: "#e4f0f2",
+  /** `--muted-foreground` */
+  muted: "#8fa8ae",
+  /** `--background` */
+  paper: "#0a1316",
+  /** `--card` */
+  paperEdge: "#101d21",
+  /** `--gain` */
+  gain: "#22c55e",
+  /** `--loss` */
+  loss: "#ef4444",
+  /** `--wordmark-artha` */
+  artha: "#fb7a3c",
+  /** `--wordmark-science` */
+  science: "#2bb7d1",
+} as const;
+
+const {
+  ink: INK,
+  muted: MUTED,
+  paper: PAPER,
+  paperEdge: PAPER_EDGE,
+  gain: GAIN,
+  loss: LOSS,
+} = CARD_COLOURS;
+/** No move known: neither rise nor fall. */
+const FLAT = CARD_COLOURS.muted;
+
+/** The application's typefaces, loaded by `main.tsx`, then the system's. */
+const SANS = "'Geist Variable', system-ui, -apple-system, 'Segoe UI', sans-serif";
+const MONO = "'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace";
 
 const PAD = 72;
+
+/** The logo's size beside the name: it is square. */
+const LOGO = 44;
 
 /**
  * Draw the card.
  *
  * @param context - Where to draw; the whole card is painted, no clearing needed.
  * @param facts - What to say.
+ * @param logo - The logo, drawn before the name when it has loaded; without
+ *   it the card is whole, only plainer.
  */
-export function drawShareCard(context: CardContext, facts: CardFacts): void {
+export function drawShareCard(
+  context: CardContext,
+  facts: CardFacts,
+  logo: CanvasImageSource | null = null,
+): void {
   const tone = facts.changePercent === null ? FLAT : facts.changePercent < 0 ? LOSS : GAIN;
 
   // Ground: a dark card with a faint edge, as the application's dark theme has.
@@ -87,18 +133,18 @@ export function drawShareCard(context: CardContext, facts: CardFacts): void {
   context.textAlign = "left";
   context.textBaseline = "alphabetic";
   context.fillStyle = INK;
-  context.font = "600 56px system-ui, -apple-system, Segoe UI, sans-serif";
+  context.font = `600 56px ${SANS}`;
   context.fillText(facts.title, PAD, 132, CARD_WIDTH - PAD * 2);
   context.fillStyle = MUTED;
-  context.font = "400 30px system-ui, -apple-system, Segoe UI, sans-serif";
+  context.font = `400 30px ${SANS}`;
   context.fillText(facts.subtitle, PAD, 180, CARD_WIDTH - PAD * 2);
 
   // Price and move.
   context.fillStyle = INK;
-  context.font = "700 96px ui-monospace, SFMono-Regular, Menlo, monospace";
+  context.font = `700 96px ${MONO}`;
   context.fillText(facts.price, PAD, 330);
   context.fillStyle = tone;
-  context.font = "600 44px ui-monospace, SFMono-Regular, Menlo, monospace";
+  context.font = `600 44px ${MONO}`;
   context.fillText(facts.changeText, PAD, 392);
 
   // A month's line, bottom left, and the area under it in the tone.
@@ -111,11 +157,38 @@ export function drawShareCard(context: CardContext, facts: CardFacts): void {
 
   // The date, and whose card it is.
   context.fillStyle = MUTED;
-  context.font = "400 26px system-ui, -apple-system, Segoe UI, sans-serif";
+  context.font = `400 26px ${SANS}`;
   context.textAlign = "left";
   context.fillText(facts.asOf, PAD, CARD_HEIGHT - 40);
-  context.textAlign = "right";
-  context.fillText(facts.brand, CARD_WIDTH - PAD, CARD_HEIGHT - 40);
+  const named = drawWordmark(context, facts.brand, CARD_WIDTH - PAD, CARD_HEIGHT - 40);
+  if (logo !== null) {
+    context.drawImage(logo, named - 12 - LOGO, CARD_HEIGHT - 40 - LOGO + 10, LOGO, LOGO);
+  }
+}
+
+/**
+ * The application's name in the logo's two colours, ending at a point: its
+ * first word in the orange, the rest in the teal, as the sidebar writes it.
+ *
+ * @param context - Where.
+ * @param name - The name, such as "Artha Science".
+ * @param right - Where the name ends.
+ * @param baseline - The line it sits on.
+ * @returns Where the name starts, for the logo to sit before it.
+ */
+function drawWordmark(context: CardContext, name: string, right: number, baseline: number): number {
+  const space = name.indexOf(" ");
+  const first = space === -1 ? name : name.slice(0, space);
+  const rest = space === -1 ? "" : name.slice(space + 1);
+  context.font = `700 30px ${SANS}`;
+  context.textAlign = "left";
+  const lead = context.measureText(`${first} `).width;
+  const start = right - lead - context.measureText(rest).width;
+  context.fillStyle = CARD_COLOURS.artha;
+  context.fillText(first, start, baseline);
+  context.fillStyle = CARD_COLOURS.science;
+  context.fillText(rest, start + lead, baseline);
+  return start;
 }
 
 /**

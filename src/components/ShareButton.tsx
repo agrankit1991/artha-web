@@ -46,6 +46,7 @@ export function ShareButton({
 }: ShareButtonProps): React.JSX.Element {
   const [open, setOpen] = useState(false);
   const [points, setPoints] = useState<number[] | null>(null);
+  const [logo, setLogo] = useState<CanvasImageSource | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -63,9 +64,12 @@ export function ShareButton({
     let live = true;
     setPoints(null);
     setProblem(null);
-    loadPoints()
-      .then((found) => {
+    // The fonts too: a card drawn before Geist arrives is drawn in a
+    // fallback, and is not drawn again.
+    Promise.all([loadPoints(), fontsLoaded(), logoLoaded()])
+      .then(([found, , image]) => {
         if (live) {
+          setLogo(image);
           setPoints(found);
         }
       })
@@ -91,8 +95,8 @@ export function ShareButton({
       setProblem("This browser cannot draw the card.");
       return;
     }
-    drawShareCard(context, { ...facts, points, brand: BRAND });
-  }, [open, points, facts]);
+    drawShareCard(context, { ...facts, points, brand: BRAND }, logo);
+  }, [open, points, facts, logo]);
 
   const copyLink = async (): Promise<void> => {
     try {
@@ -177,5 +181,34 @@ export function ShareButton({
         {problem !== null && <p className="text-sm text-destructive">{sentence(problem)}</p>}
       </Dialog>
     </>
+  );
+}
+
+/**
+ * Wait for the page's fonts.
+ *
+ * @returns A promise settled once they are loaded, at once where the
+ *   browser keeps no font set (a test's).
+ */
+function fontsLoaded(): Promise<unknown> {
+  return (document as { fonts?: FontFaceSet }).fonts?.ready ?? Promise.resolve();
+}
+
+/**
+ * Load the logo for the card.
+ *
+ * @returns The logo once decoded, or null where it cannot be (a test's
+ *   browser has no image decoding): the card is then drawn without it.
+ */
+function logoLoaded(): Promise<HTMLImageElement | null> {
+  const image = new Image();
+  image.src = "/brand/logo.svg";
+  // Absent where a test's browser has no image decoding.
+  if (typeof (image as { decode?: unknown }).decode !== "function") {
+    return Promise.resolve(null);
+  }
+  return image.decode().then(
+    () => image,
+    () => null,
   );
 }

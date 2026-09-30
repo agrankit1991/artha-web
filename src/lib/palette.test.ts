@@ -12,6 +12,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { CARD_COLOURS } from "@/lib/shareCard";
+
 // Read from disk rather than imported: Vite's Tailwind plugin owns `.css`
 // imports and hands back the compiled output, not the source this checks.
 // Resolved from the working directory because the tests run under jsdom,
@@ -143,5 +145,25 @@ describe("the brand palette", () => {
   it("offers no switchable accent palettes any more", () => {
     // Retired for the one brand palette on 2026-09-30.
     expect(STYLESHEET).not.toContain("data-accent");
+  });
+});
+
+describe("the share card", () => {
+  it("draws with the dark mode's colours, token for token", () => {
+    // A canvas cannot read a token, so the card writes the values out; this
+    // is what keeps them from drifting when the stylesheet changes.
+    const named: Record<keyof typeof CARD_COLOURS, string> = {
+      ink: "--foreground",
+      muted: "--muted-foreground",
+      paper: "--background",
+      paperEdge: "--card",
+      gain: "--gain",
+      loss: "--loss",
+      artha: "--wordmark-artha",
+      science: "--wordmark-science",
+    };
+    for (const [key, token] of Object.entries(named)) {
+      expect(CARD_COLOURS[key as keyof typeof CARD_COLOURS], token).toBe(MODES.dark.get(token));
+    }
   });
 });
