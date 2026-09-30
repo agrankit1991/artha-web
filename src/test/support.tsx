@@ -154,6 +154,7 @@ export function panel(overrides: Partial<MoverPanel> = {}): MoverPanel {
   return {
     name: "top-gainers",
     as_of: "2026-09-18",
+    universe: "liquid",
     rows: [moverRow()],
     ...overrides,
   };

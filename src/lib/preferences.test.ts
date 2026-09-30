@@ -77,6 +77,12 @@ describe("preferences", () => {
     expect(parse({ forecast: "no" }).forecast).toBe(true);
   });
 
+  it("ranks the movers over liquid companies unless all were chosen", () => {
+    expect(parse({}).movers).toBe("liquid");
+    expect(parse({ movers: "all" }).movers).toBe("all");
+    expect(parse({ movers: "everything" }).movers).toBe("liquid");
+  });
+
   it("keeps each page's layout, and only layouts that exist", () => {
     const read = parse({ views: { indices: "grouped", movers: "table", watchlists: 3 } });
 

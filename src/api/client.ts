@@ -54,9 +54,18 @@ export interface MoverRow {
 }
 
 /** One list, ranked within one population. */
+/**
+ * Which companies a mover list ranks: every one, or only those big and
+ * busy enough for a retail buyer (at least ₹1,000 crore of market value and
+ * ₹10 crore traded a session, on the platform's latest figures).
+ */
+export type MoverUniverse = "all" | "liquid";
+
 export interface MoverPanel {
   name: MoverListName;
   as_of: string | null;
+  /** Which companies it ranked; always every one for the indices. */
+  universe: MoverUniverse;
   rows: MoverRow[];
 }
 
@@ -657,14 +666,18 @@ export function fetchVisitors(days: number, accountId: number | null): Promise<V
  * @param kind - Which population to rank.
  * @param key - Which sector or index, for the kinds that name one.
  * @param limit - Rows per list.
+ * @param universe - Every company, or only the liquid ones.
  * @returns Every list, each with its rows.
  */
 export function fetchMovers(
   kind: ScopeKind,
   key: string | null,
   limit = 10,
+  universe: MoverUniverse = "all",
 ): Promise<MoversResponse> {
-  return request<MoversResponse>(`/api/movers?${scopeQuery(kind, key)}&limit=${String(limit)}`);
+  return request<MoversResponse>(
+    `/api/movers?${scopeQuery(kind, key)}&limit=${String(limit)}&universe=${universe}`,
+  );
 }
 
 /**
@@ -674,6 +687,7 @@ export function fetchMovers(
  * @param kind - Which population to rank.
  * @param key - Which sector or index, for the kinds that name one.
  * @param limit - Rows to return.
+ * @param universe - Every company, or only the liquid ones.
  * @returns The list, with its rows.
  */
 export function fetchMoverList(
@@ -681,8 +695,11 @@ export function fetchMoverList(
   kind: ScopeKind,
   key: string | null,
   limit = 100,
+  universe: MoverUniverse = "all",
 ): Promise<MoverPanel> {
-  return request<MoverPanel>(`/api/movers/${name}?${scopeQuery(kind, key)}&limit=${String(limit)}`);
+  return request<MoverPanel>(
+    `/api/movers/${name}?${scopeQuery(kind, key)}&limit=${String(limit)}&universe=${universe}`,
+  );
 }
 
 /**

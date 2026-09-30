@@ -21,12 +21,14 @@ import { Empty } from "@/components/Empty";
 import { Failed } from "@/components/Failed";
 import { MOVER_LISTS } from "@/components/MoverPanel";
 import { PageHeader } from "@/components/PageHeader";
+import { MoverUniverseSwitch } from "@/components/MoverUniverseSwitch";
 import { ScopePicker } from "@/components/ScopePicker";
 import type { Scope } from "@/components/ScopeSelector";
 import { type Tab, Tabs } from "@/components/Tabs";
 import { ViewModeToggle, useViewMode } from "@/components/ViewModeToggle";
 import { Card, CardContent } from "@/components/ui/card";
 import { useResource } from "@/hooks/useResource";
+import { usePreferences, writePreferences } from "@/lib/preferences";
 import { formatCount, formatDay, formatPrice, toNumber } from "@/lib/format";
 import { companyPath, moversPath, populationPath, scopeFromParams } from "@/lib/paths";
 import { cn } from "@/lib/utils";
@@ -49,10 +51,13 @@ export function Movers(): React.JSX.Element {
   const scope = useMemo<Scope>(() => scopeFromParams(params), [params]);
 
   const loadScopes = useCallback(() => fetchScopes(), []);
+  const { movers: universe } = usePreferences();
   const loadList = useCallback(
     () =>
-      name === null ? Promise.resolve(null) : fetchMoverList(name, scope.kind, scope.key, DEPTH),
-    [name, scope],
+      name === null
+        ? Promise.resolve(null)
+        : fetchMoverList(name, scope.kind, scope.key, DEPTH, universe),
+    [name, scope, universe],
   );
   const scopes = useResource(loadScopes);
   const ranking = useResource(loadList);
@@ -87,7 +92,8 @@ export function Movers(): React.JSX.Element {
       : companyPath(row.instrument_key, row.symbol);
 
   // What the list is of, in words: the indices population ranks indices.
-  const counted = scope.kind === "indices" ? "indices" : "companies";
+  const counted =
+    scope.kind === "indices" ? "indices" : universe === "liquid" ? "liquid companies" : "companies";
 
   return (
     <div className="space-y-6">
@@ -95,13 +101,24 @@ export function Movers(): React.JSX.Element {
         title="Market movers"
         description="Every list as deep as it is kept, with how many sessions running each has been on it: the column the overview cannot fit."
       />
-      <ScopePicker
-        scope={scope}
-        options={scopes.data}
-        onChange={(next) => {
-          go(name, next);
-        }}
-      />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ScopePicker
+          scope={scope}
+          options={scopes.data}
+          onChange={(next) => {
+            go(name, next);
+          }}
+        />
+        {/* The indices are not companies, so there is no liquid ranking of them. */}
+        {scope.kind !== "indices" && (
+          <MoverUniverseSwitch
+            universe={universe}
+            onChange={(next) => {
+              writePreferences({ movers: next });
+            }}
+          />
+        )}
+      </div>
       <Tabs
         tabs={tabs}
         active={name}

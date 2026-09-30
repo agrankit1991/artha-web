@@ -45,6 +45,7 @@ import { PRICE_RANGES } from "@/lib/priceRanges";
 import { Tabs } from "@/components/Tabs";
 import { IndexCard } from "@/components/IndexCard";
 import { MoverPanelCard } from "@/components/MoverPanel";
+import { MoverUniverseSwitch } from "@/components/MoverUniverseSwitch";
 import { NewsFeed } from "@/components/NewsFeed";
 import { ScopePicker } from "@/components/ScopePicker";
 import { type Scope, WHOLE_POPULATIONS } from "@/components/ScopeSelector";
@@ -59,7 +60,7 @@ import { ENTITIES, MARKS } from "@/lib/entities";
 import { coloured } from "@/lib/chartPalette";
 import { useChartRange } from "@/hooks/useChartRange";
 import { useResource } from "@/hooks/useResource";
-import { readPreferences, writePreferences } from "@/lib/preferences";
+import { readPreferences, usePreferences, writePreferences } from "@/lib/preferences";
 import { formatCroreSigned, formatDay, formatPrice, toNumber } from "@/lib/format";
 import { companyPath, moversPath, PATHS, populationPath } from "@/lib/paths";
 import { BENCHMARK, FEATURED_INDICES, GOLD } from "@/lib/indices";
@@ -132,7 +133,11 @@ export function Overview({
     () => fetchOverviews(FEATURED_INDICES.map((index) => index.key)),
     [],
   );
-  const loadMovers = useCallback(() => fetchMovers(scope.kind, scope.key), [scope]);
+  const { movers: universe } = usePreferences();
+  const loadMovers = useCallback(
+    () => fetchMovers(scope.kind, scope.key, undefined, universe),
+    [scope, universe],
+  );
   const loadBreadth = useCallback(() => fetchBreadth(scope.kind, scope.key), [scope]);
   const loadNews = useCallback(() => fetchNews({ limit: HEADLINES }), []);
   const loadFlows = useCallback(() => fetchFlows("DAY", FLOW_SESSIONS), []);
@@ -272,7 +277,23 @@ export function Overview({
           id="movers-heading"
           icon={MARKS.movers}
           title="Movers"
-          description={`Ranked within ${population}.`}
+          description={
+            scope.kind === "indices"
+              ? `Ranked within ${population}.`
+              : `Ranked within ${population}${universe === "liquid" ? ", liquid companies only" : ""}.`
+          }
+          {...(scope.kind === "indices"
+            ? {}
+            : {
+                actions: (
+                  <MoverUniverseSwitch
+                    universe={universe}
+                    onChange={(next) => {
+                      writePreferences({ movers: next });
+                    }}
+                  />
+                ),
+              })}
         />
         {movers.error !== null ? (
           <Failed message={movers.error} />

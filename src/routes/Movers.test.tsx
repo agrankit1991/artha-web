@@ -49,6 +49,32 @@ function asked(fetched: ReturnType<typeof stubPlatform>): string[] {
 }
 
 describe("Movers", () => {
+  it("ranks only liquid companies unless asked for all, and remembers the choice", async () => {
+    forgetForTests();
+    const fetched = stubEverything();
+    renderPage(page(), { at: "/movers/top-gainers?scope_kind=companies" });
+    await screen.findByRole("table", { name: "Top gainers" });
+
+    expect(asked(fetched).some((path) => path.includes("universe=liquid"))).toBe(true);
+    await userEvent.click(screen.getByRole("button", { name: "All companies" }));
+
+    await waitFor(() => {
+      expect(asked(fetched).at(-1)).toContain("universe=all");
+    });
+    expect(JSON.parse(window.localStorage.getItem("artha.preferences") ?? "{}")).toMatchObject({
+      movers: "all",
+    });
+    expect(await screen.findByText(/ · 2 companies$/)).toBeInTheDocument();
+  });
+
+  it("offers no liquid switch when the indices are ranked, which are not companies", async () => {
+    stubEverything();
+    renderPage(page(), { at: "/movers/top-gainers?scope_kind=indices" });
+    await screen.findByRole("table", { name: "Top gainers" });
+
+    expect(screen.queryByRole("button", { name: "Liquid only" })).not.toBeInTheDocument();
+  });
+
   it("shows a list in full with each streak beside the name, each row leading to the company", async () => {
     const fetched = stubEverything();
     renderPage(page(), { at: "/movers/top-gainers?scope_kind=companies" });
@@ -61,7 +87,7 @@ describe("Movers", () => {
     expect(within(table).getByRole("button", { name: /^Name/ })).toBeInTheDocument();
     // Ranked on the change, so the change is one column, not two.
     expect(within(table).getAllByRole("button", { name: /^Change/ })).toHaveLength(1);
-    expect(screen.getByText(/^Ranked on .* · 2 companies$/)).toBeInTheDocument();
+    expect(screen.getByText(/^Ranked on .* · 2 liquid companies$/)).toBeInTheDocument();
     await waitFor(() => {
       expect(
         asked(fetched).some((path) =>

@@ -20,7 +20,7 @@ import { useSyncExternalStore } from "react";
 
 import type { ChartStyle, Overlay } from "@/components/ChartControls";
 import type { Scope } from "@/components/ScopeSelector";
-import type { ScopeKind } from "@/api/client";
+import type { MoverUniverse, ScopeKind } from "@/api/client";
 
 /** The reader's standing choices. */
 /** The layouts a list page can be shown in: one table, a table per category, or cards. */
@@ -49,6 +49,11 @@ export interface Preferences {
    * stored on the day of the change.
    */
   participation: Scope[] | null;
+  /**
+   * Which companies the mover lists rank: only the liquid ones unless the
+   * reader asks for all (the owner's choice, 2026-09-30).
+   */
+  movers: MoverUniverse;
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -61,6 +66,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   range: DEFAULT_RANGE,
   views: {},
   participation: null,
+  movers: "liquid",
 };
 
 const STORAGE_KEY = "artha.preferences";
@@ -152,6 +158,8 @@ export function parse(stored: unknown): Preferences {
   const views = record["views"];
   const participation = record["participation"];
   return {
+    // Liquid unless the reader chose all: anything else stored is not a choice.
+    movers: record["movers"] === "all" ? "all" : "liquid",
     scope: scopeOf(record["scope"]) ?? DEFAULT_PREFERENCES.scope,
     chartStyle:
       typeof chartStyle === "string" && (STYLES as readonly string[]).includes(chartStyle)
