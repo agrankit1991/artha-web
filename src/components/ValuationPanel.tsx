@@ -12,7 +12,7 @@ import type { CompanyValuation, Derived } from "@/api/client";
 import { Empty } from "@/components/Empty";
 import { Hint } from "@/components/Hint";
 import { StatGrid } from "@/components/StatTile";
-import { ABSENT, formatDay, formatPercent, formatPrice, toNumber } from "@/lib/format";
+import { ABSENT, formatCrore, formatDay, formatPercent, formatPrice, toNumber } from "@/lib/format";
 
 interface ValuationPanelProps {
   valuation: CompanyValuation | null;
@@ -43,14 +43,14 @@ export function ValuationPanel({
   return (
     <div className="space-y-2">
       <StatGrid>
-        <Tile label="Market capitalisation" figure={valuation.market_cap} write={crore} />
+        <Tile label="Market capitalisation" figure={valuation.market_cap} write={formatCrore} />
         <Tile label="Price to earnings" figure={valuation.pe} write={multiple} />
         <Tile label="Price to book" figure={valuation.pb} write={multiple} />
         <Tile label="Dividend yield" figure={valuation.dividend_yield} write={percent} />
         <Tile label="Shares outstanding" figure={valuation.shares_outstanding} write={shares} />
-        <Tile label="Trailing earnings" figure={valuation.earnings_ttm} write={crore} />
+        <Tile label="Trailing earnings" figure={valuation.earnings_ttm} write={formatCrore} />
         <Tile label="Trailing EPS" figure={valuation.eps_ttm} write={rupees} />
-        <Tile label="Book value" figure={valuation.book_value} write={crore} />
+        <Tile label="Book value" figure={valuation.book_value} write={formatCrore} />
       </StatGrid>
       <p className="text-xs text-muted-foreground">
         Against the close of {formatDay(valuation.as_of)} ({formatPrice(valuation.price)}). Every
@@ -93,17 +93,6 @@ function Tile({
 /** A count of shares in crore: a number of shares, not rupees. */
 function shares(value: string): string {
   return `${formatPrice(value)} cr shares`;
-}
-
-/** A sum in crore, written in lakh crore when it is that large. */
-function crore(value: string): string {
-  const figure = toNumber(value);
-  if (figure === null) {
-    return ABSENT;
-  }
-  return figure >= 100_000
-    ? `₹${(figure / 100_000).toFixed(2)} lakh cr`
-    : `₹${formatPrice(String(figure))} cr`;
 }
 
 /** A multiple. */

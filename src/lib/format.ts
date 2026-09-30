@@ -61,6 +61,29 @@ export function formatSignedPrice(value: string | null | undefined): string {
 }
 
 /**
+ * Render a sum in rupees crore with its unit, the one way the site writes
+ * one: `₹16.78 lakh cr` from a lakh crore up, `₹1,092 cr` from a hundred
+ * (paise are noise at that size), `₹12.50 cr` below it. Four panels once
+ * wrote the same sum four ways.
+ *
+ * @param value - The sum, in crore.
+ * @returns The sum with its unit, or a dash.
+ */
+export function formatCrore(value: string | null | undefined): string {
+  const figure = toNumber(value);
+  if (figure === null) {
+    return ABSENT;
+  }
+  // The sign before the rupee: "-₹2.50 lakh cr", as a loss is written.
+  const sign = figure < 0 ? "-" : "";
+  const size = Math.abs(figure);
+  if (size >= 100_000) {
+    return `${sign}₹${(size / 100_000).toFixed(2)} lakh cr`;
+  }
+  return `${sign}₹${size >= 100 ? formatWhole(size) : size.toFixed(2)} cr`;
+}
+
+/**
  * Render a net amount in rupees crore, signed: `+2,838.17 Cr`, for money
  * bought or sold. One way of writing it, where the tiles once said a bare
  * figure and a band beside them added " Cr".

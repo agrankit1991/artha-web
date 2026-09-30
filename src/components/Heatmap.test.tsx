@@ -136,7 +136,7 @@ describe("Heatmap", () => {
     const card = screen.getByRole("tooltip");
     expect(card).toHaveTextContent("Tata Consultancy Services");
     expect(card).toHaveTextContent("IT - Software");
-    expect(card).toHaveTextContent("₹11,00,000 cr");
+    expect(card).toHaveTextContent("₹11.00 lakh cr");
     expect(card).toHaveTextContent("₹800 cr");
     fireEvent.mouseLeave(map());
     expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();

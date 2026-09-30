@@ -36,6 +36,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useElementWidth } from "@/hooks/useElementWidth";
 import { type HeatPeriod, heatPaint, heatPalette, heatShare } from "@/lib/heatColour";
 import {
+  formatCrore,
   ABSENT,
   formatCount,
   formatPercent,
@@ -399,15 +400,6 @@ function place(rect: Rect, width: number, height: number): React.CSSProperties {
   };
 }
 
-/** A sum in crore, whole above a hundred. */
-function crore(value: string | null): string {
-  const figure = toNumber(value);
-  if (figure === null) {
-    return ABSENT;
-  }
-  return `₹${figure >= 100 ? formatWhole(figure) : figure.toFixed(2)} cr`;
-}
-
 /**
  * One company's figures beside its tile, turned inwards near an edge so
  * it never leaves the map.
@@ -458,9 +450,9 @@ function TileCard({
           </div>
         ))}
         <dt className="text-muted-foreground">Market cap</dt>
-        <dd className="text-right tabular">{crore(tile.market_cap)}</dd>
+        <dd className="text-right tabular">{formatCrore(tile.market_cap)}</dd>
         <dt className="text-muted-foreground">Traded</dt>
-        <dd className="text-right tabular">{crore(tile.traded_value)}</dd>
+        <dd className="text-right tabular">{formatCrore(tile.traded_value)}</dd>
       </dl>
     </div>
   );

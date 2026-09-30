@@ -12,7 +12,7 @@
 import type { PopulationValuation } from "@/api/client";
 import { Empty } from "@/components/Empty";
 import { StatGrid, StatTile } from "@/components/StatTile";
-import { ABSENT, formatWhole, toNumber } from "@/lib/format";
+import { ABSENT, formatCrore, toNumber } from "@/lib/format";
 
 interface PopulationValuationPanelProps {
   valuation: PopulationValuation | null;
@@ -51,7 +51,7 @@ export function PopulationValuationPanel({
         <StatTile label="Median price to book" value={multiple(valuation.pb_median)} />
         <StatTile
           label="Market capitalisation"
-          value={crore(valuation.market_cap)}
+          value={formatCrore(valuation.market_cap)}
           hint="Summed over the companies whose share count is held"
         />
         <StatTile
@@ -74,16 +74,4 @@ export function PopulationValuationPanel({
 function multiple(value: string | null): string {
   const figure = toNumber(value);
   return figure === null ? ABSENT : `${figure.toFixed(1)}×`;
-}
-
-/** A sum in crore, written in lakh crore when it is that large. */
-function crore(value: string | null): string {
-  const figure = toNumber(value);
-  if (figure === null) {
-    return ABSENT;
-  }
-  const size = Math.abs(figure);
-  return size >= 100_000
-    ? `₹${(figure / 100_000).toFixed(2)} lakh cr`
-    : `₹${formatWhole(figure)} cr`;
 }

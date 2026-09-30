@@ -29,7 +29,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ENTITIES, MARKS } from "@/lib/entities";
-import { ABSENT, formatDay, formatMultiple, formatPrice, toNumber } from "@/lib/format";
+import {
+  ABSENT,
+  formatCrore,
+  formatDay,
+  formatMultiple,
+  formatPrice,
+  toNumber,
+} from "@/lib/format";
 import { ipoPath } from "@/lib/paths";
 import { cn } from "@/lib/utils";
 
@@ -153,7 +160,7 @@ export function IpoCard({
 
       <CardContent className="space-y-5">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatTile label="Issue size" value={crore(offering.issue_size)} />
+          <StatTile label="Issue size" value={formatCrore(offering.issue_size)} />
           <StatTile
             label="Price band"
             value={priceBand(offering)}
@@ -358,9 +365,4 @@ export function priceBand(offering: Offering): string {
     return formatPrice(offering.maximum_price ?? offering.minimum_price);
   }
   return `${formatPrice(offering.minimum_price)} - ${formatPrice(offering.maximum_price)}`;
-}
-
-/** An issue size in crore, written as such. */
-function crore(value: string | null): string {
-  return value === null ? ABSENT : `₹${formatPrice(value)} cr`;
 }

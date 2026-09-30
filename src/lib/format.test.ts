@@ -6,6 +6,7 @@ import {
   ABSENT,
   direction,
   formatCount,
+  formatCrore,
   formatCroreSigned,
   formatDay,
   formatDayMonth,
@@ -184,6 +185,17 @@ describe("formatPercentLevel", () => {
     expect(formatPercentLevel("3.254")).toBe("3.25%");
     expect(formatPercentLevel("-0.5")).toBe("-0.50%");
     expect(formatPercentLevel(null)).toBe("-");
+  });
+});
+
+describe("formatCrore", () => {
+  it("writes a sum in lakh crore, whole crore or crore and paise by its size", () => {
+    expect(formatCrore("1678000")).toBe("₹16.78 lakh cr");
+    expect(formatCrore("-250000")).toBe("-₹2.50 lakh cr");
+    expect(formatCrore("-12.5")).toBe("-₹12.50 cr");
+    expect(formatCrore("1092.4")).toBe("₹1,092 cr");
+    expect(formatCrore("12.5")).toBe("₹12.50 cr");
+    expect(formatCrore(null)).toBe("-");
   });
 });
 

@@ -40,7 +40,7 @@ describe("IpoCard", () => {
   it("puts the four deciding figures in tiles", () => {
     draw();
 
-    expect(screen.getByText("₹210.00 cr")).toBeInTheDocument();
+    expect(screen.getByText("₹210 cr")).toBeInTheDocument();
     expect(screen.getByText("130.00 - 140.00")).toBeInTheDocument();
     expect(screen.getByText("107 shares")).toBeInTheDocument();
     expect(screen.getByText("14,980.00")).toBeInTheDocument();
