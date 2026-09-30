@@ -823,6 +823,7 @@ export function earnings(overrides: Partial<Earnings> = {}): Earnings {
     scope_key: "IT - Software",
     cadence: "annual",
     companies: 92,
+    same_companies: false,
     periods: [
       earningsPeriod(),
       earningsPeriod({ period_end: "2025-03-31", revenue: "1040.00", profit: "150.00" }),

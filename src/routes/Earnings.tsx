@@ -11,7 +11,7 @@
 
 import { useCallback, useMemo } from "react";
 
-import type { Cadence, SectorEarnings } from "@/api/client";
+import type { Cadence, Earnings, EarningsPeriod, SectorEarnings } from "@/api/client";
 import { fetchEarnings, fetchSectorEarnings } from "@/api/client";
 import { Callout } from "@/components/Callout";
 import { Chooser } from "@/components/Chooser";
@@ -26,7 +26,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useResource } from "@/hooks/useResource";
 import { useSearchParam } from "@/hooks/useSearchParam";
 import { ENTITIES, MARKS } from "@/lib/entities";
-import { formatCount, formatDay, toNumber } from "@/lib/format";
+import { formatCount, formatDay, formatMonth, toNumber } from "@/lib/format";
 import { populationPath } from "@/lib/paths";
 
 /**
@@ -40,6 +40,16 @@ const RANKED_FROM = 10;
 const EACH_END = 10;
 
 /**
+ * Which companies the whole market's series sums: every one that filed each
+ * period, or only those that filed in every one of the latest, whose growth
+ * is not companies arriving in the records.
+ */
+const BASES = [
+  { key: "all", label: "All reporting" },
+  { key: "same", label: "Same companies" },
+];
+
+/**
  * Render the page. The cadence is read from the address, so a quarterly
  * view is a link.
  *
@@ -48,7 +58,12 @@ const EACH_END = 10;
 export function EarningsPage(): React.JSX.Element {
   const [chosen, setCadence] = useSearchParam("cadence", "annual");
   const cadence: Cadence = chosen === "quarterly" ? "quarterly" : "annual";
-  const loadMarket = useCallback(() => fetchEarnings("companies", "all", cadence), [cadence]);
+  const [basis, setBasis] = useSearchParam("basis", "all");
+  const sameCompanies = basis === "same";
+  const loadMarket = useCallback(
+    () => fetchEarnings("companies", "all", cadence, sameCompanies),
+    [cadence, sameCompanies],
+  );
   const loadSectors = useCallback(() => fetchSectorEarnings(cadence), [cadence]);
   const market = useResource(loadMarket);
   const sectors = useResource(loadSectors);
@@ -71,8 +86,11 @@ export function EarningsPage(): React.JSX.Element {
           {...(market.data === null
             ? {}
             : {
-                description: `${formatCount(market.data.companies)} companies with a profile; those that filed each period are counted.`,
+                description: sameCompanies
+                  ? sameCompaniesNote(market.data, cadence)
+                  : `${formatCount(market.data.companies)} companies with a profile; those that filed each period are counted.`,
               })}
+          actions={<Chooser options={BASES} chosen={basis} onChange={setBasis} label="Companies" />}
         />
         {market.error !== null ? (
           <Failed message={market.error} />
@@ -104,6 +122,31 @@ export function EarningsPage(): React.JSX.Element {
       </section>
     </div>
   );
+}
+
+/**
+ * Say which companies a like-for-like series sums, and over which span.
+ *
+ * The span is read from the periods returned rather than assumed: the
+ * platform spans as many of the latest well-reported periods as it holds,
+ * and its source gives only each company's latest four, so the span
+ * lengthens as later results are collected (FY2023 to FY2026 on 30 Sept
+ * 2026).
+ *
+ * @param earnings - The like-for-like series, most recent first.
+ * @param cadence - Whether its periods are years or quarters.
+ * @returns The sentence.
+ */
+function sameCompaniesNote(earnings: Earnings, cadence: Cadence): string {
+  const latest = earnings.periods[0];
+  const earliest = earnings.periods.at(-1);
+  // Both are absent together; the second test only narrows the type.
+  if (latest === undefined || earliest === undefined) {
+    return "No company has results in every recent period yet.";
+  }
+  const unit = cadence === "annual" ? "year" : "quarter";
+  const month = (period: EarningsPeriod): string => formatMonth(period.period_end.slice(0, 7));
+  return `The ${formatCount(earnings.companies)} companies with results in every ${unit} from ${month(earliest)} to ${month(latest)}, so growth compares like with like. The source gives each company's latest four ${unit}s only, so the span lengthens as results are collected.`;
 }
 
 /**

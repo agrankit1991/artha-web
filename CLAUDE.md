@@ -533,6 +533,20 @@ fallback)`** (`src/hooks/useSearchParam.ts`): a value at its default is
   basis rather than the exchange's provisional one, so no backfill has
   been made. The table's FII and DII nets and the index's move carry a bar
   each under the figure, a column to a scale (`DivergingBar`).
+- **Earnings, like for like** (2026-09-30, the owner asked for five to ten
+  years of the whole market). Upstox gives each company only its latest
+  four periods, so the store holds FY2023 to FY2026 for most companies
+  (FY2022 for 1,800, only 102 of them with FY2026 too), and FY2026 was
+  still arriving (3,036 companies against FY2025's 4,866): the whole
+  market's FY2026 revenue read +1.9% where the same companies' read +9.4%.
+  "Same companies" (`?basis=same`) sums only those with results in every
+  one of the latest well-reported periods, at most five years or eight
+  quarters, through the platform's `same_companies` (`like_for_like`,
+  `LIKE_FOR_LIKE_PERIODS`): four years and 2,785 companies, four quarters
+  and 3,765, on 30 Sept 2026. The store keeps every period once seen, so
+  the span lengthens as results arrive; the page names the span from the
+  periods returned. Reaching five to ten years back needs older results
+  from another source (being researched, nothing loaded).
 - **Scans** (`src/routes/Scans.tsx`, reworked 2026-09-30) -- the named
   scans of `src/lib/scans.ts`, each a set of screener conditions, grouped
   by category, each card saying how many companies it finds today and

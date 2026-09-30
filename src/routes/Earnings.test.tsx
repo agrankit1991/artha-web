@@ -209,6 +209,78 @@ describe("EarningsPage", () => {
     expect(await screen.findByText("Revenue growth, quarter on quarter")).toBeInTheDocument();
   });
 
+  it("sums the same companies in every year when asked, and says so", async () => {
+    const fetched = stubPlatform({
+      "/api/earnings/sectors": { body: [] },
+      "/api/earnings/": {
+        bodyFor: (path) =>
+          path.includes("same_companies=true")
+            ? earnings({ companies: 2785, same_companies: true })
+            : earnings(),
+      },
+    });
+
+    renderPage(<EarningsPage />, { at: "/earnings?basis=same" });
+
+    // The span is the periods returned, not a fixed five years.
+    expect(
+      await screen.findByText(
+        /^The 2,785 companies with results in every year from Mar 2024 to Mar 2026/,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Same companies" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    const asked = fetched.mock.calls.map((call) => String(call[0]));
+    expect(asked).toContain("/api/earnings/companies/all?cadence=annual&same_companies=true");
+
+    await userEvent.click(screen.getByRole("button", { name: "All reporting" }));
+    await waitFor(() => {
+      expect(fetched.mock.calls.map((call) => String(call[0]))).toContain(
+        "/api/earnings/companies/all?cadence=annual",
+      );
+    });
+  });
+
+  it("names the same companies' span in quarters for the quarterly series", async () => {
+    stubPlatform({
+      "/api/earnings/sectors": { body: [] },
+      "/api/earnings/": {
+        body: earnings({
+          cadence: "quarterly",
+          companies: 3765,
+          same_companies: true,
+          periods: [
+            earningsPeriod({ period_end: "2026-06-30" }),
+            earningsPeriod({ period_end: "2025-12-31" }),
+          ],
+        }),
+      },
+    });
+
+    renderPage(<EarningsPage />, { at: "/earnings?basis=same&cadence=quarterly" });
+
+    expect(
+      await screen.findByText(
+        /^The 3,765 companies with results in every quarter from Dec 2025 to Jun 2026/,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("says when no company has results in every recent year", async () => {
+    stubPlatform({
+      "/api/earnings/sectors": { body: [] },
+      "/api/earnings/": { body: earnings({ companies: 0, same_companies: true, periods: [] }) },
+    });
+
+    renderPage(<EarningsPage />, { at: "/earnings?basis=same" });
+
+    expect(
+      await screen.findByText("No company has results in every recent period yet."),
+    ).toBeInTheDocument();
+  });
+
   it("opens on the cadence in its address", async () => {
     const fetched = stubPlatform({
       "/api/earnings/sectors": {

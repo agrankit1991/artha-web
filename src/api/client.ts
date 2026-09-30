@@ -2154,7 +2154,10 @@ export interface Earnings {
   scope_kind: ScopeKind;
   scope_key: string;
   cadence: Cadence;
+  /** How many companies the population holds; like for like, how many reported in every period summed. */
   companies: number;
+  /** Whether only the companies reporting in every one of the latest periods are summed. */
+  same_companies: boolean;
   periods: EarningsPeriod[];
 }
 
@@ -2174,14 +2177,20 @@ export interface SectorEarnings {
  * @param key - Which one; anything for the whole market.
  * @param cadence - Annual reaches back fifteen years; quarterly gives
  *   quarter-on-quarter and, where held, year-on-year.
+ * @param sameCompanies - Sum only the companies that reported in every one of the
+ *   latest periods, so growth compares like with like.
  * @returns The series, most recent first.
  */
 export function fetchEarnings(
   kind: "companies" | "sector" | "index",
   key: string,
   cadence: Cadence = "annual",
+  sameCompanies = false,
 ): Promise<Earnings> {
-  return request<Earnings>(`/api/earnings/${kind}/${encodeURIComponent(key)}?cadence=${cadence}`);
+  const like = sameCompanies ? "&same_companies=true" : "";
+  return request<Earnings>(
+    `/api/earnings/${kind}/${encodeURIComponent(key)}?cadence=${cadence}${like}`,
+  );
 }
 
 /**
