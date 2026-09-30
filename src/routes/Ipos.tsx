@@ -12,7 +12,9 @@
  *
  * Every offering arrives in one reply, so the searching and the narrowing
  * happen here and are instant. A year brings a few hundred offerings; the
- * whole set is a page's worth of text.
+ * whole set is a page's worth of text. The list, the search, the board,
+ * the industry and the order are kept in the address, so Back from an
+ * offering returns to the list it was chosen from.
  */
 
 import { useCallback, useMemo, useState } from "react";
@@ -23,7 +25,11 @@ import { Chooser } from "@/components/Chooser";
 import { type Column, DataTable } from "@/components/DataTable";
 import { Empty } from "@/components/Empty";
 import { Failed } from "@/components/Failed";
-import { BOARDS, IpoCard, STATUSES, minimumInvestment, priceBand } from "@/components/IpoCard";
+import { CardsLoading } from "@/components/CardsLoading";
+import { Delta } from "@/components/Delta";
+import { IpoCard } from "@/components/IpoCard";
+import { LoadMore } from "@/components/LoadMore";
+import { STATUSES } from "@/components/OfferingStatus";
 import { PageHeader } from "@/components/PageHeader";
 import { type Tab, Tabs } from "@/components/Tabs";
 import { ViewModeToggle, useViewMode } from "@/components/ViewModeToggle";
@@ -37,7 +43,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useResource } from "@/hooks/useResource";
-import { ABSENT, formatDay, formatMultiple, formatPrice, toNumber } from "@/lib/format";
+import { useSearchParam } from "@/hooks/useSearchParam";
+import {
+  ABSENT,
+  formatCrore,
+  formatDay,
+  formatMultiple,
+  formatRupees,
+  toNumber,
+} from "@/lib/format";
+import { BOARDS, listingGain, minimumInvestment, priceBand } from "@/lib/offerings";
 import { ipoPath } from "@/lib/paths";
 
 /** What each list is for. */
@@ -52,14 +67,15 @@ const HINTS: Record<IpoStatus, string> = {
 const ORDER: IpoStatus[] = ["OPEN", "UPCOMING", "CLOSED", "LISTED"];
 
 /** What the board filter offers, "any" first. */
-const BOARD_OPTIONS = [
+const BOARD_OPTIONS: readonly { key: "all" | IssueType; label: string }[] = [
   { key: "all", label: "All boards" },
   { key: "REGULAR", label: "Mainboard" },
   { key: "SME", label: "SME" },
-] as const;
+];
 
 /** What the lists can be ordered by. */
-type Order = "date" | "size" | "subscription" | "name";
+const ORDERS = ["date", "size", "subscription", "name"] as const;
+type Order = (typeof ORDERS)[number];
 
 /**
  * What the date order is called, and so what it means, on each list -- the
@@ -90,6 +106,13 @@ const LAYOUTS = ["cards", "list"] as const;
 const ANY = "all";
 
 /**
+ * How many cards are drawn before "Load more": six rows of two. A card is
+ * tall, and the listed offerings alone were a hundred and thirty-six of
+ * them on one page; the table stays whole, for scanning.
+ */
+const BATCH = 12;
+
+/**
  * Render the page.
  *
  * @param props - The day the page is read on, for how long bidding has left.
@@ -98,11 +121,15 @@ const ANY = "all";
 export function Ipos({ today = new Date() }: { today?: Date }): React.JSX.Element {
   const load = useCallback(() => fetchIpos(), []);
   const offerings = useResource(load);
-  const [showing, setShowing] = useState<IpoStatus>("OPEN");
-  const [typed, setTyped] = useState("");
-  const [board, setBoard] = useState<"all" | IssueType>("all");
-  const [industry, setIndustry] = useState(ANY);
-  const [order, setOrder] = useState<Order>("date");
+  // Each read from the address, and anything it does not know read as the default.
+  const [list, setList] = useSearchParam("list", "open");
+  const [typed, setTyped] = useSearchParam("q");
+  const [boardKey, setBoardKey] = useSearchParam("board", ANY);
+  const [industry, setIndustry] = useSearchParam("industry", ANY);
+  const [orderKey, setOrderKey] = useSearchParam("order", "date");
+  const showing = ORDER.find((one) => one.toLowerCase() === list) ?? "OPEN";
+  const board = BOARD_OPTIONS.find((one) => one.key.toLowerCase() === boardKey)?.key ?? "all";
+  const order = ORDERS.find((one) => one === orderKey) ?? "date";
   const [layout, setLayout] = useViewMode("ipos", "cards");
 
   const all = useMemo(() => offerings.data ?? [], [offerings.data]);
@@ -129,16 +156,20 @@ export function Ipos({ today = new Date() }: { today?: Date }): React.JSX.Elemen
   }, [all, typed, board, industry]);
 
   // Counted after the search rather than before it: a tab reading "Open 8"
-  // beside a filtered list of two is a count of something else.
+  // beside a filtered list of two is a count of something else. No count
+  // until the offerings arrive: "(0)" while loading says there are none.
+  const counted = offerings.data !== null;
   const tabs = useMemo<Tab<IpoStatus>[]>(
     () =>
       ORDER.map((status) => ({
         key: status,
-        label: `${STATUSES[status].label} (${String(
-          matching.filter((one) => one.status === status).length,
-        )})`,
+        label: counted
+          ? `${STATUSES[status].label} (${String(
+              matching.filter((one) => one.status === status).length,
+            )})`
+          : STATUSES[status].label,
       })),
-    [matching],
+    [matching, counted],
   );
 
   const shown = useMemo(
@@ -150,6 +181,12 @@ export function Ipos({ today = new Date() }: { today?: Date }): React.JSX.Elemen
       ),
     [matching, showing, order],
   );
+
+  // The cards drawn so far, for the list and filters they were grown under:
+  // any change there, Back included, starts again at one batch.
+  const asked = [showing, typed, board, industry, order].join("|");
+  const [grown, setGrown] = useState({ asked, count: BATCH });
+  const drawn = grown.asked === asked ? grown.count : BATCH;
 
   if (offerings.error !== null) {
     return <Failed message={offerings.error} />;
@@ -175,7 +212,14 @@ export function Ipos({ today = new Date() }: { today?: Date }): React.JSX.Elemen
             aria-label="Search offerings"
             className="max-w-sm"
           />
-          <Chooser options={BOARD_OPTIONS} chosen={board} onChange={setBoard} label="Board" />
+          <Chooser
+            options={BOARD_OPTIONS}
+            chosen={board}
+            onChange={(key) => {
+              setBoardKey(key.toLowerCase());
+            }}
+            label="Board"
+          />
           <Select value={industry} onValueChange={setIndustry}>
             <SelectTrigger className="w-[14rem]" aria-label="Industry">
               <SelectValue placeholder="All industries" />
@@ -195,14 +239,16 @@ export function Ipos({ today = new Date() }: { today?: Date }): React.JSX.Elemen
       <Tabs
         tabs={tabs}
         active={showing}
-        onChange={setShowing}
+        onChange={(status) => {
+          setList(status.toLowerCase());
+        }}
         label="Offerings"
         aside={
           <div className="flex flex-wrap items-center gap-3">
             <Chooser
               options={ordersFor(showing)}
               chosen={order}
-              onChange={setOrder}
+              onChange={setOrderKey}
               label="Order"
             />
             <ViewModeToggle mode={layout} onChange={setLayout} modes={LAYOUTS} />
@@ -215,9 +261,7 @@ export function Ipos({ today = new Date() }: { today?: Date }): React.JSX.Elemen
             <OfferingsTable offerings={shown} loading={offerings.loading} status={showing} />
           ) : offerings.loading && shown.length === 0 ? (
             <div className="grid gap-4 xl:grid-cols-2">
-              {[0, 1].map((one) => (
-                <div key={one} className="h-80 animate-pulse rounded-lg border bg-muted/40" />
-              ))}
+              <CardsLoading count={2} />
             </div>
           ) : shown.length === 0 ? (
             <Empty
@@ -229,11 +273,21 @@ export function Ipos({ today = new Date() }: { today?: Date }): React.JSX.Elemen
               }
             />
           ) : (
-            <div className="grid gap-4 xl:grid-cols-2">
-              {shown.map((one) => (
-                <IpoCard key={one.ipo_id} offering={one} today={today} />
-              ))}
-            </div>
+            <>
+              <div className="grid gap-4 xl:grid-cols-2">
+                {shown.slice(0, drawn).map((one) => (
+                  <IpoCard key={one.ipo_id} offering={one} today={today} />
+                ))}
+              </div>
+              <LoadMore
+                shown={Math.min(drawn, shown.length)}
+                total={shown.length}
+                noun="offerings"
+                onMore={() => {
+                  setGrown({ asked, count: drawn + BATCH });
+                }}
+              />
+            </>
           )}
         </div>
       </Tabs>
@@ -327,9 +381,9 @@ function OfferingsTable({
       },
       {
         id: "issue_size",
-        header: "Size (₹ cr)",
+        header: "Issue size",
         accessorFn: (row) => toNumber(row.issue_size) ?? 0,
-        cell: ({ row }) => formatPrice(row.original.issue_size),
+        cell: ({ row }) => formatCrore(row.original.issue_size),
         meta: { align: "right" },
       },
     ];
@@ -354,7 +408,7 @@ function OfferingsTable({
         accessorFn: (row) => minimumInvestment(row) ?? 0,
         cell: ({ row }) => {
           const least = minimumInvestment(row.original);
-          return least === null ? ABSENT : formatPrice(String(least));
+          return least === null ? ABSENT : formatRupees(String(least));
         },
         meta: { align: "right" },
       },
@@ -391,14 +445,21 @@ function OfferingsTable({
         id: "cut_off_price",
         header: "Priced at",
         accessorFn: (row) => toNumber(row.cut_off_price) ?? 0,
-        cell: ({ row }) => formatPrice(row.original.cut_off_price),
+        cell: ({ row }) => formatRupees(row.original.cut_off_price),
         meta: { align: "right" },
       },
       {
         id: "listing_price",
         header: "Opened at",
         accessorFn: (row) => toNumber(row.listing_price) ?? 0,
-        cell: ({ row }) => formatPrice(row.original.listing_price),
+        cell: ({ row }) => formatRupees(row.original.listing_price),
+        meta: { align: "right" },
+      },
+      {
+        id: "listing_gain",
+        header: "Listing gain",
+        accessorFn: (row) => toNumber(listingGain(row)) ?? Number.NEGATIVE_INFINITY,
+        cell: ({ row }) => <Delta value={listingGain(row.original)} />,
         meta: { align: "right" },
       },
     ];

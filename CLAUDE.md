@@ -456,6 +456,24 @@ fallback)`** (`src/hooks/useSearchParam.ts`): a value at its default is
   high" has a backtest the platform keeps, so the other four have no
   tested record on the site until they are written as platform
   strategies.
+- **Public offerings** (`src/routes/Ipos.tsx`, `src/routes/Ipo.tsx`,
+  reworked 2026-09-30): the list's card and the offering's own page are
+  built from the same parts (`OfferingSections`: badges, figures, the
+  subscription meter, details, documents), so the page, which draws the
+  dates as a timeline with each state in words, does not repeat them. The
+  figures follow the stage: band, lot and outlay before listing; the price
+  it was sold at, the price it opened at and the gain between once listed.
+  The arithmetic is `src/lib/offerings.ts`. `OfferingStatus` is the one
+  status badge, in teal and neutrals: open was once a rise's green and
+  closed caution's amber. The subscription meter is one colour either side
+  of 1x, marked, and says "oversubscribed" or "not fully taken up". **A
+  close in the past gets no countdown** even while the provider's status
+  still says open (its status can lag a day; the laptop's lags more): it
+  once said "Last day to bid" on offerings shut for days. The list, search,
+  board, industry and order are in the address (`?list=`, `?q=`,
+  `?board=`, `?industry=`, `?order=`); cards come twelve at a time with
+  Load more, since the listed ones alone were 136 cards; the table is
+  whole.
 - **Strategies** (`src/routes/Strategies.tsx`, `src/routes/Strategy.tsx`,
   2026-09-26, owner's request: "a place where I can create strategies and
   backtest them and see the instruments matching them") -- strategies are

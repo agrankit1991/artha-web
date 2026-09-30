@@ -17,6 +17,7 @@ import {
   formatPercentLevel,
   formatPercentTenths,
   formatPrice,
+  formatRupees,
   formatSignedPrice,
   formatSince,
   formatStreak,
@@ -185,6 +186,13 @@ describe("formatPercentLevel", () => {
     expect(formatPercentLevel("3.254")).toBe("3.25%");
     expect(formatPercentLevel("-0.5")).toBe("-0.50%");
     expect(formatPercentLevel(null)).toBe("-");
+  });
+});
+
+describe("formatRupees", () => {
+  it("writes a sum in rupees and paise, after the rupee sign", () => {
+    expect(formatRupees("14980")).toBe("₹14,980.00");
+    expect(formatRupees(null)).toBe("-");
   });
 });
 

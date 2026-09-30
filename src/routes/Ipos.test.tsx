@@ -38,6 +38,75 @@ describe("Ipos", () => {
     expect(screen.getByText("Minimum investment")).toBeInTheDocument();
   });
 
+  it("keeps the list, the search, the board and the order in the address", async () => {
+    stubPlatform({
+      "/api/ipos": {
+        body: [
+          offering({ status: "LISTED" }),
+          offering({ ipo_id: "sme", name: "Small Co IPO", status: "LISTED", issue_type: "SME" }),
+          offering({ ipo_id: "open", name: "Open Co IPO" }),
+        ],
+      },
+    });
+
+    renderPage(<Ipos today={TODAY} />, { at: "/ipos?list=listed&q=co&board=sme&order=name" });
+
+    expect(await screen.findByRole("tab", { name: "Listed (1)" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByLabelText("Search offerings")).toHaveValue("co");
+    expect(screen.getByRole("heading", { name: /Small Co IPO/ })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /Veegaland/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "By name" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("reads an address it does not know as the plain page", async () => {
+    stubPlatform({ "/api/ipos": { body: [offering()] } });
+
+    renderPage(<Ipos today={TODAY} />, { at: "/ipos?list=nonsense&board=x&order=y" });
+
+    expect(await screen.findByRole("tab", { name: "Open (1)" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "All boards" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("counts nothing until the offerings arrive, rather than saying none", async () => {
+    stubPlatform({ "/api/ipos": { body: [offering()] } });
+
+    renderPage(<Ipos today={TODAY} />);
+
+    expect(screen.getByRole("tab", { name: "Open" })).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "Open (1)" })).toBeInTheDocument();
+  });
+
+  it("draws the cards a batch at a time, starting again for another list", async () => {
+    const many = (status: "OPEN" | "LISTED"): ReturnType<typeof offering>[] =>
+      Array.from({ length: 13 }, (_, index) =>
+        offering({
+          ipo_id: `${status}-${String(index)}`,
+          name: `${status} ${String(index)} IPO`,
+          status,
+        }),
+      );
+    stubPlatform({ "/api/ipos": { body: [...many("OPEN"), ...many("LISTED")] } });
+    renderPage(<Ipos today={TODAY} />);
+    await screen.findByText("Showing 12 of 13 offerings");
+    expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(12);
+
+    await userEvent.click(screen.getByRole("button", { name: "Load more" }));
+    expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(13);
+    expect(screen.getByText("All 13 offerings shown")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("tab", { name: "Listed (13)" }));
+    expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(12);
+  });
+
   it("says how long an open offering has left", async () => {
     // Bidding closes on the 15th; read on the 12th, three days remain.
     stubPlatform({ "/api/ipos": { body: [offering()] } });
@@ -130,11 +199,11 @@ describe("Ipos", () => {
     stubPlatform({ "/api/ipos": { body: [offering()] } });
     renderPage(<Ipos today={TODAY} />);
     await screen.findByRole("heading", { name: /Veegaland/ });
-    expect(screen.getAllByText("14,980.00").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("₹14,980.00").length).toBeGreaterThan(0);
 
     const table = await asTable();
 
-    expect(within(table).getByText("14,980.00")).toBeInTheDocument();
+    expect(within(table).getByText("₹14,980.00")).toBeInTheDocument();
   });
 
   it("reads a listed offering by what it priced at and what it opened at", async () => {
@@ -150,8 +219,9 @@ describe("Ipos", () => {
 
     const table = await asTable();
 
-    expect(within(table).getByText("140.00")).toBeInTheDocument();
-    expect(within(table).getByText("181.50")).toBeInTheDocument();
+    expect(within(table).getByText("₹140.00")).toBeInTheDocument();
+    expect(within(table).getByText("₹181.50")).toBeInTheDocument();
+    expect(within(table).getByText("+29.64%")).toBeInTheDocument();
   });
 
   it("shows an offering yet to price rather than withholding it", async () => {
@@ -238,8 +308,8 @@ describe("Ipos", () => {
     renderPage(<Ipos today={TODAY} />);
     await screen.findByRole("heading", { name: /Veegaland/ });
 
-    expect(screen.getByText("72.00")).toBeInTheDocument();
-    expect(screen.queryByText(/72.00 - 72.00/)).not.toBeInTheDocument();
+    expect(screen.getByText("₹72.00")).toBeInTheDocument();
+    expect(screen.queryByText(/72.00 - /)).not.toBeInTheDocument();
   });
 
   it("says a list is empty and why", async () => {

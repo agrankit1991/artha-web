@@ -46,6 +46,16 @@ export function formatPrice(value: string | null | undefined): string {
 }
 
 /**
+ * Render a sum in rupees: `₹14,980.00`, a price, a band's end or an outlay.
+ *
+ * @param value - The sum.
+ * @returns Two decimal places, grouped, after the rupee sign; or a dash.
+ */
+export function formatRupees(value: string | null | undefined): string {
+  return toNumber(value) === null ? ABSENT : `₹${formatPrice(value)}`;
+}
+
+/**
  * Render a move in price or points, signed, as a header shows it beside
  * the percentage: `+312.45`.
  *
