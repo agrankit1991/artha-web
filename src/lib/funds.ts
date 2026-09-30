@@ -10,7 +10,7 @@
  */
 
 import type { RollingReturn, SchemeValue } from "@/api/client";
-import { toNumber } from "@/lib/format";
+import { ABSENT, toNumber } from "@/lib/format";
 
 /** A value on a day, parsed. */
 export interface Reading {
@@ -162,4 +162,79 @@ export function summariseRolling(rolling: RollingReturn[]): RollingSummary | nul
       ? (sorted[middle] ?? 0)
       : ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
   return { best, worst, median, positive: (positive / held.length) * 100 };
+}
+
+/** One calendar year's return. */
+export interface CalendarYear {
+  year: number;
+  /** The return over the year, in per cent. */
+  value: number;
+  /** Whether the year is still running: its return is to the latest value, not to December. */
+  toDate: boolean;
+}
+
+/**
+ * The return in each calendar year the values cover.
+ *
+ * A year runs from the last value of the year before to its own last
+ * value, so the first year in the values is left out: it has no year-end
+ * to start from, and a return from whatever day the window opened on is
+ * not that year's. The last year is marked to date unless its values reach
+ * the final week of December.
+ *
+ * @param held - The readings, oldest first.
+ * @returns Each year's return, oldest first.
+ */
+export function calendarYears(held: Reading[]): CalendarYear[] {
+  const closes = new Map<number, Reading>();
+  for (const one of held) {
+    closes.set(Number(one.day.slice(0, 4)), one);
+  }
+  const years = [...closes.keys()].sort((a, b) => a - b);
+  const last = years.at(-1);
+  return years.flatMap((year) => {
+    const before = closes.get(year - 1);
+    const close = closes.get(year);
+    if (before === undefined || close === undefined || before.value <= 0) {
+      return [];
+    }
+    return [
+      {
+        year,
+        value: (close.value / before.value - 1) * 100,
+        toDate: year === last && close.day < `${String(year)}-12-24`,
+      },
+    ];
+  });
+}
+
+/**
+ * AMFI's category label, shorn of its wrapper.
+ *
+ * "Open Ended Schemes(Equity Scheme - Large Cap Fund)" is "Large Cap Fund"
+ * to anybody reading a table; the wrapper is the same on nine schemes in
+ * ten and says nothing about this one.
+ *
+ * @param category - The label as published.
+ * @returns The part that distinguishes it, or a dash.
+ */
+export function shortCategory(category: string | null): string {
+  if (category === null) {
+    return ABSENT;
+  }
+  const inner = /\(([^)]*)\)/.exec(category)?.[1] ?? category;
+  return inner
+    .slice(inner.lastIndexOf(" - ") + 1)
+    .replace(/^- /, "")
+    .trim();
+}
+
+/**
+ * An option as a table says it: "Growth Option" is "Growth".
+ *
+ * @param option - The option as published.
+ * @returns The option without the word.
+ */
+export function shortOption(option: string): string {
+  return option.replace(/\s*option\s*$/i, "").trim();
 }

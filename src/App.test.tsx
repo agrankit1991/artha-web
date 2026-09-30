@@ -401,7 +401,7 @@ describe("App", () => {
 
     await userEvent.click(await screen.findByRole("link", { name: /Axis Bluechip/ }));
 
-    expect(await screen.findByText("NAV History")).toBeInTheDocument();
+    expect(await screen.findByText("NAV history")).toBeInTheDocument();
   });
 
   it("opens a population's own page from the breadth grid", async () => {

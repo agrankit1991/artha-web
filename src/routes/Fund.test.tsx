@@ -24,10 +24,15 @@ describe("Fund", () => {
     expect(
       await screen.findByText("Axis Bluechip Fund - Direct Plan - Growth"),
     ).toBeInTheDocument();
-    expect(screen.getAllByText("Direct Plan").length).toBeGreaterThan(0);
-    // Named twice on purpose: once as a badge and once among the facts
-    // that identify the scheme.
-    expect(screen.getAllByText("Axis Mutual Fund")).toHaveLength(2);
+    // The plan as the list says it, with what it costs explained.
+    expect(screen.getByText("Direct")).toBeInTheDocument();
+    expect(screen.getByText("Large Cap Fund")).toBeInTheDocument();
+    expect(screen.getByText("AMFI 120503")).toBeInTheDocument();
+    // Named once, in the header: the details no longer repeat its badges.
+    expect(screen.getAllByText("Axis Mutual Fund")).toHaveLength(1);
+    expect(
+      screen.getByText("Open Ended Schemes(Equity Scheme - Large Cap Fund)"),
+    ).toBeInTheDocument();
   });
 
   it("states its latest value and the day it is for", async () => {
@@ -92,13 +97,13 @@ describe("Fund", () => {
 
     renderPage(<Fund schemeCode="120503" />);
 
-    expect(await screen.findByText("Net Asset Value")).toBeInTheDocument();
+    expect(await screen.findByText("Net asset value")).toBeInTheDocument();
   });
 
   it("asks for more history when a longer span is chosen", async () => {
     const fetchMock = stubPlatform({ "/api/funds/120503": { body: fund() } });
     renderPage(<Fund schemeCode="120503" />);
-    await screen.findByText("NAV History");
+    await screen.findByText("NAV history");
 
     await userEvent.click(screen.getByRole("button", { name: "10Y" }));
 
@@ -133,18 +138,59 @@ describe("Fund", () => {
   it("opens on ten thousand rupees growing, with the other readings a tab away", async () => {
     stubPlatform({ "/api/funds/120503": { body: fund() } });
     renderPage(<Fund schemeCode="120503" />);
-    await screen.findByText("NAV History");
+    await screen.findByText("NAV history");
 
     expect(screen.getByRole("tab", { name: "Growth of ₹10,000" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
-    await userEvent.click(screen.getByRole("tab", { name: "Drawdown" }));
+    // How far below the peak is a pane under the growth, not a tab of its own.
+    expect(screen.queryByRole("tab", { name: "Drawdown" })).not.toBeInTheDocument();
     expect(screen.getByText(/below its highest point/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("tab", { name: "Rolling 1-year return" }));
     expect(screen.getByText(/as it stood on each day/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("tab", { name: "NAV" }));
     expect(screen.getByText(/One value a day/)).toBeInTheDocument();
+  });
+
+  it("draws each calendar year's return, the running one to date", async () => {
+    stubPlatform({
+      "/api/funds/120503": {
+        body: fund({
+          values: [
+            { nav_date: "2024-12-31", nav: "50.000000" },
+            { nav_date: "2025-12-31", nav: "45.000000" },
+            { nav_date: "2026-09-18", nav: "54.000000" },
+          ],
+        }),
+      },
+    });
+    renderPage(<Fund schemeCode="120503" />);
+
+    const years = await screen.findByRole("region", { name: "Calendar-year returns" });
+    // 2024 has no year-end before it here, so it is not drawn.
+    expect(within(years).queryByText("2024")).not.toBeInTheDocument();
+    expect(within(years).getByText("2025")).toBeInTheDocument();
+    expect(within(years).getByText("-10.00%")).toBeInTheDocument();
+    expect(within(years).getByText("2026 to date")).toBeInTheDocument();
+    expect(within(years).getByText("+20.00%")).toBeInTheDocument();
+  });
+
+  it("draws no calendar years from values that do not span a year-end", async () => {
+    stubPlatform({ "/api/funds/120503": { body: fund() } });
+    renderPage(<Fund schemeCode="120503" />);
+
+    await screen.findByText("NAV history");
+    expect(screen.queryByRole("region", { name: "Calendar-year returns" })).not.toBeInTheDocument();
+  });
+
+  it("holds each return's place while loading, rather than saying there is none", async () => {
+    stubPlatform({ "/api/funds/120503": { body: fund() } });
+    renderPage(<Fund schemeCode="120503" />);
+
+    expect(screen.queryByText("No history that far back")).not.toBeInTheDocument();
+    // Once loaded, the five-year window the fixture lacks says so.
+    expect(await screen.findByText("No history that far back")).toBeInTheDocument();
   });
 
   it("states where the value peaked, troughed and fell furthest", async () => {
@@ -161,19 +207,21 @@ describe("Fund", () => {
     stubPlatform({ "/api/funds/120503": { body: fund() } });
     renderPage(<Fund schemeCode="120503" />);
 
-    expect(await screen.findByText("Rolling One-Year Returns")).toBeInTheDocument();
-    expect(screen.getByText("Best year")).toBeInTheDocument();
-    expect(screen.getByText("Worst year")).toBeInTheDocument();
-    // Three positive years of three, said in the tile and among the facts.
-    expect(screen.getAllByText("100%")).toHaveLength(2);
+    expect(await screen.findByText("Rolling one-year returns")).toBeInTheDocument();
+    expect(screen.getByText("Best one-year return")).toBeInTheDocument();
+    expect(screen.getByText("Worst one-year return")).toBeInTheDocument();
+    // Three positive days of three, said as days: it was once called years.
+    expect(screen.getByText("100% of days")).toBeInTheDocument();
+    expect(screen.getByText("Days it was positive")).toBeInTheDocument();
+    expect(screen.queryByText(/Years positive/)).not.toBeInTheDocument();
   });
 
   it("says nothing of a rolling year for a scheme too young to have one", async () => {
     stubPlatform({ "/api/funds/120503": { body: fund({ rolling: [] }) } });
     renderPage(<Fund schemeCode="120503" />);
 
-    await screen.findByText("NAV History");
-    expect(screen.queryByText("Rolling One-Year Returns")).not.toBeInTheDocument();
+    await screen.findByText("NAV history");
+    expect(screen.queryByText("Rolling one-year returns")).not.toBeInTheDocument();
     expect(screen.getByText("Less than a year of values")).toBeInTheDocument();
   });
 
@@ -200,7 +248,17 @@ describe("Fund", () => {
     // Itself left out: a scheme is not similar to itself.
     expect(within(table).queryByText(/Axis Bluechip/)).not.toBeInTheDocument();
     const asked = fetchMock.mock.calls.map((call) => String(call[0]));
-    expect(asked.some((path) => path.includes("category=Open"))).toBe(true);
+    // The category's best over three years, not the first ten by name.
+    expect(
+      asked.some(
+        (path) =>
+          path.includes("category=Open") &&
+          path.includes("sort=three_years") &&
+          path.includes("order=desc"),
+      ),
+    ).toBe(true);
+    // Each with its plan, so a fund's direct and regular plans can be told apart.
+    expect(within(table).getByText("Direct")).toBeInTheDocument();
   });
 
   it("asks for no similar schemes when the scheme has no category", async () => {
@@ -209,8 +267,8 @@ describe("Fund", () => {
     });
     renderPage(<Fund schemeCode="120503" />);
 
-    await screen.findByText("NAV History");
-    expect(screen.queryByText("Similar Schemes")).not.toBeInTheDocument();
+    await screen.findByText("NAV history");
+    expect(screen.queryByText("Similar schemes")).not.toBeInTheDocument();
     const asked = fetchMock.mock.calls.map((call) => String(call[0]));
     expect(asked.some((path) => path.includes("category="))).toBe(false);
   });
@@ -222,7 +280,7 @@ describe("Fund", () => {
       },
     });
     renderPage(<Fund schemeCode="120503" />);
-    await screen.findByText("NAV History");
+    await screen.findByText("NAV history");
 
     await userEvent.click(screen.getByRole("tab", { name: "Rolling 1-year return" }));
 
@@ -232,7 +290,7 @@ describe("Fund", () => {
   it("offers a share card drawn from its own values", async () => {
     stubPlatform({ "/api/funds/120503": { body: fund() }, "/api/funds?": { body: schemePage() } });
     renderPage(<Fund schemeCode="120503" />);
-    await screen.findByText("Net Asset Value");
+    await screen.findByText("Net asset value");
 
     await userEvent.click(screen.getByRole("button", { name: "Share" }));
 

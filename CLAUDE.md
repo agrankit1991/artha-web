@@ -330,6 +330,11 @@ fallback)`** (`src/hooks/useSearchParam.ts`): a value at its default is
   limits, both from react-router: the setter changes with every address,
   so an effect that calls it compares before writing (News does); and two
   setters in one event do not compose, the second replacing the first.
+  **A table sorted by the platform keeps its sort in the address too**,
+  as `?sort=&order=`, through `useSortParams()` (`src/hooks/useSortParams.ts`,
+  2026-09-30): the column and its direction are written in one change,
+  which two `useSearchParam` setters cannot do. The screener and the
+  funds list use it; `DataTable`'s `serverSorting` takes what it returns.
 
 - **The overview** (`src/routes/Overview.tsx`) -- under a centred
   "Market Overview" title, the eight headline indices as cards in the
@@ -474,6 +479,27 @@ fallback)`** (`src/hooks/useSearchParam.ts`): a value at its default is
   `?board=`, `?industry=`, `?order=`); cards come twelve at a time with
   Load more, since the listed ones alone were 136 cards; the table is
   whole.
+- **Mutual funds** (`src/routes/Funds.tsx`, `src/routes/Fund.tsx`,
+  reworked 2026-09-30): the list keeps its search, fund house, category
+  and sort in the address (`?q=`, `?house=`, `?category=`, `?sort=`),
+  counts every match in its header, and shows a failure under the search
+  rather than instead of the page. The plan is said one way on both pages
+  (`SchemePlan`, "Direct" or "Regular" explained, then the option), the
+  category by `shortCategory` in `src/lib/funds.ts`. A scheme's page: the
+  header's badges are not repeated in its details; the returns are
+  `Delta`s with a placeholder while loading; the record is drawn larger,
+  with how far it sat below its peak as a pane under growth and NAV
+  rather than a tab; **calendar-year returns** as bars (`calendarYears`:
+  year-end to year-end, the first year in the window left out, the
+  running one "to date"), because the rolling line can hide the year a
+  fund lost money; similar schemes are the category's best over three
+  years, with their plans. **The rolling figures are about days, not
+  years:** "Years positive" was the share of days whose trailing year was
+  a gain, and is labelled so now. The platform read a scheme's returns
+  from exactly five years before today, so the five-year figure was blank
+  on the page's default view for every fund (the latest value is a day or
+  more behind today); fixed on the platform (`_REACH` in
+  `api/routes/funds.py`).
 - **Strategies** (`src/routes/Strategies.tsx`, `src/routes/Strategy.tsx`,
   2026-09-26, owner's request: "a place where I can create strategies and
   backtest them and see the instruments matching them") -- strategies are

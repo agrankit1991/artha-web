@@ -4,7 +4,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { Funds, shortCategory } from "./Funds";
+import { Funds } from "./Funds";
 import { fundScheme, renderPage, schemePage, stubPlatform } from "@/test/support";
 
 afterEach(() => {
@@ -195,6 +195,43 @@ describe("Funds", () => {
     renderPage(<Funds />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("The values are being rebuilt");
+    // The search stays, so a reader can change what failed.
+    expect(screen.getByLabelText("Search schemes")).toBeInTheDocument();
+    expect(screen.queryByText("No scheme matches that")).not.toBeInTheDocument();
+  });
+
+  it("reads the search, the filters and the order from the address", async () => {
+    const fetchMock = stubEverything();
+
+    renderPage(<Funds />, {
+      at: "/funds?q=bluechip&house=Axis%20Mutual%20Fund&category=Equity%20Scheme%20-%20Large%20Cap&sort=one_year&order=asc",
+    });
+
+    expect(screen.getByLabelText("Search schemes")).toHaveValue("bluechip");
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls.map((call) =>
+        decodeURIComponent(String(call[0])).replaceAll("+", " "),
+      );
+      expect(
+        asked.some(
+          (path) =>
+            path.startsWith("/api/funds?") &&
+            path.includes("text=bluechip") &&
+            path.includes("amc=Axis Mutual Fund") &&
+            path.includes("category=Equity Scheme - Large Cap") &&
+            path.includes("sort=one_year") &&
+            path.includes("order=asc"),
+        ),
+      ).toBe(true);
+    });
+  });
+
+  it("counts every scheme that matches, not the batch on screen", async () => {
+    stubEverything({ "/api/funds": { body: schemePage({ total: 1284 }) } });
+
+    renderPage(<Funds />);
+
+    expect(await screen.findByText("1,284 schemes")).toBeInTheDocument();
   });
 
   it("carries what each scheme has returned, coloured and sortable", async () => {
@@ -309,14 +346,5 @@ describe("Funds", () => {
 
     expect(within(table).getByText("Large Cap Fund")).toBeInTheDocument();
     expect(within(table).queryByText(/Open Ended Schemes/)).not.toBeInTheDocument();
-  });
-
-  it("shortens a category to the part that distinguishes it", () => {
-    expect(shortCategory("Open Ended Schemes(Equity Scheme - Large Cap Fund)")).toBe(
-      "Large Cap Fund",
-    );
-    expect(shortCategory("Close Ended Schemes ( Income )")).toBe("Income");
-    expect(shortCategory("Debt")).toBe("Debt");
-    expect(shortCategory(null)).toBe("-");
   });
 });

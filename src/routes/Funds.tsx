@@ -6,18 +6,18 @@
  * are closed-ended income schemes nobody goes looking for. So this page is
  * a search before it is a list: searched and narrowed at the platform, and
  * paged, because a list of twenty thousand is not a list anybody reads.
+ * The search, the filters and the order are kept in the address, so Back
+ * from a scheme returns to the list it was chosen from.
  */
 
-import type { SortingState } from "@tanstack/react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { FundSort, Scheme } from "@/api/client";
 import { fetchFundFilters, fetchFunds } from "@/api/client";
 import { type Column, DataTable } from "@/components/DataTable";
 import { Delta } from "@/components/Delta";
-import { Hint } from "@/components/Hint";
 import { LoadMore } from "@/components/LoadMore";
-import { Badge } from "@/components/ui/badge";
+import { SchemePlan } from "@/components/SchemePlan";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -30,7 +30,10 @@ import { useDebounced } from "@/hooks/useDebounced";
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
 import { useResource } from "@/hooks/useResource";
-import { ABSENT, formatDay, formatPrice } from "@/lib/format";
+import { useSearchParam } from "@/hooks/useSearchParam";
+import { useSortParams } from "@/hooks/useSortParams";
+import { ABSENT, formatCount, formatDay, formatPrice } from "@/lib/format";
+import { shortCategory } from "@/lib/funds";
 import { fundPath } from "@/lib/paths";
 
 /** How many schemes a batch holds. */
@@ -45,15 +48,15 @@ const ANY = "all";
  * @returns The page.
  */
 export function Funds(): React.JSX.Element {
-  const [typed, setTyped] = useState("");
-  const [category, setCategory] = useState(ANY);
-  const [amc, setAmc] = useState(ANY);
+  const [typed, setTyped] = useSearchParam("q");
+  const [category, setCategory] = useSearchParam("category", ANY);
+  const [amc, setAmc] = useSearchParam("house", ANY);
   const [offset, setOffset] = useState(0);
   const [shown, setShown] = useState<Scheme[]>([]);
   // Sorted by the platform across every scheme, not here across the few
   // loaded: "which fund returned most" is a question about all twenty
   // thousand, and a page of them cannot answer it.
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const [sorting, setSorting] = useSortParams();
   const text = useDebounced(typed);
   const order = sorting[0];
   // Column ids are the platform's sort names; only sortable columns can set one.
@@ -115,7 +118,7 @@ export function Funds(): React.JSX.Element {
         id: "plan",
         header: "Plan",
         enableSorting: false,
-        cell: ({ row }) => <PlanBadge scheme={row.original} />,
+        cell: ({ row }) => <SchemePlan scheme={row.original} />,
       },
       {
         id: "category",
@@ -150,16 +153,13 @@ export function Funds(): React.JSX.Element {
     [],
   );
 
-  if (funds.error !== null) {
-    return <Failed message={funds.error} />;
-  }
-
   return (
     <div className="space-y-6">
       <header className="space-y-4">
         <PageHeader
           kind="fund"
           title="Mutual Funds"
+          count={page === null ? undefined : `${formatCount(page.total)} schemes`}
           description="Every scheme AMFI publishes, with its latest value. A direct plan is the same fund without the distributor's commission, so the two are listed apart."
         />
         <div className="flex flex-wrap items-center gap-3">
@@ -189,28 +189,34 @@ export function Funds(): React.JSX.Element {
         </div>
       </header>
 
-      <DataTable
-        columns={columns}
-        rows={shown}
-        loading={funds.loading && shown.length === 0}
-        empty="No scheme matches that"
-        placeholderRows={8}
-        label="Schemes"
-        full
-        linkTo={(row) => fundPath(row.scheme_code)}
-        serverSorting={{ sorting, onSortingChange: setSorting }}
-      />
-
-      {page !== null && (
-        <LoadMore
-          shown={shown.length}
-          total={page.total}
-          loading={funds.loading}
-          noun="schemes"
-          onMore={() => {
-            setOffset(shown.length);
-          }}
-        />
+      {/* The search stays above a failure, so a reader can change what failed. */}
+      {funds.error !== null ? (
+        <Failed message={funds.error} />
+      ) : (
+        <>
+          <DataTable
+            columns={columns}
+            rows={shown}
+            loading={funds.loading && shown.length === 0}
+            empty="No scheme matches that"
+            placeholderRows={8}
+            label="Schemes"
+            full
+            linkTo={(row) => fundPath(row.scheme_code)}
+            serverSorting={{ sorting, onSortingChange: setSorting }}
+          />
+          {page !== null && (
+            <LoadMore
+              shown={shown.length}
+              total={page.total}
+              loading={funds.loading}
+              noun="schemes"
+              onMore={() => {
+                setOffset(shown.length);
+              }}
+            />
+          )}
+        </>
       )}
     </div>
   );
@@ -285,62 +291,4 @@ function returnsColumn(field: keyof Scheme["returns"], header: string): Column<S
       ),
     meta: { align: "right" },
   };
-}
-
-/**
- * The plan and the option as badges, with the plan explained.
- *
- * A direct plan is the same fund without the distributor's commission, so
- * the two differ by roughly a percent a year compounded, and a reader
- * comparing the two rows should know that the gap is the fee and not the
- * fund.
- */
-function PlanBadge({ scheme }: { scheme: Scheme }): React.JSX.Element {
-  if (scheme.plan === null) {
-    return <span className="text-muted-foreground">{ABSENT}</span>;
-  }
-  const direct = scheme.plan.toLowerCase().includes("direct");
-  return (
-    <span className="flex flex-wrap items-center gap-1">
-      <Hint
-        term={direct ? "a direct plan" : "a regular plan"}
-        text={
-          direct
-            ? "Bought from the fund house directly, with no distributor's commission. The same fund as the regular plan, roughly a percent a year cheaper, compounded."
-            : "Bought through a distributor, whose commission comes out of the fund each year. The direct plan of the same fund is roughly a percent a year cheaper."
-        }
-      >
-        <Badge variant={direct ? "secondary" : "outline"}>{direct ? "Direct" : "Regular"}</Badge>
-      </Hint>
-      {scheme.option !== null && (
-        <span className="text-xs text-muted-foreground">{shortOption(scheme.option)}</span>
-      )}
-    </span>
-  );
-}
-
-/**
- * AMFI's category label, shorn of its wrapper.
- *
- * "Open Ended Schemes(Equity Scheme - Large Cap Fund)" is "Large Cap Fund"
- * to anybody reading a table; the wrapper is the same on nine schemes in
- * ten and says nothing about this one.
- *
- * @param category - The label as published.
- * @returns The part that distinguishes it, or a dash.
- */
-export function shortCategory(category: string | null): string {
-  if (category === null) {
-    return ABSENT;
-  }
-  const inner = /\(([^)]*)\)/.exec(category)?.[1] ?? category;
-  return inner
-    .slice(inner.lastIndexOf(" - ") + 1)
-    .replace(/^- /, "")
-    .trim();
-}
-
-/** "Growth Option" is "Growth" in a table. */
-function shortOption(option: string): string {
-  return option.replace(/\s*option\s*$/i, "").trim();
 }

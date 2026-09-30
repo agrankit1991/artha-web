@@ -4,11 +4,13 @@
  * A fund has no price chart in the sense the rest of this site means one.
  * There are no sessions, no high and low, no volume -- a fund publishes
  * one value a day and that is the whole of its record. So the page reads
- * that one series four ways: as ten thousand rupees growing, as the value
- * itself, as how far it sat below its own peak, and as the one-year return
- * on every day it could be measured. The last is the one that says what
- * kind of holding it has been: a single trailing return is one draw, the
- * rolling series is the distribution.
+ * that one series several ways: as ten thousand rupees growing (or the
+ * value itself) with how far it sat below its own peak drawn underneath,
+ * since the two are read together; as the return in each calendar year;
+ * and as the one-year return on every day it could be measured. The last
+ * says what kind of holding it has been: a single trailing return is one
+ * draw, the rolling series is the distribution. The calendar years say
+ * what the rolling line can hide: the year a fund lost money.
  */
 
 import { useCallback, useMemo, useState } from "react";
@@ -19,12 +21,14 @@ import { Chart, type Series } from "@/components/Chart";
 import { Chooser } from "@/components/Chooser";
 import { type Column, DataTable } from "@/components/DataTable";
 import { Delta } from "@/components/Delta";
+import { DivergingBars } from "@/components/DivergingBars";
 import { FactList } from "@/components/FactList";
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
+import { SchemePlan } from "@/components/SchemePlan";
 import { ShareButton } from "@/components/ShareButton";
 import { SectionHeader } from "@/components/SectionHeader";
-import { StatTile } from "@/components/StatTile";
+import { StatGrid, StatTile } from "@/components/StatTile";
 import { type Tab, Tabs } from "@/components/Tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,14 +39,15 @@ import { ABSENT, formatDay, formatPercent, formatPrice, toNumber } from "@/lib/f
 import {
   STAKE,
   type Reading,
+  calendarYears,
   drawdown,
   extremes,
   growthOfStake,
   readings,
+  shortCategory,
   summariseRolling,
 } from "@/lib/funds";
 import { fundPath } from "@/lib/paths";
-import { shortCategory } from "@/routes/Funds";
 
 interface FundProps {
   /** AMFI's identifier for the scheme. */
@@ -60,28 +65,32 @@ const SPANS = [
 
 const DEFAULT_SPAN = "5";
 
-/** The four readings of one series. */
 /** A month of published values: about as many as trading sessions in one. */
 const MONTH_OF_VALUES = 22;
 
-type View = "growth" | "nav" | "drawdown" | "rolling";
+/** The readings of one series; the drawdown is a pane under the first two, not one of them. */
+type View = "growth" | "nav" | "rolling";
 
 const VIEWS: Tab<View>[] = [
   { key: "growth", label: "Growth of ₹10,000" },
   { key: "nav", label: "NAV" },
-  { key: "drawdown", label: "Drawdown" },
   { key: "rolling", label: "Rolling 1-year return" },
 ];
 
+/** What falling below the peak means, said under both readings that draw it. */
+const BELOW_PEAK =
+  "Underneath, how far the value sat below its highest point to date: nought is a new high, and the deepest point is the worst a holder who bought at the wrong moment sat through.";
+
 /** What each reading answers, said under the section title. */
 const DESCRIPTIONS: Record<View, string> = {
-  growth: `What ₹${STAKE.toLocaleString("en-IN")} put in on the first day of the window would be worth since.`,
-  nav: "One value a day, as published. A fund has no sessions, no high and low and no volume - this is the whole of its record.",
-  drawdown:
-    "How far the value sat below its highest point to date. Nought is a new high; the deepest point is the worst a holder who bought at the wrong moment sat through.",
+  growth: `What ₹${STAKE.toLocaleString("en-IN")} put in on the first day of the window would be worth since. ${BELOW_PEAK}`,
+  nav: `One value a day, as published: a fund has no sessions, no high and low and no volume. ${BELOW_PEAK}`,
   rolling:
     "The one-year return as it stood on each day. Where the line spends its time says more than where it ends.",
 };
+
+/** The main plot's height: the record is the page's centre, so it is drawn larger than the default. */
+const RECORD_HEIGHT = 420;
 
 /** How many similar schemes to show. */
 const SIMILAR = 10;
@@ -105,7 +114,11 @@ export function Fund({ schemeCode }: FundProps): React.JSX.Element {
 
   const loadSimilar = useCallback(
     () =>
-      category === null ? Promise.resolve(null) : fetchFunds({ category, limit: SIMILAR + 1 }),
+      category === null
+        ? Promise.resolve(null)
+        : // The category's best over three years, the horizon funds are
+          // compared on; the first ten by name said nothing about the fund.
+          fetchFunds({ category, sort: "three_years", descending: true, limit: SIMILAR + 1 }),
     [category],
   );
   const similar = useResource(loadSimilar);
@@ -115,6 +128,7 @@ export function Fund({ schemeCode }: FundProps): React.JSX.Element {
   const series = useMemo<Series[]>(() => drawn(view, rolling, held), [view, rolling, held]);
   const range = useMemo(() => extremes(held), [held]);
   const rolled = useMemo(() => summariseRolling(fund.data?.rolling ?? []), [fund.data]);
+  const years = useMemo(() => calendarYears(held), [held]);
 
   if (fund.error !== null) {
     return <Failed message={fund.error} />;
@@ -128,13 +142,17 @@ export function Fund({ schemeCode }: FundProps): React.JSX.Element {
         kind="fund"
         title={scheme?.name ?? schemeCode}
         badges={
-          <>
-            {scheme?.amc != null && <Badge variant="secondary">{scheme.amc}</Badge>}
-            {scheme?.plan != null && <Badge variant="outline">{scheme.plan}</Badge>}
-            {scheme?.option != null && <Badge variant="outline">{scheme.option}</Badge>}
-          </>
+          scheme !== null && (
+            <>
+              {scheme.amc !== null && <Badge variant="secondary">{scheme.amc}</Badge>}
+              <SchemePlan scheme={scheme} />
+              {scheme.category !== null && (
+                <Badge variant="outline">{shortCategory(scheme.category)}</Badge>
+              )}
+            </>
+          )
         }
-        identifiers={scheme?.category != null && <span>{scheme.category}</span>}
+        identifiers={<span>AMFI {schemeCode}</span>}
         actions={
           scheme !== null && (
             <ShareButton
@@ -155,31 +173,33 @@ export function Fund({ schemeCode }: FundProps): React.JSX.Element {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <StatGrid className="sm:grid-cols-3 lg:grid-cols-6">
         <StatTile
-          label="Net Asset Value"
+          label="Net asset value"
           value={formatPrice(scheme?.nav ?? null)}
-          hint={`As of ${formatDay(scheme?.nav_date ?? null)}`}
+          loading={found === null}
+          {...(scheme === null ? {} : { hint: `As of ${formatDay(scheme.nav_date)}` })}
         />
-        <Window label="1 month" value={found?.returns.one_month ?? null} />
-        <Window label="3 months" value={found?.returns.three_months ?? null} />
-        <Window label="1 year" value={found?.returns.one_year ?? null} />
-        <Window label="3 years" value={found?.returns.three_years ?? null} annualised />
-        <Window label="5 years" value={found?.returns.five_years ?? null} annualised />
-      </div>
+        <Window label="1 month" value={found?.returns.one_month} />
+        <Window label="3 months" value={found?.returns.three_months} />
+        <Window label="1 year" value={found?.returns.one_year} />
+        <Window label="3 years" value={found?.returns.three_years} annualised />
+        <Window label="5 years" value={found?.returns.five_years} annualised />
+      </StatGrid>
 
       <section className="space-y-3" aria-labelledby="record-heading">
         <SectionHeader
           id="record-heading"
           icon={MARKS.performance}
-          title="NAV History"
+          title="NAV history"
           description={DESCRIPTIONS[view]}
           actions={<Chooser options={SPANS} chosen={span} onChange={setSpan} label="History" />}
         />
         <Tabs tabs={VIEWS} active={view} onChange={setView} label="Reading">
           <Chart
             series={series}
-            scale={view === "growth" || view === "nav" ? "price" : "percent"}
+            scale={view === "rolling" ? "percent" : "price"}
+            height={RECORD_HEIGHT}
             loading={fund.loading}
             empty="No values published for this scheme"
           />
@@ -202,24 +222,47 @@ export function Fund({ schemeCode }: FundProps): React.JSX.Element {
             label="Deepest fall from a peak"
             value={formatPercent(String(range.deepest.value))}
             hint={`Bottomed ${formatDay(range.deepest.day)}`}
-            className="text-loss"
           />
+          {/* Days, not years: the share of days whose trailing year was a gain.
+              It was labelled "Years positive", which it never measured. */}
           <StatTile
-            label="Years positive"
-            value={rolled === null ? ABSENT : `${rolled.positive.toFixed(0)}%`}
+            label="Positive one-year returns"
+            value={rolled === null ? ABSENT : `${rolled.positive.toFixed(0)}% of days`}
             hint={
               rolled === null
                 ? "Less than a year of values"
-                : `of days, rolling one year; median ${formatPercent(String(rolled.median))}`
+                : `Median one-year return ${formatPercent(String(rolled.median))}`
             }
           />
         </div>
       )}
 
+      {years.length > 0 && (
+        <section className="space-y-3" aria-labelledby="years-heading">
+          <SectionHeader
+            id="years-heading"
+            icon={MARKS.returns}
+            title="Calendar-year returns"
+            description="Each calendar year in the window, from one year-end to the next, and the running year to date. The rolling line can hide the year a fund lost money; this cannot."
+          />
+          <Card>
+            <CardContent>
+              <DivergingBars
+                label="Return in each calendar year"
+                rows={years.map((one) => ({
+                  label: one.toDate ? `${String(one.year)} to date` : String(one.year),
+                  value: one.value,
+                }))}
+              />
+            </CardContent>
+          </Card>
+        </section>
+      )}
+
       {rolled !== null && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Rolling One-Year Returns</CardTitle>
+            <CardTitle className="text-base">Rolling one-year returns</CardTitle>
             <CardDescription>
               The one-year return on every day it could be measured. A trailing figure is one draw;
               this is the distribution it was drawn from, and it says what kind of holding the fund
@@ -231,7 +274,7 @@ export function Fund({ schemeCode }: FundProps): React.JSX.Element {
               columns={2}
               facts={[
                 {
-                  label: "Best year",
+                  label: "Best one-year return",
                   value: (
                     <span>
                       <Delta value={String(rolled.best.value)} />{" "}
@@ -242,7 +285,7 @@ export function Fund({ schemeCode }: FundProps): React.JSX.Element {
                   ),
                 },
                 {
-                  label: "Worst year",
+                  label: "Worst one-year return",
                   value: (
                     <span>
                       <Delta value={String(rolled.worst.value)} />{" "}
@@ -252,8 +295,11 @@ export function Fund({ schemeCode }: FundProps): React.JSX.Element {
                     </span>
                   ),
                 },
-                { label: "Median year", value: <Delta value={String(rolled.median)} /> },
-                { label: "Share of years positive", value: `${rolled.positive.toFixed(0)}%` },
+                {
+                  label: "Median one-year return",
+                  value: <Delta value={String(rolled.median)} />,
+                },
+                { label: "Days it was positive", value: `${rolled.positive.toFixed(0)}%` },
               ]}
             />
           </CardContent>
@@ -265,12 +311,12 @@ export function Fund({ schemeCode }: FundProps): React.JSX.Element {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <MARKS.peers aria-hidden="true" className="h-4 w-4 text-primary" />
-              Similar Schemes
+              Similar schemes
             </CardTitle>
             <CardDescription>
-              Other schemes in {shortCategory(category)}, with what they have returned. The direct
-              and regular plans of one fund sit side by side here, which is the cleanest view of
-              what a distributor&rsquo;s commission costs.
+              The schemes in {shortCategory(category)} that have returned most over three years, a
+              year. A fund&rsquo;s direct and regular plans can sit side by side here, which is the
+              cleanest view of what a distributor&rsquo;s commission costs.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -284,17 +330,14 @@ export function Fund({ schemeCode }: FundProps): React.JSX.Element {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Scheme Details</CardTitle>
+          <CardTitle className="text-base">Scheme details</CardTitle>
         </CardHeader>
         <CardContent>
+          {/* The fund house, plan, option and short category are the header's badges. */}
           <FactList
             columns={2}
             facts={[
-              { label: "AMFI scheme code", value: scheme?.scheme_code ?? null },
-              { label: "Fund house", value: scheme?.amc ?? null },
-              { label: "Category", value: scheme?.category ?? null },
-              { label: "Plan", value: scheme?.plan ?? null },
-              { label: "Option", value: scheme?.option ?? null },
+              { label: "AMFI category", value: scheme?.category ?? null },
               { label: "Growth ISIN", value: scheme?.isin_growth ?? null },
               { label: "Reinvestment ISIN", value: scheme?.isin_reinvestment ?? null },
             ]}
@@ -326,6 +369,7 @@ function drawn(view: View, rolling: RollingReturn[], held: Reading[]): Series[] 
           colour: PRICE_LINE,
           points: growthOfStake(held).map((one) => ({ time: one.day, value: one.value })),
         },
+        belowPeak(held),
       ];
     case "nav":
       return [
@@ -336,15 +380,7 @@ function drawn(view: View, rolling: RollingReturn[], held: Reading[]): Series[] 
           width: PRICE_WIDTH,
           points: held.map((one) => ({ time: one.day, value: one.value })),
         },
-      ];
-    case "drawdown":
-      return [
-        {
-          kind: "area",
-          label: "Below peak",
-          colour: DRAWDOWN,
-          points: drawdown(held).map((one) => ({ time: one.day, value: one.value })),
-        },
+        belowPeak(held),
       ];
     case "rolling": {
       const points = rolling.flatMap((one) => {
@@ -368,11 +404,29 @@ function drawn(view: View, rolling: RollingReturn[], held: Reading[]): Series[] 
 }
 
 /**
+ * How far below its peak the value sat, as a pane under the main plot.
+ *
+ * @param held - The values, oldest first.
+ * @returns The series, in per cent, in the first pane under the plot.
+ */
+function belowPeak(held: Reading[]): Series {
+  return {
+    kind: "area",
+    label: "Below peak",
+    colour: DRAWDOWN,
+    pane: 1,
+    scale: "percent",
+    points: drawdown(held).map((one) => ({ time: one.day, value: one.value })),
+  };
+}
+
+/**
  * One window's return, as a tile.
  *
  * The long windows are yearly rates, which is how funds are compared, and
  * the tile says so rather than leaving a three-year figure to be read as a
- * total. A window the scheme has no history for is blank, with the reason.
+ * total. A window the scheme has no history for is blank, with the reason;
+ * one still on its way is a placeholder, not that reason.
  */
 function Window({
   label,
@@ -380,19 +434,24 @@ function Window({
   annualised = false,
 }: {
   label: string;
-  value: string | null;
+  /** The return; null when the scheme has no history that far back, undefined while it loads. */
+  value: string | null | undefined;
   annualised?: boolean;
 }): React.JSX.Element {
-  return (
-    <StatTile
-      label={label}
-      value={value === null ? ABSENT : formatPercent(value)}
-      {...(value === null
+  const hint =
+    value === undefined
+      ? {}
+      : value === null
         ? { hint: "No history that far back" }
         : annualised
           ? { hint: "Yearly rate" }
-          : {})}
-      className={value === null ? "" : Number(value) < 0 ? "text-loss" : "text-gain"}
+          : {};
+  return (
+    <StatTile
+      label={label}
+      value={value == null ? ABSENT : <Delta value={value} />}
+      loading={value === undefined}
+      {...hint}
     />
   );
 }
@@ -413,6 +472,12 @@ function Similar({ schemes, loading }: { schemes: Scheme[]; loading: boolean }):
             </div>
           </div>
         ),
+      },
+      {
+        id: "plan",
+        header: "Plan",
+        enableSorting: false,
+        cell: ({ row }) => <SchemePlan scheme={row.original} />,
       },
       returnColumn("one_year", "1Y"),
       returnColumn("three_years", "3Y p.a."),

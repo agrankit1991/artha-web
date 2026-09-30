@@ -2,7 +2,16 @@
 
 import { describe, expect, it } from "vitest";
 
-import { drawdown, extremes, growthOfStake, readings, summariseRolling } from "./funds";
+import {
+  calendarYears,
+  drawdown,
+  extremes,
+  growthOfStake,
+  readings,
+  shortCategory,
+  shortOption,
+  summariseRolling,
+} from "./funds";
 
 const HELD = readings([
   { nav_date: "2026-01-01", nav: "100" },
@@ -95,5 +104,53 @@ describe("summariseRolling", () => {
 
   it("has nothing to say of a scheme younger than a year", () => {
     expect(summariseRolling([])).toBeNull();
+  });
+});
+
+describe("labels", () => {
+  it("shortens a category to the part that distinguishes it", () => {
+    expect(shortCategory("Open Ended Schemes(Equity Scheme - Large Cap Fund)")).toBe(
+      "Large Cap Fund",
+    );
+    expect(shortCategory("Close Ended Schemes ( Income )")).toBe("Income");
+    expect(shortCategory("Debt")).toBe("Debt");
+    expect(shortCategory(null)).toBe("-");
+  });
+
+  it("says an option without the word", () => {
+    expect(shortOption("Growth Option")).toBe("Growth");
+    expect(shortOption("IDCW")).toBe("IDCW");
+  });
+});
+
+describe("calendarYears", () => {
+  const at = (day: string, value: number) => ({ day, value });
+
+  it("measures each year from the last value of the one before", () => {
+    const years = calendarYears([
+      at("2023-06-01", 90),
+      at("2023-12-29", 100),
+      at("2024-12-31", 120),
+      at("2025-12-31", 108),
+      at("2026-09-25", 113.4),
+    ]);
+
+    // 2023 has no year-end before it in the values, so it is left out.
+    expect(years.map((one) => one.year)).toEqual([2024, 2025, 2026]);
+    expect(years[0]?.value).toBeCloseTo(20, 9);
+    expect(years[1]?.value).toBeCloseTo(-10, 9);
+    expect(years[2]).toMatchObject({ year: 2026, toDate: true });
+    expect(years[2]?.value).toBeCloseTo(5, 9);
+    expect(years[0]?.toDate).toBe(false);
+  });
+
+  it("calls a last year whole once its values reach late December", () => {
+    const years = calendarYears([at("2024-12-31", 100), at("2025-12-26", 110)]);
+    expect(years).toEqual([{ year: 2025, value: expect.closeTo(10, 9) as number, toDate: false }]);
+  });
+
+  it("skips a year a gap in the values leaves without a start", () => {
+    expect(calendarYears([at("2022-12-30", 100), at("2024-12-31", 130)])).toEqual([]);
+    expect(calendarYears([])).toEqual([]);
   });
 });

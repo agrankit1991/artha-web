@@ -61,6 +61,7 @@ import {
 } from "@/components/ui/select";
 import { useDebounced } from "@/hooks/useDebounced";
 import { useResource } from "@/hooks/useResource";
+import { useSortParams } from "@/hooks/useSortParams";
 import {
   SCANS,
   type Scan,
@@ -118,8 +119,11 @@ export function Screener(): React.JSX.Element {
   // The whole screen is read from the address bar, so it is a link.
   const scope = useMemo<Scope>(() => scopeOf(params), [params]);
   const conditions = useMemo(() => params.getAll("where").map(parse), [params]);
-  const sort = params.get("sort");
-  const order: "asc" | "desc" = params.get("order") === "asc" ? "asc" : "desc";
+  // The table's sort is the screen's: the column clicked and its direction
+  // go into the address and the platform sorts every match, not the page.
+  const [sorting, writeSorting] = useSortParams();
+  const sort = sorting[0]?.id ?? null;
+  const order: "asc" | "desc" = sorting[0]?.desc === false ? "asc" : "desc";
 
   const loadFields = useCallback(() => fetchScreenFields(), []);
   const loadScopes = useCallback(() => fetchScopes(), []);
@@ -206,24 +210,9 @@ export function Screener(): React.JSX.Element {
     });
   }, [conditions, sort, byName]);
   const columns = useMemo(() => columnsFor(shownFields), [shownFields]);
-  // The table's sort is the screen's: the column clicked and its direction
-  // go into the address and the platform sorts every match, not the page.
-  const sorting = useMemo<SortingState>(
-    () => (sort === null ? [] : [{ id: sort, desc: order === "desc" }]),
-    [sort, order],
-  );
   const setSorting = (updater: Updater<SortingState>): void => {
-    const next = typeof updater === "function" ? updater(sorting) : updater;
-    const [first] = next;
-    update((query) => {
-      if (first === undefined) {
-        query.delete("sort");
-        query.delete("order");
-      } else {
-        query.set("sort", first.id);
-        query.set("order", first.desc ? "desc" : "asc");
-      }
-    });
+    writeSorting(updater);
+    setLimit(PAGE);
   };
 
   if (fields.error !== null) {
