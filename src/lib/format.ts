@@ -352,6 +352,18 @@ export function todayInIndia(now: Date = new Date()): string {
 }
 
 /**
+ * Render the day a moment fell on in India: a run at 02:00 IST on the 27th
+ * is stored as the 26th in UTC, and its date sliced off the timestamp
+ * would say so.
+ *
+ * @param moment - A timestamp, as the platform sends one.
+ * @returns The day, written as `formatDay` writes one.
+ */
+export function formatDayInIndia(moment: string): string {
+  return formatDay(todayInIndia(new Date(moment)));
+}
+
+/**
  * A message as a sentence: the platform writes its reasons in lower case
  * ("email or password is wrong"), and a page shows them as sentences.
  *

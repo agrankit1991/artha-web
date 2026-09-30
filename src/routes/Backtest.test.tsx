@@ -46,7 +46,7 @@ const SORTABLE: [string, RegExp[]][] = [
     "Years",
     [
       /^Year/,
-      /^Playbook/,
+      /^Strategy/,
       /^Index/,
       /^Lead/,
       /^Worst fall/,
@@ -94,7 +94,10 @@ describe("Backtest", () => {
     const verdict = await screen.findByRole("region", { name: "Verdict" });
     expect(within(verdict).getByText("Out of sample")).toBeInTheDocument();
     expect(within(verdict).getByText("+12.9 pp")).toBeInTheDocument();
-    expect(within(verdict).getByText("random picks: +13.1%")).toBeInTheDocument();
+    // The edge is measured from the median start day, and the hint says so.
+    expect(
+      within(verdict).getByText("Median start day +26.1% against random picks' +13.1%"),
+    ).toBeInTheDocument();
     expect(fetched).toHaveBeenCalledWith("/api/backtests/7", expect.anything());
 
     const periods = screen.getByRole("table", { name: "Periods" });

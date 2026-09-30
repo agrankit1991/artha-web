@@ -2,9 +2,10 @@
  * A strategy's latest finished backtest: its verdict, and the companies it
  * would hold today.
  *
- * The verdict comes with the strategy; the picks are read from the kept
- * backtest itself, the same record the Backtests page shows whole, so what
- * this page lists and what that page lists cannot differ.
+ * Both are read from the kept backtest itself, the same record the
+ * Backtests page shows whole, and drawn by the same verdict tiles, so what
+ * this page says and what that page says cannot differ: the period judged
+ * on and its dates come from the record, not from copy.
  */
 
 import { ArrowRight } from "lucide-react";
@@ -13,12 +14,12 @@ import { Link } from "react-router-dom";
 
 import { type StrategyResult, fetchBacktest } from "@/api/client";
 import { BacktestPicksPanel } from "@/components/BacktestPicks";
+import { VerdictTiles, periodName, verdictPeriod } from "@/components/BacktestVerdict";
 import { SectionHeader } from "@/components/SectionHeader";
-import { StatGrid, StatTile } from "@/components/StatTile";
 import { Button } from "@/components/ui/button";
 import { useResource } from "@/hooks/useResource";
-import { percent, points } from "@/lib/backtestFigures";
-import { formatSince, sentence } from "@/lib/format";
+import { benchmarkName } from "@/lib/backtestFigures";
+import { formatDay, formatSince, sentence } from "@/lib/format";
 import { backtestPath } from "@/lib/paths";
 
 interface StrategyResultProps {
@@ -35,13 +36,18 @@ export function StrategyResultPanel({ result }: StrategyResultProps): React.JSX.
   const load = useCallback(() => fetchBacktest(result.backtest_id), [result.backtest_id]);
   const backtest = useResource(load);
   const picks = backtest.data?.picks ?? null;
+  const verdict = backtest.data === null ? undefined : verdictPeriod(backtest.data.periods);
+  const judged =
+    verdict === undefined
+      ? ""
+      : ` ${periodName(verdict)}: ${formatDay(verdict.first_session)} - ${formatDay(verdict.last_session)}.`;
 
   return (
     <div className="space-y-6">
       <section aria-label="Verdict" className="space-y-3">
         <SectionHeader
           title="Latest backtest"
-          description={`Run ${formatSince(result.run_at)}. Out of sample is from 2018, after the years the settings could have been chosen on.`}
+          description={`Run ${formatSince(result.run_at)}.${judged}`}
           actions={
             <Button variant="outline" size="sm" asChild>
               <Link to={backtestPath(result.backtest_id)}>
@@ -50,25 +56,21 @@ export function StrategyResultPanel({ result }: StrategyResultProps): React.JSX.
             </Button>
           }
         />
-        <StatGrid>
-          <StatTile label="CAGR, out of sample" value={percent(result.out_of_sample_cagr)} />
-          <StatTile
-            label="Edge over random picks"
-            value={points(result.out_of_sample_edge)}
-            hint="out of sample"
+        {backtest.error !== null ? (
+          <p className="text-sm text-destructive">{sentence(backtest.error)}</p>
+        ) : (
+          <VerdictTiles
+            period={verdict}
+            index={backtest.data === null ? "" : benchmarkName(backtest.data.benchmark)}
           />
-          <StatTile label="CAGR, whole stretch" value={percent(result.cagr)} />
-          <StatTile label="Max drawdown" value={percent(result.max_drawdown)} />
-        </StatGrid>
+        )}
       </section>
       <section aria-label="Picks today" className="space-y-3">
         <SectionHeader
           title="Picks today"
           description="The companies it would hold on the last session of its history."
         />
-        {backtest.error !== null ? (
-          <p className="text-sm text-destructive">{sentence(backtest.error)}</p>
-        ) : picks !== null ? (
+        {backtest.error !== null ? null : picks !== null ? (
           <BacktestPicksPanel picks={picks} />
         ) : (
           !backtest.loading && (

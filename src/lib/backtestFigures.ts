@@ -71,3 +71,21 @@ export function count(value: number | null | undefined, unit: string): string {
     ? ABSENT
     : `${String(value)} ${unit}${value === 1 ? "" : "s"}`;
 }
+
+/** What each index a backtest is measured against is called. */
+const BENCHMARKS: Readonly<Record<string, string>> = {
+  nifty50: "Nifty 50",
+  nifty500: "Nifty 500",
+  vix: "India VIX",
+  gold: "Gold",
+};
+
+/**
+ * Name the index a backtest is measured against.
+ *
+ * @param key - The platform's key for it.
+ * @returns Its name, or the key itself for one not named here.
+ */
+export function benchmarkName(key: string): string {
+  return BENCHMARKS[key] ?? key;
+}

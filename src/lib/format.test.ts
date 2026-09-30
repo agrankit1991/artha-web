@@ -9,6 +9,7 @@ import {
   formatCrore,
   formatCroreSigned,
   formatDay,
+  formatDayInIndia,
   formatDayMonth,
   formatMonth,
   formatMultiple,
@@ -186,6 +187,13 @@ describe("formatPercentLevel", () => {
     expect(formatPercentLevel("3.254")).toBe("3.25%");
     expect(formatPercentLevel("-0.5")).toBe("-0.50%");
     expect(formatPercentLevel(null)).toBe("-");
+  });
+});
+
+describe("formatDayInIndia", () => {
+  it("writes the day a moment fell on in India, not in UTC", () => {
+    // Half past eight in the evening in UTC is two in the morning in India.
+    expect(formatDayInIndia("2026-09-26T20:30:00+00:00")).toMatch(/^27 Sept? 2026$/);
   });
 });
 

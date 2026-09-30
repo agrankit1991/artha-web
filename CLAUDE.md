@@ -447,6 +447,19 @@ fallback)`** (`src/hooks/useSearchParam.ts`): a value at its default is
   flatters every return. A trade in a company no longer listed has no page:
   `DataTable`'s `linkTo` returns null for such a row, and its name stays
   plain text.
+- **One verdict for a backtest** (`BacktestVerdict`, 2026-09-30): the
+  strategy's page and the backtest's page draw the same four tiles from
+  the same record (out of sample where there is one), so their labels and
+  dates cannot drift; the strategy's page once said "CAGR, out of sample"
+  and "Out of sample is from 2018" in copy. **The edge is not the CAGR less
+  random picks:** a strategy re-picking on a schedule is judged on the
+  median of the days its schedule could start on (`judged_cagr`), and the
+  CAGR tile shows the one schedule played (30.4% against a judged 26.1%
+  for the first kept backtest); the edge's hint names the median start
+  day, so the subtraction a reader makes comes out. A strategy's run state
+  is one badge (`RunState`), a failure in the error colour. Backtests use
+  "strategy" throughout ("playbook" is retired from copy) and India's date
+  for a run (`formatDayInIndia`).
 - **Scans** (`src/routes/Scans.tsx`, reworked 2026-09-30) -- the named
   scans of `src/lib/scans.ts`, each a set of screener conditions, grouped
   by category, each card saying how many companies it finds today and

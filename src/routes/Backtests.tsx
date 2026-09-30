@@ -1,11 +1,12 @@
 /**
- * Every backtest kept: each playbook tested, with its verdict at a glance.
+ * Every backtest kept: each strategy tested, with its verdict at a glance.
  *
- * Backtests run on the laptop, where the history is read, and are kept by
- * `backtest --keep` there or `import-backtest` here. The column to read is
- * the edge: survivor-only history flatters every return, so what a
- * playbook earned beyond random picks under its own rules is the figure
- * that survives the flattery.
+ * A strategy is backtested from its own page by the platform's backtester,
+ * which keeps the result here; older ones were kept from the command line
+ * (`backtest --keep`, `import-backtest`). The column to read is the edge:
+ * survivor-only history flatters every return, so what a strategy earned
+ * beyond random picks under its own rules is the figure that survives the
+ * flattery.
  */
 
 import { fetchBacktests } from "@/api/client";
@@ -15,14 +16,14 @@ import { Empty } from "@/components/Empty";
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
 import { useResource } from "@/hooks/useResource";
-import { formatDay } from "@/lib/format";
+import { formatDay, formatDayInIndia } from "@/lib/format";
 import { percent, points, ratio } from "@/lib/backtestFigures";
 import { backtestPath } from "@/lib/paths";
 
 const COLUMNS: Column<BacktestSummary>[] = [
   {
     id: "name",
-    header: "Playbook",
+    header: "Strategy",
     accessorFn: (row) => row.name,
     cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
   },
@@ -72,7 +73,7 @@ const COLUMNS: Column<BacktestSummary>[] = [
     id: "run_at",
     header: "Run",
     accessorFn: (row) => row.run_at,
-    cell: ({ row }) => formatDay(row.original.run_at.slice(0, 10)),
+    cell: ({ row }) => formatDayInIndia(row.original.run_at),
   },
 ];
 
@@ -93,12 +94,12 @@ export function Backtests(): React.JSX.Element {
       <PageHeader
         title="Backtests"
         count={backtests.data === null ? undefined : `${String(backtests.data.length)} backtests`}
-        description="Every playbook tested on the stored history and kept, judged the strategy lab's way: in and out of sample, against the index, and against random picks under the same rules. History before September 2026 holds only the companies that survived, so every return is optimistic -- the edge over random picks is the figure to trust."
+        description="Every strategy tested on the stored history and kept, judged in and out of sample, against its index, and against random picks under the same rules. History before September 2026 holds only the companies that survived, so every return is optimistic: the edge over random picks is the figure to trust."
       />
       {backtests.data?.length === 0 ? (
         <Empty
           title="No backtests kept yet"
-          reason="Run one on the laptop with python -m artha backtest <file> --keep, or copy its report here and import it with python -m artha import-backtest."
+          reason="Backtest a strategy from its page on Strategies, and the result is kept here."
         />
       ) : (
         <DataTable

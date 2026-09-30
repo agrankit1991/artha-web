@@ -24,22 +24,15 @@ import { Empty } from "@/components/Empty";
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
 import { SectionHeader } from "@/components/SectionHeader";
-import { StatGrid, StatTile } from "@/components/StatTile";
 import { StrategyExplanationPanel } from "@/components/StrategyExplanationPanel";
+import { VerdictTiles, periodName, verdictPeriod } from "@/components/BacktestVerdict";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useResource } from "@/hooks/useResource";
-import { percent, points, ratio, share } from "@/lib/backtestFigures";
+import { benchmarkName, percent, points, share } from "@/lib/backtestFigures";
 import { growthLines } from "@/lib/backtestReadings";
 import { BENCHMARK, PRICE_LINE, PRICE_WIDTH } from "@/lib/chartPalette";
-import { ABSENT, formatDay } from "@/lib/format";
-
-/** How the benchmarks are named on the page. */
-const BENCHMARKS: Record<string, string> = {
-  nifty50: "Nifty 50",
-  nifty500: "Nifty 500",
-  vix: "India VIX",
-  gold: "Gold",
-};
+import { ABSENT, formatDay, formatDayInIndia } from "@/lib/format";
 
 /** A year of the run, beside the breadth of the market that year. */
 type YearRow = BacktestYear & { breadth: number | null };
@@ -53,7 +46,7 @@ const YEAR_COLUMNS: Column<YearRow>[] = [
   },
   {
     id: "playbook",
-    header: "Playbook",
+    header: "Strategy",
     accessorFn: (row) => row.playbook,
     cell: ({ row }) => percent(row.original.playbook),
     meta: { align: "right" },
@@ -141,17 +134,18 @@ export function Backtest(): React.JSX.Element {
   }
   if (backtest.data === null) {
     return backtest.loading ? (
-      <div className="space-y-6" aria-busy="true" />
+      <div className="space-y-6" aria-busy="true">
+        <Skeleton className="h-10 w-2/3" />
+        <Skeleton className="h-28 w-full" />
+      </div>
     ) : (
       <Empty title={`No backtest ${id}`} reason="It may have been kept on another machine." />
     );
   }
 
   const shown = backtest.data;
-  const index = BENCHMARKS[shown.benchmark] ?? shown.benchmark;
-  const verdict =
-    shown.periods.find((period) => period.name === "out-of-sample") ??
-    shown.periods.find((period) => period.name === "whole");
+  const index = benchmarkName(shown.benchmark);
+  const verdict = verdictPeriod(shown.periods);
   const series: Series[] = [
     {
       kind: "line",
@@ -171,7 +165,7 @@ export function Backtest(): React.JSX.Element {
       <PageHeader
         title={shown.name}
         description={shown.description}
-        identifiers={`Run ${formatDay(shown.run_at.slice(0, 10))} · history to ${formatDay(shown.data_to)}`}
+        identifiers={`Run ${formatDayInIndia(shown.run_at)} · history to ${formatDay(shown.data_to)}`}
         badges={<Badge variant="outline">against the {index}</Badge>}
       />
       <Callout tone="caution">{shown.note}</Callout>
@@ -179,23 +173,10 @@ export function Backtest(): React.JSX.Element {
       {verdict !== undefined && (
         <section aria-label="Verdict" className="space-y-3">
           <SectionHeader
-            title={verdict.name === "out-of-sample" ? "Out of sample" : "The whole stretch"}
+            title={periodName(verdict)}
             description={`${formatDay(verdict.first_session)} - ${formatDay(verdict.last_session)}`}
           />
-          <StatGrid>
-            <StatTile
-              label="CAGR"
-              value={percent(verdict.cagr)}
-              hint={`${index}: ${percent(verdict.benchmark_cagr)}`}
-            />
-            <StatTile
-              label="Edge over random picks"
-              value={points(verdict.edge)}
-              hint={`random picks: ${percent(verdict.random_median)}`}
-            />
-            <StatTile label="Max drawdown" value={percent(verdict.max_drawdown)} />
-            <StatTile label="Sharpe" value={ratio(verdict.sharpe)} />
-          </StatGrid>
+          <VerdictTiles period={verdict} index={index} />
         </section>
       )}
 
@@ -203,7 +184,7 @@ export function Backtest(): React.JSX.Element {
         <section aria-label="Picks today" className="space-y-3">
           <SectionHeader
             title="Picks today"
-            description="The companies the playbook would hold on the last session of its history."
+            description="The companies the strategy would hold on the last session of its history."
           />
           <BacktestPicksPanel picks={shown.picks} />
         </section>
@@ -212,7 +193,7 @@ export function Backtest(): React.JSX.Element {
       <section aria-label="Growth" className="space-y-3">
         <SectionHeader
           title="Growth"
-          description={`The playbook against the ${index}, from its first session.`}
+          description={`The strategy against the ${index}, from its first session.`}
         />
         <Chart series={series} scale="percent" empty="No closes to draw" />
       </section>
@@ -220,7 +201,7 @@ export function Backtest(): React.JSX.Element {
       <section aria-label="Periods" className="space-y-3">
         <SectionHeader
           title="Periods"
-          description="Each run from cash. The median calendar is the playbook rebalanced on every day of its cycle; the edge is that less the median of random picks under the same rules."
+          description="Each run from cash. The median calendar is the strategy rebalanced on every day of its cycle; the edge is that less the median of random picks under the same rules."
         />
         <BacktestPeriodsTable periods={shown.periods} />
       </section>

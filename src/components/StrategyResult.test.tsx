@@ -18,8 +18,11 @@ describe("StrategyResultPanel", () => {
     stubPlatform({ "/api/backtests/7": { body: backtestDetail() } });
     renderPage(<StrategyResultPanel result={RESULT} />);
 
-    expect(screen.getByText("+30.4%")).toBeInTheDocument();
+    // The verdict is the backtest's own, drawn as the Backtest page draws it.
+    expect(await screen.findByText("+30.4%")).toBeInTheDocument();
     expect(screen.getByText("+12.9 pp")).toBeInTheDocument();
+    expect(screen.getByText(/Out of sample: 1 Jan 2018 - /)).toBeInTheDocument();
+    expect(screen.queryByText(/is from 2018/)).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /The whole record/ })).toHaveAttribute(
       "href",
       "/backtest/7",

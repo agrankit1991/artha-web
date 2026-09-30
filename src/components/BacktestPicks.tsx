@@ -24,7 +24,7 @@ import { companyPath } from "@/lib/paths";
 
 /** What each reason for buying nothing means, in words. */
 const STANDINGS: Record<string, string> = {
-  "gate shut": "The market gate is shut: the playbook would be in cash.",
+  "gate shut": "The market gate is shut: the strategy would be in cash.",
   recovering: "The market is sideways by its rule: nothing would be bought.",
   "no exposure": "Its exposure rule allows no holdings today.",
   "no play": "No play's condition holds today: the money waits.",

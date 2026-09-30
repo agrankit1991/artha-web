@@ -114,7 +114,7 @@ describe("a saved strategy", () => {
     draw("/strategy/5");
 
     expect(await screen.findByRole("heading", { name: "Momentum near the high" })).toBeVisible();
-    expect(screen.getByText("+12.9 pp")).toBeInTheDocument();
+    expect(await screen.findByText("+12.9 pp")).toBeInTheDocument();
     expect(await screen.findByRole("link", { name: "CLIMBER" })).toBeInTheDocument();
     expect(screen.getByRole("table", { name: "Backtest runs" })).toBeInTheDocument();
     expect(screen.getByText("As saved.")).toBeInTheDocument();

@@ -13,27 +13,30 @@ import { Link } from "react-router-dom";
 import { fetchStrategies } from "@/api/client";
 import type { StrategySummary } from "@/api/client";
 import { type Column, DataTable } from "@/components/DataTable";
+import { Delta } from "@/components/Delta";
 import { Empty } from "@/components/Empty";
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
+import { RunState, runStateLabel } from "@/components/RunState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useResource } from "@/hooks/useResource";
-import { percent, points } from "@/lib/backtestFigures";
-import { ABSENT, formatSince } from "@/lib/format";
+import { percent } from "@/lib/backtestFigures";
+import { ABSENT, formatPercentTenths, formatPercentagePoints, formatSince } from "@/lib/format";
 import { PATHS, strategyPath } from "@/lib/paths";
 
-/** What the latest request's status says in the list. */
-function standing(row: StrategySummary): string {
-  if (row.latest === null) {
-    return "Not run";
-  }
-  return {
-    queued: "Queued",
-    running: "Running",
-    done: "Done",
-    failed: "Failed",
-  }[row.latest.status];
+/**
+ * A return from the backtest, as a move to one decimal.
+ *
+ * @param value - The return, per cent; null before a backtest.
+ * @returns The move, or a dash.
+ */
+function growth(value: number | null | undefined): React.ReactNode {
+  return value === null || value === undefined ? (
+    ABSENT
+  ) : (
+    <Delta value={String(value)} format={formatPercentTenths} />
+  );
 }
 
 const COLUMNS: Column<StrategySummary>[] = [
@@ -48,20 +51,23 @@ const COLUMNS: Column<StrategySummary>[] = [
     header: "Kind",
     accessorFn: (row) => row.combines,
     cell: ({ row }) =>
-      row.original.combines ? <Badge variant="secondary">Combination</Badge> : "Strategy",
+      row.original.combines ? (
+        <Badge variant="secondary">Combination</Badge>
+      ) : (
+        <Badge variant="outline">Strategy</Badge>
+      ),
   },
   {
     id: "status",
     header: "Latest run",
-    accessorFn: (row) => standing(row),
-    cell: ({ row }) => standing(row.original),
+    accessorFn: (row) => runStateLabel(row.latest),
+    cell: ({ row }) => <RunState latest={row.original.latest} />,
   },
   {
     id: "out_of_sample_cagr",
     header: "Out of sample",
     accessorFn: (row) => row.result?.out_of_sample_cagr ?? null,
-    cell: ({ row }) =>
-      row.original.result === null ? ABSENT : percent(row.original.result.out_of_sample_cagr),
+    cell: ({ row }) => growth(row.original.result?.out_of_sample_cagr),
     meta: { align: "right" },
   },
   {
@@ -69,20 +75,28 @@ const COLUMNS: Column<StrategySummary>[] = [
     header: "Edge vs random",
     accessorFn: (row) => row.result?.out_of_sample_edge ?? null,
     cell: ({ row }) =>
-      row.original.result === null ? ABSENT : points(row.original.result.out_of_sample_edge),
+      row.original.result === null ? (
+        ABSENT
+      ) : (
+        <Delta
+          value={String(row.original.result.out_of_sample_edge)}
+          format={formatPercentagePoints}
+        />
+      ),
     meta: { align: "right", emphasis: true },
   },
   {
     id: "cagr",
     header: "CAGR",
     accessorFn: (row) => row.result?.cagr ?? null,
-    cell: ({ row }) => (row.original.result === null ? ABSENT : percent(row.original.result.cagr)),
+    cell: ({ row }) => growth(row.original.result?.cagr),
     meta: { align: "right" },
   },
   {
     id: "max_drawdown",
     header: "Max drawdown",
     accessorFn: (row) => row.result?.max_drawdown ?? null,
+    // A distance below a peak, written plainly: not a move up or down.
     cell: ({ row }) =>
       row.original.result === null ? ABSENT : percent(row.original.result.max_drawdown),
     meta: { align: "right" },
@@ -114,7 +128,7 @@ export function Strategies(): React.JSX.Element {
         count={
           strategies.data === null ? undefined : `${String(strategies.data.length)} strategies`
         }
-        description="Write a strategy as rules, or combine saved ones by the market's conditions, and backtest it on the stored history. Each shows the companies it would hold today. History before September 2026 holds only the companies that survived, so every return is optimistic -- the edge over random picks is the figure to trust."
+        description="Write a strategy as rules, or combine saved ones by the market's conditions, and backtest it on the stored history. Each shows the companies it would hold today. History before September 2026 holds only the companies that survived, so every return is optimistic: the edge over random picks is the figure to trust."
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" asChild>

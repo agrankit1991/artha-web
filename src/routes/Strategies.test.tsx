@@ -47,7 +47,11 @@ describe("Strategies", () => {
       "/strategy/6",
     );
     expect(within(table).getByText("Combination")).toBeInTheDocument();
-    expect(within(table).getByText("+12.9 pp")).toBeInTheDocument();
+    // Every kind is a badge, and a return reads as a move up or down.
+    expect(within(table).getAllByText("Strategy", { selector: "[data-slot=badge]" }).length).toBe(
+      4,
+    );
+    expect(within(table).getByText("+12.9 pp")).toHaveClass("text-gain");
     for (const status of ["Done", "Running", "Not run", "Failed", "Queued"]) {
       expect(within(table).getByText(status)).toBeInTheDocument();
     }

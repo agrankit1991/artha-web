@@ -37,6 +37,7 @@ import { StrategyResultPanel } from "@/components/StrategyResult";
 import { StrategyRuns } from "@/components/StrategyRuns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useResource } from "@/hooks/useResource";
 import { formatSince } from "@/lib/format";
 import { PATHS, strategyPath } from "@/lib/paths";
@@ -167,7 +168,10 @@ function SavedStrategy({ id }: { id: number }): React.JSX.Element {
       return <Failed message={strategy.error} />;
     }
     return strategy.loading ? (
-      <div className="space-y-6" aria-busy="true" />
+      <div className="space-y-6" aria-busy="true">
+        <Skeleton className="h-10 w-2/3" />
+        <Skeleton className="h-28 w-full" />
+      </div>
     ) : (
       <Empty title={`No strategy ${String(id)}`} reason="It may have been deleted." />
     );
@@ -215,9 +219,11 @@ function SavedStrategy({ id }: { id: number }): React.JSX.Element {
             <Button size="sm" disabled={busy || waiting} onClick={() => void act(run)}>
               <Play aria-hidden /> {dirty ? "Save and run" : "Run backtest"}
             </Button>
+            {/* Outlined like its neighbours but in the error colour: it is the one that loses work. */}
             <Button
               variant="outline"
               size="sm"
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
               aria-label="Delete strategy"
               onClick={() => {
                 setDeleting(true);
@@ -240,7 +246,7 @@ function SavedStrategy({ id }: { id: number }): React.JSX.Element {
       ) : (
         <Empty
           title="Not backtested yet"
-          reason="Run backtest judges it on the stored history from 2005: in and out of sample, against the Nifty 500 and against random picks under the same rules."
+          reason="Run backtest judges it on the stored history: in and out of sample, against its index and against random picks under the same rules."
         />
       )}
 

@@ -48,7 +48,7 @@ describe("Backtests", () => {
     const table = await screen.findByRole("table", { name: "Kept backtests" });
     await within(table).findByRole("link", { name: "Other" });
     for (const name of [
-      /^Playbook/,
+      /^Strategy/,
       /^Traded/,
       /^CAGR/,
       /^Out of sample/,
