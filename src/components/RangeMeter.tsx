@@ -16,6 +16,12 @@ interface RangeMeterProps {
   value: number | null;
   /** How the three figures are written. */
   format: (value: number) => string;
+  /**
+   * Whether the label and the value are written above the bar. A table
+   * cell whose row shows the value in its own column leaves them out; the
+   * label still names the meter for a screen reader.
+   */
+  reading?: boolean;
   className?: string;
 }
 
@@ -31,6 +37,7 @@ export function RangeMeter({
   high,
   value,
   format,
+  reading = true,
   className,
 }: RangeMeterProps): React.JSX.Element {
   const known = low !== null && high !== null && value !== null && high > low;
@@ -40,10 +47,12 @@ export function RangeMeter({
   const share = known ? Math.max(0, Math.min(1, (value - low) / (high - low))) : null;
   return (
     <div className={cn("space-y-1", className)}>
-      <div className="flex items-baseline justify-between text-xs">
-        <span className="text-muted-foreground">{label}</span>
-        <span className="tabular font-medium">{value === null ? ABSENT : format(value)}</span>
-      </div>
+      {reading && (
+        <div className="flex items-baseline justify-between text-xs">
+          <span className="text-muted-foreground">{label}</span>
+          <span className="tabular font-medium">{value === null ? ABSENT : format(value)}</span>
+        </div>
+      )}
       <div
         className="relative h-1.5 w-full rounded-full bg-muted"
         role="meter"

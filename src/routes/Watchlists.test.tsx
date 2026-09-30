@@ -73,15 +73,20 @@ function made(fetched: ReturnType<typeof stubPlatform>): string[] {
 }
 
 describe("Watchlists", () => {
-  it("opens on the first list with each instrument's levels against its price", async () => {
+  it("opens on the first list with each company's levels against its price", async () => {
     stubEverything();
     renderPage(<Watchlists />);
 
-    const table = await screen.findByRole("table", { name: "Watched instruments" });
+    const table = await screen.findByRole("table", { name: "Watched companies" });
     const reliance = (await within(table).findByRole("link", { name: /RELIANCE/ })).closest("tr");
-    expect(reliance).toHaveTextContent("1,500.00");
-    expect(reliance).toHaveTextContent("+20.97%");
-    expect(reliance).toHaveTextContent("-11.29%");
+    // Stop and target at the ends of one meter, the price between them.
+    expect(reliance).toHaveTextContent("₹1,100.00");
+    expect(reliance).toHaveTextContent("₹1,500.00");
+    expect(
+      within(reliance as HTMLElement).getByRole("meter", {
+        name: "RELIANCE between its stop and its target",
+      }),
+    ).toBeInTheDocument();
     expect(reliance).toHaveTextContent("Retail listing ahead");
     // No level set: a dash, not a nought.
     const tcs = within(table).getByRole("link", { name: /TCS/ }).closest("tr");
@@ -95,12 +100,12 @@ describe("Watchlists", () => {
   it("switches list from the side and from the address, and narrows by tag", async () => {
     stubEverything();
     const { unmount } = renderPage(<Watchlists />);
-    await screen.findByRole("link", { name: /RELIANCE/ });
+    await screen.findAllByRole("link", { name: /RELIANCE/ });
 
     await userEvent.click(screen.getByRole("button", { name: /^oil$/ }));
     expect(screen.queryByRole("link", { name: /TCS/ })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "All" }));
-    expect(screen.getByRole("link", { name: /TCS/ })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /TCS/ }).length).toBeGreaterThan(0);
 
     await userEvent.click(screen.getByRole("button", { name: /Dividends/ }));
     expect(await screen.findByRole("heading", { name: "Dividends" })).toBeInTheDocument();
@@ -113,7 +118,7 @@ describe("Watchlists", () => {
   it("makes, renames and deletes a list", async () => {
     const fetched = stubEverything();
     renderPage(<Watchlists />);
-    await screen.findByRole("link", { name: /RELIANCE/ });
+    await screen.findAllByRole("link", { name: /RELIANCE/ });
 
     await userEvent.click(screen.getByRole("button", { name: /New list/ }));
     const create = screen.getByRole("dialog", { name: "New watchlist" });
@@ -144,9 +149,9 @@ describe("Watchlists", () => {
   it("adds an instrument from a search, edits its levels, and removes it", async () => {
     const fetched = stubEverything();
     renderPage(<Watchlists />);
-    await screen.findByRole("link", { name: /RELIANCE/ });
+    await screen.findAllByRole("link", { name: /RELIANCE/ });
 
-    await userEvent.click(screen.getByRole("button", { name: /Add instrument/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Add company/ }));
     await userEvent.type(screen.getByRole("combobox", { name: "Find a company" }), "inf");
     // Only companies are offered; the index the search also found is not.
     const match = await screen.findByRole("option", { name: /INFY/ });
@@ -204,7 +209,7 @@ describe("Watchlists", () => {
   it("sorts the instruments by any column", async () => {
     stubEverything();
     renderPage(<Watchlists />);
-    const table = await screen.findByRole("table", { name: "Watched instruments" });
+    const table = await screen.findByRole("table", { name: "Watched companies" });
     await within(table).findByRole("link", { name: /RELIANCE/ });
 
     for (const name of [
@@ -213,11 +218,8 @@ describe("Watchlists", () => {
       /^Price/,
       /^Volume/,
       /^Today/,
-      /^Since added/,
-      /^Added at/,
-      /^Target/,
-      /^Stop/,
-      /^Added$/,
+      /^Added/,
+      /^Stop to target/,
       /^1M/,
       /^1Y/,
     ]) {
@@ -244,7 +246,7 @@ describe("Watchlists", () => {
       "/api/search": { body: [] },
     });
     renderPage(<Watchlists />);
-    await screen.findByRole("link", { name: /RELIANCE/ });
+    await screen.findAllByRole("link", { name: /RELIANCE/ });
 
     await userEvent.click(screen.getByRole("button", { name: /New list/ }));
     await userEvent.type(screen.getByRole("textbox", { name: "Name" }), "Fresh{Enter}");
@@ -262,8 +264,8 @@ describe("Watchlists", () => {
     expect(await within(edit).findByText(/A stop is a positive price/)).toBeInTheDocument();
     await userEvent.click(within(edit).getByRole("button", { name: "Cancel" }));
 
-    await userEvent.click(screen.getByRole("button", { name: /Add instrument/ }));
-    const add = screen.getByRole("dialog", { name: "Add an instrument" });
+    await userEvent.click(screen.getByRole("button", { name: /Add company/ }));
+    const add = screen.getByRole("dialog", { name: "Add a company" });
     await userEvent.type(within(add).getByRole("combobox", { name: "Find a company" }), "zz");
     expect(await within(add).findByText(/Nothing called/)).toBeInTheDocument();
     await userEvent.click(within(add).getByRole("button", { name: "Close" }));
@@ -295,8 +297,8 @@ describe("Watchlists", () => {
       },
     });
     renderPage(<Watchlists />);
-    await screen.findByRole("link", { name: /RELIANCE/ });
-    await userEvent.click(screen.getByRole("button", { name: /Add instrument/ }));
+    await screen.findAllByRole("link", { name: /RELIANCE/ });
+    await userEvent.click(screen.getByRole("button", { name: /Add company/ }));
     await userEvent.type(screen.getByRole("combobox", { name: "Find a company" }), "inf");
     await userEvent.click(await screen.findByRole("option", { name: /INFY/ }));
 
@@ -310,12 +312,12 @@ describe("Watchlists", () => {
       "/api/watchlists": { body: [watchlistSummary({ description: null })] },
     });
     renderPage(<Watchlists />);
-    await screen.findByRole("link", { name: /TCS/ });
+    await screen.findAllByRole("link", { name: /TCS/ });
 
     await userEvent.click(screen.getByRole("button", { name: /^it$/ }));
     expect(screen.queryByRole("link", { name: /RELIANCE/ })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /^it$/ }));
-    expect(screen.getByRole("link", { name: /RELIANCE/ })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /RELIANCE/ }).length).toBeGreaterThan(0);
 
     await userEvent.click(screen.getByRole("button", { name: "Edit TCS" }));
     const edit = screen.getByRole("dialog", { name: /TCS: notes and levels/ });
@@ -357,17 +359,20 @@ describe("Watchlists", () => {
     });
     const fetched = vi.mocked(globalThis.fetch);
     renderPage(<Watchlists />, { at: "/watchlists?list=1" });
-    const table = await screen.findByRole("table", { name: "Watched instruments" });
+    const table = await screen.findByRole("table", { name: "Watched companies" });
     await within(table).findByRole("link", { name: /RELIANCE/ });
 
     // Notes and tags under the name; the change since added and where it was added.
     expect(within(table).getByText("Retail listing ahead")).toBeInTheDocument();
     expect(within(table).getByText("oil")).toBeInTheDocument();
     expect(within(table).getAllByText("+3.33%")).toHaveLength(2);
-    expect(within(table).getAllByText("1,200.00")).toHaveLength(2);
-    // Within 3% of a target is green; within 3% of a stop is red.
-    expect(within(table).getByRole("img", { name: "Near target" })).toHaveClass("text-gain");
-    expect(within(table).getByRole("img", { name: "Near stop" })).toHaveClass("text-loss");
+    expect(within(table).getAllByText(/ at ₹1,200\.00$/)).toHaveLength(2);
+    // Near a level is said in words: a target in teal, a stop in caution.
+    expect(within(table).getByText("Near target")).toHaveClass("text-primary");
+    expect(within(table).getByText("Near stop")).toHaveClass("text-caution");
+    // Each company since it was added, ranked, above the table.
+    const ranked = screen.getByRole("list", { name: "Each company since it was added" });
+    expect(within(ranked).getAllByRole("listitem")).toHaveLength(2);
     expect(within(table).getByRole("button", { name: "Unstar TCS" })).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -389,6 +394,6 @@ describe("Watchlists", () => {
       featured: true,
     });
     // Starring stays on the list rather than opening the company.
-    expect(screen.getByRole("table", { name: "Watched instruments" })).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Watched companies" })).toBeInTheDocument();
   });
 });

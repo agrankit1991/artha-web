@@ -45,13 +45,6 @@ const HAND_COLOUR =
  */
 const PALETTES = new Set(["index.css", "lib/chartPalette.ts", "lib/shareCard.ts"]);
 
-/**
- * Files that still write a colour by hand, each waiting for its slice of the
- * brand redesign (`docs/BRAND-PLAN.md`). The list only shrinks: a file that
- * no longer offends fails the test until it is taken off.
- */
-const KNOWN = new Set(["routes/Watchlists.tsx"]);
-
 describe("the source", () => {
   it("writes a plain hyphen, never an en dash, an em dash or a minus sign", () => {
     // The owner's house style, and a U+2212 minus also breaks pasting a
@@ -66,14 +59,8 @@ describe("the source", () => {
       (file) => !file.includes(".test.") && !PALETTES.has(file) && HAND_COLOUR.test(read(file)),
     );
 
-    expect(offenders.filter((file) => !KNOWN.has(file))).toEqual([]);
-  });
-
-  it("keeps the list of known exceptions honest", () => {
-    // A file fixed but left on the list would let the next hand-written
-    // colour in it through unnoticed.
-    const cured = [...KNOWN].filter((file) => !HAND_COLOUR.test(read(file)));
-
-    expect(cured).toEqual([]);
+    // No exceptions since the brand redesign reached the watchlists'
+    // star (2026-09-30), the last colour written by hand.
+    expect(offenders).toEqual([]);
   });
 });

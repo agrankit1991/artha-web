@@ -119,8 +119,8 @@ It rose from 95% with the first real views.
   `noUncheckedIndexedAccess`. ESLint runs type-aware rules.
 - **Colours come from tokens; text uses plain hyphens.** `src/conventions.test.ts`
   fails on a Tailwind palette class or a hex colour outside `index.css`,
-  `chartPalette.ts` and `shareCard.ts` (with a shrinking list of files still
-  waiting for the brand redesign), and on any en dash, em dash or U+2212
+  `chartPalette.ts` and `shareCard.ts` (no exceptions since 2026-09-30),
+  and on any en dash, em dash or U+2212
   minus anywhere in `src` (the owner's house style; the "no value" mark
   `ABSENT` is a hyphen since 2026-09-30).
 - **Icons come from `src/lib/entities.ts`**, one per meaning: a section
@@ -480,6 +480,18 @@ fallback)`** (`src/hooks/useSearchParam.ts`): a value at its default is
   allows bars as close as 0.05 px (`minBarSpacing`): at the library's
   0.5 px a twenty-year series (5,368 closes) could not open whole and
   showed only its last years.
+- **Watchlists** (`src/routes/Watchlists.tsx`, reworked 2026-09-30): the
+  page, the table (`WatchlistTable`) and the dialogs (`WatchlistDialogs`)
+  are three files; it was one of 856 lines. Each list opens on its
+  companies ranked by their change since added, then the table: the star
+  in `--brand` (a favourite, not caution; it was the last colour written
+  by hand, so the conventions test has no exceptions left); "Near target"
+  or "Near stop" in words; "Added" as one column (the change, then the
+  day and the price); the stop and target as one `RangeMeter` with the
+  price between (`reading={false}` leaves out the meter's own line in a
+  table), sorting nearest first. The list and the table share one
+  shrinkable column on a phone: an implicit grid column is as wide as the
+  widest table, and the page scrolled sideways.
 - **Scans** (`src/routes/Scans.tsx`, reworked 2026-09-30) -- the named
   scans of `src/lib/scans.ts`, each a set of screener conditions, grouped
   by category, each card saying how many companies it finds today and
