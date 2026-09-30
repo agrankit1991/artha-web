@@ -46,7 +46,7 @@ import { LoadMore } from "@/components/LoadMore";
 import { PageHeader } from "@/components/PageHeader";
 import { ScopePicker } from "@/components/ScopePicker";
 import { SectionHeader } from "@/components/SectionHeader";
-import { StrategyPanel } from "@/components/StrategyPanel";
+import { LabStrategyPanel } from "@/components/LabStrategyPanel";
 import type { Scope } from "@/components/ScopeSelector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -304,7 +304,7 @@ export function Screener(): React.JSX.Element {
       </section>
 
       {strategyScan !== null && (
-        <StrategyPanel
+        <LabStrategyPanel
           scan={strategyScan}
           unchanged={unchanged}
           fields={fields.data}

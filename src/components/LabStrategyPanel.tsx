@@ -1,5 +1,9 @@
 /**
- * The strategy behind a screen, above the rows it picks from.
+ * The strategy lab's strategy behind a screen, above the rows it picks from.
+ *
+ * Named for the lab (`research/strategy-lab`, archived) to keep it apart
+ * from the strategies written and backtested on the platform's own
+ * Strategies pages, which share nothing with it but the word.
  *
  * Shown whenever the screener's address names a strategy's scan. The
  * panel stays when the screen is changed -- a threshold nudged, the order
@@ -29,7 +33,7 @@ import {
   deliveryFromAnotherSession,
 } from "@/lib/scans";
 
-interface StrategyPanelProps {
+interface LabStrategyPanelProps {
   scan: StrategyScan;
   /** Whether the screen still asks exactly what the strategy's scan asks. */
   unchanged: boolean;
@@ -48,13 +52,13 @@ interface StrategyPanelProps {
  *   stands over, and how to restore its screen.
  * @returns The panel.
  */
-export function StrategyPanel({
+export function LabStrategyPanel({
   scan,
   unchanged,
   fields,
   hits,
   onRestore,
-}: StrategyPanelProps): React.JSX.Element {
+}: LabStrategyPanelProps): React.JSX.Element {
   const { strategy } = scan;
   const offSession = deliveryFromAnotherSession(scan, hits);
   return (
