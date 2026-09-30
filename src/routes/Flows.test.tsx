@@ -99,6 +99,36 @@ describe("Flows", () => {
     expect(screen.getByRole("img", { name: "FII net buying by session" })).toBeInTheDocument();
   });
 
+  it("adds up over a window of its own, and says where the stored flows begin", async () => {
+    const fetched = stub();
+    renderPage(<Flows />);
+    await screen.findByRole("table", { name: "Cash market flows" });
+    const asked = (): string[] => fetched.mock.calls.map((call) => String(call[0]));
+
+    // Three months to begin with, asked apart from the page's own rows.
+    expect(asked()).toContain("/api/flows?period=DAY&sessions=63");
+    expect(
+      await screen.findByText(
+        /^Flows are stored from 21 Sept? 2026, so this window holds 2 of its 63/,
+      ),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "1Y" }));
+    await waitFor(() => {
+      expect(asked()).toContain("/api/flows?period=DAY&sessions=252");
+    });
+  });
+
+  it("draws each session's nets and the index's move as bars under the figures", async () => {
+    stub();
+    renderPage(<Flows />);
+
+    const table = await screen.findByRole("table", { name: "Cash market flows" });
+    const latest = (await within(table).findByText(/22 Sept? 2026/)).closest("tr") as HTMLElement;
+    // FII, DII and the index's move: a bar each, from nought.
+    expect(latest.querySelectorAll("span[style]")).toHaveLength(3);
+  });
+
   it("reads months without the benchmark, which is matched only to sessions", async () => {
     stub();
     renderPage(<Flows />);

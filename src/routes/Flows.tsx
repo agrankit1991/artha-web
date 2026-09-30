@@ -22,9 +22,11 @@ import { Chart, type Series } from "@/components/Chart";
 import { Chooser } from "@/components/Chooser";
 import { type Column, DataTable } from "@/components/DataTable";
 import { Delta } from "@/components/Delta";
+import { DivergingBar } from "@/components/DivergingBars";
 import { Failed } from "@/components/Failed";
 import { FlowBars } from "@/components/FlowBars";
 import { PageHeader } from "@/components/PageHeader";
+import { RangeSelector } from "@/components/RangeSelector";
 import { StatGrid, StatTile } from "@/components/StatTile";
 import { type Tab, Tabs } from "@/components/Tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,8 +35,10 @@ import {
   ABSENT,
   formatCroreSigned,
   formatDay,
+  formatPercent,
   formatPrice,
   formatSignedPrice,
+  sentence,
   toNumber,
 } from "@/lib/format";
 import {
@@ -44,9 +48,34 @@ import {
   PRICE_WIDTH,
 } from "@/lib/chartPalette";
 import { BENCHMARK } from "@/lib/indices";
+import type { Range } from "@/lib/priceRanges";
 
 /** How many sessions or months a page of flows reads. */
 const SESSIONS = 60;
+
+/**
+ * The windows the running totals offer, by period: sessions for daily
+ * flows, months for monthly ones. The platform serves at most 400 at once,
+ * so a year is the longest daily window.
+ */
+const WINDOWS: Record<FlowPeriod, readonly Range[]> = {
+  DAY: [
+    { label: "1M", sessions: 21 },
+    { label: "50D", sessions: 50 },
+    { label: "3M", sessions: 63 },
+    { label: "6M", sessions: 126 },
+    { label: "1Y", sessions: 252 },
+  ],
+  MONTH: [
+    { label: "6M", sessions: 6 },
+    { label: "1Y", sessions: 12 },
+    { label: "2Y", sessions: 24 },
+    { label: "5Y", sessions: 60 },
+  ],
+};
+
+/** Where the running totals open: about the page's own reach. */
+const OPENING_WINDOW: Record<FlowPeriod, number> = { DAY: 63, MONTH: 60 };
 
 /** How many sessions the "last few" totals sum over. */
 const RECENT = 5;
@@ -93,22 +122,10 @@ export function Flows(): React.JSX.Element {
   const loadBenchmark = useCallback(() => fetchOverviewHistory(BENCHMARK.key, SESSIONS), []);
   const benchmark = useResource(loadBenchmark);
 
-  const cash = useMemo((): CashDay[] => {
-    const rows = flows.data ?? [];
-    const closes = new Map((benchmark.data ?? []).map((one) => [one.as_of, one]));
-    const days = [...new Set(rows.map((one) => one.day))].sort().reverse();
-    return days.map((day) => ({
-      day,
-      fii: rows.find(
-        (one) => one.day === day && one.participant === "FII" && one.segment === "CASH",
-      ),
-      dii: rows.find(
-        (one) => one.day === day && one.participant === "DII" && one.segment === "CASH",
-      ),
-      // A month's row is dated its first day; the index is only matched to sessions.
-      benchmark: period === "DAY" ? closes.get(day) : undefined,
-    }));
-  }, [flows.data, benchmark.data, period]);
+  const cash = useMemo(
+    () => cashDays(flows.data ?? [], benchmark.data ?? [], period),
+    [flows.data, benchmark.data, period],
+  );
 
   const derivatives = useMemo(
     () => (flows.data ?? []).filter((one) => one.participant === "FII" && one.segment === segment),
@@ -193,9 +210,10 @@ export function Flows(): React.JSX.Element {
                 ))}
               </CardContent>
             </Card>
-            <CumulativeFlows cash={cash} period={period} loading={arriving} />
+            {/* Its own window, so a year of totals does not load a year of rows below. */}
+            <CumulativeFlows key={period} period={period} />
             <DataTable
-              columns={cashColumns(period)}
+              columns={cashColumns(period, cash)}
               rows={cash}
               loading={flows.loading}
               empty="No flows recorded yet"
@@ -228,6 +246,30 @@ export function Flows(): React.JSX.Element {
   );
 }
 
+/**
+ * Lay flows out as cash-market days: both sides, and the benchmark beside them.
+ *
+ * @param rows - The flows, any segment.
+ * @param closes - The benchmark's history; matched only to sessions.
+ * @param period - Sessions or months.
+ * @returns A row per day or month, newest first.
+ */
+function cashDays(
+  rows: readonly InstitutionalFlow[],
+  closes: readonly InstrumentOverview[],
+  period: FlowPeriod,
+): CashDay[] {
+  const byDay = new Map(closes.map((one) => [one.as_of, one]));
+  const days = [...new Set(rows.map((one) => one.day))].sort().reverse();
+  return days.map((day) => ({
+    day,
+    fii: rows.find((one) => one.day === day && one.participant === "FII" && one.segment === "CASH"),
+    dii: rows.find((one) => one.day === day && one.participant === "DII" && one.segment === "CASH"),
+    // A month's row is dated its first day; the index is only matched to sessions.
+    benchmark: period === "DAY" ? byDay.get(day) : undefined,
+  }));
+}
+
 /** The sum of some flows' net figures, or null when none is known. */
 function total(flows: (InstitutionalFlow | undefined)[]): string | null {
   const known = flows.flatMap((one) => {
@@ -252,24 +294,62 @@ function amount<Row>(
   };
 }
 
-/** A net column: signed, and coloured by which way the money went. */
+/**
+ * A net column: signed, coloured by which way the money went, and drawn as
+ * a bar under the figure when given the column's reach, so a run of selling
+ * shows down the column as the Breadth grid's shares do.
+ *
+ * @param id - The column's id.
+ * @param header - Its heading, with the unit.
+ * @param of - The figure.
+ * @param reach - The largest figure in the column either way, for the bars;
+ *   none draws the figures alone.
+ * @param format - How a figure is written.
+ * @returns The column.
+ */
 function net<Row>(
   id: string,
   header: string,
   of: (row: Row) => string | null | undefined,
+  reach?: number,
+  format: (value: string | null | undefined) => string = formatSignedPrice,
 ): Column<Row> {
   return {
     id,
     header,
     accessorFn: (row) => toNumber(of(row)) ?? Number.NEGATIVE_INFINITY,
     // Bare in a cell; the unit is in the column's header.
-    cell: ({ row }) => <Delta value={of(row.original)} format={formatSignedPrice} arrow={false} />,
+    cell: ({ row }) => {
+      const value = toNumber(of(row.original));
+      return (
+        <span className="inline-flex flex-col items-end gap-1">
+          <Delta value={of(row.original)} format={format} arrow={false} />
+          {reach !== undefined && value !== null && (
+            <DivergingBar value={value} largest={reach} className="h-1.5 w-24" tone />
+          )}
+        </span>
+      );
+    },
     meta: { align: "right" },
   };
 }
 
+/**
+ * The largest figure of a column, either way, for its bars.
+ *
+ * @param rows - The column's rows.
+ * @param of - The figure.
+ * @returns The largest size, never nought.
+ */
+function reachOf<Row>(rows: readonly Row[], of: (row: Row) => string | null | undefined): number {
+  return Math.max(...rows.map((row) => Math.abs(toNumber(of(row)) ?? 0)), Number.EPSILON);
+}
+
 /** The cash market's columns; the benchmark only beside sessions, not months. */
-function cashColumns(period: FlowPeriod): Column<CashDay>[] {
+function cashColumns(period: FlowPeriod, rows: readonly CashDay[]): Column<CashDay>[] {
+  const fii = (row: CashDay): string | null | undefined => row.fii?.net_amount;
+  const dii = (row: CashDay): string | null | undefined => row.dii?.net_amount;
+  const moved = (row: CashDay): string | null | undefined => row.benchmark?.day.change_percent;
   return [
     {
       id: "day",
@@ -279,23 +359,20 @@ function cashColumns(period: FlowPeriod): Column<CashDay>[] {
     },
     amount("fii_buy", "FII buy ₹ Cr", (row) => row.fii?.buy_amount),
     amount("fii_sell", "FII sell ₹ Cr", (row) => row.fii?.sell_amount),
-    net("fii_net", "FII net ₹ Cr", (row) => row.fii?.net_amount),
+    net("fii_net", "FII net ₹ Cr", fii, reachOf(rows, fii)),
     amount("dii_buy", "DII buy ₹ Cr", (row) => row.dii?.buy_amount),
     amount("dii_sell", "DII sell ₹ Cr", (row) => row.dii?.sell_amount),
-    net("dii_net", "DII net ₹ Cr", (row) => row.dii?.net_amount),
+    net("dii_net", "DII net ₹ Cr", dii, reachOf(rows, dii)),
     ...(period === "DAY"
       ? [
           amount<CashDay>("benchmark", BENCHMARK.name, (row) => row.benchmark?.day.close),
-          {
-            id: "benchmark_change",
-            header: `${BENCHMARK.name} %`,
-            accessorFn: (row: CashDay) =>
-              toNumber(row.benchmark?.day.change_percent) ?? Number.NEGATIVE_INFINITY,
-            cell: ({ row }: { row: { original: CashDay } }) => (
-              <Delta value={row.original.benchmark?.day.change_percent} />
-            ),
-            meta: { align: "right" as const },
-          },
+          net<CashDay>(
+            "benchmark_change",
+            `${BENCHMARK.name} %`,
+            moved,
+            reachOf(rows, moved),
+            formatPercent,
+          ),
         ]
       : []),
   ];
@@ -360,18 +437,30 @@ function count(
  * of its own below: whether foreigners have been selling into a market, and
  * what the market did meanwhile. Two panes rather than two scales on one.
  *
- * @param props - The sessions or months, newest first, and the period.
- * @returns The chart.
+ * Its own window and its own request, apart from the page's: a year of
+ * running totals is one line, a year of the table's rows is not.
+ *
+ * @param props - Whether the flows are by session or by month.
+ * @returns The card.
  */
-function CumulativeFlows({
-  cash,
-  period,
-  loading,
-}: {
-  cash: CashDay[];
-  period: FlowPeriod;
-  loading: boolean;
-}): React.JSX.Element {
+function CumulativeFlows({ period }: { period: FlowPeriod }): React.JSX.Element {
+  const [span, setSpan] = useState(OPENING_WINDOW[period]);
+  const load = useCallback(() => fetchFlows(period, span), [period, span]);
+  const flows = useResource(load);
+  const loadBenchmark = useCallback(
+    () => (period === "DAY" ? fetchOverviewHistory(BENCHMARK.key, span) : Promise.resolve([])),
+    [period, span],
+  );
+  const benchmark = useResource(loadBenchmark);
+  const cash = useMemo(
+    () => cashDays(flows.data ?? [], benchmark.data ?? [], period),
+    [flows.data, benchmark.data, period],
+  );
+  const loading = flows.loading && flows.data === null;
+  const oldest = cash.at(-1)?.day;
+  // History is kept from the day the platform began collecting it; a window
+  // reaching further back than that says so, not left to look like a quiet market.
+  const short = flows.data !== null && oldest !== undefined && cash.length < span;
   const oldestFirst = [...cash].reverse();
   const running = (side: "fii" | "dii"): { time: string; value: number }[] => {
     let sum = 0;
@@ -415,17 +504,34 @@ function CumulativeFlows({
   ];
   return (
     <Card>
-      <CardHeader>
-        <CardTitle as="h2">Net buying, added up</CardTitle>
-        <CardDescription>
-          Each side&apos;s net buying summed from the start of the window, in rupees crore
-          {period === "DAY" ? `, with ${BENCHMARK.name} below it` : ""}. A line falling steadily is
-          a side selling session after session.
-        </CardDescription>
+      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
+        <div className="space-y-1.5">
+          <CardTitle as="h2">Net buying, added up</CardTitle>
+          <CardDescription>
+            Each side&apos;s net buying summed from the start of the window, in rupees crore
+            {period === "DAY" ? `, with ${BENCHMARK.name} below it` : ""}. A line falling steadily
+            is a side selling session after session.
+          </CardDescription>
+        </div>
+        <RangeSelector ranges={WINDOWS[period]} sessions={span} onChange={setSpan} label="Window" />
       </CardHeader>
-      <CardContent>
-        {/* Sums in crore, whole and grouped; the index keeps its own scale. */}
-        <Chart series={series} scale="crore" height={320} loading={loading} />
+      <CardContent className="space-y-2">
+        {/* Sums in crore, whole and grouped; the index keeps its own scale. A
+            failure is said here quietly: the page above says it aloud. */}
+        <Chart
+          series={series}
+          scale="crore"
+          height={320}
+          loading={loading}
+          empty={flows.error === null ? "No flows recorded yet" : sentence(flows.error)}
+        />
+        {short && (
+          <p className="text-xs text-muted-foreground">
+            Flows are stored from {formatDay(oldest)}, so this window holds {String(cash.length)} of
+            its {String(span)} {period === "DAY" ? "sessions" : "months"}; it fills in as they are
+            collected.
+          </p>
+        )}
       </CardContent>
     </Card>
   );

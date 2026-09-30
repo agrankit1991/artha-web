@@ -107,8 +107,10 @@ export function DivergingBars({
                 )}
               </span>
               <span aria-hidden="true" className="space-y-0.5">
-                <Bar value={row.value} largest={largest} className="h-2.5" tone />
-                {paired && <Bar value={row.against ?? 0} largest={largest} className="h-1" />}
+                <DivergingBar value={row.value} largest={largest} className="h-2.5" tone />
+                {paired && (
+                  <DivergingBar value={row.against ?? 0} largest={largest} className="h-1" />
+                )}
               </span>
               <span className="text-right leading-tight">
                 <Delta value={String(row.value)} {...written} />
@@ -132,13 +134,15 @@ export function DivergingBars({
 }
 
 /**
- * One bar from nought, across a track.
+ * One bar from nought, across a track: the list's bars, and a table cell's
+ * when a column's figures are drawn as well as printed.
  *
  * @param props - Its figure, the figure a full half-track stands for, its
- *   height, and whether it is drawn in rise and fall colours or neutral.
+ *   height and width, and whether it is drawn in rise and fall colours or
+ *   neutral.
  * @returns The track with its bar.
  */
-function Bar({
+export function DivergingBar({
   value,
   largest,
   className,

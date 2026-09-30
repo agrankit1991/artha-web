@@ -522,6 +522,17 @@ fallback)`** (`src/hooks/useSearchParam.ts`): a value at its default is
   (`netByCompany`), two `DivergingBars` on one scale, each company leading
   to its page. The description says a deal's other side is disclosed only
   when it crosses the threshold too.
+- **FII / DII: a window for the running totals, bars in the table**
+  (2026-09-30). "Net buying, added up" has a window of its own (1M to 1Y
+  by session, 6M to 5Y by month; the platform serves at most 400) and its
+  own request, so a year of totals does not load a year of rows into the
+  table; it says where the stored flows begin when the window reaches past
+  them. The provider keeps only thirty sessions, so the history is what
+  the daily job has collected (from 11 Aug 2026 on the laptop); NSDL
+  publishes years of daily FPI figures, but only foreign, on a settlement
+  basis rather than the exchange's provisional one, so no backfill has
+  been made. The table's FII and DII nets and the index's move carry a bar
+  each under the figure, a column to a scale (`DivergingBar`).
 - **Scans** (`src/routes/Scans.tsx`, reworked 2026-09-30) -- the named
   scans of `src/lib/scans.ts`, each a set of screener conditions, grouped
   by category, each card saying how many companies it finds today and
