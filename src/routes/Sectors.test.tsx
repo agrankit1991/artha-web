@@ -56,6 +56,9 @@ describe("Sectors", () => {
     // only in a title a keyboard never reaches.
     const row = software.closest("tr") as HTMLElement;
     expect(within(row).getByTitle("90 with figures")).toHaveTextContent("90 of 92");
+    // Today's median sits on the colour of its move, as a heatmap tile does,
+    // with its figure printed; without a stylesheet the colour is mixed in it.
+    expect(within(row).getByText("+0.80%").style.backgroundColor).toContain("var(--heat-gain)");
     // A sector whose every company has figures needs no note.
     const cement = within(table)
       .getByRole("link", { name: /Cement/ })

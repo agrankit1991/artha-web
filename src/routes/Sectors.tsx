@@ -16,10 +16,10 @@ import { fetchSectors } from "@/api/client";
 import { AdvanceDeclineBar } from "@/components/AdvanceDeclineBar";
 import { CardsLoading } from "@/components/CardsLoading";
 import { type Column, DataTable } from "@/components/DataTable";
-import { Delta } from "@/components/Delta";
 import { Empty } from "@/components/Empty";
 import { Failed } from "@/components/Failed";
 import { Hint } from "@/components/Hint";
+import { HeatCell } from "@/components/HeatCell";
 import { PageHeader } from "@/components/PageHeader";
 import { PopulationCard } from "@/components/PopulationCard";
 import { RotationChart, type RotationPoint } from "@/components/RotationChart";
@@ -27,6 +27,8 @@ import { MomentumChip } from "@/components/Standing";
 import { ViewModeToggle, useViewMode } from "@/components/ViewModeToggle";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useHeatPalette } from "@/hooks/useHeatPalette";
+import { HEAT_REACH, type HeatPalette } from "@/lib/heatColour";
 import { useResource } from "@/hooks/useResource";
 import { useSearchParam } from "@/hooks/useSearchParam";
 import { ABSENT, formatCount, formatDay, toNumber } from "@/lib/format";
@@ -92,6 +94,8 @@ export function Sectors(): React.JSX.Element {
     [sectors.data],
   );
 
+  const palette = useHeatPalette();
+  const heat = useMemo(() => heatColumns(palette), [palette]);
   const columns = useMemo<Column<SectorSummary>[]>(
     () => [
       {
@@ -113,13 +117,7 @@ export function Sectors(): React.JSX.Element {
         accessorFn: (row) => share(row),
         cell: ({ row }) => <Split sector={row.original} />,
       },
-      {
-        id: "median_change",
-        header: "Median change",
-        accessorFn: (row) => toNumber(row.median_change_percent) ?? Number.NEGATIVE_INFINITY,
-        cell: ({ row }) => <Delta value={row.original.median_change_percent} />,
-        meta: { align: "right" },
-      },
+      heat("median_change", "Median change", (row) => row.median_change_percent, HEAT_REACH.day),
       {
         id: "momentum",
         header: "Momentum",
@@ -127,14 +125,14 @@ export function Sectors(): React.JSX.Element {
         cell: ({ row }) => <MomentumChip score={toNumber(row.original.median_momentum)} />,
         meta: { align: "right" },
       },
-      change("one_week", "1W", (row) => row.returns.one_week),
-      change("one_month", "1M", (row) => row.returns.one_month),
-      change("three_months", "3M", (row) => row.returns.three_months),
-      change("six_months", "6M", (row) => row.returns.six_months),
-      change("one_year", "1Y", (row) => row.returns.one_year),
-      change("year_to_date", "YTD", (row) => row.returns.year_to_date),
+      heat("one_week", "1W", (row) => row.returns.one_week, HEAT_REACH.one_week),
+      heat("one_month", "1M", (row) => row.returns.one_month, HEAT_REACH.one_month),
+      heat("three_months", "3M", (row) => row.returns.three_months, HEAT_REACH.three_months),
+      heat("six_months", "6M", (row) => row.returns.six_months, HEAT_REACH.six_months),
+      heat("one_year", "1Y", (row) => row.returns.one_year, HEAT_REACH.one_year),
+      heat("year_to_date", "YTD", (row) => row.returns.year_to_date, HEAT_REACH.year_to_date),
     ],
-    [],
+    [heat],
   );
 
   return (
@@ -249,19 +247,29 @@ function Split({ sector }: { sector: SectorSummary }): React.JSX.Element {
   );
 }
 
-/** A percentage column, coloured by its sign. */
-function change(
+/**
+ * A column of one period's move, each cell on the colour of its move so a
+ * row reads across as a strip of weeks, months and years.
+ *
+ * @param palette - The heat colours, read once for the table.
+ * @returns A builder of such columns, taking the id, header, figure and
+ *   the period's reach.
+ */
+function heatColumns(
+  palette: HeatPalette | null,
+): (
   id: string,
   header: string,
   of: (row: SectorSummary) => string | null,
-): Column<SectorSummary> {
-  return {
+  reach: number,
+) => Column<SectorSummary> {
+  return (id, header, of, reach) => ({
     id,
     header,
     accessorFn: (row) => toNumber(of(row)) ?? Number.NEGATIVE_INFINITY,
-    cell: ({ row }) => <Delta value={of(row.original)} />,
+    cell: ({ row }) => <HeatCell value={of(row.original)} reach={reach} palette={palette} />,
     meta: { align: "right" },
-  };
+  });
 }
 
 /** A sector has no category to group by, so the page offers a list or cards. */

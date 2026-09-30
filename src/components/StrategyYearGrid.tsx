@@ -17,14 +17,13 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 
 import type { YearReview } from "@/api/client";
+import { HeatCell } from "@/components/HeatCell";
 import { percent } from "@/lib/backtestFigures";
 import { useHeatPalette } from "@/hooks/useHeatPalette";
-import { heatPaint, heatShare } from "@/lib/heatColour";
+import { HEAT_REACH } from "@/lib/heatColour";
+import { toNumber } from "@/lib/format";
 import { strategyPath } from "@/lib/paths";
 import { cn } from "@/lib/utils";
-
-/** The move a full colour stands for: a year's, as the heatmap's 1Y. */
-const REACH = 50;
 
 /** One row of the table: a name, where it leads, and its return by year. */
 interface GridRow {
@@ -115,21 +114,14 @@ export function StrategyYearGrid({
               </th>
               {years.map((year) => {
                 const change = row.byYear.get(year) ?? null;
-                if (change === null) {
-                  return (
-                    <td key={year} className="px-2 py-1.5 text-right text-muted-foreground">
-                      -
-                    </td>
-                  );
-                }
-                const paint = heatPaint(heatShare(change, REACH), palette);
                 return (
-                  <td
-                    key={year}
-                    className="px-2 py-1.5 text-right tabular"
-                    style={{ backgroundColor: paint.fill, color: paint.ink }}
-                  >
-                    {percent(change)}
+                  <td key={year} className="p-0.5">
+                    <HeatCell
+                      value={change === null ? null : String(change)}
+                      reach={HEAT_REACH.one_year}
+                      palette={palette}
+                      format={(value) => percent(toNumber(value))}
+                    />
                   </td>
                 );
               })}

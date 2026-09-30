@@ -35,7 +35,13 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useElementWidth } from "@/hooks/useElementWidth";
 import { useHeatPalette } from "@/hooks/useHeatPalette";
-import { type HeatPalette, type HeatPeriod, heatPaint, heatShare } from "@/lib/heatColour";
+import {
+  HEAT_REACH,
+  type HeatPalette,
+  type HeatPeriod,
+  heatPaint,
+  heatShare,
+} from "@/lib/heatColour";
 import {
   formatCrore,
   ABSENT,
@@ -67,15 +73,15 @@ const SIZES: Option<SizeBy>[] = [
  * The periods, and the move each draws at full colour: three per cent is
  * a big day and an ordinary year.
  */
-const DAY: HeatPeriod<PeriodKey> = { key: "day", label: "1D", reach: 3 };
+const DAY: HeatPeriod<PeriodKey> = { key: "day", label: "1D", reach: HEAT_REACH.day };
 
 export const PERIODS: readonly HeatPeriod<PeriodKey>[] = [
   DAY,
-  { key: "one_week", label: "1W", reach: 6 },
-  { key: "one_month", label: "1M", reach: 10 },
-  { key: "three_months", label: "3M", reach: 20 },
-  { key: "year_to_date", label: "YTD", reach: 30 },
-  { key: "one_year", label: "1Y", reach: 50 },
+  { key: "one_week", label: "1W", reach: HEAT_REACH.one_week },
+  { key: "one_month", label: "1M", reach: HEAT_REACH.one_month },
+  { key: "three_months", label: "3M", reach: HEAT_REACH.three_months },
+  { key: "year_to_date", label: "YTD", reach: HEAT_REACH.year_to_date },
+  { key: "one_year", label: "1Y", reach: HEAT_REACH.one_year },
 ];
 
 const LAYOUTS: Option<Layout>[] = [

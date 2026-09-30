@@ -25,6 +25,22 @@ export interface HeatPeriod<Key extends string = string> {
   reach: number;
 }
 
+/**
+ * The move over each period drawn at full colour, in per cent either way:
+ * three per cent is a big day and an ordinary year. One table for every
+ * heat colour on the site, so a strong month is the same green on the
+ * heatmap, the sectors table and anywhere else a move is tinted.
+ */
+export const HEAT_REACH = {
+  day: 3,
+  one_week: 6,
+  one_month: 10,
+  three_months: 20,
+  six_months: 30,
+  year_to_date: 30,
+  one_year: 50,
+} as const;
+
 /** A colour's red, green and blue, each 0 to 255. */
 export type Rgb = readonly [number, number, number];
 
