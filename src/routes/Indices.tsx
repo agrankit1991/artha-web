@@ -46,34 +46,34 @@ export function Indices(): React.JSX.Element {
   const [exchange, setExchange] = useSearchParam("exchange", ANY);
   const [typed, setTyped] = useSearchParam("q");
   const [mode, setMode] = useViewMode("indices");
+  // An index that has never published a level (the Bharat Bond indices,
+  // on 30 Sept 2026) is a row of dashes with nothing behind it: left out,
+  // and counted in a line so the list does not look short for no reason.
+  const listed = useMemo(
+    () => (indices.data ?? []).filter((one) => one.close !== null),
+    [indices.data],
+  );
+  const unpublished = (indices.data?.length ?? 0) - listed.length;
 
   const categories = useMemo(() => {
-    const found = new Set(
-      (indices.data ?? []).flatMap((one) => (one.category === null ? [] : [one.category])),
-    );
+    const found = new Set(listed.flatMap((one) => (one.category === null ? [] : [one.category])));
     return [
       { key: ANY, label: "All kinds" },
       ...[...found].sort().map((key) => ({ key, label: categoryLabel(key) })),
     ];
-  }, [indices.data]);
+  }, [listed]);
 
   const shown = useMemo(() => {
     const letters = typed.trim().toLowerCase();
-    return (
-      (indices.data ?? [])
-        .filter(
-          (one) =>
-            (category === ANY || one.category === category) &&
-            (exchange === ANY || exchangeOf(one) === exchange) &&
-            (letters === "" ||
-              one.name.toLowerCase().includes(letters) ||
-              one.symbol.toLowerCase().includes(letters)),
-        )
-        // Indices with no level yet go last, rather than opening the list
-        // with a run of empty rows.
-        .sort((one, other) => Number(one.close === null) - Number(other.close === null))
+    return listed.filter(
+      (one) =>
+        (category === ANY || one.category === category) &&
+        (exchange === ANY || exchangeOf(one) === exchange) &&
+        (letters === "" ||
+          one.name.toLowerCase().includes(letters) ||
+          one.symbol.toLowerCase().includes(letters)),
     );
-  }, [indices.data, category, exchange, typed]);
+  }, [listed, category, exchange, typed]);
 
   const columns = useMemo<Column<IndexSummary>[]>(
     () => [
@@ -157,7 +157,7 @@ export function Indices(): React.JSX.Element {
     <div className="space-y-6">
       <PageHeader
         title="Indices"
-        count={indices.data === null ? undefined : `${String(indices.data.length)} indices`}
+        count={indices.data === null ? undefined : `${String(listed.length)} indices`}
         description="Every index listed, with what kind of index it is, how many companies it holds and how it has done. Each leads to its own page."
       />
       <div className="flex flex-wrap items-center gap-3">
@@ -174,14 +174,20 @@ export function Indices(): React.JSX.Element {
         <Chooser options={EXCHANGES} chosen={exchange} onChange={setExchange} label="Exchange" />
         <Chooser options={categories} chosen={category} onChange={setCategory} label="Kind" />
         {/* The total is in the header; here only what the filters leave. */}
-        {indices.data !== null && shown.length !== indices.data.length && (
+        {indices.data !== null && shown.length !== listed.length && (
           <span className="text-xs text-muted-foreground">
-            {String(shown.length)} of {String(indices.data.length)}
+            {String(shown.length)} of {String(listed.length)}
           </span>
         )}
         <ViewModeToggle mode={mode} onChange={setMode} className="ml-auto" />
       </div>
       {indices.error !== null && <Failed message={indices.error} />}
+      {unpublished > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {String(unpublished)} {unpublished === 1 ? "index has" : "indices have"} published no
+          level yet and {unpublished === 1 ? "is" : "are"} not shown.
+        </p>
+      )}
       {indices.error === null && mode === "list" && table(shown, "Indices")}
       {indices.error === null && mode === "grouped" && (
         <Grouped groups={byCategory(shown)} render={(rows, name) => table(rows, name)} />

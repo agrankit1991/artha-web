@@ -12,7 +12,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const THREE = [
+const LISTED = [
   indexSummary(),
   indexSummary({
     instrument_key: "NSE_INDEX|Nifty IT",
@@ -29,6 +29,20 @@ const THREE = [
     category: null,
     constituents: 0,
     as_of: null,
+    // A level, but nothing else: an index missing figures, still listed.
+    close: "80000.00",
+    change_percent: null,
+    returns: null,
+    from_high_percent: null,
+  }),
+  // Never a level at all, as the Bharat Bond indices: not shown.
+  indexSummary({
+    instrument_key: "NSE_INDEX|BHARATBOND-APR30",
+    symbol: "BHARATBOND-APR30",
+    name: "BHARATBOND-APR30",
+    category: null,
+    constituents: 0,
+    as_of: null,
     close: null,
     change_percent: null,
     returns: null,
@@ -38,7 +52,7 @@ const THREE = [
 
 describe("Indices", () => {
   it("lists every index with its kind and size, each leading to its page", async () => {
-    stubPlatform({ "/api/indices": { body: THREE } });
+    stubPlatform({ "/api/indices": { body: LISTED } });
     renderPage(<Indices />);
 
     const table = await screen.findByRole("table", { name: "Indices" });
@@ -58,10 +72,15 @@ describe("Indices", () => {
     // The total is in the header; a count here only once a filter narrows it.
     expect(screen.queryByText("3 of 3")).not.toBeInTheDocument();
     expect(screen.getByText("3 indices")).toBeInTheDocument();
+    // An index that has never published a level is left out, and said to be.
+    expect(within(table).queryByText(/BHARATBOND/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText("1 index has published no level yet and is not shown."),
+    ).toBeInTheDocument();
   });
 
   it("narrows by kind and by typed letters", async () => {
-    stubPlatform({ "/api/indices": { body: THREE } });
+    stubPlatform({ "/api/indices": { body: LISTED } });
     renderPage(<Indices />);
     await screen.findByRole("link", { name: /Nifty 50/ });
 
@@ -76,8 +95,8 @@ describe("Indices", () => {
     expect(screen.getByText("1 of 3")).toBeInTheDocument();
   });
 
-  it("sorts by any column, an index without a figure last", async () => {
-    stubPlatform({ "/api/indices": { body: THREE } });
+  it("sorts by any column, an index missing a figure last", async () => {
+    stubPlatform({ "/api/indices": { body: LISTED } });
     renderPage(<Indices />);
     const table = await screen.findByRole("table", { name: "Indices" });
     await within(table).findByRole("link", { name: /Nifty 50/ });
@@ -105,7 +124,7 @@ describe("Indices", () => {
   });
 
   it("says when nothing matches and when the list cannot be read", async () => {
-    stubPlatform({ "/api/indices": { body: THREE } });
+    stubPlatform({ "/api/indices": { body: LISTED } });
     const { unmount } = renderPage(<Indices />);
     await screen.findByRole("link", { name: /Nifty 50/ });
     await userEvent.type(screen.getByRole("searchbox", { name: "Find an index" }), "zzz");
@@ -119,7 +138,7 @@ describe("Indices", () => {
   });
 
   it("narrows by exchange", async () => {
-    stubPlatform({ "/api/indices": { body: THREE } });
+    stubPlatform({ "/api/indices": { body: LISTED } });
     renderPage(<Indices />);
     await screen.findByRole("link", { name: /Nifty 50/ });
 
@@ -130,7 +149,7 @@ describe("Indices", () => {
   });
 
   it("groups the indices into a table per category, and remembers the layout", async () => {
-    stubPlatform({ "/api/indices": { body: THREE } });
+    stubPlatform({ "/api/indices": { body: LISTED } });
     const { unmount } = renderPage(<Indices />);
     await screen.findByRole("link", { name: /Nifty 50/ });
 
@@ -153,7 +172,7 @@ describe("Indices", () => {
   });
 
   it("lays the indices out as cards, each leading to its page", async () => {
-    stubPlatform({ "/api/indices": { body: THREE } });
+    stubPlatform({ "/api/indices": { body: LISTED } });
     renderPage(<Indices />);
     await screen.findByRole("link", { name: /Nifty 50/ });
 
@@ -184,7 +203,7 @@ describe("Indices", () => {
     unmount();
 
     rememberCards();
-    stubPlatform({ "/api/indices": { body: THREE } });
+    stubPlatform({ "/api/indices": { body: LISTED } });
     renderPage(<Indices />, { at: "/indices?q=nothing" });
     expect(await screen.findByText("No index matches")).toBeInTheDocument();
   });
