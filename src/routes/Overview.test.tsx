@@ -98,7 +98,7 @@ describe("Overview", () => {
 
     await waitFor(() => {
       const asked = fetchMock.mock.calls
-        .map((call) => String(call[0]))
+        .map((call) => call[0])
         .find((path) => path.startsWith("/api/overviews"));
       expect(asked).toBeDefined();
       expect(asked?.match(/keys=/g)).toHaveLength(8);
@@ -125,7 +125,7 @@ describe("Overview", () => {
     await userEvent.click(screen.getByRole("option", { name: "IT - Software" }));
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(asked.some((path) => path.includes("scope_key=IT+-+Software"))).toBe(true);
     });
   });
@@ -138,7 +138,7 @@ describe("Overview", () => {
     await userEvent.click(screen.getByRole("button", { name: "Indices" }));
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(
         asked.some((path) => path.includes("/api/movers?") && path.includes("scope_kind=indices")),
       ).toBe(true);
@@ -252,9 +252,9 @@ describe("Overview", () => {
       "href",
       "/company/RELIANCE",
     );
-    expect(
-      fetched.mock.calls.some((call) => String(call[0]).startsWith("/api/heatmap?scope_kind=")),
-    ).toBe(true);
+    expect(fetched.mock.calls.some((call) => call[0].startsWith("/api/heatmap?scope_kind="))).toBe(
+      true,
+    );
   });
 
   it("maps the whole market when all the indices are chosen, which are not companies", async () => {
@@ -268,9 +268,9 @@ describe("Overview", () => {
     renderOverview();
 
     await screen.findByRole("group", { name: /: companies by market capitalisation/ });
-    expect(
-      fetched.mock.calls.some((call) => String(call[0]) === "/api/heatmap?scope_kind=companies"),
-    ).toBe(true);
+    expect(fetched.mock.calls.some((call) => call[0] === "/api/heatmap?scope_kind=companies")).toBe(
+      true,
+    );
   });
 
   it("says the map could not be read without losing the page", async () => {
@@ -300,7 +300,7 @@ describe("Overview", () => {
 
     await waitFor(() => {
       const asked = fetchMock.mock.calls
-        .map((call) => String(call[0]))
+        .map((call) => call[0])
         .find((path) => path.startsWith("/api/news"));
       expect(asked).toContain("limit=6");
     });
@@ -312,7 +312,7 @@ describe("Overview", () => {
     await screen.findByText("+10.00%");
     expect(
       fetchMock.mock.calls
-        .map((call) => String(call[0]))
+        .map((call) => call[0])
         .some((path) => path.startsWith("/api/figures") && path.includes("sessions=253")),
     ).toBe(true);
 
@@ -323,7 +323,7 @@ describe("Overview", () => {
     );
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(
         asked.some((path) => path.startsWith("/api/figures") && path.includes("sessions=12500")),
       ).toBe(true);
@@ -342,7 +342,7 @@ describe("Overview", () => {
     );
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(
         asked.some((path) => path.startsWith("/api/series") && path.includes("sessions=1261")),
       ).toBe(true);
@@ -369,7 +369,7 @@ describe("Overview", () => {
 
     await waitFor(() => {
       const asked = fetchMock.mock.calls
-        .map((call) => String(call[0]))
+        .map((call) => call[0])
         .find((path) => path.startsWith("/api/external-symbols"));
       expect(asked).toBeDefined();
       expect(asked?.match(/keys=/g)).toHaveLength(9);
@@ -545,7 +545,7 @@ describe("Overview", () => {
 
     await waitFor(() => {
       const asked = fetched.mock.calls.map((call) =>
-        decodeURIComponent(String(call[0])).replaceAll("+", " "),
+        decodeURIComponent(call[0]).replaceAll("+", " "),
       );
       expect(
         asked.some((path) =>

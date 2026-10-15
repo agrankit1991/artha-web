@@ -200,7 +200,7 @@ describe("EarningsPage", () => {
     expect(await screen.findByText(/3 to 8 here/)).toBeInTheDocument();
     expect(screen.queryByRole("list", { name: /growing revenue/ })).not.toBeInTheDocument();
     await waitFor(() => {
-      const asked = fetched.mock.calls.map((call) => String(call[0]));
+      const asked = fetched.mock.calls.map((call) => call[0]);
       expect(asked.some((path) => path.includes("/api/earnings/sectors?cadence=quarterly"))).toBe(
         true,
       );
@@ -232,12 +232,12 @@ describe("EarningsPage", () => {
       "aria-pressed",
       "true",
     );
-    const asked = fetched.mock.calls.map((call) => String(call[0]));
+    const asked = fetched.mock.calls.map((call) => call[0]);
     expect(asked).toContain("/api/earnings/companies/all?cadence=annual&same_companies=true");
 
     await userEvent.click(screen.getByRole("button", { name: "All reporting" }));
     await waitFor(() => {
-      expect(fetched.mock.calls.map((call) => String(call[0]))).toContain(
+      expect(fetched.mock.calls.map((call) => call[0])).toContain(
         "/api/earnings/companies/all?cadence=annual",
       );
     });
@@ -294,16 +294,14 @@ describe("EarningsPage", () => {
     expect(await screen.findByText(/: 5 here/)).toBeInTheDocument();
     expect(
       fetched.mock.calls.some((call) =>
-        String(call[0]).includes("/api/earnings/companies/all?cadence=quarterly"),
+        call[0].includes("/api/earnings/companies/all?cadence=quarterly"),
       ),
     ).toBe(true);
 
     await userEvent.click(screen.getByRole("button", { name: "Annual" }));
     await waitFor(() => {
       expect(
-        fetched.mock.calls.some((call) =>
-          String(call[0]).includes("/api/earnings/sectors?cadence=annual"),
-        ),
+        fetched.mock.calls.some((call) => call[0].includes("/api/earnings/sectors?cadence=annual")),
       ).toBe(true);
     });
   });

@@ -29,7 +29,7 @@ function stubEverything(
 
 /** The paths the page asked the platform for. */
 function asked(fetchMock: ReturnType<typeof stubPlatform>): string[] {
-  return fetchMock.mock.calls.map((call) => String(call[0]));
+  return fetchMock.mock.calls.map((call) => call[0]);
 }
 
 describe("News", () => {

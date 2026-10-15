@@ -143,7 +143,7 @@ describe("Profile", () => {
 
     const link = await screen.findByLabelText("Invitation link");
     expect(link).toHaveTextContent(/\/\?invite=abc123$/);
-    const call = fetched.mock.calls.find(([path]) => String(path) === "/api/invitations") as
+    const call = fetched.mock.calls.find(([path]) => path === "/api/invitations") as
       [string, RequestInit] | undefined;
     expect(JSON.parse(call?.[1].body as string)).toEqual({ days: 30 });
     await userEvent.click(screen.getByRole("button", { name: "Copy" }));

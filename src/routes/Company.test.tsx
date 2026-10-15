@@ -286,7 +286,7 @@ describe("Company", () => {
     renderPage(<Company instrumentKey="BSE_EQ|INE002A01018" />);
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(asked.some((path) => path.includes("BSE_EQ%7CINE002A01018"))).toBe(true);
     });
   });
@@ -300,7 +300,7 @@ describe("Company", () => {
     await userEvent.click(within(price).getByRole("button", { name: "5Y" }));
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(asked.some((path) => path.includes("sessions=1261"))).toBe(true);
     });
   });
@@ -317,7 +317,7 @@ describe("Company", () => {
     await userEvent.click(within(history).getByRole("button", { name: "1Y" }));
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(asked.some((path) => path.includes("/valuation/history?years=1"))).toBe(true);
     });
   });
@@ -491,7 +491,7 @@ describe("Company", () => {
 
     expect(await screen.findByRole("dialog", { name: "Share" })).toBeInTheDocument();
     await waitFor(() => {
-      const asked = fetched.mock.calls.map((call) => String(call[0]));
+      const asked = fetched.mock.calls.map((call) => call[0]);
       expect(asked.some((path) => path.includes("/api/series?sessions=22"))).toBe(true);
     });
   });
@@ -508,7 +508,7 @@ describe("Company", () => {
     await userEvent.type(screen.getByLabelText("As of"), "2026-09-15");
 
     await waitFor(() => {
-      const asked = fetched.mock.calls.map((call) => decodeURIComponent(String(call[0])));
+      const asked = fetched.mock.calls.map((call) => decodeURIComponent(call[0]));
       expect(asked.some((path) => path.includes("/api/overviews?as_of=2026-09-15"))).toBe(true);
     });
     expect(screen.getByText(/Read as it stood on/)).toBeInTheDocument();
@@ -632,7 +632,7 @@ describe("Company", () => {
     const fetched = stubEverything();
     renderPage(<Company instrumentKey={KEY} />);
     await screen.findByRole("region", { name: "Key figures" });
-    const asked = (): string[] => fetched.mock.calls.map((call) => String(call[0]));
+    const asked = (): string[] => fetched.mock.calls.map((call) => call[0]);
     expect(asked().some((path) => path.includes("/fundamentals"))).toBe(false);
     expect(asked().some((path) => path.includes("/corporate-actions"))).toBe(false);
 
@@ -741,7 +741,7 @@ describe("Company", () => {
     await waitFor(() => {
       expect(screen.queryByText(/Read as of/)).not.toBeInTheDocument();
     });
-    const asked = fetched.mock.calls.map((call) => String(call[0]));
+    const asked = fetched.mock.calls.map((call) => call[0]);
     expect(
       asked.some((path) => path.startsWith("/api/overviews?") && !path.includes("as_of")),
     ).toBe(true);

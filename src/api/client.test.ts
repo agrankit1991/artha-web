@@ -38,7 +38,7 @@ describe("requests", () => {
     await fetchMovers("companies", null);
     await fetchMovers("sector", "IT - Software");
 
-    const paths = fetchMock.mock.calls.map((call) => String(call[0]));
+    const paths = fetchMock.mock.calls.map((call) => call[0]);
     expect(paths[0]).toContain("scope_kind=companies");
     expect(paths[0]).not.toContain("scope_key");
     expect(paths[1]).toContain("scope_key=IT+-+Software");
@@ -88,7 +88,7 @@ describe("requests", () => {
     await fetchMoverList("top-gainers", "companies", null);
     await fetchNews();
 
-    expect(fetchMock.mock.calls.map((call) => String(call[0]).split("?")[0])).toEqual([
+    expect(fetchMock.mock.calls.map((call) => call[0].split("?")[0])).toEqual([
       "/api/hello",
       "/api/login",
       "/api/movers/scopes",

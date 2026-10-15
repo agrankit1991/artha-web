@@ -8,7 +8,7 @@
 
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { vi } from "vitest";
+import { type Mock, vi } from "vitest";
 
 import { ThemeProvider } from "@/lib/theme";
 
@@ -103,15 +103,21 @@ export interface Reply {
 }
 
 /**
+ * The stubbed `fetch`: callable as the application calls it -- always with a
+ * relative path, since every request goes through `src/api/` -- and a mock
+ * to assert on.
+ */
+export type PlatformStub = Mock<(input: string, init?: RequestInit) => Promise<Response>>;
+
+/**
  * Stub `fetch` with a table of replies, matched by path prefix.
  *
  * @param replies - Path prefix to reply. A path with no entry answers 404,
  *   which is what an unexpected request should look like.
  * @returns The mock, so a test can assert on what was requested.
  */
-export function stubPlatform(replies: Record<string, Reply>): ReturnType<typeof vi.fn> {
-  const mock = vi.fn((input: string | URL | Request, init?: RequestInit) => {
-    const path = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+export function stubPlatform(replies: Record<string, Reply>): PlatformStub {
+  const mock = vi.fn((path: string, init?: RequestInit) => {
     const match = Object.keys(replies)
       .sort((a, b) => b.length - a.length)
       .find((prefix) => path.startsWith(prefix));

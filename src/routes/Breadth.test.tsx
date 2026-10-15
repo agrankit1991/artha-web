@@ -64,7 +64,7 @@ describe("Breadth", () => {
     await userEvent.click(screen.getByRole("button", { name: "Nifty 50" }));
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(
         asked.some((path) => path.includes("/api/breadth") && path.includes("scope_kind=index")),
       ).toBe(true);
@@ -82,7 +82,7 @@ describe("Breadth", () => {
     );
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(asked.some((path) => path.includes("sessions=1250"))).toBe(true);
     });
   });
@@ -93,7 +93,7 @@ describe("Breadth", () => {
     renderPage(<Breadth />);
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(asked.some((path) => path.includes("sessions=250"))).toBe(true);
     });
   });
@@ -120,7 +120,7 @@ describe("Breadth", () => {
 
     await waitFor(() => {
       const asked = fetched.mock.calls.map((call) =>
-        decodeURIComponent(String(call[0])).replaceAll("+", " "),
+        decodeURIComponent(call[0]).replaceAll("+", " "),
       );
       expect(
         asked.some(
@@ -138,7 +138,7 @@ describe("Breadth", () => {
     renderPage(<Breadth />, { at: "/breadth?window=7" });
 
     await waitFor(() => {
-      const asked = fetched.mock.calls.map((call) => String(call[0]));
+      const asked = fetched.mock.calls.map((call) => call[0]);
       expect(
         asked.some((path) => path.startsWith("/api/breadth?") && path.includes("sessions=250")),
       ).toBe(true);
@@ -285,7 +285,7 @@ describe("Breadth", () => {
     await userEvent.click(within(chooser).getByRole("button", { name: "Indices" }));
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(
         asked.some(
           (path) => path.includes("/api/breadth/grid") && path.includes("scope_kind=index"),
@@ -308,7 +308,7 @@ describe("Breadth", () => {
     await userEvent.click(cells[cells.length - 1] as HTMLElement);
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(
         asked.some(
           (path) => path.includes("/api/breadth?") && path.includes("scope_key=Pharmaceuticals"),
@@ -373,7 +373,7 @@ describe("Breadth", () => {
       );
     });
     // The window over the rest of the page is untouched.
-    const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+    const asked = fetchMock.mock.calls.map((call) => call[0]);
     expect(
       asked.some((path) => path.startsWith("/api/breadth?") && path.includes("sessions=5000")),
     ).toBe(false);
@@ -457,6 +457,6 @@ describe("Breadth", () => {
 /** The participation requests made, decoded as the platform reads them. */
 function participationAsked(fetchMock: ReturnType<typeof stubPlatform>): string[] {
   return fetchMock.mock.calls
-    .map((call) => decodeURIComponent(String(call[0])).replace(/\+/g, " "))
+    .map((call) => decodeURIComponent(call[0]).replace(/\+/g, " "))
     .filter((path) => path.startsWith("/api/breadth/participation"));
 }

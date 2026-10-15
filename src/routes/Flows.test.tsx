@@ -103,7 +103,7 @@ describe("Flows", () => {
     const fetched = stub();
     renderPage(<Flows />);
     await screen.findByRole("table", { name: "Cash market flows" });
-    const asked = (): string[] => fetched.mock.calls.map((call) => String(call[0]));
+    const asked = (): string[] => fetched.mock.calls.map((call) => call[0]);
 
     // Three months to begin with, asked apart from the page's own rows.
     expect(asked()).toContain("/api/flows?period=DAY&sessions=63");

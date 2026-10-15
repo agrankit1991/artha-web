@@ -77,7 +77,7 @@ describe("App", () => {
     await waitFor(() => {
       expect(screen.getByText("Tester")).toBeInTheDocument();
     });
-    expect(fetchMock.mock.calls.some((call) => String(call[0]) === "/api/me")).toBe(true);
+    expect(fetchMock.mock.calls.some((call) => call[0] === "/api/me")).toBe(true);
   });
 
   it("shows the sign-in page when nobody is", async () => {
@@ -442,7 +442,7 @@ describe("App", () => {
     render(<App />);
 
     await waitFor(() => {
-      const recorded = fetchMock.mock.calls.find((call) => String(call[0]) === "/api/page-views");
+      const recorded = fetchMock.mock.calls.find((call) => call[0] === "/api/page-views");
       expect(recorded).toBeDefined();
       const body = JSON.parse((recorded?.[1] as RequestInit).body as string) as Record<
         string,

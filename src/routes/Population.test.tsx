@@ -173,7 +173,7 @@ describe("Population", () => {
     show("sector", "IT - Software");
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(
         asked.some((path) => path.includes("/api/breadth") && path.includes("scope_kind=sector")),
       ).toBe(true);
@@ -190,7 +190,7 @@ describe("Population", () => {
       "href",
       "/company/RELIANCE",
     );
-    const asked = fetched.mock.calls.map((call) => decodeURIComponent(String(call[0])));
+    const asked = fetched.mock.calls.map((call) => decodeURIComponent(call[0]));
     expect(asked).toContain("/api/heatmap?scope_kind=index&scope_key=NSE_INDEX|Nifty+Bank");
   });
 
@@ -264,12 +264,12 @@ describe("Population", () => {
     );
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(asked.some((path) => path.includes("sessions=1261"))).toBe(true);
     });
     // Breadth keeps its own window whatever the chart's range.
     const breadthAsked = fetchMock.mock.calls
-      .map((call) => String(call[0]))
+      .map((call) => call[0])
       .filter((path) => path.includes("/api/breadth"));
     expect(breadthAsked.length).toBeGreaterThan(0);
     expect(breadthAsked.every((path) => path.endsWith("sessions=250"))).toBe(true);
@@ -435,7 +435,7 @@ describe("Population", () => {
 
     expect(await screen.findByRole("dialog", { name: "Share" })).toBeInTheDocument();
     await waitFor(() => {
-      const asked = fetched.mock.calls.map((call) => String(call[0]));
+      const asked = fetched.mock.calls.map((call) => call[0]);
       expect(asked.some((path) => path.includes("/api/series?sessions=22"))).toBe(true);
     });
   });
@@ -448,7 +448,7 @@ describe("Population", () => {
     await userEvent.type(screen.getByLabelText("As of"), "2026-09-15");
 
     await waitFor(() => {
-      const asked = fetched.mock.calls.map((call) => decodeURIComponent(String(call[0])));
+      const asked = fetched.mock.calls.map((call) => decodeURIComponent(call[0]));
       expect(asked.some((path) => path.includes("Nifty 50?as_of=2026-09-15"))).toBe(true);
     });
   });

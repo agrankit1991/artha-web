@@ -58,9 +58,7 @@ describe("Deals", () => {
     renderPage(<Deals />, { at: "/deals?kind=BULK&window=7" });
 
     await screen.findByRole("table", { name: "Disclosed deals" });
-    expect(fetched.mock.calls.map((call) => String(call[0]))).toContain(
-      "/api/deals?days=7&kind=BULK",
-    );
+    expect(fetched.mock.calls.map((call) => call[0])).toContain("/api/deals?days=7&kind=BULK");
     expect(screen.getByRole("button", { name: "Bulk" })).toHaveAttribute("aria-pressed", "true");
     const bought = screen.getByRole("list", { name: "Companies most bought in disclosed deals" });
     const [aastha, unmapped] = within(bought).getAllByRole("listitem");
@@ -98,7 +96,7 @@ describe("Deals", () => {
     renderPage(<Deals />, { at: "/deals?kind=ODD&window=5" });
 
     await screen.findByRole("table", { name: "Disclosed deals" });
-    expect(fetched.mock.calls.map((call) => String(call[0]))).toContain("/api/deals?days=30");
+    expect(fetched.mock.calls.map((call) => call[0])).toContain("/api/deals?days=30");
     expect(screen.getByRole("button", { name: "All deals" })).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -145,7 +143,7 @@ describe("Deals", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Block" }));
     await userEvent.click(screen.getByRole("button", { name: "Quarter" }));
-    const asked = fetched.mock.calls.map((call) => String(call[0]));
+    const asked = fetched.mock.calls.map((call) => call[0]);
     expect(asked.at(-1)).toBe("/api/deals?days=90&kind=BLOCK");
 
     // The company first, as every list of companies leads with it.

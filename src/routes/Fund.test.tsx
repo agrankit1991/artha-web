@@ -108,7 +108,7 @@ describe("Fund", () => {
     await userEvent.click(screen.getByRole("button", { name: "10Y" }));
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(asked.some((path) => path.includes("years=10"))).toBe(true);
     });
   });
@@ -247,7 +247,7 @@ describe("Fund", () => {
     );
     // Itself left out: a scheme is not similar to itself.
     expect(within(table).queryByText(/Axis Bluechip/)).not.toBeInTheDocument();
-    const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+    const asked = fetchMock.mock.calls.map((call) => call[0]);
     // The category's best over three years, not the first ten by name.
     expect(
       asked.some(
@@ -269,7 +269,7 @@ describe("Fund", () => {
 
     await screen.findByText("NAV history");
     expect(screen.queryByText("Similar schemes")).not.toBeInTheDocument();
-    const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+    const asked = fetchMock.mock.calls.map((call) => call[0]);
     expect(asked.some((path) => path.includes("category="))).toBe(false);
   });
 

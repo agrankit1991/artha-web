@@ -54,7 +54,7 @@ describe("Funds", () => {
     await userEvent.type(screen.getByLabelText("Search schemes"), "bluechip");
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(asked.some((path) => path.includes("text=bluechip"))).toBe(true);
     });
   });
@@ -68,7 +68,7 @@ describe("Funds", () => {
     await userEvent.click(await screen.findByRole("option", { name: "Axis Mutual Fund" }));
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(asked.some((path) => path.includes("amc=Axis"))).toBe(true);
     });
   });
@@ -82,7 +82,7 @@ describe("Funds", () => {
     await userEvent.click(await screen.findByRole("option", { name: /Large Cap/ }));
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(asked.some((path) => path.includes("category=Equity"))).toBe(true);
     });
   });
@@ -119,7 +119,7 @@ describe("Funds", () => {
     await userEvent.click(screen.getByRole("button", { name: /Load more/ }));
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(asked.some((path) => path.includes("offset=1"))).toBe(true);
     });
   });
@@ -136,7 +136,7 @@ describe("Funds", () => {
     await userEvent.type(screen.getByLabelText("Search schemes"), "axis");
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(asked.some((path) => path.includes("text=axis") && path.includes("offset=0"))).toBe(
         true,
       );
@@ -212,7 +212,7 @@ describe("Funds", () => {
     expect(screen.getByLabelText("Search schemes")).toHaveValue("bluechip");
     await waitFor(() => {
       const asked = fetchMock.mock.calls.map((call) =>
-        decodeURIComponent(String(call[0])).replaceAll("+", " "),
+        decodeURIComponent(call[0]).replaceAll("+", " "),
       );
       expect(
         asked.some(
@@ -287,7 +287,7 @@ describe("Funds", () => {
     await userEvent.click(within(table).getByRole("button", { name: /^1Y/ }));
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(
         asked.some(
           (path) =>
@@ -305,7 +305,7 @@ describe("Funds", () => {
     await userEvent.click(within(table).getByRole("button", { name: /^1Y/ }));
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(
         asked.some((path) => path.includes("sort=one_year") && path.includes("order=asc")),
       ).toBe(true);
@@ -357,7 +357,7 @@ describe("Funds", () => {
     renderPage(<Funds />);
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(
         asked.some(
           (path) =>
@@ -387,7 +387,7 @@ describe("Funds", () => {
     expect(await screen.findByText("20,393 schemes")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Closed too" }));
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(asked).toContain("/api/funds/groups");
       expect(
         asked.some(
@@ -434,7 +434,7 @@ describe("Funds", () => {
       "/fund/120503",
     );
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       // The group replaces the category chosen before it.
       expect(
         asked.some(
@@ -461,7 +461,7 @@ describe("Funds", () => {
     await userEvent.click(await screen.findByRole("option", { name: /Large Cap/ }));
 
     await waitFor(() => {
-      const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+      const asked = fetchMock.mock.calls.map((call) => call[0]);
       expect(
         asked.some(
           (path) =>
@@ -480,7 +480,7 @@ describe("Funds", () => {
     renderPage(<Funds />, { at: "/funds?group=crypto" });
 
     await screen.findByRole("table", { name: "Schemes" });
-    const asked = fetchMock.mock.calls.map((call) => String(call[0]));
+    const asked = fetchMock.mock.calls.map((call) => call[0]);
     expect(asked.some((path) => path.includes("group="))).toBe(false);
   });
 

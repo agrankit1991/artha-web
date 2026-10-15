@@ -56,15 +56,11 @@ describe("Future", () => {
 
     // Opens at the range chosen on any chart, and remembers a new one.
     await waitFor(() => {
-      expect(fetched.mock.calls.some((call) => String(call[0]).includes("sessions=253"))).toBe(
-        true,
-      );
+      expect(fetched.mock.calls.some((call) => call[0].includes("sessions=253"))).toBe(true);
     });
     await userEvent.click(screen.getByRole("button", { name: "5Y" }));
     await waitFor(() => {
-      expect(fetched.mock.calls.some((call) => String(call[0]).includes("sessions=1261"))).toBe(
-        true,
-      );
+      expect(fetched.mock.calls.some((call) => call[0].includes("sessions=1261"))).toBe(true);
     });
     expect(readPreferences().range).toBe(1261);
     expect(screen.getByRole("link", { name: /Compare/ })).toHaveAttribute(

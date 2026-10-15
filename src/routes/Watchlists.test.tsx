@@ -67,8 +67,8 @@ function stubEverything(page = watchlistPage()): ReturnType<typeof stubPlatform>
 /** The requests made, as method and decoded path. */
 function made(fetched: ReturnType<typeof stubPlatform>): string[] {
   return fetched.mock.calls.map((call) => {
-    const init = call[1] as RequestInit | undefined;
-    return `${init?.method ?? "GET"} ${decodeURIComponent(String(call[0]))}`;
+    const init = call[1];
+    return `${init?.method ?? "GET"} ${decodeURIComponent(call[0])}`;
   });
 }
 

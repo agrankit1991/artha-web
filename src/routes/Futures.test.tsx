@@ -48,9 +48,7 @@ describe("Futures", () => {
     expect(gold).toHaveTextContent("expires today");
     expect(gold).toHaveTextContent("-");
     await waitFor(() => {
-      expect(fetched.mock.calls.some((call) => String(call[0]).includes("segment=COMMODITY"))).toBe(
-        true,
-      );
+      expect(fetched.mock.calls.some((call) => call[0].includes("segment=COMMODITY"))).toBe(true);
     });
   });
 
@@ -61,9 +59,7 @@ describe("Futures", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Currency" }));
     await waitFor(() => {
-      expect(fetched.mock.calls.some((call) => String(call[0]).includes("segment=CURRENCY"))).toBe(
-        true,
-      );
+      expect(fetched.mock.calls.some((call) => call[0].includes("segment=CURRENCY"))).toBe(true);
     });
     expect(screen.getByText(/Rupee pairs/)).toBeInTheDocument();
 
@@ -125,9 +121,7 @@ describe("Futures", () => {
     const table = await screen.findByRole("table", { name: "Underlyings" });
     expect(await within(table).findByRole("link", { name: /GOLD/ })).toBeInTheDocument();
     expect(within(table).queryByRole("link", { name: /CRUDEOIL/ })).not.toBeInTheDocument();
-    expect(fetched.mock.calls.some((call) => String(call[0]).includes("segment=CURRENCY"))).toBe(
-      true,
-    );
+    expect(fetched.mock.calls.some((call) => call[0].includes("segment=CURRENCY"))).toBe(true);
     unmount();
 
     // A family it does not know reads as the first.

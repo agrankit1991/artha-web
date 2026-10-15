@@ -58,9 +58,14 @@ export default defineConfig({
       // `noUncheckedIndexedAccess` an index read is `T | undefined` even
       // where an invariant has already ruled the absence out, so a handful
       // of fallbacks exist that no test can reach.
+      //
+      // Branches were re-based from 97 to 96 with Vitest 5 (2026-10-15, the
+      // owner's choice): the same tests measured 97.40% on Vitest 3 and
+      // 96.12% on 5, which counts branches more strictly. The measure
+      // changed, not the tests; raise it again as tests are added.
       thresholds: {
         lines: 99,
-        branches: 97,
+        branches: 96,
         functions: 99,
         statements: 99,
       },

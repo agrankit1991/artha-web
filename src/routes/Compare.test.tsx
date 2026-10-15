@@ -80,7 +80,7 @@ function stubEverything(): ReturnType<typeof stubPlatform> {
 
 /** The paths asked for, decoded. */
 function asked(fetched: ReturnType<typeof stubPlatform>): string[] {
-  return fetched.mock.calls.map((call) => decodeURIComponent(String(call[0])).replaceAll("+", " "));
+  return fetched.mock.calls.map((call) => decodeURIComponent(call[0]).replaceAll("+", " "));
 }
 
 describe("Compare", () => {

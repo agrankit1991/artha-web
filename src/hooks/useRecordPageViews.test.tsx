@@ -17,7 +17,7 @@ function Recorded(): React.JSX.Element {
 /** The pages recorded so far, in order. */
 function recorded(fetchMock: ReturnType<typeof stubPlatform>): string[] {
   return fetchMock.mock.calls
-    .filter((call) => String(call[0]) === "/api/page-views")
+    .filter((call) => call[0] === "/api/page-views")
     .map((call) => (JSON.parse((call[1] as RequestInit).body as string) as { path: string }).path);
 }
 

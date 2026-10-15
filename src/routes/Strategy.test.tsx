@@ -45,10 +45,10 @@ function draw(at: string): void {
 /** The calls made with a method, as [path, body]. */
 function sent(platform: ReturnType<typeof stubPlatform>, method: string): [string, unknown][] {
   return platform.mock.calls
-    .filter(([, init]) => (init as RequestInit | undefined)?.method === method)
+    .filter(([, init]) => init?.method === method)
     .map(([path, init]) => {
       const body = (init as RequestInit).body;
-      return [path as string, typeof body === "string" ? JSON.parse(body) : undefined];
+      return [path, typeof body === "string" ? JSON.parse(body) : undefined];
     });
 }
 

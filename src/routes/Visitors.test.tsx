@@ -57,7 +57,7 @@ function report(overrides: Partial<VisitorsReport> = {}): VisitorsReport {
 /** The visitors requests made, as the platform reads them. */
 function asked(fetchMock: ReturnType<typeof stubPlatform>): string[] {
   return fetchMock.mock.calls
-    .map((call) => String(call[0]))
+    .map((call) => call[0])
     .filter((path) => path.startsWith("/api/visitors"));
 }
 

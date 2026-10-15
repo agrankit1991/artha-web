@@ -46,9 +46,16 @@ test toolchain trains people to ignore the audit. High and critical block.
 
 ### Coverage ratchet
 
-Currently **99%** on lines, functions and statements and **97%** on branches,
-configured in `vite.config.ts`. Actual coverage is 99.9% of statements and
-lines, 100% of functions, 97.8% of branches.
+Currently **99%** on lines, functions and statements and **96%** on branches,
+configured in `vite.config.ts`. Actual coverage on Vitest 5 (2026-10-15):
+99.4% of lines and statements, 99.4% of functions, 96.1% of branches.
+
+**Branches were re-based from 97% to 96% with the move to Vitest 5**, at the
+owner's choice: Vitest 3 was retired for critical advisories in itself and
+`tinypool`, and on 5 the very same tests measured 96.12% of branches where
+3 measured 97.40%, the new version counting branches more strictly. The
+measure changed, not the tests. That is the one exception to the rule
+below, and it is recorded so it is not taken for a precedent.
 
 Branches sit lower than the rest on purpose. Under
 `noUncheckedIndexedAccess` every array index read is `T | undefined`, so
@@ -130,7 +137,12 @@ It rose from 95% with the first real views.
 
 - **Vitest and Vite majors must match.** Vitest 2 bundles Vite 5; with Vite 6
   that produces two copies of Vite's types and `defineConfig` fails to
-  typecheck under `exactOptionalPropertyTypes`. Vitest 3 pairs with Vite 6.
+  typecheck under `exactOptionalPropertyTypes`. Vitest 3 pairs with Vite 6,
+  and so does Vitest 5 (from Vite 6.4), which this uses since 2026-10-15.
+- **`stubPlatform` returns a mock of a string-taking `fetch`** (`PlatformStub`).
+  Vitest 5's bare `Mock` may be a constructor and cannot be called, and the
+  application only ever fetches a relative path, so a test reads
+  `call[0]` as the string it is, with no `String()` around it.
 - **Import `defineConfig` from `vitest/config`,** not `vite`, or the `test`
   key is rejected as an unknown property.
 - `npm install` warns that esbuild's postinstall was skipped. Benign -
