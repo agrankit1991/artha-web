@@ -12,7 +12,7 @@
 import { useCallback, useMemo } from "react";
 
 import type { SectorSummary } from "@/api/client";
-import { fetchSectors } from "@/api/client";
+import { fetchSectorRotation, fetchSectors } from "@/api/client";
 import { AdvanceDeclineBar } from "@/components/AdvanceDeclineBar";
 import { CardsLoading } from "@/components/CardsLoading";
 import { type Column, DataTable } from "@/components/DataTable";
@@ -22,7 +22,8 @@ import { Hint } from "@/components/Hint";
 import { HeatCell } from "@/components/HeatCell";
 import { PageHeader } from "@/components/PageHeader";
 import { PopulationCard } from "@/components/PopulationCard";
-import { RotationChart, type RotationPoint } from "@/components/RotationChart";
+import { RotationChart } from "@/components/RotationChart";
+import { RotationReplay } from "@/components/RotationReplay";
 import { MomentumChip } from "@/components/Standing";
 import { ViewModeToggle, useViewMode } from "@/components/ViewModeToggle";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +34,7 @@ import { useResource } from "@/hooks/useResource";
 import { useSearchParam } from "@/hooks/useSearchParam";
 import { ABSENT, formatCount, formatDay, toNumber } from "@/lib/format";
 import { populationPath } from "@/lib/paths";
+import type { RotationPoint } from "@/lib/rotation";
 
 /**
  * The fewest companies with figures a sector needs to be plotted. A median
@@ -50,6 +52,10 @@ const PLOTTED_FROM = 10;
 export function Sectors(): React.JSX.Element {
   const load = useCallback(() => fetchSectors(), []);
   const sectors = useResource(load);
+  // Its own request, so the list does not wait on three months of every
+  // sector; until it arrives the chart shows the latest session alone.
+  const loadHistory = useCallback(() => fetchSectorRotation(), []);
+  const history = useResource(loadHistory);
   // The letters live in the address, so a narrowed list survives Back.
   const [typed, setTyped] = useSearchParam("q");
   const [mode, setMode] = useViewMode("sectors");
@@ -149,14 +155,33 @@ export function Sectors(): React.JSX.Element {
           <CardHeader>
             <CardTitle as="h2">Rotation</CardTitle>
             <CardDescription>
-              Each sector&apos;s median company over the past month against the past week: the{" "}
-              {rotation.length} of {sectors.data?.length} with at least {PLOTTED_FROM} companies
-              measured, since the median of a few swings too far to read. The list below has every
-              sector.
+              Each sector&apos;s median company over the past month against the past week, for the
+              sectors with at least {PLOTTED_FROM} companies measured, since the median of a few
+              swings too far to read. Slide through the past three months, or play them, to watch
+              sectors move between the quarters; pointing at one draws its last two weeks. Each
+              session counts the companies that traded on it. The list below has every sector.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <RotationChart points={rotation} label="Sectors by the past month and the past week" />
+            {history.data !== null && history.data.days.length > 0 ? (
+              <RotationReplay
+                rotation={history.data}
+                plottedFrom={PLOTTED_FROM}
+                label="Sectors by the past month and the past week"
+              />
+            ) : (
+              <div className="space-y-3">
+                <RotationChart
+                  points={rotation}
+                  label="Sectors by the past month and the past week"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {history.error === null
+                    ? "Fetching the past three months to slide through..."
+                    : "The past three months could not be fetched, so only the latest session is shown."}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

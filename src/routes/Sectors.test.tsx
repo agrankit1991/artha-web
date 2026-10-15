@@ -5,13 +5,22 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { forgetForTests } from "@/lib/preferences";
-import { blankReturns, renderPage, sectorSummary, stubPlatform } from "@/test/support";
+import {
+  blankReturns,
+  renderPage,
+  sectorRotation,
+  sectorSummary,
+  stubPlatform,
+} from "@/test/support";
 
 import { Sectors } from "./Sectors";
 
 afterEach(() => {
   vi.unstubAllGlobals();
 });
+
+/** The three months the rotation replays, answered beside the list. */
+const ROTATION = { "/api/sectors/rotation": { body: sectorRotation() } };
 
 const THREE = [
   sectorSummary(),
@@ -46,7 +55,7 @@ function rememberCards(): void {
 
 describe("Sectors", () => {
   it("lists every sector with its split and its median, each leading to its page", async () => {
-    stubPlatform({ "/api/sectors": { body: THREE } });
+    stubPlatform({ ...ROTATION, "/api/sectors": { body: THREE } });
     renderPage(<Sectors />);
 
     const table = await screen.findByRole("table", { name: "Sectors" });
@@ -77,7 +86,7 @@ describe("Sectors", () => {
   });
 
   it("narrows by typed letters, counting what is left only when something is left out", async () => {
-    stubPlatform({ "/api/sectors": { body: THREE } });
+    stubPlatform({ ...ROTATION, "/api/sectors": { body: THREE } });
     renderPage(<Sectors />);
     const table = await screen.findByRole("table", { name: "Sectors" });
     await within(table).findByRole("link", { name: /IT - Software/ });
@@ -94,7 +103,7 @@ describe("Sectors", () => {
   });
 
   it("opens narrowed by the letters in its address", async () => {
-    stubPlatform({ "/api/sectors": { body: THREE } });
+    stubPlatform({ ...ROTATION, "/api/sectors": { body: THREE } });
     renderPage(<Sectors />, { at: "/sectors?q=zin" });
 
     const table = await screen.findByRole("table", { name: "Sectors" });
@@ -104,7 +113,7 @@ describe("Sectors", () => {
   });
 
   it("sorts by any column, an unmeasured sector last", async () => {
-    stubPlatform({ "/api/sectors": { body: THREE } });
+    stubPlatform({ ...ROTATION, "/api/sectors": { body: THREE } });
     renderPage(<Sectors />);
     const table = await screen.findByRole("table", { name: "Sectors" });
     await within(table).findByRole("link", { name: /IT - Software/ });
@@ -129,8 +138,11 @@ describe("Sectors", () => {
     expect(rows[3]).toHaveTextContent("Zinc");
   });
 
-  it("plots the sectors with enough companies measured by their month and their week", async () => {
-    stubPlatform({ "/api/sectors": { body: THREE } });
+  it("plots the latest session alone when the past three months cannot be read", async () => {
+    stubPlatform({
+      "/api/sectors/rotation": { status: 500, body: { detail: "history broke" } },
+      "/api/sectors": { body: THREE },
+    });
     renderPage(<Sectors />);
 
     expect(await screen.findByRole("heading", { name: "Rotation" })).toBeInTheDocument();
@@ -142,11 +154,35 @@ describe("Sectors", () => {
         name: "IT - Software: +2.00% over the month, +1.00% over the week, 90 companies",
       }),
     ).toHaveAttribute("href", "/sector/it-software");
-    expect(screen.getByText(/the 1 of 3 with at least 10 companies measured/)).toBeInTheDocument();
+    expect(screen.getByText(/sectors with at least 10 companies measured/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "The past three months could not be fetched, so only the latest session is shown.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("slider")).not.toBeInTheDocument();
+  });
+
+  it("replays the past three months once they arrive, from the latest session", async () => {
+    stubPlatform({
+      "/api/sectors/rotation": { body: sectorRotation() },
+      "/api/sectors": { body: THREE },
+    });
+    renderPage(<Sectors />);
+
+    const slider = await screen.findByRole("slider", { name: "Session" });
+    expect(slider).toHaveValue("2");
+    const plot = screen.getByRole("group", { name: "Sectors by the past month and the past week" });
+    expect(
+      within(plot).getByRole("link", {
+        name: "Banks: +3.00% over the month, -1.50% over the week, 40 companies",
+      }),
+    ).toHaveAttribute("href", "/sector/banks");
+    expect(screen.queryByText(/Fetching the past three months/)).not.toBeInTheDocument();
   });
 
   it("leaves the plot out when no sector has enough companies measured", async () => {
-    stubPlatform({ "/api/sectors": { body: THREE.slice(1) } });
+    stubPlatform({ ...ROTATION, "/api/sectors": { body: THREE.slice(1) } });
     renderPage(<Sectors />);
 
     await screen.findByRole("table", { name: "Sectors" });
@@ -154,7 +190,10 @@ describe("Sectors", () => {
   });
 
   it("reports a list that cannot be read, keeping the page around it", async () => {
-    stubPlatform({ "/api/sectors": { status: 500, body: { detail: "sectors broke" } } });
+    stubPlatform({
+      ...ROTATION,
+      "/api/sectors": { status: 500, body: { detail: "sectors broke" } },
+    });
     renderPage(<Sectors />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Sectors broke");
@@ -163,7 +202,7 @@ describe("Sectors", () => {
   });
 
   it("lays the sectors out as cards, each leading to its page", async () => {
-    stubPlatform({ "/api/sectors": { body: THREE } });
+    stubPlatform({ ...ROTATION, "/api/sectors": { body: THREE } });
     renderPage(<Sectors />);
     const table = await screen.findByRole("table", { name: "Sectors" });
     await within(table).findByRole("link", { name: /IT - Software/ });
@@ -192,7 +231,7 @@ describe("Sectors", () => {
     unmount();
 
     rememberCards();
-    stubPlatform({ "/api/sectors": { body: THREE } });
+    stubPlatform({ ...ROTATION, "/api/sectors": { body: THREE } });
     renderPage(<Sectors />, { at: "/sectors?q=nothing" });
     expect(await screen.findByText("No sector matches")).toBeInTheDocument();
   });

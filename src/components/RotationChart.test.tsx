@@ -5,7 +5,8 @@ import { describe, expect, it } from "vitest";
 
 import { renderPage } from "@/test/support";
 
-import { RotationChart, type RotationPoint } from "./RotationChart";
+import { RotationChart } from "./RotationChart";
+import type { RotationPoint } from "@/lib/rotation";
 
 /** A group at a month's and a week's return. */
 function point(name: string, month: number, week: number, companies = 10): RotationPoint {

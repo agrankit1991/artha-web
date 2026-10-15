@@ -21,25 +21,20 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { formatPercent } from "@/lib/format";
+import type { RotationPoint, RotationReach, RotationStep } from "@/lib/rotation";
 import { cn } from "@/lib/utils";
-
-/** One group on the plot. */
-export interface RotationPoint {
-  name: string;
-  /** Its own page. */
-  href: string;
-  /** Its return over the past week, in per cent. */
-  week: number;
-  /** Its return over the past month, in per cent. */
-  month: number;
-  /** How many companies it rests on, which sizes its dot. */
-  companies: number;
-}
 
 interface RotationChartProps {
   points: readonly RotationPoint[];
   /** What the plot shows, for a reader who cannot see it. */
   label: string;
+  /**
+   * How far the axes reach, when they are fixed across several plots (a
+   * replay over time); by default they fit the points given.
+   */
+  reach?: RotationReach;
+  /** The path a group took to its place, drawn while it is pointed at. */
+  trailOf?: (name: string) => readonly RotationStep[];
 }
 
 /** A quarter of the plot, named for the state it stands for. */
@@ -90,10 +85,25 @@ const NAMED = 3;
  * @param props - The groups; an empty list draws the empty quarters.
  * @returns The plot.
  */
-export function RotationChart({ points, label }: RotationChartProps): React.JSX.Element {
-  const [pointed, setPointed] = useState<RotationPoint | null>(null);
-  const across = axis(points.map((point) => point.month));
-  const up = axis(points.map((point) => point.week));
+export function RotationChart({
+  points,
+  label,
+  reach: fixed,
+  trailOf,
+}: RotationChartProps): React.JSX.Element {
+  // By name, not the point itself: when the plot moves to another session
+  // the reading and the trail follow the group to its new place.
+  const [pointedName, setPointedName] = useState<string | null>(null);
+  const pointed = points.find((point) => point.name === pointedName) ?? null;
+  const across = axis(
+    points.map((point) => point.month),
+    fixed?.month,
+  );
+  const up = axis(
+    points.map((point) => point.week),
+    fixed?.week,
+  );
+  const trail = pointed === null || trailOf === undefined ? [] : trailOf(pointed.name);
   const largest = Math.max(...points.map((point) => point.companies), 1);
   // Far is measured against each axis's reach, so a week's few per cent
   // counts as much as a month's many.
@@ -132,6 +142,31 @@ export function RotationChart({ points, label }: RotationChartProps): React.JSX.
               {quarter.name}
             </span>
           ))}
+          {trail.length > 1 && (
+            // Drawn in the plot's own percentages, the stroke kept even
+            // however the plot is stretched.
+            <svg
+              aria-hidden="true"
+              data-testid="rotation-trail"
+              className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+            >
+              <polyline
+                points={trail
+                  .map(
+                    (step) =>
+                      `${String(across.place(step.month, false))},${String(up.place(step.week, true))}`,
+                  )
+                  .join(" ")}
+                fill="none"
+                className="stroke-primary"
+                strokeWidth={2}
+                strokeLinejoin="round"
+                vectorEffect="non-scaling-stroke"
+              />
+            </svg>
+          )}
           {points.map((point) => {
             const left = across.place(point.month, false);
             const top = up.place(point.week, true);
@@ -143,18 +178,23 @@ export function RotationChart({ points, label }: RotationChartProps): React.JSX.
                 viewTransition
                 aria-label={`${point.name}: ${formatPercent(String(point.month))} over the month, ${formatPercent(String(point.week))} over the week, ${String(point.companies)} companies`}
                 onMouseEnter={() => {
-                  setPointed(point);
+                  setPointedName(point.name);
                 }}
                 onMouseLeave={() => {
-                  setPointed(null);
+                  setPointedName(null);
                 }}
                 onFocus={() => {
-                  setPointed(point);
+                  setPointedName(point.name);
                 }}
                 onBlur={() => {
-                  setPointed(null);
+                  setPointedName(null);
                 }}
-                className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/55 ring-2 dark:bg-primary/75 ring-card transition-colors hover:bg-primary focus-visible:bg-primary focus-visible:outline-none focus-visible:ring-foreground"
+                // The place eases, so a replay shows a group travelling
+                // rather than jumping; reduced motion stops it site-wide.
+                className={cn(
+                  "absolute -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/55 ring-2 dark:bg-primary/75 ring-card transition-[left,top,background-color] duration-200 ease-linear hover:bg-primary focus-visible:bg-primary focus-visible:outline-none focus-visible:ring-foreground",
+                  point.name === pointedName && "bg-primary",
+                )}
                 style={{
                   left: `${String(left)}%`,
                   top: `${String(top)}%`,
@@ -239,14 +279,15 @@ interface Axis {
 }
 
 /**
- * Scale an axis to the values on it.
+ * Scale an axis to the values on it, or to a reach fixed beforehand.
  *
  * @param values - Every value the axis carries; none gives a reach of one.
+ * @param fixed - A reach to use instead, already past the furthest value.
  * @returns The axis.
  */
-function axis(values: readonly number[]): Axis {
+function axis(values: readonly number[], fixed?: number): Axis {
   // A tenth past the furthest point, so its dot is not cut by the edge.
-  const reach = Math.max(...values.map(Math.abs), 1) * 1.1;
+  const reach = fixed ?? Math.max(...values.map(Math.abs), 1) * 1.1;
   const step = tickStep(reach);
   const ticks: number[] = [];
   // The reach is never under 1.1, so the step is never finer than a half,

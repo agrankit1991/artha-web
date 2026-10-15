@@ -1537,6 +1537,39 @@ export function fetchSectors(): Promise<SectorSummary[]> {
   return request<SectorSummary[]>("/api/sectors");
 }
 
+/**
+ * One sector's path through the rotation. Each list lines up with the
+ * response's days; an entry is null, and `measured` nought, on a session
+ * none of its members had figures for.
+ */
+export interface SectorPath {
+  sector: string;
+  /** How many of its companies have a listing today. */
+  companies: number;
+  /** The median member's return over the week to each session. */
+  week: (string | null)[];
+  /** The median member's return over the month to each session. */
+  month: (string | null)[];
+  /** How many members had figures on each session. */
+  measured: number[];
+}
+
+/** Every sector's week and month over the latest sessions, laid out by column. */
+export interface SectorRotation {
+  /** The sessions, oldest first. */
+  days: string[];
+  sectors: SectorPath[];
+}
+
+/**
+ * Fetch where every sector stood on each of the latest three months' sessions.
+ *
+ * @returns The sessions and each sector's path across them.
+ */
+export function fetchSectorRotation(): Promise<SectorRotation> {
+  return request<SectorRotation>("/api/sectors/rotation");
+}
+
 /** One member of a population valued, with what its move was worth. */
 export interface MemberValuation {
   instrument_key: string;

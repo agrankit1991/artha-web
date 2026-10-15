@@ -68,6 +68,7 @@ import type {
   ScreenHit,
   ScreenPage,
   SectorEarnings,
+  SectorRotation,
   SectorSummary,
   Statement,
   StrategyDetail,
@@ -1023,6 +1024,44 @@ export function institutionalFlow(overrides: Partial<InstitutionalFlow> = {}): I
     oi_amount: null,
     long_contracts: null,
     short_contracts: null,
+    ...overrides,
+  };
+}
+
+/**
+ * Three sessions of the sectors' rotation: software climbing from
+ * improving into leading, banks slipping from leading into weakening, and
+ * paper too thin to plot.
+ *
+ * @param overrides - Fields to change.
+ * @returns The rotation.
+ */
+export function sectorRotation(overrides: Partial<SectorRotation> = {}): SectorRotation {
+  return {
+    days: ["2026-09-16", "2026-09-17", "2026-09-18"],
+    sectors: [
+      {
+        sector: "Banks",
+        companies: 40,
+        week: ["2.00", "1.00", "-1.50"],
+        month: ["5.00", "4.00", "3.00"],
+        measured: [40, 40, 40],
+      },
+      {
+        sector: "IT - Software",
+        companies: 30,
+        week: ["1.00", "2.00", "3.00"],
+        month: ["-2.00", "-0.50", "1.50"],
+        measured: [30, 30, 30],
+      },
+      {
+        sector: "Paper",
+        companies: 4,
+        week: ["9.00", "9.00", "9.00"],
+        month: ["9.00", "9.00", "9.00"],
+        measured: [4, 4, 4],
+      },
+    ],
     ...overrides,
   };
 }
