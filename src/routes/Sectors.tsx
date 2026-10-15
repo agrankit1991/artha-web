@@ -176,9 +176,11 @@ export function Sectors(): React.JSX.Element {
                   label="Sectors by the past month and the past week"
                 />
                 <p className="text-xs text-muted-foreground">
-                  {history.error === null
-                    ? "Fetching the past three months to slide through..."
-                    : "The past three months could not be fetched, so only the latest session is shown."}
+                  {history.error !== null
+                    ? "The past three months could not be fetched, so only the latest session is shown."
+                    : history.data === null
+                      ? "Fetching the past three months to slide through..."
+                      : "No past sessions are kept yet, so only the latest session is shown."}
                 </p>
               </div>
             )}

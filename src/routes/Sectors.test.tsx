@@ -163,6 +163,22 @@ describe("Sectors", () => {
     expect(screen.queryByRole("slider")).not.toBeInTheDocument();
   });
 
+  it("says when no past session is kept yet, rather than that it is still fetching", async () => {
+    // The platform keeps the rotation nightly; before its first build there is none.
+    stubPlatform({
+      "/api/sectors/rotation": { body: { days: [], sectors: [] } },
+      "/api/sectors": { body: THREE },
+    });
+    renderPage(<Sectors />);
+
+    expect(
+      await screen.findByText(
+        "No past sessions are kept yet, so only the latest session is shown.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("slider")).not.toBeInTheDocument();
+  });
+
   it("replays the past three months once they arrive, from the latest session", async () => {
     stubPlatform({
       "/api/sectors/rotation": { body: sectorRotation() },
