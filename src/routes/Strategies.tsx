@@ -1,13 +1,20 @@
 /**
- * Every strategy written here, with how its latest backtest went.
+ * Every strategy written here, with how its latest backtest went, and which to start today.
  *
  * A strategy is written as rules on its own page and backtested there by
  * the platform's backtester; a combination plays saved strategies, each in
  * the market conditions it names. The column to read is the edge over
  * random picks out of sample: survivor-only history flatters every return.
+ *
+ * Above the list, `StartToday` ranks them by how starting in a market
+ * phase went. Both are filtered by the same categories (2026-10-16, the
+ * owner's choice of two): the style, which the platform reads from each
+ * strategy's rank, and the risk, banded by its deepest fall. The filters
+ * live in the address (`?style=`, `?risk=`).
  */
 
 import { CalendarRange, Plus } from "lucide-react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 
 import { fetchStrategies } from "@/api/client";
@@ -17,12 +24,16 @@ import { Delta } from "@/components/Delta";
 import { Empty } from "@/components/Empty";
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
+import { Chooser } from "@/components/Chooser";
 import { RunState, runStateLabel } from "@/components/RunState";
+import { StartToday } from "@/components/StartToday";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useResource } from "@/hooks/useResource";
+import { useSearchParam } from "@/hooks/useSearchParam";
 import { percent } from "@/lib/backtestFigures";
 import { ABSENT, formatPercentTenths, formatPercentagePoints, formatSince } from "@/lib/format";
+import { RISK_BANDS, STYLES, riskBand, riskLabel } from "@/lib/marketPhases";
 import { PATHS, strategyPath } from "@/lib/paths";
 
 /**
@@ -47,14 +58,24 @@ const COLUMNS: Column<StrategySummary>[] = [
     cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
   },
   {
-    id: "combines",
-    header: "Kind",
-    accessorFn: (row) => row.combines,
+    id: "style",
+    header: "Style",
+    accessorFn: (row) => STYLES[row.style],
+    cell: ({ row }) => (
+      <Badge variant={row.original.combines ? "secondary" : "outline"}>
+        {STYLES[row.original.style]}
+      </Badge>
+    ),
+  },
+  {
+    id: "risk",
+    header: "Risk",
+    accessorFn: (row) => Math.abs(row.result?.max_drawdown ?? 0),
     cell: ({ row }) =>
-      row.original.combines ? (
-        <Badge variant="secondary">Combination</Badge>
+      row.original.result === null ? (
+        ABSENT
       ) : (
-        <Badge variant="outline">Strategy</Badge>
+        <Badge variant="outline">{riskLabel(riskBand(row.original.result.max_drawdown))}</Badge>
       ),
   },
   {
@@ -116,6 +137,31 @@ const COLUMNS: Column<StrategySummary>[] = [
  */
 export function Strategies(): React.JSX.Element {
   const strategies = useResource(fetchStrategies);
+  const [style, setStyle] = useSearchParam("style", "all");
+  const [risk, setRisk] = useSearchParam("risk", "all");
+
+  const all = useMemo(() => strategies.data ?? [], [strategies.data]);
+  const styles = useMemo(
+    () =>
+      (Object.keys(STYLES) as StrategySummary["style"][]).filter((key) =>
+        all.some((one) => one.style === key),
+      ),
+    [all],
+  );
+  const listed = useMemo(
+    () =>
+      all.filter(
+        (one) =>
+          (style === "all" || one.style === style) &&
+          (risk === "all" || riskBand(one.result?.max_drawdown) === risk),
+      ),
+    [all, style, risk],
+  );
+  const shown = useMemo(
+    () =>
+      style === "all" && risk === "all" ? null : new Set(listed.map((one) => one.strategy_id)),
+    [listed, style, risk],
+  );
 
   if (strategies.error !== null) {
     return <Failed message={strategies.error} />;
@@ -150,13 +196,39 @@ export function Strategies(): React.JSX.Element {
           reason="Write one with New strategy: it starts from a commented example."
         />
       ) : (
-        <DataTable
-          columns={COLUMNS}
-          rows={strategies.data ?? []}
-          loading={strategies.loading}
-          linkTo={(row) => strategyPath(row.strategy_id)}
-          label="Strategies"
-        />
+        <>
+          <div className="flex flex-wrap items-center gap-2">
+            <Chooser
+              label="Style"
+              options={[
+                { key: "all", label: "Every style" },
+                ...styles.map((key) => ({ key, label: STYLES[key] })),
+              ]}
+              chosen={style}
+              onChange={setStyle}
+            />
+            <Chooser
+              label="Risk"
+              options={[
+                { key: "all", label: "Any fall" },
+                ...RISK_BANDS.map(({ key, label }) => ({ key, label })),
+              ]}
+              chosen={risk}
+              onChange={setRisk}
+            />
+          </div>
+          <StartToday shown={shown} />
+          <section aria-label="Every strategy" className="space-y-3">
+            <DataTable
+              columns={COLUMNS}
+              rows={listed}
+              loading={strategies.loading}
+              linkTo={(row) => strategyPath(row.strategy_id)}
+              label="Strategies"
+              empty="No strategy in these categories"
+            />
+          </section>
+        </>
       )}
     </div>
   );

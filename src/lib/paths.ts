@@ -15,6 +15,7 @@ import type { Scope } from "@/components/ScopeSelector";
 export const PATHS = {
   overview: "/",
   breadth: "/breadth",
+  marketPhase: "/phase",
   news: "/news",
   earnings: "/earnings",
   flows: "/flows",

@@ -18,6 +18,7 @@ import {
   ChartNoAxesColumn,
   ChartPie,
   ChartSpline,
+  Compass,
   ExternalLink,
   Eye,
   FileText,
@@ -104,6 +105,8 @@ export const MARKS = {
   peers: Users,
   // A line over time that is not a price: relative performance, a NAV.
   performance: ChartLine,
+  /** The market's phase: which way it is heading, by rule and by the reader. */
+  phases: Compass,
   // A price over time.
   price: ChartCandlestick,
   profile: User,

@@ -2609,10 +2609,16 @@ export interface StrategySummary {
   name: string;
   /** Whether it plays several saved strategies, each in its market conditions. */
   combines: boolean;
+  /** What it reaches for first, read by the platform from how it ranks. */
+  style: StrategyStyle;
   updated_at: string;
   latest: StrategyRequest | null;
   result: StrategyResult | null;
 }
+
+/** A strategy's style, read from its rank (the platform's `artha.backtest.style`). */
+export type StrategyStyle =
+  "momentum" | "rebound" | "pullback" | "low_volatility" | "model" | "combination" | "other";
 
 /** A saved strategy whole. */
 export interface StrategyDetail extends StrategySummary {
@@ -2805,4 +2811,198 @@ export interface YearReview {
  */
 export function fetchStrategyYears(): Promise<YearReview[]> {
   return request<YearReview[]>("/api/strategies/years");
+}
+
+// --- The market's phase ----------------------------------------------------
+
+/** What kind of market a session was, by the platform's rules. */
+export type MarketPhase = "falling" | "bottoming" | "recovering" | "broad_rise" | "narrowing";
+
+/** A checklist signal's say about the market's direction. */
+export type Verdict = "up" | "neutral" | "down";
+
+/** The checklist's signals. */
+export type SignalKey = "trend" | "breadth" | "short_breadth" | "highs_lows" | "vix" | "flows";
+
+/** One session's phase and measures; shares are percent of companies worth Rs 5,000 crore or more. */
+export interface MarketPhaseReading {
+  as_of: string;
+  /** Null when the session fits none of the five phases. */
+  phase: MarketPhase | null;
+  nifty50: number | null;
+  /** The Nifty 50's 200-session average. */
+  nifty50_average: number | null;
+  /** Share above their own 200-session average. */
+  breadth: number | null;
+  breadth_month_ago: number | null;
+  breadth_month_low: number | null;
+  /** Share above their own 50-session average. */
+  short_breadth: number | null;
+  short_breadth_fortnight_ago: number | null;
+  /** Share at a 52-week closing high. */
+  highs: number | null;
+  lows: number | null;
+  vix: number | null;
+  vix_average: number | null;
+}
+
+/** One line of the checklist: a figure, what it is read against, and the verdict. */
+export interface PhaseSignal {
+  key: SignalKey;
+  value: number | null;
+  reference: number | null;
+  verdict: Verdict;
+}
+
+/** A run of sessions in one phase; null for sessions that fitted none. */
+export interface PhaseSpell {
+  phase: MarketPhase | null;
+  first: string;
+  last: string;
+  sessions: number;
+}
+
+/** A phase's rule, as written in the strategy language and in words. */
+export interface PhaseRule {
+  phase: MarketPhase;
+  /** The name a strategy reads it by: `market_bottoming`. */
+  series: string;
+  rule: string;
+  words: string;
+}
+
+/** The market's phase today and over its history. */
+export interface MarketPhaseView {
+  /** Null before the platform first read the phases. */
+  reading: MarketPhaseReading | null;
+  signals: PhaseSignal[];
+  /** How many sessions the flows signal adds up. */
+  flow_sessions: number;
+  spells: PhaseSpell[];
+  rules: PhaseRule[];
+}
+
+/** Starts in a phase summarised, each past episode counted once. */
+export interface PhaseStarts {
+  episodes: number;
+  /** The median episode's growth over the horizon, percent; null without episodes. */
+  growth: number | null;
+  /** Its lead over an equal-weight basket of liquid companies from the same days, points. */
+  excess: number | null;
+  /** The worst episode's growth. */
+  worst: number | null;
+  /** The share of episodes that beat the basket, percent. */
+  beaten: number | null;
+  yardstick: number | null;
+  /** The Nifty 500's median growth from the same days. */
+  benchmark: number | null;
+}
+
+/** One past episode of a phase and what followed. */
+export interface PhaseEpisode {
+  first: string;
+  last: string;
+  starts: number;
+  growth: number;
+  yardstick: number;
+  excess: number;
+  benchmark: number | null;
+}
+
+/** One saved strategy's starts in a phase. */
+export interface StrategyPhaseStarts {
+  strategy_id: number;
+  name: string;
+  style: StrategyStyle;
+  backtest_id: number | null;
+  /** Its deepest fall over the whole backtest, percent. */
+  max_drawdown: number | null;
+  /** Every episode; null when its backtest holds none here (run before starts were measured). */
+  every: PhaseStarts | null;
+  /** Only the episodes after which the market rose. */
+  rose: PhaseStarts | null;
+  /** Only those after which it fell. */
+  fell: PhaseStarts | null;
+}
+
+/** Which strategy to start in a phase: every saved strategy's starts there. */
+export interface PhaseReview {
+  phase: MarketPhase;
+  months: number;
+  sessions: number;
+  /** The basket's and the index's starts, with every episode; null when none has starts. */
+  market: (PhaseStarts & { listed: PhaseEpisode[] }) | null;
+  strategies: StrategyPhaseStarts[];
+}
+
+/** A call to record on the latest session. */
+export interface PhaseCallDraft {
+  phase: MarketPhase;
+  note: string;
+  /** Each signal's verdict as judged: the automatic one or an override. */
+  verdicts: Partial<Record<SignalKey, Verdict>>;
+}
+
+/** One entry in the reader's journal. */
+export interface PhaseCall {
+  call_id: number;
+  made_at: string;
+  as_of: string;
+  phase: MarketPhase;
+  note: string;
+  /** What the rules read that session; null when it fitted none. */
+  data_phase: MarketPhase | null;
+  verdicts: Partial<Record<SignalKey, Verdict>>;
+}
+
+/**
+ * Fetch the market's phase: the latest reading, its checklist, the history and the rules.
+ *
+ * @returns The phase.
+ */
+export function fetchMarketPhase(): Promise<MarketPhaseView> {
+  return request<MarketPhaseView>("/api/market/phase");
+}
+
+/**
+ * Fetch every saved strategy's starts in a phase.
+ *
+ * @param phase - The phase.
+ * @param months - How long each start is followed: 3, 6 or 12.
+ * @returns The review.
+ */
+export function fetchPhaseStrategies(phase: MarketPhase, months: number): Promise<PhaseReview> {
+  const query = new URLSearchParams({ phase, months: String(months) });
+  return request<PhaseReview>(`/api/market/phase/strategies?${query.toString()}`);
+}
+
+/**
+ * Fetch the reader's journal of phase calls, the latest first.
+ *
+ * @returns The calls.
+ */
+export function fetchPhaseCalls(): Promise<PhaseCall[]> {
+  return request<PhaseCall[]>("/api/market/phase/calls");
+}
+
+/**
+ * Record the reader's call on the latest session.
+ *
+ * @param draft - The call.
+ * @returns The call as kept.
+ */
+export function recordPhaseCall(draft: PhaseCallDraft): Promise<PhaseCall> {
+  return request<PhaseCall>("/api/market/phase/calls", {
+    method: "POST",
+    body: JSON.stringify(draft),
+  });
+}
+
+/**
+ * Delete one of the reader's calls.
+ *
+ * @param callId - Which.
+ */
+export async function deletePhaseCall(callId: number): Promise<void> {
+  await request<unknown>(`/api/market/phase/calls/${String(callId)}`, { method: "DELETE" });
 }

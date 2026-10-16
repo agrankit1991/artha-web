@@ -76,6 +76,11 @@ import type {
   StrategyRequest,
   StrategyResult,
   StrategySummary,
+  MarketPhaseView,
+  PhaseCall,
+  PhaseReview,
+  PhaseStarts,
+  StrategyPhaseStarts,
   StrategyYear,
   TrailingReturns,
   UnderlyingSummary,
@@ -1934,6 +1939,7 @@ export function strategySummary(overrides: Partial<StrategySummary> = {}): Strat
     strategy_id: 5,
     name: "Momentum near the high",
     combines: false,
+    style: "momentum",
     updated_at: "2026-09-26T17:55:00+05:30",
     latest: strategyRequest(),
     result: strategyResult(),
@@ -2012,6 +2018,172 @@ export function yearReview(overrides: Partial<YearReview> = {}): YearReview {
       without_median: 29.4,
       gap: -9.3,
     },
+    ...overrides,
+  };
+}
+
+/**
+ * The market's phase as 16 October 2026 read it: falling, with mixed signals.
+ *
+ * @param overrides - Fields to change.
+ * @returns The phase.
+ */
+export function marketPhaseView(overrides: Partial<MarketPhaseView> = {}): MarketPhaseView {
+  return {
+    reading: {
+      as_of: "2026-10-16",
+      phase: "falling",
+      nifty50: 23146.2,
+      nifty50_average: 23900,
+      breadth: 41,
+      breadth_month_ago: 49,
+      breadth_month_low: 37.8,
+      short_breadth: 22.3,
+      short_breadth_fortnight_ago: 17.9,
+      highs: 1,
+      lows: 2,
+      vix: 13.2,
+      vix_average: 14.1,
+    },
+    signals: [
+      { key: "trend", value: 23146.2, reference: 23900, verdict: "down" },
+      { key: "breadth", value: 41, reference: 49, verdict: "down" },
+      { key: "short_breadth", value: 22.3, reference: 17.9, verdict: "neutral" },
+      { key: "highs_lows", value: 1, reference: 2, verdict: "down" },
+      { key: "vix", value: 13.2, reference: 14.1, verdict: "up" },
+      { key: "flows", value: -3809.99, reference: null, verdict: "down" },
+    ],
+    flow_sessions: 10,
+    spells: [
+      { phase: "broad_rise", first: "2014-03-05", last: "2015-05-22", sessions: 300 },
+      { phase: null, first: "2015-05-25", last: "2015-06-30", sessions: 26 },
+      { phase: "bottoming", first: "2020-03-20", last: "2020-07-16", sessions: 80 },
+      { phase: "recovering", first: "2020-07-17", last: "2020-10-12", sessions: 60 },
+      { phase: "falling", first: "2026-09-28", last: "2026-10-16", sessions: 14 },
+    ],
+    rules: [
+      {
+        phase: "falling",
+        series: "market_falling",
+        rule: "nifty50 <= sma(nifty50, 200) and large_breadth < lag(large_breadth, 21)",
+        words: "the Nifty 50 is at most its 200-day average and breadth is below a month ago",
+      },
+      {
+        phase: "bottoming",
+        series: "market_bottoming",
+        rule: "nifty50 <= sma(nifty50, 200) and lowest(large_breadth, 21) < 0.4",
+        words: "the Nifty 50 is at most its 200-day average and breadth turned up from a low",
+      },
+    ],
+    ...overrides,
+  };
+}
+
+/**
+ * Starts in a phase, summarised.
+ *
+ * @param overrides - Fields to change.
+ * @returns The summary.
+ */
+export function phaseStarts(overrides: Partial<PhaseStarts> = {}): PhaseStarts {
+  return {
+    episodes: 21,
+    growth: 10.8,
+    excess: 9.4,
+    worst: -8.9,
+    beaten: 66.7,
+    yardstick: 11.2,
+    benchmark: 7.4,
+    ...overrides,
+  };
+}
+
+/**
+ * One saved strategy's starts in a phase.
+ *
+ * @param overrides - Fields to change.
+ * @returns The strategy's starts.
+ */
+export function strategyPhaseStarts(
+  overrides: Partial<StrategyPhaseStarts> = {},
+): StrategyPhaseStarts {
+  return {
+    strategy_id: 5,
+    name: "Momentum near the high",
+    style: "momentum",
+    backtest_id: 7,
+    max_drawdown: -26.3,
+    every: phaseStarts(),
+    rose: phaseStarts({ episodes: 15, growth: 18.2, excess: 4.1 }),
+    fell: phaseStarts({ episodes: 6, growth: -2.1, excess: 20.5 }),
+    ...overrides,
+  };
+}
+
+/**
+ * Every saved strategy's starts in a phase.
+ *
+ * @param overrides - Fields to change.
+ * @returns The review.
+ */
+export function phaseReview(overrides: Partial<PhaseReview> = {}): PhaseReview {
+  return {
+    phase: "bottoming",
+    months: 6,
+    sessions: 126,
+    market: {
+      ...phaseStarts(),
+      listed: [
+        {
+          first: "2009-03-16",
+          last: "2009-04-28",
+          starts: 20,
+          growth: 44.1,
+          yardstick: 88.1,
+          excess: -42.5,
+          benchmark: 65.3,
+        },
+      ],
+    },
+    strategies: [
+      strategyPhaseStarts(),
+      strategyPhaseStarts({
+        strategy_id: 6,
+        name: "Rebound",
+        style: "rebound",
+        max_drawdown: -38.5,
+        every: phaseStarts({ excess: 12.1, growth: 20.5 }),
+        rose: phaseStarts({ episodes: 15, excess: 15.3 }),
+        fell: phaseStarts({ episodes: 6, excess: -9.8 }),
+      }),
+      strategyPhaseStarts({
+        strategy_id: 8,
+        name: "Unmeasured",
+        backtest_id: 9,
+        every: null,
+        rose: null,
+        fell: null,
+      }),
+    ],
+    ...overrides,
+  };
+}
+
+/**
+ * One entry in the reader's journal.
+ *
+ * @param overrides - Fields to change.
+ * @returns The call.
+ */
+export function phaseCall(overrides: Partial<PhaseCall> = {}): PhaseCall {
+  return {
+    call_id: 1,
+    made_at: "2026-10-16T21:00:00+05:30",
+    as_of: "2026-10-16",
+    phase: "bottoming",
+    note: "breadth turning, bottom in",
+    data_phase: "falling",
+    verdicts: { short_breadth: "up" },
     ...overrides,
   };
 }

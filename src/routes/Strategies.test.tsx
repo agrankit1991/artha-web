@@ -4,7 +4,15 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { renderPage, strategyRequest, strategySummary, stubPlatform } from "@/test/support";
+import {
+  marketPhaseView,
+  phaseReview,
+  renderPage,
+  strategyRequest,
+  strategyResult,
+  strategySummary,
+  stubPlatform,
+} from "@/test/support";
 
 import { Strategies } from "./Strategies";
 
@@ -18,10 +26,17 @@ const LIST = [
     strategy_id: 6,
     name: "Trend or calm",
     combines: true,
+    style: "combination",
     latest: strategyRequest({ status: "running", finished_at: null, backtest_id: null }),
     result: null,
   }),
-  strategySummary({ strategy_id: 8, name: "Unrun", latest: null, result: null }),
+  strategySummary({
+    strategy_id: 8,
+    name: "Unrun",
+    style: "low_volatility",
+    latest: null,
+    result: null,
+  }),
   strategySummary({
     strategy_id: 9,
     name: "Broken",
@@ -36,9 +51,19 @@ const LIST = [
   }),
 ];
 
+/** The platform: the strategies, and the market's phase for Start today. */
+function platform(strategies: unknown): void {
+  stubPlatform({
+    "/api/strategies": { body: strategies },
+    "/api/market/phase/strategies": { body: phaseReview() },
+    "/api/market/phase/calls": { body: [] },
+    "/api/market/phase": { body: marketPhaseView() },
+  });
+}
+
 describe("Strategies", () => {
   it("lists each strategy with how its latest backtest went", async () => {
-    stubPlatform({ "/api/strategies": { body: LIST } });
+    platform(LIST);
     renderPage(<Strategies />);
 
     const table = await screen.findByRole("table", { name: "Strategies" });
@@ -47,10 +72,16 @@ describe("Strategies", () => {
       "/strategy/6",
     );
     expect(within(table).getByText("Combination")).toBeInTheDocument();
-    // Every kind is a badge, and a return reads as a move up or down.
-    expect(within(table).getAllByText("Strategy", { selector: "[data-slot=badge]" }).length).toBe(
-      4,
+    // Every style and risk is a badge, and a return reads as a move up or down.
+    expect(within(table).getAllByText("Momentum", { selector: "[data-slot=badge]" }).length).toBe(
+      3,
     );
+    expect(
+      within(table).getByText("Low volatility", { selector: "[data-slot=badge]" }),
+    ).toBeInTheDocument();
+    expect(
+      within(table).getByText("Fall 25-35%", { selector: "[data-slot=badge]" }),
+    ).toBeInTheDocument();
     expect(within(table).getByText("+12.9 pp")).toHaveClass("text-gain");
     for (const status of ["Done", "Running", "Not run", "Failed", "Queued"]) {
       expect(within(table).getByText(status)).toBeInTheDocument();
@@ -67,13 +98,14 @@ describe("Strategies", () => {
   });
 
   it("sorts by any column", async () => {
-    stubPlatform({ "/api/strategies": { body: LIST } });
+    platform(LIST);
     renderPage(<Strategies />);
     const table = await screen.findByRole("table", { name: "Strategies" });
     await within(table).findByRole("link", { name: "Unrun" });
     for (const name of [
       /^Strategy/,
-      /^Kind/,
+      /^Style/,
+      /^Risk/,
       /^Latest run/,
       /^Out of sample/,
       /^Edge vs random/,
@@ -85,6 +117,45 @@ describe("Strategies", () => {
     }
 
     expect(within(table).getAllByRole("link")).toHaveLength(LIST.length);
+  });
+
+  it("filters the list and Start today by style and by risk, in the address", async () => {
+    platform([
+      ...LIST,
+      strategySummary({
+        strategy_id: 11,
+        name: "Deep faller",
+        result: strategyResult({ max_drawdown: -41.2 }),
+      }),
+    ]);
+    renderPage(<Strategies />);
+    const table = await screen.findByRole("table", { name: "Strategies" });
+    await within(table).findByRole("link", { name: "Deep faller" });
+    // Only the styles present are offered.
+    const styles = screen.getByRole("group", { name: "Style" });
+    expect(within(styles).queryByRole("button", { name: "Rebound" })).toBeNull();
+
+    await userEvent.click(within(styles).getByRole("button", { name: "Low volatility" }));
+    expect(
+      within(table)
+        .getAllByRole("link")
+        .map((link) => link.textContent),
+    ).toEqual(["Unrun"]);
+    await userEvent.click(within(styles).getByRole("button", { name: "Every style" }));
+    await userEvent.click(
+      within(screen.getByRole("group", { name: "Risk" })).getByRole("button", {
+        name: "Fall over 35%",
+      }),
+    );
+
+    expect(
+      within(table)
+        .getAllByRole("link")
+        .map((link) => link.textContent),
+    ).toEqual(["Deep faller"]);
+    // Start today keeps only those too: neither of its strategies is in the band.
+    const ranked = screen.getByRole("table", { name: "Strategies for this phase" });
+    expect(within(ranked).queryAllByRole("link")).toHaveLength(0);
   });
 
   it("says how to start when none is saved", async () => {

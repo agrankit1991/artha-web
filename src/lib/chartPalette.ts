@@ -132,3 +132,20 @@ export function coloured<Item>(items: readonly Item[]): (Item & { colour: string
   const colours = inOrder(SERIES_COLOURS);
   return items.map((item) => ({ ...item, colour: colours.next().value }));
 }
+
+/**
+ * Each market phase's colour, for the strip of the market's history.
+ *
+ * A broad rise and a fall take the rise's and the fall's own colours, which
+ * mean exactly that; narrowing takes caution, "worth a look"; the turn,
+ * bottoming then recovering, takes two series colours (indigo, then teal)
+ * so it reads apart from both. A session between phases is neutral.
+ */
+export const PHASE_COLOURS = {
+  broad_rise: RISE,
+  narrowing: token("caution"),
+  falling: FALL,
+  bottoming: token("chart-5"),
+  recovering: token("chart-1"),
+  none: token("border"),
+} as const;

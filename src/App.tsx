@@ -26,6 +26,7 @@ import { ENTITIES, MARKS } from "@/lib/entities";
 import { PATHS, populationPath } from "@/lib/paths";
 import { ThemeProvider } from "@/lib/theme";
 import { Breadth } from "@/routes/Breadth";
+import { MarketPhases } from "@/routes/MarketPhases";
 import { Company } from "@/routes/Company";
 import { Compare } from "@/routes/Compare";
 import { Deals } from "@/routes/Deals";
@@ -60,6 +61,7 @@ import { Visitors } from "@/routes/Visitors";
 const SCREENS: Screen[] = [
   { path: PATHS.overview, label: "Overview", icon: MARKS.overview, group: "Markets", exact: true },
   { path: PATHS.breadth, label: "Breadth", icon: MARKS.breadth, group: "Markets" },
+  { path: PATHS.marketPhase, label: "Market phase", icon: MARKS.phases, group: "Markets" },
   { path: PATHS.flows, label: "FII / DII", icon: MARKS.flows, group: "Markets" },
   { path: PATHS.deals, label: "Deals", icon: MARKS.deals, group: "Markets" },
   {
@@ -247,6 +249,7 @@ function SignedIn({
           }
         />
         <Route path={PATHS.breadth} element={<Breadth />} />
+        <Route path={PATHS.marketPhase} element={<MarketPhases />} />
         <Route path={PATHS.flows} element={<Flows />} />
         <Route path={PATHS.deals} element={<Deals />} />
         <Route path={PATHS.news} element={<News />} />
