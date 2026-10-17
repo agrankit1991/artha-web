@@ -179,6 +179,13 @@ It rose from 95% with the first real views.
   this bug; one of them also generated `2026-08-32`.
 - **Node's `en-IN` renders September as "Sept", not "Sep".** A test
   asserting on a formatted date should allow both.
+- **Formatting the whole tree while `npm run dev` runs can leave Vite serving
+  a module as empty** (2026-10-17): Prettier rewrote about fifteen files at
+  once, Vite read `DataTable.tsx` mid-write and cached an empty transform, and
+  the browser failed with "doesn't provide an export named: 'DataTable'"
+  though the file on disk was whole. `touch` the file (or restart the dev
+  server) and reload the page fully; fetching `http://127.0.0.1:5174/src/<file>`
+  shows what Vite is serving.
 - `index.html` must be served `no-cache` while hashed assets are immutable,
   or a deploy stays invisible until browser caches expire. That is configured
   in `Caddyfile`.
