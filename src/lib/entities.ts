@@ -12,6 +12,7 @@ import {
   Building2,
   Calendar,
   CalendarClock,
+  CalendarDays,
   ChartCandlestick,
   ChartColumn,
   ChartLine,
@@ -74,6 +75,8 @@ export const ENTITIES: Record<EntityKind, { icon: Icon; label: string }> = {
  */
 export const MARKS = {
   backtests: FlaskConical,
+  /** The market calendar: holidays, expiries, offerings, results, policy and data. */
+  calendar: CalendarDays,
   strategies: Workflow,
   breadth: Activity,
   compare: GitCompareArrows,

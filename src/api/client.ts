@@ -3018,3 +3018,98 @@ export function recordPhaseCall(draft: PhaseCallDraft): Promise<PhaseCall> {
 export async function deletePhaseCall(callId: number): Promise<void> {
   await request<unknown>(`/api/market/phase/calls/${String(callId)}`, { method: "DELETE" });
 }
+
+/** Which part of the calendar an event belongs to; the page filters by it. */
+export type EventGroup = "market" | "ipo" | "results" | "india" | "global";
+
+/** What a calendar event is; each kind belongs to one group. */
+export type EventKind =
+  | "holiday"
+  | "special_session"
+  | "weekly_expiry"
+  | "monthly_expiry"
+  | "ipo_bidding"
+  | "ipo_allotment"
+  | "ipo_listing"
+  | "results_deadline"
+  | "policy_meeting"
+  | "data_release"
+  | "budget";
+
+/** One event on the market calendar. */
+export interface CalendarEvent {
+  day: string;
+  /** Its last day, for an event of several; null for a single day. */
+  last_day: string | null;
+  kind: EventKind;
+  group: EventGroup;
+  title: string;
+  detail: string;
+  /** Confirmed by its publisher or the exchange's data, or expected from a convention or rule. */
+  certainty: "confirmed" | "expected";
+  /** When on the day, in India's time, where known. */
+  at: string | null;
+  source: string | null;
+  /** Where the date is published. */
+  link: string | null;
+  /** An offering's id, for an IPO's events. */
+  subject: string | null;
+}
+
+/** How far one quarter's results season has come, as far as the platform holds results. */
+export interface ResultsSeason {
+  quarter_end: string;
+  /** Its name, e.g. "Jul-Sep 2026". */
+  quarter: string;
+  /** The last day to publish, by SEBI's rule. */
+  deadline: string;
+  /** Companies whose results for the quarter are held. */
+  held: number;
+  /** Companies with the previous quarter's: roughly how many will report. */
+  expected: number;
+  /** Companies first held each week (the Monday starting it). */
+  by_week: { week: string; companies: number }[];
+}
+
+/** A range of days on the market calendar. */
+export interface CalendarView {
+  start: string;
+  end: string;
+  events: CalendarEvent[];
+  seasons: ResultsSeason[];
+  /** When the hand-entered dates were last checked against their publishers. */
+  announced_checked_on: string;
+}
+
+/** One company whose results for a quarter are held. */
+export interface SeasonCompany {
+  isin: string;
+  /** Its listing today, for a link; null when it has none. */
+  instrument_key: string | null;
+  symbol: string | null;
+  name: string | null;
+  /** The day its results were first held. */
+  seen_on: string;
+}
+
+/**
+ * Fetch the market calendar for a range of days.
+ *
+ * @param start - First day, as an ISO date.
+ * @param end - Last day, inclusive; at most 120 days after the first.
+ * @returns The events and the results seasons.
+ */
+export function fetchCalendar(start: string, end: string): Promise<CalendarView> {
+  const query = new URLSearchParams({ start, end });
+  return request<CalendarView>(`/api/calendar?${query.toString()}`);
+}
+
+/**
+ * Fetch the companies whose results for a quarter are held, newest first.
+ *
+ * @param quarterEnd - The quarter's last day.
+ * @returns The companies.
+ */
+export function fetchSeasonCompanies(quarterEnd: string): Promise<SeasonCompany[]> {
+  return request<SeasonCompany[]>(`/api/calendar/results/${quarterEnd}`);
+}

@@ -149,3 +149,19 @@ export const PHASE_COLOURS = {
   recovering: token("chart-1"),
   none: token("border"),
 } as const;
+
+/**
+ * Each group of the market calendar's events, for its dots and its filter.
+ *
+ * Series colours only: rise, fall and caution mean a move or a warning, and
+ * an event is neither. The exchanges' own days take the logo's teal, India's
+ * policy and data its orange, the rest violet (offerings), indigo (results)
+ * and blue (abroad), which read apart in both modes.
+ */
+export const EVENT_COLOURS = {
+  market: token("chart-1"),
+  ipo: token("chart-3"),
+  results: token("chart-5"),
+  india: token("chart-2"),
+  global: token("chart-7"),
+} as const;

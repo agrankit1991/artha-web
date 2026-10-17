@@ -20,6 +20,7 @@ export const JUMPS: readonly { key: string; path: string; label: string }[] = [
   { key: "i", path: PATHS.indices, label: "Indices" },
   { key: "s", path: PATHS.sectors, label: "Sectors" },
   { key: "b", path: PATHS.breadth, label: "Breadth" },
+  { key: "h", path: PATHS.calendar, label: "Calendar" },
   { key: "f", path: PATHS.flows, label: "FII / DII" },
   { key: "d", path: PATHS.deals, label: "Deals" },
   { key: "m", path: PATHS.movers, label: "Movers" },
