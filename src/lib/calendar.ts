@@ -306,10 +306,27 @@ export function byImportance(events: readonly CalendarEvent[]): CalendarEvent[] 
   return [...events].sort((a, b) => GROUP_RANK[a.group] - GROUP_RANK[b.group]);
 }
 
+/**
+ * Whether an event is one of a crowd a day counts rather than names: an
+ * offering's, or a company's results meeting. A results day in season
+ * holds a hundred companies, and an ordinary day dozens of SME offerings.
+ *
+ * @param event - The event.
+ * @returns Which crowd it belongs to, or null for an event named on its own.
+ */
+export function crowdOf(event: CalendarEvent): "results" | "offerings" | null {
+  if (event.kind === "results_meeting") {
+    return "results";
+  }
+  return event.group === "ipo" ? "offerings" : null;
+}
+
 /** What a day's cell has room for. */
 export interface DaySummary {
   /** The events named, the most telling first. */
   named: CalendarEvent[];
+  /** How many companies declare results that day, counted as one line. */
+  results: number;
   /** How many offerings have an event that day, counted as one line. */
   offerings: number;
   /** How many other events there are beyond those named. */
@@ -317,20 +334,35 @@ export interface DaySummary {
 }
 
 /**
- * Sum a day up for its cell: a few events named, the offerings counted.
+ * Sum a day up for its cell: a few events named, the crowds counted.
  *
  * @param events - The day's events.
  * @param room - How many events the cell names.
  * @returns What the cell shows.
  */
 export function daySummary(events: readonly CalendarEvent[], room: number): DaySummary {
-  const others = byImportance(events.filter((event) => event.group !== "ipo"));
-  const offerings = new Set(
-    events.filter((event) => event.group === "ipo").map((event) => event.subject ?? event.title),
-  ).size;
+  const others = byImportance(events.filter((event) => crowdOf(event) === null));
+  const counted = (crowd: "results" | "offerings"): number =>
+    new Set(
+      events
+        .filter((event) => crowdOf(event) === crowd)
+        .map((event) => event.subject ?? event.title),
+    ).size;
   return {
     named: others.slice(0, room),
-    offerings,
+    results: counted("results"),
+    offerings: counted("offerings"),
     more: Math.max(0, others.length - room),
   };
+}
+
+/**
+ * The company a results meeting is for, as a reader knows it.
+ *
+ * @param event - A company's results meeting.
+ * @returns Its symbol, or its name where it has none (a notice the platform
+ *   could not match to a listing).
+ */
+export function companyOf(event: CalendarEvent): string {
+  return event.symbol ?? event.title.replace(/: results$/, "");
 }

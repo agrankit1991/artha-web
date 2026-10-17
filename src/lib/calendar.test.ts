@@ -6,6 +6,8 @@ import type { CalendarEvent } from "@/api/client";
 import {
   addDays,
   byImportance,
+  companyOf,
+  crowdOf,
   dayName,
   daySummary,
   daysBetween,
@@ -43,6 +45,7 @@ function event(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
     source: "NSE, through Upstox",
     link: null,
     subject: null,
+    symbol: null,
     ...overrides,
   };
 }
@@ -100,9 +103,15 @@ describe("the market calendar", () => {
       "ipo",
       "ipo",
     ]);
-    expect(daySummary(day, 2)).toEqual({ named: [event(), cpi], offerings: 2, more: 1 });
+    expect(daySummary(day, 2)).toEqual({
+      named: [event(), cpi],
+      results: 0,
+      offerings: 2,
+      more: 1,
+    });
     expect(daySummary([listing("alpha"), listing("alpha")], 3)).toEqual({
       named: [],
+      results: 0,
       offerings: 1,
       more: 0,
     });
@@ -124,5 +133,26 @@ describe("the market calendar", () => {
     expect(dayName("2026-10-20")).toBe("Tuesday, 20 October");
     expect(timeInIndia("2026-11-10T08:30:00-05:00")).toBe("19:00 IST");
     expect(groupLabel("global")).toBe("Global");
+  });
+});
+
+describe("a day's crowds", () => {
+  it("counts companies declaring results as one line, named by symbol or name", () => {
+    const results = (symbol: string | null, title: string, subject: string | null): CalendarEvent =>
+      event({ kind: "results_meeting", group: "results", title, subject, symbol });
+    const tcs = results("TCS", "TCS: results", "NSE_EQ|INE467B01029");
+    const unlisted = results(null, "Nobody Limited: results", null);
+    const deadline = event({ kind: "results_deadline", group: "results", title: "Results due" });
+
+    expect(crowdOf(tcs)).toBe("results");
+    expect(crowdOf(deadline)).toBeNull();
+    expect(daySummary([tcs, unlisted, deadline], 3)).toEqual({
+      named: [deadline],
+      results: 2,
+      offerings: 0,
+      more: 0,
+    });
+    expect(companyOf(tcs)).toBe("TCS");
+    expect(companyOf(unlisted)).toBe("Nobody Limited");
   });
 });

@@ -4,7 +4,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
-import type { ResultsSeason, SeasonCompany } from "@/api/client";
+import type { CalendarEvent, ResultsSeason, SeasonCompany } from "@/api/client";
 import { ResultsSeasonPanel } from "@/components/ResultsSeasonPanel";
 import { renderPage, stubPlatform } from "@/test/support";
 
@@ -44,6 +44,8 @@ describe("ResultsSeasonPanel", () => {
         season={season({ expected: 0, by_week: [] })}
         today="2026-12-01"
         fetchedOn="2026-11-28"
+        declaring={[]}
+        noticesSince="2026-10-17"
       />,
     );
 
@@ -60,6 +62,8 @@ describe("ResultsSeasonPanel", () => {
         season={season({ held: 0, by_week: [] })}
         today="2026-10-17"
         fetchedOn="2026-09-26"
+        declaring={[]}
+        noticesSince="2026-10-17"
       />,
     );
 
@@ -71,13 +75,23 @@ describe("ResultsSeasonPanel", () => {
         season={season({ held: 0, by_week: [] })}
         today="2026-10-17"
         fetchedOn={null}
+        declaring={[]}
+        noticesSince="2026-10-17"
       />,
     );
     expect(screen.getByText(/have not been fetched yet/)).toBeInTheDocument();
   });
 
   it("says when the deadline is today", () => {
-    renderPage(<ResultsSeasonPanel season={season()} today="2026-11-14" fetchedOn="2026-11-14" />);
+    renderPage(
+      <ResultsSeasonPanel
+        season={season()}
+        today="2026-11-14"
+        fetchedOn="2026-11-14"
+        declaring={[]}
+        noticesSince="2026-10-17"
+      />,
+    );
 
     expect(screen.getByText(/Due by 14 Nov 2026, today/)).toBeInTheDocument();
     expect(screen.getByText("Week of 12 Oct")).toBeInTheDocument();
@@ -85,7 +99,15 @@ describe("ResultsSeasonPanel", () => {
 
   it("lists the companies when asked, an unlisted one by its ISIN with no link", async () => {
     stubPlatform({ "/api/calendar/results/2026-09-30": { body: COMPANIES } });
-    renderPage(<ResultsSeasonPanel season={season()} today="2026-10-17" fetchedOn="2026-10-17" />);
+    renderPage(
+      <ResultsSeasonPanel
+        season={season()}
+        today="2026-10-17"
+        fetchedOn="2026-10-17"
+        declaring={[]}
+        noticesSince="2026-10-17"
+      />,
+    );
 
     await userEvent.click(screen.getByRole("button", { name: "Show the companies" }));
 
@@ -104,12 +126,95 @@ describe("ResultsSeasonPanel", () => {
     stubPlatform({
       "/api/calendar/results/": { status: 500, body: { detail: "the store is down" } },
     });
-    renderPage(<ResultsSeasonPanel season={season()} today="2026-10-17" fetchedOn="2026-10-17" />);
+    renderPage(
+      <ResultsSeasonPanel
+        season={season()}
+        today="2026-10-17"
+        fetchedOn="2026-10-17"
+        declaring={[]}
+        noticesSince="2026-10-17"
+      />,
+    );
 
     await userEvent.click(screen.getByRole("button", { name: "Show the companies" }));
 
     await waitFor(() => {
       expect(screen.getByText(/The store is down/i)).toBeInTheDocument();
     });
+  });
+});
+
+/**
+ * Build one company's results meeting.
+ *
+ * @param symbol - The company, by its symbol.
+ * @param day - The day it declares.
+ * @param listed - Whether it has a page.
+ * @returns The event.
+ */
+function meeting(symbol: string, day = "2026-10-19", listed = true): CalendarEvent {
+  return {
+    day,
+    last_day: null,
+    kind: "results_meeting",
+    group: "results",
+    title: `${symbol}: results`,
+    detail: "",
+    certainty: "confirmed",
+    at: null,
+    source: "NSE board meeting notice",
+    link: `https://x.test/${symbol}.xml`,
+    subject: listed ? `NSE_EQ|INE${symbol}` : null,
+    symbol: listed ? symbol : null,
+  };
+}
+
+describe("ResultsSeasonPanel's coming results", () => {
+  it("says the window, and lists who declares each day, a dozen named", () => {
+    const busy = Array.from({ length: 13 }, (_, index) => meeting(`CO${String(index)}`));
+    renderPage(
+      <ResultsSeasonPanel
+        season={season()}
+        today="2026-10-17"
+        fetchedOn="2026-10-17"
+        declaring={[...busy, meeting("Nobody Limited", "2026-10-20", false)]}
+        noticesSince="2026-10-15"
+      />,
+    );
+
+    expect(screen.getByText(/SEBI gives them 45 days/)).toBeInTheDocument();
+    const declaring = screen.getByRole("region", { name: "Declaring results" });
+    expect(declaring).toHaveTextContent("13 companies");
+    expect(declaring).toHaveTextContent("+1 more: choose the day on the calendar");
+    expect(screen.getByRole("link", { name: "CO0" })).toHaveAttribute("href", "/company/CO0");
+    expect(screen.queryByRole("link", { name: "CO12" })).toBeNull();
+    expect(screen.getByText("Nobody Limited")).toBeInTheDocument();
+    expect(declaring).toHaveTextContent("1 company");
+    expect(declaring).toHaveTextContent(/read every hour since 15 Oct 2026/);
+  });
+
+  it("says when nothing is notified yet, or nothing is read yet, or it is still reading", () => {
+    const { rerender } = renderPage(
+      <ResultsSeasonPanel
+        season={season()}
+        today="2026-10-17"
+        fetchedOn="2026-10-17"
+        declaring={[]}
+        noticesSince={null}
+      />,
+    );
+    expect(screen.getByText(/No company has notified a results meeting/)).toBeInTheDocument();
+    expect(screen.getByText(/none is read yet/)).toBeInTheDocument();
+
+    rerender(
+      <ResultsSeasonPanel
+        season={season()}
+        today="2026-10-17"
+        fetchedOn="2026-10-17"
+        declaring={null}
+        noticesSince={null}
+      />,
+    );
+    expect(screen.getByText("Reading the notices...")).toBeInTheDocument();
   });
 });

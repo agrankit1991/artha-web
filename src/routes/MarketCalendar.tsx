@@ -35,6 +35,7 @@ import {
   EVENT_GROUPS,
   addDays,
   byImportance,
+  crowdOf,
   dayName,
   eventsOn,
   eventsWithin,
@@ -45,6 +46,18 @@ import {
   shiftMonth,
 } from "@/lib/calendar";
 import { formatDay, todayInIndia } from "@/lib/format";
+
+/** The crowds "what's next" counts under All, and where each is listed in full. */
+const CROWDS = [
+  {
+    key: "results",
+    one: "company declaring results",
+    many: "companies declaring results",
+    group: "results",
+    button: "Show results",
+  },
+  { key: "offerings", one: "IPO event", many: "IPO events", group: "ipo", button: "Show IPOs" },
+] as const;
 
 /** How many days "what's next" covers, today included. */
 const NEXT_DAYS = 14;
@@ -99,11 +112,20 @@ export function MarketCalendar(): React.JSX.Element {
   const shown = grid.data === null ? null : shownOf(grid.data.events, group);
   const coming =
     next.data === null ? null : eventsWithin(shownOf(next.data.events, group), today, NEXT_DAYS);
-  // Under All the offerings are counted, not listed: two weeks can hold dozens,
-  // most on the SME board, and they would bury the rest.
+  // Under All the crowds are counted, not listed: two weeks in season hold
+  // hundreds of results days and dozens of offerings, which would bury the rest.
   const comingListed =
-    coming === null || group !== "all" ? coming : coming.filter((one) => one.group !== "ipo");
-  const comingOfferings = (coming?.length ?? 0) - (comingListed?.length ?? 0);
+    coming === null || group !== "all" ? coming : coming.filter((one) => crowdOf(one) === null);
+  const comingCrowds = CROWDS.map((crowd) => ({
+    ...crowd,
+    count: (coming ?? []).filter((one) => crowdOf(one) === crowd.key).length,
+  })).filter((crowd) => group === "all" && crowd.count > 0);
+  const declaring =
+    next.data === null
+      ? null
+      : eventsWithin(next.data.events, today, NEXT_DAYS).filter(
+          (one) => one.kind === "results_meeting",
+        );
   const seasons = group === "all" || group === "results" ? (grid.data?.seasons ?? []) : [];
 
   return (
@@ -219,20 +241,23 @@ export function MarketCalendar(): React.JSX.Element {
               showDays
               empty="Nothing in the next two weeks."
             />
-            {comingOfferings > 0 && (
-              <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                {`${String(comingOfferings)} IPO events in these two weeks are counted here, not listed.`}
+            {comingCrowds.map((crowd) => (
+              <p
+                key={crowd.key}
+                className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
+              >
+                {`${String(crowd.count)} ${crowd.count === 1 ? crowd.one : crowd.many} in these two weeks: counted here, not listed.`}
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    write({ group: "ipo" });
+                    write({ group: crowd.group });
                   }}
                 >
-                  Show IPOs
+                  {crowd.button}
                 </Button>
               </p>
-            )}
+            ))}
           </>
         )}
       </section>
@@ -249,6 +274,8 @@ export function MarketCalendar(): React.JSX.Element {
               season={season}
               today={today}
               fetchedOn={grid.data?.results_fetched_on ?? null}
+              declaring={declaring}
+              noticesSince={next.data?.notices_read_since ?? null}
             />
           ))}
         </section>

@@ -3032,6 +3032,7 @@ export type EventKind =
   | "ipo_allotment"
   | "ipo_listing"
   | "results_deadline"
+  | "results_meeting"
   | "policy_meeting"
   | "data_release"
   | "budget";
@@ -3052,8 +3053,10 @@ export interface CalendarEvent {
   source: string | null;
   /** Where the date is published. */
   link: string | null;
-  /** An offering's id, for an IPO's events. */
+  /** An offering's id for an IPO's events; a listing's instrument key for a company's. */
   subject: string | null;
+  /** The company's trading symbol, for a company's event. */
+  symbol: string | null;
 }
 
 /** How far one quarter's results season has come, as far as the platform holds results. */
@@ -3081,6 +3084,8 @@ export interface CalendarView {
   announced_checked_on: string;
   /** When companies' statements were last fetched (India's date); null before the first fetch. */
   results_fetched_on: string | null;
+  /** India's date of the earliest board meeting notice read: results days notified before it are missing. */
+  notices_read_since: string | null;
 }
 
 /** One company whose results for a quarter are held. */

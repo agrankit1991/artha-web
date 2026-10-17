@@ -27,6 +27,7 @@ function event(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
     source: "NSE, through Upstox",
     link: null,
     subject: null,
+    symbol: null,
     ...overrides,
   };
 }
@@ -107,6 +108,17 @@ const EVENTS: CalendarEvent[] = [
     title: "NSE monthly expiry",
     detail: "The month's index options expire.",
   }),
+  event({
+    day: "2026-10-22",
+    kind: "results_meeting",
+    group: "results",
+    title: "TCS: results",
+    detail: "Tata Consultancy Services Limited's board meets to consider its results.",
+    source: "NSE board meeting notice",
+    link: "https://x.test/tcs.xml",
+    subject: "NSE_EQ|INE467B01029",
+    symbol: "TCS",
+  }),
 ];
 
 /**
@@ -126,6 +138,7 @@ function viewFor(path: string): CalendarView {
     seasons: start <= "2026-11-14" && end > "2026-09-30" ? [SEASON] : [],
     announced_checked_on: "2026-10-17",
     results_fetched_on: "2026-10-17",
+    notices_read_since: "2026-10-15",
   };
 }
 
@@ -242,14 +255,15 @@ describe("MarketCalendar", () => {
     renderPage(<MarketCalendar />, { at: "/calendar" });
 
     const season = await screen.findByRole("region", { name: "Results season" });
-    expect(within(season).getByText("Jul-Sep 2026 results")).toBeInTheDocument();
+    expect(within(season).getByText("Jul-Sep 2026 results season")).toBeInTheDocument();
     expect(within(season).getByText(/28 days left/)).toBeInTheDocument();
     expect(within(season).getByText(/21 of about 4,337 companies/)).toBeInTheDocument();
 
     await userEvent.click(within(season).getByRole("button", { name: "Show the companies" }));
 
+    const held = within(season).getByRole("region", { name: "Results held so far" });
     await waitFor(() => {
-      expect(within(season).getByText("TCS")).toBeInTheDocument();
+      expect(within(held).getByText("TCS")).toBeInTheDocument();
     });
   });
 
@@ -308,5 +322,41 @@ describe("MarketCalendar", () => {
 
     expect(await screen.findAllByText(/The calendar is down/i)).not.toHaveLength(0);
     expect(screen.getByRole("heading", { name: "October 2026" })).toBeInTheDocument();
+  });
+});
+
+describe("MarketCalendar's results days", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-17T06:00:00Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("counts them in the grid and in what's next, and lists them in the season", async () => {
+    stub();
+    renderPage(<MarketCalendar />, { at: "/calendar" });
+
+    const day = await screen.findByRole("button", { name: /22 Oct 2026/ });
+    expect(within(day).getByText("1 result")).toBeInTheDocument();
+    const next = screen.getByRole("region", { name: "What's next" });
+    expect(
+      await within(next).findByText(/1 company declaring results in these two weeks/),
+    ).toBeInTheDocument();
+    const declaring = screen.getByRole("region", { name: "Declaring results" });
+    expect(within(declaring).getByRole("link", { name: "TCS" })).toHaveAttribute(
+      "href",
+      "/company/TCS",
+    );
+    expect(declaring).toHaveTextContent(/read every hour since 15 Oct 2026/);
+
+    await userEvent.click(within(next).getByRole("button", { name: "Show results" }));
+
+    expect(await within(next).findByRole("link", { name: "TCS: results" })).toHaveAttribute(
+      "href",
+      "/company/TCS",
+    );
   });
 });

@@ -4,8 +4,9 @@
  * Each day is a button, so a keyboard reader moves through the month as a
  * pointer does, and choosing one shows its events in full beside the grid.
  * A day names its first few events, the most telling first, counts its
- * offerings as one line (there can be dozens, most on the SME board) and
- * counts the rest; a phone's narrow cell shows only their colours, which
+ * crowds as a line each (the companies declaring results, a hundred on a
+ * busy day in season, and the offerings, dozens of them on the SME board)
+ * and counts the rest; a phone's narrow cell shows only their colours, which
  * is all seven columns can hold at that width. A day the equity market is shut is shaded and says so, since
  * "is the market open" is the first thing a calendar is opened for.
  */
@@ -93,11 +94,17 @@ interface DayProps {
 function Day({ day, events, inMonth, isToday, isSelected, onSelect }: DayProps): React.JSX.Element {
   const listed = events ?? [];
   const shut = isHoliday(listed);
-  const { named, offerings, more } = daySummary(listed, SHOWN);
-  const ipos = offerings === 0 ? null : `${String(offerings)} ${offerings === 1 ? "IPO" : "IPOs"}`;
+  const { named, results, offerings, more } = daySummary(listed, SHOWN);
+  // The crowds a day counts rather than names, each one line in its group's colour.
+  const crowds = [
+    { count: results, words: results === 1 ? "result" : "results", colour: EVENT_COLOURS.results },
+    { count: offerings, words: offerings === 1 ? "IPO" : "IPOs", colour: EVENT_COLOURS.ipo },
+  ]
+    .filter((crowd) => crowd.count > 0)
+    .map((crowd) => ({ text: `${String(crowd.count)} ${crowd.words}`, colour: crowd.colour }));
   const said = [
     ...named.map((event) => event.title),
-    ...(ipos === null ? [] : [ipos]),
+    ...crowds.map((crowd) => crowd.text),
     ...(more > 0 ? [`${String(more)} more`] : []),
   ];
   const label = [formatDay(day), shut ? "market closed" : null, said.join("; ") || "no events"]
@@ -141,9 +148,13 @@ function Day({ day, events, inMonth, isToday, isSelected, onSelect }: DayProps):
             style={{ backgroundColor: EVENT_COLOURS[event.group] }}
           />
         ))}
-        {ipos !== null && (
-          <span className="size-1.5 rounded-full" style={{ backgroundColor: EVENT_COLOURS.ipo }} />
-        )}
+        {crowds.map((crowd) => (
+          <span
+            key={crowd.text}
+            className="size-1.5 rounded-full"
+            style={{ backgroundColor: crowd.colour }}
+          />
+        ))}
       </span>
       <span aria-hidden className="hidden min-w-0 flex-col gap-0.5 sm:flex">
         {named.map((event, index) => (
@@ -161,15 +172,18 @@ function Day({ day, events, inMonth, isToday, isSelected, onSelect }: DayProps):
             <span className="truncate">{event.title}</span>
           </span>
         ))}
-        {ipos !== null && (
-          <span className="flex min-w-0 items-center gap-1 text-[11px] leading-tight">
+        {crowds.map((crowd) => (
+          <span
+            key={crowd.text}
+            className="flex min-w-0 items-center gap-1 text-[11px] leading-tight"
+          >
             <span
               className="size-1.5 shrink-0 rounded-full"
-              style={{ backgroundColor: EVENT_COLOURS.ipo }}
+              style={{ backgroundColor: crowd.colour }}
             />
-            <span className="truncate">{ipos}</span>
+            <span className="truncate">{crowd.text}</span>
           </span>
-        )}
+        ))}
         {more > 0 && <span className="text-[11px] text-muted-foreground">+{more} more</span>}
       </span>
     </button>

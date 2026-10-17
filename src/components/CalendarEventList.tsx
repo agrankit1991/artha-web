@@ -15,7 +15,44 @@ import { Badge } from "@/components/ui/badge";
 import { EXPECTED_HINT, eventDays, groupLabel, timeInIndia } from "@/lib/calendar";
 import { EVENT_COLOURS } from "@/lib/chartPalette";
 import { MARKS } from "@/lib/entities";
-import { ipoPath } from "@/lib/paths";
+import { companyPath, ipoPath } from "@/lib/paths";
+
+/**
+ * An event's title, leading to its page when it has one.
+ *
+ * @param props - The event.
+ * @returns The title.
+ */
+function EventTitle({ event }: { event: CalendarEvent }): React.JSX.Element {
+  const page = pageOf(event);
+  return (
+    <p className="text-sm font-medium">
+      {page === null ? (
+        event.title
+      ) : (
+        <Link to={page} className="text-primary hover:underline">
+          {event.title}
+        </Link>
+      )}
+    </p>
+  );
+}
+
+/**
+ * The page an event leads to: an offering's, or a company's for its results.
+ *
+ * @param event - The event.
+ * @returns The path, or null when it concerns nothing with a page.
+ */
+function pageOf(event: CalendarEvent): string | null {
+  if (event.subject === null) {
+    return null;
+  }
+  if (event.group === "ipo") {
+    return ipoPath(event.subject);
+  }
+  return event.symbol === null ? null : companyPath(event.subject, event.symbol);
+}
 
 interface CalendarEventListProps {
   /** The events, in the order they fall. */
@@ -64,15 +101,7 @@ export function CalendarEventList({
               </Hint>
             )}
           </div>
-          <p className="text-sm font-medium">
-            {event.subject !== null && event.group === "ipo" ? (
-              <Link to={ipoPath(event.subject)} className="text-primary hover:underline">
-                {event.title}
-              </Link>
-            ) : (
-              event.title
-            )}
-          </p>
+          <EventTitle event={event} />
           <p className="text-sm text-muted-foreground">{event.detail}</p>
           {event.source !== null && (
             <p className="text-xs text-muted-foreground">
