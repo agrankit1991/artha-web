@@ -125,6 +125,7 @@ function viewFor(path: string): CalendarView {
     events: EVENTS.filter((one) => one.day <= end && (one.last_day ?? one.day) >= start),
     seasons: start <= "2026-11-14" && end > "2026-09-30" ? [SEASON] : [],
     announced_checked_on: "2026-10-17",
+    results_fetched_on: "2026-10-17",
   };
 }
 
@@ -180,12 +181,10 @@ describe("MarketCalendar", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: /20 Oct 2026/ }));
 
-    const day = screen.getByRole("heading", { name: /Tuesday, 20 October/ }).parentElement;
-    expect(day).not.toBeNull();
+    // Its own scrolling region, so a busy day never stretches the grid.
+    const day = screen.getByRole("region", { name: "Events on Tuesday, 20 October" });
     expect(
-      within(day as HTMLElement).getByText(
-        "NSE and BSE closed for Dussehra. MCX trades 17:00-23:55.",
-      ),
+      within(day).getByText("NSE and BSE closed for Dussehra. MCX trades 17:00-23:55."),
     ).toBeInTheDocument();
   });
 

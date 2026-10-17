@@ -3079,6 +3079,8 @@ export interface CalendarView {
   seasons: ResultsSeason[];
   /** When the hand-entered dates were last checked against their publishers. */
   announced_checked_on: string;
+  /** When companies' statements were last fetched (India's date); null before the first fetch. */
+  results_fetched_on: string | null;
 }
 
 /** One company whose results for a quarter are held. */

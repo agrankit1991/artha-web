@@ -40,7 +40,11 @@ const COMPANIES: SeasonCompany[] = [
 describe("ResultsSeasonPanel", () => {
   it("says when the deadline has passed and stays silent on an unknown share", () => {
     renderPage(
-      <ResultsSeasonPanel season={season({ expected: 0, by_week: [] })} today="2026-12-01" />,
+      <ResultsSeasonPanel
+        season={season({ expected: 0, by_week: [] })}
+        today="2026-12-01"
+        fetchedOn="2026-11-28"
+      />,
     );
 
     expect(screen.getByText(/Due by 14 Nov 2026, passed/)).toBeInTheDocument();
@@ -50,8 +54,30 @@ describe("ResultsSeasonPanel", () => {
     expect(screen.queryByText("Arrived each week")).toBeNull();
   });
 
+  it("says why a season holds nothing yet, and when statements were last fetched", () => {
+    const { rerender } = renderPage(
+      <ResultsSeasonPanel
+        season={season({ held: 0, by_week: [] })}
+        today="2026-10-17"
+        fetchedOn="2026-09-26"
+      />,
+    );
+
+    expect(screen.getByText(/No company's Jul-Sep 2026 results are held yet/)).toBeInTheDocument();
+    expect(screen.getByText(/the last fetch finished on 26 Sept? 2026/)).toBeInTheDocument();
+
+    rerender(
+      <ResultsSeasonPanel
+        season={season({ held: 0, by_week: [] })}
+        today="2026-10-17"
+        fetchedOn={null}
+      />,
+    );
+    expect(screen.getByText(/have not been fetched yet/)).toBeInTheDocument();
+  });
+
   it("says when the deadline is today", () => {
-    renderPage(<ResultsSeasonPanel season={season()} today="2026-11-14" />);
+    renderPage(<ResultsSeasonPanel season={season()} today="2026-11-14" fetchedOn="2026-11-14" />);
 
     expect(screen.getByText(/Due by 14 Nov 2026, today/)).toBeInTheDocument();
     expect(screen.getByText("Week of 12 Oct")).toBeInTheDocument();
@@ -59,7 +85,7 @@ describe("ResultsSeasonPanel", () => {
 
   it("lists the companies when asked, an unlisted one by its ISIN with no link", async () => {
     stubPlatform({ "/api/calendar/results/2026-09-30": { body: COMPANIES } });
-    renderPage(<ResultsSeasonPanel season={season()} today="2026-10-17" />);
+    renderPage(<ResultsSeasonPanel season={season()} today="2026-10-17" fetchedOn="2026-10-17" />);
 
     await userEvent.click(screen.getByRole("button", { name: "Show the companies" }));
 
@@ -78,7 +104,7 @@ describe("ResultsSeasonPanel", () => {
     stubPlatform({
       "/api/calendar/results/": { status: 500, body: { detail: "the store is down" } },
     });
-    renderPage(<ResultsSeasonPanel season={season()} today="2026-10-17" />);
+    renderPage(<ResultsSeasonPanel season={season()} today="2026-10-17" fetchedOn="2026-10-17" />);
 
     await userEvent.click(screen.getByRole("button", { name: "Show the companies" }));
 

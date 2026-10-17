@@ -173,16 +173,31 @@ export function MarketCalendar(): React.JSX.Element {
                 write({ day: day === today ? null : day });
               }}
             />
-            <div className="space-y-2" aria-live="polite">
-              <h3 className="text-panel font-semibold">
-                {selected === null ? "Choose a day" : dayName(selected)}
-              </h3>
-              {selected !== null && shown !== null && (
-                <CalendarEventList
-                  events={byImportance(eventsOn(shown, selected))}
-                  empty="Nothing on this day."
-                />
-              )}
+            {/* On a wide screen the day's events fill the calendar's height and scroll within
+                it, so a busy day never stretches the grid; on a phone, below the grid, they
+                scroll within a fixed height. */}
+            <div className="lg:relative">
+              <div
+                className="flex max-h-[28rem] flex-col gap-2 lg:absolute lg:inset-0 lg:max-h-none"
+                aria-live="polite"
+              >
+                <h3 className="shrink-0 text-panel font-semibold">
+                  {selected === null ? "Choose a day" : dayName(selected)}
+                </h3>
+                {selected !== null && shown !== null && (
+                  <div
+                    role="region"
+                    aria-label={`Events on ${dayName(selected)}`}
+                    tabIndex={0}
+                    className="min-h-0 flex-1 overflow-y-auto rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  >
+                    <CalendarEventList
+                      events={byImportance(eventsOn(shown, selected))}
+                      empty="Nothing on this day."
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -229,7 +244,12 @@ export function MarketCalendar(): React.JSX.Element {
             description="SEBI's deadline for the quarter's results, and how many companies' results the platform holds so far."
           />
           {seasons.map((season) => (
-            <ResultsSeasonPanel key={season.quarter_end} season={season} today={today} />
+            <ResultsSeasonPanel
+              key={season.quarter_end}
+              season={season}
+              today={today}
+              fetchedOn={grid.data?.results_fetched_on ?? null}
+            />
           ))}
         </section>
       )}

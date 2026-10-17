@@ -55,6 +55,8 @@ interface ResultsSeasonPanelProps {
   season: ResultsSeason;
   /** India's date today, for the days left. */
   today: string;
+  /** When companies' statements were last fetched; null before the first fetch. */
+  fetchedOn: string | null;
 }
 
 /**
@@ -63,7 +65,11 @@ interface ResultsSeasonPanelProps {
  * @param props - The season and today.
  * @returns The panel.
  */
-export function ResultsSeasonPanel({ season, today }: ResultsSeasonPanelProps): React.JSX.Element {
+export function ResultsSeasonPanel({
+  season,
+  today,
+  fetchedOn,
+}: ResultsSeasonPanelProps): React.JSX.Element {
   const [open, setOpen] = useState(false);
   const left = daysBetween(today, season.deadline);
   const percent = season.expected === 0 ? null : (season.held / season.expected) * 100;
@@ -77,11 +83,22 @@ export function ResultsSeasonPanel({ season, today }: ResultsSeasonPanelProps): 
           {left > 0 ? `, ${String(left)} days left` : left === 0 ? ", today" : ", passed"}
         </span>
       </div>
+      {season.held === 0 && (
+        <p className="text-sm">
+          No company's {season.quarter} results are held yet. They arrive with the next fetch of
+          statements after a company announces them.
+        </p>
+      )}
       <Meter
         label="Results held"
         percent={percent}
         caption={`${formatCount(season.held)} of about ${formatCount(season.expected)} companies, counting those that reported the quarter before. Held, not announced: results reach the platform some days after a company announces them.`}
       />
+      <p className="text-xs text-muted-foreground">
+        {fetchedOn === null
+          ? "Companies' statements have not been fetched yet; they are fetched each Saturday."
+          : `Companies' statements are fetched each Saturday; the last fetch finished on ${formatDay(fetchedOn)}.`}
+      </p>
       {season.by_week.length > 0 && (
         <div className="space-y-1">
           <p className="text-xs font-medium text-muted-foreground">Arrived each week</p>
