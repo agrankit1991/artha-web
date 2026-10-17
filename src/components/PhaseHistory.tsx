@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { useSearchParam } from "@/hooks/useSearchParam";
 import { PHASE_COLOURS } from "@/lib/chartPalette";
 import { formatDay } from "@/lib/format";
+import { PHASE_TERMS } from "@/lib/strategyTerms";
 import { NO_PHASE, PHASES, phaseLabel } from "@/lib/marketPhases";
 
 const SPANS = [
@@ -76,7 +77,14 @@ export function PhaseHistory({ spells }: PhaseHistoryProps): React.JSX.Element {
 
   return (
     <div className="space-y-3">
-      <Chooser label="Span" options={SPANS} chosen={span} onChange={setSpan} />
+      <Chooser
+        label="Span"
+        showLabel
+        hint={PHASE_TERMS.span}
+        options={SPANS}
+        chosen={span}
+        onChange={setSpan}
+      />
       {first !== undefined && last !== undefined && (
         <>
           <div

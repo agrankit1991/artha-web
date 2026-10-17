@@ -25,6 +25,7 @@ import { Empty } from "@/components/Empty";
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
 import { type BarSection, SectionBar } from "@/components/SectionBar";
+import { ReadingGuide } from "@/components/ReadingGuide";
 import { SectionHeader } from "@/components/SectionHeader";
 import { StrategyExplanationPanel } from "@/components/StrategyExplanationPanel";
 import { VerdictTiles, periodName, verdictPeriod } from "@/components/BacktestVerdict";
@@ -35,6 +36,7 @@ import { benchmarkName, percent, points, share } from "@/lib/backtestFigures";
 import { growthLines, underwater } from "@/lib/backtestReadings";
 import { BENCHMARK, DRAWDOWN, PRICE_LINE, PRICE_WIDTH } from "@/lib/chartPalette";
 import { ABSENT, formatDay, formatDayInIndia, formatPercentTenths } from "@/lib/format";
+import { BACKTEST_TERMS, RECORD_TERMS } from "@/lib/strategyTerms";
 
 /** A year of the run, beside the breadth of the market that year. */
 type YearRow = BacktestYear & { breadth: number | null };
@@ -51,14 +53,14 @@ const YEAR_COLUMNS: Column<YearRow>[] = [
     header: "Strategy",
     accessorFn: (row) => row.playbook,
     cell: ({ row }) => percent(row.original.playbook),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.yearReturn, align: "right" },
   },
   {
     id: "benchmark",
     header: "Index",
     accessorFn: (row) => row.benchmark,
     cell: ({ row }) => percent(row.original.benchmark),
-    meta: { align: "right" },
+    meta: { hint: RECORD_TERMS.yearIndex, align: "right" },
   },
   {
     id: "lead",
@@ -68,14 +70,14 @@ const YEAR_COLUMNS: Column<YearRow>[] = [
       points(
         row.original.benchmark === null ? null : row.original.playbook - row.original.benchmark,
       ),
-    meta: { align: "right", emphasis: true },
+    meta: { hint: BACKTEST_TERMS.lead, align: "right", emphasis: true },
   },
   {
     id: "max_drawdown",
     header: "Worst fall",
     accessorFn: (row) => row.max_drawdown ?? null,
     cell: ({ row }) => percent(row.original.max_drawdown),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.yearFall, align: "right" },
   },
   {
     id: "holdings",
@@ -87,7 +89,7 @@ const YEAR_COLUMNS: Column<YearRow>[] = [
         ? ABSENT
         : `${held.average.toFixed(1)} (${String(held.fewest)}-${String(held.most)})`;
     },
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.companiesHeld, align: "right" },
   },
   {
     id: "trades",
@@ -97,14 +99,14 @@ const YEAR_COLUMNS: Column<YearRow>[] = [
       row.original.trades === null || row.original.trades === undefined
         ? ABSENT
         : String(row.original.trades),
-    meta: { align: "right" },
+    meta: { hint: RECORD_TERMS.yearTrades, align: "right" },
   },
   {
     id: "breadth",
     header: "Large companies above 200-day",
     accessorFn: (row) => row.breadth,
     cell: ({ row }) => share(row.original.breadth),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.yearBreadth, align: "right" },
   },
 ];
 
@@ -226,6 +228,27 @@ export function Backtest(): React.JSX.Element {
           title="Periods"
           description="Each run from cash. The median calendar is the strategy rebalanced on every day of its cycle; the edge is that less the median of random picks under the same rules."
         />
+        <ReadingGuide>
+          <p>
+            <strong>Three runs, each from cash.</strong> Whole is every year it traded; in-sample is
+            the years to 2017, where its settings may have been chosen; out of sample is 2018 on,
+            years they were not tuned on, so the honest test.
+          </p>
+          <p>
+            <strong>The median calendar</strong> answers a lucky start day: a strategy rebalancing
+            every 21 sessions is run on each of the 21 days it could have begun, and judged on the
+            middle one (the range beneath shows the worst and best of them).
+          </p>
+          <p>
+            <strong>Random picks and the edge</strong> answer the survivor-only history: 20 runs
+            picking companies at random under the same rules (gate, holdings, exits, costs) show
+            what the history gave anyone; the edge is what the strategy made beyond their middle.
+          </p>
+          <p>
+            <strong>Won and invested</strong> say how it made it: the share of sales that made
+            money, and how much of the time its money was in companies rather than gold or cash.
+          </p>
+        </ReadingGuide>
         <BacktestPeriodsTable periods={shown.periods} />
       </section>
 
@@ -269,7 +292,10 @@ export function Backtest(): React.JSX.Element {
       </section>
 
       <section id="rules" aria-label="Rules" className="scroll-mt-28 space-y-3">
-        <SectionHeader title="Rules" />
+        <SectionHeader
+          title="Rules"
+          description="What it does, in plain words first, then each strategy it plays as its rules are written."
+        />
         {shown.explanation && (
           <section aria-label="In plain words" className="space-y-3 rounded-lg border bg-card p-4">
             <h3 className="text-base font-semibold">In plain words</h3>

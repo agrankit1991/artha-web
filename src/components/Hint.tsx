@@ -28,6 +28,12 @@ interface HintProps {
    */
   term?: string;
   className?: string;
+  /**
+   * Which way the explanation opens from the mark: towards the end of the
+   * line by default, towards its start for a mark near the right edge (a
+   * right-aligned column's header), so it does not run off the table.
+   */
+  side?: "start" | "end";
 }
 
 /**
@@ -36,7 +42,13 @@ interface HintProps {
  * @param props - The term and what it means.
  * @returns The term with a mark, and the explanation while shown.
  */
-export function Hint({ text, children, term, className }: HintProps): React.JSX.Element {
+export function Hint({
+  text,
+  children,
+  term,
+  className,
+  side = "end",
+}: HintProps): React.JSX.Element {
   const [showing, setShowing] = useState(false);
   const id = useId();
   const show = (): void => {
@@ -64,7 +76,10 @@ export function Hint({ text, children, term, className }: HintProps): React.JSX.
         <span
           id={id}
           role="tooltip"
-          className="absolute left-0 top-full z-50 mt-1 w-64 rounded-md border bg-popover p-2 text-xs font-normal leading-relaxed text-popover-foreground shadow-lg"
+          className={cn(
+            "absolute top-full z-50 mt-1 w-64 rounded-md border bg-popover p-2 text-left text-xs font-normal normal-case leading-relaxed text-popover-foreground shadow-lg",
+            side === "end" ? "left-0" : "right-0",
+          )}
         >
           {text}
         </span>

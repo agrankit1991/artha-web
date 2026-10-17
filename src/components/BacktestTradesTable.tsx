@@ -15,6 +15,7 @@ import { percent, share, weight } from "@/lib/backtestFigures";
 import { ABSENT, formatDay, formatPrice, formatWhole } from "@/lib/format";
 import { companyPath } from "@/lib/paths";
 import { cn } from "@/lib/utils";
+import { RECORD_TERMS } from "@/lib/strategyTerms";
 
 /** Why each sale was made, as a reader would say it. */
 const REASONS: Record<string, string> = {
@@ -38,19 +39,21 @@ const COLUMNS: Column<BacktestTrade>[] = [
     header: "Bought",
     accessorFn: (row) => row.entered,
     cell: ({ row }) => formatDay(row.original.entered),
+    meta: { hint: RECORD_TERMS.bought },
   },
   {
     id: "exited",
     header: "Sold",
     accessorFn: (row) => row.exited,
     cell: ({ row }) => formatDay(row.original.exited),
+    meta: { hint: RECORD_TERMS.sold },
   },
   {
     id: "sessions",
     header: "Sessions",
     accessorFn: (row) => row.sessions,
     cell: ({ row }) => String(row.original.sessions),
-    meta: { align: "right" },
+    meta: { hint: RECORD_TERMS.sessions, align: "right" },
   },
   {
     id: "prices",
@@ -58,7 +61,7 @@ const COLUMNS: Column<BacktestTrade>[] = [
     accessorFn: (row) => row.entry_price,
     cell: ({ row }) =>
       `${formatPrice(String(row.original.entry_price))} → ${formatPrice(String(row.original.exit_price))}`,
-    meta: { align: "right" },
+    meta: { hint: RECORD_TERMS.prices, align: "right" },
   },
   {
     id: "gain_percent",
@@ -69,14 +72,14 @@ const COLUMNS: Column<BacktestTrade>[] = [
         {percent(row.original.gain_percent)}
       </span>
     ),
-    meta: { align: "right" },
+    meta: { hint: RECORD_TERMS.gain, align: "right" },
   },
   {
     id: "portion",
     header: "Of the holding",
     accessorFn: (row) => row.portion,
     cell: ({ row }) => share(row.original.portion * 100),
-    meta: { align: "right" },
+    meta: { hint: RECORD_TERMS.portion, align: "right" },
   },
   {
     id: "shares",
@@ -86,14 +89,14 @@ const COLUMNS: Column<BacktestTrade>[] = [
       row.original.shares === null || row.original.shares === undefined
         ? ABSENT
         : formatWhole(Math.round(row.original.shares)),
-    meta: { align: "right" },
+    meta: { hint: RECORD_TERMS.shares, align: "right" },
   },
   {
     id: "first_weight",
     header: "Weight at entry",
     accessorFn: (row) => row.first_weight ?? null,
     cell: ({ row }) => weight(row.original.first_weight),
-    meta: { align: "right" },
+    meta: { hint: RECORD_TERMS.firstWeight, align: "right" },
   },
   {
     id: "weight_range",
@@ -103,7 +106,7 @@ const COLUMNS: Column<BacktestTrade>[] = [
       row.original.lowest_weight === null || row.original.lowest_weight === undefined
         ? ABSENT
         : `${weight(row.original.lowest_weight)} - ${weight(row.original.highest_weight)}`,
-    meta: { align: "right" },
+    meta: { hint: RECORD_TERMS.weightRange, align: "right" },
   },
   {
     id: "reason",
@@ -112,6 +115,7 @@ const COLUMNS: Column<BacktestTrade>[] = [
     cell: ({ row }) => (
       <Badge variant="outline">{REASONS[row.original.reason] ?? row.original.reason}</Badge>
     ),
+    meta: { hint: RECORD_TERMS.reason },
   },
 ];
 

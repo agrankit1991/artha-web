@@ -8,6 +8,7 @@ import { type Column, DataTable } from "@/components/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { ABSENT, formatSince } from "@/lib/format";
 import { backtestPath } from "@/lib/paths";
+import { RUN_TERMS } from "@/lib/strategyTerms";
 
 /** How each status reads. */
 const STATUSES: Record<StrategyRequest["status"], string> = {
@@ -41,6 +42,7 @@ const COLUMNS: Column<StrategyRequest>[] = [
     header: "Asked",
     accessorFn: (row) => row.requested_at,
     cell: ({ row }) => formatSince(row.original.requested_at),
+    meta: { hint: RUN_TERMS.asked },
   },
   {
     id: "status",
@@ -51,12 +53,14 @@ const COLUMNS: Column<StrategyRequest>[] = [
         {STATUSES[row.original.status]}
       </Badge>
     ),
+    meta: { hint: RUN_TERMS.status },
   },
   {
     id: "took",
     header: "Took",
     accessorFn: (row) => duration(row),
     cell: ({ row }) => duration(row.original),
+    meta: { hint: RUN_TERMS.took },
   },
   {
     id: "outcome",
@@ -70,6 +74,7 @@ const COLUMNS: Column<StrategyRequest>[] = [
       ) : (
         ABSENT
       ),
+    meta: { hint: RUN_TERMS.outcome },
   },
 ];
 

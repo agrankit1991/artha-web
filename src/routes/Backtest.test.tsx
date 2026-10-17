@@ -170,8 +170,9 @@ describe("Backtest", () => {
     expect(
       within(picks).queryByRole("link", { name: "NSE_EQ|INE999Z01010" }),
     ).not.toBeInTheDocument();
-    expect(within(picks).getByText("Hold")).toBeInTheDocument();
-    expect(within(picks).getByText("Runner-up")).toBeInTheDocument();
+    const listed = within(picks).getByRole("table", { name: "Picks today" });
+    expect(within(listed).getByText("Hold")).toBeInTheDocument();
+    expect(within(listed).getByText("Runner-up")).toBeInTheDocument();
     for (const name of [/^Rank$/, /^Symbol/, /^Close/, /^Ranking figure/, /^Today/]) {
       await userEvent.click(within(picks).getByRole("button", { name }));
     }

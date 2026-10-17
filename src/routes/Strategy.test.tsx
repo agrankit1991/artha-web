@@ -117,7 +117,7 @@ describe("a saved strategy", () => {
     expect(await screen.findByText("+12.9 pp")).toBeInTheDocument();
     expect(await screen.findByRole("link", { name: "CLIMBER" })).toBeInTheDocument();
     expect(screen.getByRole("table", { name: "Backtest runs" })).toBeInTheDocument();
-    expect(screen.getByText("As saved.")).toBeInTheDocument();
+    expect(screen.getByText(/^As saved: the strategy as text/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Save$/ })).toBeDisabled();
   });
 
@@ -137,7 +137,7 @@ describe("a saved strategy", () => {
     const editor = await screen.findByRole("textbox", { name: "Strategy text" });
 
     await userEvent.type(editor, "# note");
-    expect(screen.getByText("Unsaved changes.")).toBeInTheDocument();
+    expect(screen.getByText(/^Unsaved changes: the strategy as text/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /Save$/ }));
 
     const puts = sent(platform, "PUT") as [string, { text: string }][];

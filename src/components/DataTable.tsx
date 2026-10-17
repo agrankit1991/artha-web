@@ -34,6 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Hint } from "@/components/Hint";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -61,6 +62,11 @@ export interface ColumnLayout {
    * first, such as the latest years in a table of many.
    */
   emphasis?: boolean;
+  /**
+   * What the column means, behind a mark beside its header: every figure a
+   * reader may not know is explained where it is read.
+   */
+  hint?: string;
 }
 
 interface DataTableProps<Row extends RowData> {
@@ -182,21 +188,31 @@ export function DataTable<Row extends RowData>({
                     full && position === 0 && STICKY_COLUMN,
                   )}
                 >
-                  {header.column.getCanSort() ? (
-                    <button
-                      type="button"
-                      onClick={header.column.getToggleSortingHandler()}
-                      className={cn(
-                        "inline-flex items-center gap-1 hover:text-foreground",
-                        alignment === "right" && "flex-row-reverse",
-                      )}
-                    >
-                      {flexRender(header.column.columnDef.header, header.getContext())}
-                      <SortMark sorted={sorted} />
-                    </button>
-                  ) : (
-                    flexRender(header.column.columnDef.header, header.getContext())
-                  )}
+                  <HeaderLabel
+                    hint={hintOf(header.column.columnDef)}
+                    term={
+                      typeof header.column.columnDef.header === "string"
+                        ? header.column.columnDef.header
+                        : header.id
+                    }
+                    alignment={alignment}
+                  >
+                    {header.column.getCanSort() ? (
+                      <button
+                        type="button"
+                        onClick={header.column.getToggleSortingHandler()}
+                        className={cn(
+                          "inline-flex items-center gap-1 hover:text-foreground",
+                          alignment === "right" && "flex-row-reverse",
+                        )}
+                      >
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        <SortMark sorted={sorted} />
+                      </button>
+                    ) : (
+                      flexRender(header.column.columnDef.header, header.getContext())
+                    )}
+                  </HeaderLabel>
                 </TableHead>
               );
             })}
@@ -292,6 +308,42 @@ export function DataTable<Row extends RowData>({
 }
 
 /** Read the alignment a column declared, defaulting to the left. */
+/**
+ * A header with its column's hint beside it: beside, not inside, the sort
+ * button, since a button inside a button is neither valid nor reachable.
+ *
+ * @param props - The header, the hint (none leaves the header as it is),
+ *   what the hint explains, and the column's alignment.
+ * @returns The header.
+ */
+function HeaderLabel({
+  hint,
+  term,
+  alignment,
+  children,
+}: {
+  hint: string | undefined;
+  term: string;
+  alignment: ColumnAlignment;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  if (hint === undefined) {
+    return <>{children}</>;
+  }
+  return (
+    <span
+      className={cn("inline-flex items-center gap-1", alignment === "right" && "flex-row-reverse")}
+    >
+      {children}
+      <Hint text={hint} term={term} side={alignment === "right" ? "start" : "end"} />
+    </span>
+  );
+}
+
+function hintOf(column: { meta?: unknown }): string | undefined {
+  return (column.meta as ColumnLayout | undefined)?.hint;
+}
+
 function alignmentOf(column: { meta?: unknown }): ColumnAlignment {
   const meta = column.meta as ColumnLayout | undefined;
   return meta?.align ?? "left";

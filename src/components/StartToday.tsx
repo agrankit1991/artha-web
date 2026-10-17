@@ -38,11 +38,13 @@ import { Chooser } from "@/components/Chooser";
 import { type Column, DataTable } from "@/components/DataTable";
 import { Delta } from "@/components/Delta";
 import { Failed } from "@/components/Failed";
+import { ReadingGuide } from "@/components/ReadingGuide";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Badge } from "@/components/ui/badge";
 import { useResource } from "@/hooks/useResource";
 import { useSearchParam } from "@/hooks/useSearchParam";
 import { ratio } from "@/lib/backtestFigures";
+import { BACKTEST_TERMS, START_TERMS } from "@/lib/strategyTerms";
 import { byBalance } from "@/lib/balance";
 import { ABSENT, formatDay, formatPercentagePoints, formatPercentTenths } from "@/lib/format";
 import {
@@ -86,6 +88,7 @@ const COLUMNS: Column<Ranked>[] = [
     header: "Style",
     accessorFn: (row) => STYLES[row.strategy.style],
     cell: ({ row }) => <Badge variant="outline">{STYLES[row.original.strategy.style]}</Badge>,
+    meta: { hint: BACKTEST_TERMS.style },
   },
   {
     id: "risk",
@@ -94,20 +97,14 @@ const COLUMNS: Column<Ranked>[] = [
     cell: ({ row }) => (
       <Badge variant="outline">{riskLabel(riskBand(row.original.strategy.max_drawdown))}</Badge>
     ),
+    meta: { hint: BACKTEST_TERMS.risk },
   },
   {
     id: "balance",
     header: "Balance",
     accessorFn: (row) => row.starts.balance,
-    cell: ({ row }) => (
-      <span
-        title="The median return per point of the worst episode's loss: high only if it did well and its worst start was mild."
-        className="tabular"
-      >
-        {ratio(row.original.starts.balance)}
-      </span>
-    ),
-    meta: { align: "right" },
+    cell: ({ row }) => <span className="tabular">{ratio(row.original.starts.balance)}</span>,
+    meta: { hint: START_TERMS.balance, align: "right" },
   },
   {
     id: "excess",
@@ -119,21 +116,21 @@ const COLUMNS: Column<Ranked>[] = [
       ) : (
         <Delta value={String(row.original.starts.excess)} format={formatPercentagePoints} />
       ),
-    meta: { align: "right", emphasis: true },
+    meta: { hint: START_TERMS.basketLead, align: "right", emphasis: true },
   },
   {
     id: "growth",
     header: "Median return",
     accessorFn: (row) => row.starts.growth,
     cell: ({ row }) => growth(row.original.starts.growth),
-    meta: { align: "right" },
+    meta: { hint: START_TERMS.medianReturn, align: "right" },
   },
   {
     id: "worst",
     header: "Worst episode",
     accessorFn: (row) => row.starts.worst,
     cell: ({ row }) => growth(row.original.starts.worst),
-    meta: { align: "right" },
+    meta: { hint: START_TERMS.worstEpisode, align: "right" },
   },
   {
     id: "beaten",
@@ -145,7 +142,7 @@ const COLUMNS: Column<Ranked>[] = [
         ? ABSENT
         : `${String(Math.round((beaten / 100) * episodes))} of ${String(episodes)}`;
     },
-    meta: { align: "right" },
+    meta: { hint: START_TERMS.beatBasket, align: "right" },
   },
 ];
 
@@ -204,6 +201,35 @@ export function StartToday({ shown }: StartTodayProps): React.JSX.Element {
         title="Start today"
         description="Which strategy did best when started in a market like this one, best balanced first: its median return per point of its worst episode's loss. Every past episode of the phase counts once, beside a basket of every liquid company started the same days."
       />
+      <ReadingGuide>
+        <p>
+          <strong>A start</strong> is a day in the past when the market was in the phase you choose.
+          Each strategy's own backtest is followed from that day for the months you choose: what a
+          holder starting then would have seen.
+        </p>
+        <p>
+          <strong>An episode</strong> is a run of such days. A bottom lasts weeks, and starts a day
+          apart share almost all of their future, so a run counts once: ten past bottoms say ten
+          things, however long each lasted. Each figure is the middle of the episodes.
+        </p>
+        <p>
+          <strong>The basket</strong> is every liquid company (worth Rs 1,000 crore or more, trading
+          Rs 10 crore a day) held in equal measure, bought on the same days. The history holds only
+          companies that survived, which flatters every return; the basket is flattered the same
+          way, so the lead over it is the fairest comparison.
+        </p>
+        <p>
+          <strong>If the market rose / if it fell</strong> keeps only the episodes after which the
+          Nifty 500 went up, or down, over the months followed. That is hindsight: use it to see
+          what each strategy did when a call like yours turned out right, and what it cost when it
+          turned out wrong.
+        </p>
+        <p>
+          <strong>Starting is not the same as buying today.</strong> A strategy whose market gate is
+          shut holds gold until the gate opens; these figures say what followed past starts, and its
+          own page shows what it would hold today.
+        </p>
+      </ReadingGuide>
       <p className="text-sm text-muted-foreground">
         The data reads{" "}
         <Badge variant="secondary">
@@ -227,12 +253,16 @@ export function StartToday({ shown }: StartTodayProps): React.JSX.Element {
       <div className="flex flex-wrap items-center gap-2">
         <Chooser
           label="Market phase"
+          showLabel
+          hint={START_TERMS.phase}
           options={PHASES.map(({ key, label }) => ({ key, label }))}
           chosen={phase}
           onChange={setPhase}
         />
         <Chooser
           label="Followed for"
+          showLabel
+          hint={START_TERMS.horizon}
           options={HORIZON_MONTHS.map((one) => ({
             key: String(one),
             label: `${String(one)} months`,
@@ -240,7 +270,14 @@ export function StartToday({ shown }: StartTodayProps): React.JSX.Element {
           chosen={String(months)}
           onChange={setMonths}
         />
-        <Chooser label="Which episodes" options={OUTCOMES} chosen={outcome} onChange={setOutcome} />
+        <Chooser
+          label="Which episodes"
+          showLabel
+          hint={START_TERMS.outcome}
+          options={OUTCOMES}
+          chosen={outcome}
+          onChange={setOutcome}
+        />
       </div>
       {words !== undefined && <p className="text-sm">{words.summary}</p>}
       {basket !== null && (

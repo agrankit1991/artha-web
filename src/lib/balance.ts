@@ -9,10 +9,6 @@
  * still sorts on a click.
  */
 
-/** What the figure is, in a line, for a column's hint and a page's description. */
-export const BALANCE_MEANING =
-  "Return per point of its deepest fall, in its weaker period (2005-2017 or 2018 on): high only if balanced in both.";
-
 /**
  * Rows best balanced first; rows without a balance after them, in the order they came.
  *

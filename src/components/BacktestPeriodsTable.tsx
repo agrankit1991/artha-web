@@ -10,6 +10,7 @@ import type { BacktestPeriod } from "@/api/client";
 import { type Column, DataTable } from "@/components/DataTable";
 import { percent, points, ratio, share } from "@/lib/backtestFigures";
 import { ABSENT, formatDay } from "@/lib/format";
+import { BACKTEST_TERMS, RECORD_TERMS } from "@/lib/strategyTerms";
 
 const NAMES: Record<BacktestPeriod["name"], string> = {
   whole: "Whole stretch",
@@ -30,13 +31,14 @@ const COLUMNS: Column<BacktestPeriod>[] = [
         </span>
       </span>
     ),
+    meta: { hint: RECORD_TERMS.period },
   },
   {
     id: "cagr",
     header: "CAGR",
     accessorFn: (row) => row.cagr,
     cell: ({ row }) => percent(row.original.cagr),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.cagr, align: "right" },
   },
   {
     id: "judged",
@@ -53,63 +55,63 @@ const COLUMNS: Column<BacktestPeriod>[] = [
           </span>
         </span>
       ),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.judged, align: "right" },
   },
   {
     id: "random",
     header: "Random picks",
     accessorFn: (row) => row.random_median,
     cell: ({ row }) => percent(row.original.random_median),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.randomPicks, align: "right" },
   },
   {
     id: "edge",
     header: "Edge",
     accessorFn: (row) => row.edge,
     cell: ({ row }) => points(row.original.edge),
-    meta: { align: "right", emphasis: true },
+    meta: { hint: BACKTEST_TERMS.edge, align: "right", emphasis: true },
   },
   {
     id: "benchmark",
     header: "Index",
     accessorFn: (row) => row.benchmark_cagr,
     cell: ({ row }) => percent(row.original.benchmark_cagr),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.index, align: "right" },
   },
   {
     id: "max_drawdown",
     header: "Max drawdown",
     accessorFn: (row) => row.max_drawdown,
     cell: ({ row }) => percent(row.original.max_drawdown),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.maxDrawdown, align: "right" },
   },
   {
     id: "sharpe",
     header: "Sharpe",
     accessorFn: (row) => row.sharpe,
     cell: ({ row }) => ratio(row.original.sharpe),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.sharpe, align: "right" },
   },
   {
     id: "trades",
     header: "Trades",
     accessorFn: (row) => row.trades,
     cell: ({ row }) => String(row.original.trades),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.trades, align: "right" },
   },
   {
     id: "win_rate",
     header: "Won",
     accessorFn: (row) => row.win_rate,
     cell: ({ row }) => share(row.original.win_rate),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.won, align: "right" },
   },
   {
     id: "invested",
     header: "Invested",
     accessorFn: (row) => row.invested,
     cell: ({ row }) => share(row.original.invested),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.invested, align: "right" },
   },
 ];
 

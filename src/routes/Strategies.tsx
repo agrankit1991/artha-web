@@ -24,6 +24,8 @@ import { Delta } from "@/components/Delta";
 import { Empty } from "@/components/Empty";
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
+import { ReadingGuide } from "@/components/ReadingGuide";
+import { SectionHeader } from "@/components/SectionHeader";
 import { Chooser } from "@/components/Chooser";
 import { RunState, runStateLabel } from "@/components/RunState";
 import { StartToday } from "@/components/StartToday";
@@ -32,7 +34,8 @@ import { Button } from "@/components/ui/button";
 import { useResource } from "@/hooks/useResource";
 import { useSearchParam } from "@/hooks/useSearchParam";
 import { percent, ratio } from "@/lib/backtestFigures";
-import { BALANCE_MEANING, byBalance } from "@/lib/balance";
+import { byBalance } from "@/lib/balance";
+import { BACKTEST_TERMS, FILTER_TERMS } from "@/lib/strategyTerms";
 import { ABSENT, formatPercentTenths, formatPercentagePoints, formatSince } from "@/lib/format";
 import { RISK_BANDS, STYLES, riskBand, riskLabel } from "@/lib/marketPhases";
 import { PATHS, strategyPath } from "@/lib/paths";
@@ -67,6 +70,7 @@ const COLUMNS: Column<StrategySummary>[] = [
         {STYLES[row.original.style]}
       </Badge>
     ),
+    meta: { hint: BACKTEST_TERMS.style },
   },
   {
     id: "risk",
@@ -78,17 +82,14 @@ const COLUMNS: Column<StrategySummary>[] = [
       ) : (
         <Badge variant="outline">{riskLabel(riskBand(row.original.result.max_drawdown))}</Badge>
       ),
+    meta: { hint: BACKTEST_TERMS.risk },
   },
   {
     id: "balance",
     header: "Balance",
     accessorFn: (row) => row.result?.balance ?? null,
-    cell: ({ row }) => (
-      <span title={BALANCE_MEANING} className="tabular">
-        {ratio(row.original.result?.balance)}
-      </span>
-    ),
-    meta: { align: "right" },
+    cell: ({ row }) => <span className="tabular">{ratio(row.original.result?.balance)}</span>,
+    meta: { hint: BACKTEST_TERMS.balance, align: "right" },
   },
   {
     id: "benchmark_lead",
@@ -102,20 +103,21 @@ const COLUMNS: Column<StrategySummary>[] = [
         <Delta value={String(lead)} format={formatPercentagePoints} />
       );
     },
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.benchmarkLead, align: "right" },
   },
   {
     id: "status",
     header: "Latest run",
     accessorFn: (row) => runStateLabel(row.latest),
     cell: ({ row }) => <RunState latest={row.original.latest} />,
+    meta: { hint: BACKTEST_TERMS.latestRun },
   },
   {
     id: "out_of_sample_cagr",
     header: "Out of sample",
     accessorFn: (row) => row.result?.out_of_sample_cagr ?? null,
     cell: ({ row }) => growth(row.original.result?.out_of_sample_cagr),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.outOfSample, align: "right" },
   },
   {
     id: "out_of_sample_edge",
@@ -130,14 +132,14 @@ const COLUMNS: Column<StrategySummary>[] = [
           format={formatPercentagePoints}
         />
       ),
-    meta: { align: "right", emphasis: true },
+    meta: { hint: BACKTEST_TERMS.edge, align: "right", emphasis: true },
   },
   {
     id: "cagr",
     header: "CAGR",
     accessorFn: (row) => row.result?.cagr ?? null,
     cell: ({ row }) => growth(row.original.result?.cagr),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.cagr, align: "right" },
   },
   {
     id: "max_drawdown",
@@ -146,13 +148,14 @@ const COLUMNS: Column<StrategySummary>[] = [
     // A distance below a peak, written plainly: not a move up or down.
     cell: ({ row }) =>
       row.original.result === null ? ABSENT : percent(row.original.result.max_drawdown),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.maxDrawdown, align: "right" },
   },
   {
     id: "updated_at",
     header: "Changed",
     accessorFn: (row) => row.updated_at,
     cell: ({ row }) => formatSince(row.original.updated_at),
+    meta: { hint: BACKTEST_TERMS.changed },
   },
 ];
 
@@ -233,6 +236,8 @@ export function Strategies(): React.JSX.Element {
           <div className="flex flex-wrap items-center gap-2">
             <Chooser
               label="Style"
+              showLabel
+              hint={`${FILTER_TERMS.style} ${BACKTEST_TERMS.style}`}
               options={[
                 { key: "all", label: "Every style" },
                 ...styles.map((key) => ({ key, label: STYLES[key] })),
@@ -242,6 +247,8 @@ export function Strategies(): React.JSX.Element {
             />
             <Chooser
               label="Risk"
+              showLabel
+              hint={`${FILTER_TERMS.risk} ${BACKTEST_TERMS.risk}`}
               options={[
                 { key: "all", label: "Any fall" },
                 ...RISK_BANDS.map(({ key, label }) => ({ key, label })),
@@ -251,6 +258,8 @@ export function Strategies(): React.JSX.Element {
             />
             <Chooser
               label="Index"
+              showLabel
+              hint={`${FILTER_TERMS.index} ${BACKTEST_TERMS.benchmarkLead}`}
               options={[
                 { key: "any", label: "Any" },
                 { key: "nifty500", label: "Beats the Nifty 500" },
@@ -261,6 +270,33 @@ export function Strategies(): React.JSX.Element {
           </div>
           <StartToday shown={shown} />
           <section aria-label="Every strategy" className="space-y-3">
+            <SectionHeader
+              title="Every strategy"
+              description="Each saved strategy and how its latest backtest went, best balanced first. Open one for its rules, its runs and the companies it would hold today."
+            />
+            <ReadingGuide title="Which figures to read">
+              <p>
+                <strong>Out of sample is the test.</strong> Each backtest is judged twice: on the
+                years to 2017, where settings may have been chosen, and on the years from 2018,
+                which they were not tuned on. A strategy that shines only on the first is fitted to
+                the past.
+              </p>
+              <p>
+                <strong>The edge is the honest figure.</strong> The stored history holds only the
+                companies that survived, so every return here is higher than a real investor would
+                have had, and even random picks did well. The edge is what a strategy made beyond
+                random picks under its own rules.
+              </p>
+              <p>
+                <strong>Balance orders the list.</strong> Return for each point of the deepest fall,
+                taking the weaker of the two periods: a strategy ranks high only if it earned well
+                without deep falls, before and after 2018. Click any column to order by it instead.
+              </p>
+              <p>
+                <strong>Beating the Nifty 500 says little on its own here:</strong> on this history
+                nearly every strategy does.
+              </p>
+            </ReadingGuide>
             <DataTable
               columns={COLUMNS}
               rows={listed}

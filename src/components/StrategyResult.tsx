@@ -47,7 +47,7 @@ export function StrategyResultPanel({ result }: StrategyResultProps): React.JSX.
       <section aria-label="Verdict" className="space-y-3">
         <SectionHeader
           title="Latest backtest"
-          description={`Run ${formatSince(result.run_at)}.${judged}`}
+          description={`The four figures to read first, from its latest backtest (run ${formatSince(result.run_at)}).${judged} The whole record has every figure, year and trade.`}
           actions={
             <Button variant="outline" size="sm" asChild>
               <Link to={backtestPath(result.backtest_id)}>

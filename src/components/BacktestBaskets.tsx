@@ -11,6 +11,7 @@ import type { BacktestBasket } from "@/api/client";
 import { type Column, DataTable } from "@/components/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { percent, ratio } from "@/lib/backtestFigures";
+import { BACKTEST_TERMS, RECORD_TERMS } from "@/lib/strategyTerms";
 
 /**
  * The table's columns, marking the size the playbook is written with.
@@ -30,48 +31,49 @@ function columnsFor(written: number | null): Column<BacktestBasket>[] {
           {row.original.slots === written && <Badge variant="outline">as written</Badge>}
         </span>
       ),
+      meta: { hint: BACKTEST_TERMS.basket },
     },
     {
       id: "cagr",
       header: "CAGR",
       accessorFn: (row) => row.cagr,
       cell: ({ row }) => percent(row.original.cagr),
-      meta: { align: "right", emphasis: true },
+      meta: { hint: BACKTEST_TERMS.cagr, align: "right", emphasis: true },
     },
     {
       id: "in_sample_cagr",
       header: "In-sample",
       accessorFn: (row) => row.in_sample_cagr,
       cell: ({ row }) => percent(row.original.in_sample_cagr),
-      meta: { align: "right" },
+      meta: { hint: RECORD_TERMS.basketInSample, align: "right" },
     },
     {
       id: "out_of_sample_cagr",
       header: "Out of sample",
       accessorFn: (row) => row.out_of_sample_cagr,
       cell: ({ row }) => percent(row.original.out_of_sample_cagr),
-      meta: { align: "right" },
+      meta: { hint: RECORD_TERMS.basketOutOfSample, align: "right" },
     },
     {
       id: "max_drawdown",
       header: "Max drawdown",
       accessorFn: (row) => row.max_drawdown,
       cell: ({ row }) => percent(row.original.max_drawdown),
-      meta: { align: "right" },
+      meta: { hint: BACKTEST_TERMS.maxDrawdown, align: "right" },
     },
     {
       id: "sharpe",
       header: "Sharpe",
       accessorFn: (row) => row.sharpe,
       cell: ({ row }) => ratio(row.original.sharpe),
-      meta: { align: "right" },
+      meta: { hint: BACKTEST_TERMS.sharpe, align: "right" },
     },
     {
       id: "holdings",
       header: "Held on average",
       accessorFn: (row) => row.holdings,
       cell: ({ row }) => row.original.holdings.toFixed(1),
-      meta: { align: "right" },
+      meta: { hint: BACKTEST_TERMS.heldOnAverage, align: "right" },
     },
   ];
 }

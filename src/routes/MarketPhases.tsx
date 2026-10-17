@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useResource } from "@/hooks/useResource";
 import { formatDay, formatSince } from "@/lib/format";
+import { PHASE_TERMS } from "@/lib/strategyTerms";
 import { PHASES, phaseLabel } from "@/lib/marketPhases";
 import { PATHS } from "@/lib/paths";
 
@@ -42,18 +43,21 @@ function journalColumns(remove: (callId: number) => void): Column<PhaseCall>[] {
       header: "Session",
       accessorFn: (row) => row.as_of,
       cell: ({ row }) => formatDay(row.original.as_of),
+      meta: { hint: PHASE_TERMS.session },
     },
     {
       id: "phase",
       header: "Your call",
       accessorFn: (row) => row.phase,
       cell: ({ row }) => <Badge>{phaseLabel(row.original.phase)}</Badge>,
+      meta: { hint: PHASE_TERMS.yourCall },
     },
     {
       id: "data_phase",
       header: "The data read",
       accessorFn: (row) => row.data_phase ?? "",
       cell: ({ row }) => <Badge variant="outline">{phaseLabel(row.original.data_phase)}</Badge>,
+      meta: { hint: PHASE_TERMS.dataRead },
     },
     {
       id: "note",
@@ -62,12 +66,14 @@ function journalColumns(remove: (callId: number) => void): Column<PhaseCall>[] {
       cell: ({ row }) => (
         <span className="text-sm">{row.original.note === "" ? "-" : row.original.note}</span>
       ),
+      meta: { hint: PHASE_TERMS.why },
     },
     {
       id: "made_at",
       header: "Recorded",
       accessorFn: (row) => row.made_at,
       cell: ({ row }) => formatSince(row.original.made_at),
+      meta: { hint: PHASE_TERMS.recorded },
     },
     {
       id: "remove",
@@ -119,6 +125,10 @@ export function MarketPhases(): React.JSX.Element {
         description="Five phases, each read by rule from the Nifty 50's trend and how many large companies take part. Check the signals, override what you read differently, and record your own call: the journal keeps yours beside the data's."
       />
       <section aria-label="Today" className="space-y-3">
+        <SectionHeader
+          title="Today"
+          description="What the five rules read on the latest session. A session can fit none of them, when the market's trend and breadth disagree."
+        />
         {view.loading && view.data === null ? (
           <p className="text-sm text-muted-foreground">Reading the market...</p>
         ) : reading === null ? (

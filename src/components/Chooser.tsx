@@ -10,6 +10,7 @@
 
 import { useRef } from "react";
 
+import { Hint } from "@/components/Hint";
 import { useSlidingIndicator } from "@/hooks/useSlidingIndicator";
 import type { Icon } from "@/lib/entities";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,10 @@ interface ChooserProps<Key extends string> {
   /** What the choice is about, for a reader who cannot see the buttons. */
   label: string;
   className?: string;
+  /** Show the label before the buttons, for a choice that does not explain itself. */
+  showLabel?: boolean;
+  /** What the choice and its options mean, behind a mark after the buttons. */
+  hint?: string;
 }
 
 /**
@@ -47,11 +52,13 @@ export function Chooser<Key extends string>({
   onChange,
   label,
   className,
+  showLabel = false,
+  hint,
 }: ChooserProps<Key>): React.JSX.Element {
   const track = useRef<HTMLDivElement>(null);
   const indicator = useSlidingIndicator(track, '[aria-pressed="true"]', chosen);
 
-  return (
+  const buttons = (
     <div
       ref={track}
       className={cn(
@@ -97,6 +104,16 @@ export function Chooser<Key extends string>({
           </button>
         );
       })}
+    </div>
+  );
+  if (!showLabel && hint === undefined) {
+    return buttons;
+  }
+  return (
+    <div className="inline-flex flex-wrap items-center gap-2">
+      {showLabel && <span className="text-sm text-muted-foreground">{label}</span>}
+      {buttons}
+      {hint !== undefined && <Hint text={hint} term={label} />}
     </div>
   );
 }

@@ -15,8 +15,10 @@ import { type Column, DataTable } from "@/components/DataTable";
 import { Empty } from "@/components/Empty";
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
+import { ReadingGuide } from "@/components/ReadingGuide";
 import { useResource } from "@/hooks/useResource";
-import { BALANCE_MEANING, byBalance } from "@/lib/balance";
+import { byBalance } from "@/lib/balance";
+import { BACKTEST_TERMS } from "@/lib/strategyTerms";
 import { formatDay, formatDayInIndia } from "@/lib/format";
 import { percent, points, ratio } from "@/lib/backtestFigures";
 import { backtestPath } from "@/lib/paths";
@@ -34,65 +36,63 @@ const COLUMNS: Column<BacktestSummary>[] = [
     accessorFn: (row) => row.first_session,
     cell: ({ row }) =>
       `${formatDay(row.original.first_session)} - ${formatDay(row.original.last_session)}`,
+    meta: { hint: BACKTEST_TERMS.traded },
   },
   {
     id: "cagr",
     header: "CAGR",
     accessorFn: (row) => row.cagr,
     cell: ({ row }) => percent(row.original.cagr),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.cagr, align: "right" },
   },
   {
     id: "out_of_sample_cagr",
     header: "Out of sample",
     accessorFn: (row) => row.out_of_sample_cagr,
     cell: ({ row }) => percent(row.original.out_of_sample_cagr),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.outOfSample, align: "right" },
   },
   {
     id: "out_of_sample_edge",
     header: "Edge vs random",
     accessorFn: (row) => row.out_of_sample_edge,
     cell: ({ row }) => points(row.original.out_of_sample_edge),
-    meta: { align: "right", emphasis: true },
+    meta: { hint: BACKTEST_TERMS.edge, align: "right", emphasis: true },
   },
   {
     id: "benchmark_lead",
     header: "vs index",
     accessorFn: (row) => row.benchmark_lead,
     cell: ({ row }) => points(row.original.benchmark_lead),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.benchmarkLead, align: "right" },
   },
   {
     id: "balance",
     header: "Balance",
     accessorFn: (row) => row.balance,
-    cell: ({ row }) => (
-      <span title={BALANCE_MEANING} className="tabular">
-        {ratio(row.original.balance)}
-      </span>
-    ),
-    meta: { align: "right" },
+    cell: ({ row }) => <span className="tabular">{ratio(row.original.balance)}</span>,
+    meta: { hint: BACKTEST_TERMS.balance, align: "right" },
   },
   {
     id: "max_drawdown",
     header: "Max drawdown",
     accessorFn: (row) => row.max_drawdown,
     cell: ({ row }) => percent(row.original.max_drawdown),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.maxDrawdown, align: "right" },
   },
   {
     id: "sharpe",
     header: "Sharpe",
     accessorFn: (row) => row.sharpe,
     cell: ({ row }) => ratio(row.original.sharpe),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.sharpe, align: "right" },
   },
   {
     id: "run_at",
     header: "Run",
     accessorFn: (row) => row.run_at,
     cell: ({ row }) => formatDayInIndia(row.original.run_at),
+    meta: { hint: BACKTEST_TERMS.ran },
   },
 ];
 
@@ -115,6 +115,22 @@ export function Backtests(): React.JSX.Element {
         count={backtests.data === null ? undefined : `${String(backtests.data.length)} backtests`}
         description="Every strategy tested on the stored history and kept, judged in and out of sample, against its index, and against random picks under the same rules, best balanced first: the CAGR per point of the deepest fall, in whichever period was weaker. History before September 2026 holds only the companies that survived, so every return is optimistic: the edge over random picks is the figure to trust."
       />
+      <ReadingGuide title="Which figures to read">
+        <p>
+          <strong>Each backtest runs twice from cash</strong>: on the years to 2017, where its
+          settings may have been chosen, and on the years from 2018, which they were not tuned on.
+          The second is the test.
+        </p>
+        <p>
+          <strong>The edge over random picks is the figure to trust.</strong> The history holds only
+          companies that survived, so even companies picked at random under the same rules earned
+          well; the edge is what the rules added beyond that.
+        </p>
+        <p>
+          <strong>Balance orders the list:</strong> return for each point of the deepest fall, in
+          whichever period was weaker. Click any column to order by it instead.
+        </p>
+      </ReadingGuide>
       {backtests.data?.length === 0 ? (
         <Empty
           title="No backtests kept yet"

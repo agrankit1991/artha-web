@@ -20,8 +20,10 @@ import {
 } from "@/api/client";
 import { Chooser } from "@/components/Chooser";
 import { Failed } from "@/components/Failed";
+import { ReadingGuide } from "@/components/ReadingGuide";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PHASE_TERMS } from "@/lib/strategyTerms";
 import { PHASES, SIGNALS, VERDICTS, VERDICT_ORDER } from "@/lib/marketPhases";
 
 interface PhaseCallFormProps {
@@ -82,6 +84,25 @@ export function PhaseCallForm({
 
   return (
     <div className="space-y-4">
+      <ReadingGuide>
+        <p>
+          <strong>Each signal is read from the latest session.</strong> Up says the market is
+          strengthening by that measure, Down that it is weakening, Neutral that it has not moved
+          far enough either way: breadth must move five points, and VIX sit 5% from its average.
+        </p>
+        <p>
+          <strong>Change any you read differently.</strong> The badge then keeps what the data read,
+          and your verdicts are recorded with your call.
+        </p>
+        <p>
+          <strong>The phase itself comes from the rules below,</strong> on the Nifty 50&apos;s trend
+          and large companies&apos; breadth; these six are what to look at beside it.
+        </p>
+        <p>
+          <strong>Recording a call changes nothing in the data.</strong> It goes in your journal,
+          beside what the rules read, and Start today opens on it.
+        </p>
+      </ReadingGuide>
       {reading !== null && (
         <ul className="divide-y rounded-lg border" aria-label="Signals">
           {view.signals.map((signal) => {
@@ -127,6 +148,7 @@ export function PhaseCallForm({
         <p className="text-sm font-medium">Your call</p>
         <Chooser
           label="Your call of the phase"
+          hint={PHASE_TERMS.call}
           options={PHASES.map(({ key, label }) => ({ key, label }))}
           chosen={phase}
           onChange={setPhase}

@@ -106,6 +106,7 @@ function NewStrategy(): React.JSX.Element {
       <section aria-label="Rules" className="space-y-3">
         <SectionHeader
           title="Rules"
+          description="Write the strategy as text, starting from a commented example: it is checked as you type and said in plain words beside it. Save it to keep it, then run a backtest."
           actions={
             <div className="flex gap-2">
               <Button
@@ -251,13 +252,19 @@ function SavedStrategy({ id }: { id: number }): React.JSX.Element {
       )}
 
       <section aria-label="Rules" className="space-y-3">
-        <SectionHeader title="Rules" description={dirty ? "Unsaved changes." : "As saved."} />
+        <SectionHeader
+          title="Rules"
+          description={`${dirty ? "Unsaved changes" : "As saved"}: the strategy as text, checked as you type and said in plain words beside it. Run backtest saves any change first, then judges it on the stored history.`}
+        />
         <StrategyEditor text={text} onChange={setEdited} />
         <StrategyLanguage />
       </section>
 
       <section aria-label="Runs" className="space-y-3">
-        <SectionHeader title="Runs" description="The latest backtests asked of it, newest first." />
+        <SectionHeader
+          title="Runs"
+          description="The latest backtests asked of it, newest first: each runs on the rules as saved when it was asked, one at a time on the platform's backtester."
+        />
         <StrategyRuns requests={shown.requests} />
       </section>
 

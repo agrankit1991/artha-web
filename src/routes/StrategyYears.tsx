@@ -32,12 +32,14 @@ import { DivergingBars } from "@/components/DivergingBars";
 import { Empty } from "@/components/Empty";
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
+import { ReadingGuide } from "@/components/ReadingGuide";
 import { SectionHeader } from "@/components/SectionHeader";
 import { StrategyYearGrid } from "@/components/StrategyYearGrid";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useResource } from "@/hooks/useResource";
 import { percent, points, ratio, share } from "@/lib/backtestFigures";
+import { BACKTEST_TERMS } from "@/lib/strategyTerms";
 import { MARKS } from "@/lib/entities";
 import { ABSENT, formatPercentTenths } from "@/lib/format";
 import { strategyPath } from "@/lib/paths";
@@ -91,53 +93,58 @@ const YEAR_COLUMNS: Column<YearReview>[] = [
       ) : (
         <Badge variant="outline">{KINDS[row.original.kind] ?? row.original.kind}</Badge>
       ),
+    meta: { hint: BACKTEST_TERMS.marketKind },
   },
   {
     id: "nifty500",
     header: "Nifty 500",
     accessorFn: (row) => row.market?.nifty500 ?? null,
     cell: ({ row }) => move(row.original.market?.nifty500),
-    meta: { align: "right" },
+    meta: { hint: "The Nifty 500's return that calendar year.", align: "right" },
   },
   {
     id: "drawdown",
     header: "Nifty 500's worst fall",
     accessorFn: (row) => row.market?.nifty500_drawdown ?? null,
     cell: ({ row }) => percent(row.original.market?.nifty500_drawdown),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.indexFall, align: "right" },
   },
   {
     id: "breadth",
     header: "Large companies above 200-day",
     accessorFn: (row) => row.market?.breadth ?? null,
     cell: ({ row }) => share(row.original.market?.breadth),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.yearBreadth, align: "right" },
   },
   {
     id: "uptrend",
     header: "Nifty 50 above 200-day",
     accessorFn: (row) => row.market?.uptrend ?? null,
     cell: ({ row }) => share(row.original.market?.uptrend),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.uptrend, align: "right" },
   },
   {
     id: "best",
     header: "Best balanced",
     accessorFn: (row) => row.strategies[0]?.name ?? "",
     cell: ({ row }) => row.original.strategies[0]?.name ?? ABSENT,
+    meta: {
+      hint: "The saved strategy with the best balance that year: its return for each point of its deepest fall within the year.",
+    },
   },
   {
     id: "best_change",
     header: "Its return",
     accessorFn: (row) => row.strategies[0]?.change ?? null,
     cell: ({ row }) => move(row.original.strategies[0]?.change),
-    meta: { align: "right", emphasis: true },
+    meta: { hint: BACKTEST_TERMS.yearReturn, align: "right", emphasis: true },
   },
   {
     id: "led",
     header: "What the leaders had",
     accessorFn: (row) => row.led?.gap ?? null,
     cell: ({ row }) => trait(row.original.led),
+    meta: { hint: BACKTEST_TERMS.leaders },
   },
 ];
 
@@ -153,32 +160,28 @@ const STRATEGY_COLUMNS: Column<StrategyYear>[] = [
     header: "Return",
     accessorFn: (row) => row.change,
     cell: ({ row }) => move(row.original.change),
-    meta: { align: "right", emphasis: true },
+    meta: { hint: BACKTEST_TERMS.yearReturn, align: "right", emphasis: true },
   },
   {
     id: "max_drawdown",
     header: "Worst fall",
     accessorFn: (row) => row.max_drawdown,
     cell: ({ row }) => percent(row.original.max_drawdown),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.yearFall, align: "right" },
   },
   {
     id: "balance",
     header: "Balance",
     accessorFn: (row) => row.balance,
-    cell: ({ row }) => (
-      <span title="That year's return per point of that year's worst fall" className="tabular">
-        {ratio(row.original.balance)}
-      </span>
-    ),
-    meta: { align: "right" },
+    cell: ({ row }) => <span className="tabular">{ratio(row.original.balance)}</span>,
+    meta: { hint: BACKTEST_TERMS.yearBalance, align: "right" },
   },
   {
     id: "holdings",
     header: "Held on average",
     accessorFn: (row) => row.holdings,
     cell: ({ row }) => (row.original.holdings === null ? ABSENT : row.original.holdings.toFixed(1)),
-    meta: { align: "right" },
+    meta: { hint: BACKTEST_TERMS.companiesHeld, align: "right" },
   },
 ];
 
@@ -253,8 +256,30 @@ export function StrategyYears(): React.JSX.Element {
             <SectionHeader
               icon={MARKS.dates}
               title="Year by year"
-              description="The market each year, the strategy that did best and what the leaders had in common. Choose a year to list every strategy in it."
+              description="The market each year, the best-balanced strategy and what the leaders had in common. Choose a year to list every strategy in it."
             />
+            <ReadingGuide>
+              <p>
+                <strong>Each row is a calendar year</strong> as the market had it: the Nifty 500's
+                return and deepest fall, how many large companies stood above their 200-day average,
+                and how much of the year the Nifty 50 spent above its own.
+              </p>
+              <p>
+                <strong>The best balanced</strong> is the saved strategy that earned the most that
+                year for each point of its deepest fall within the year, so a strategy that made a
+                little more by falling much further does not lead.
+              </p>
+              <p>
+                <strong>What the leaders had</strong> is the trait of the rules (a market gate, few
+                holdings, a stop, switching between strategies) that most separated the strategies
+                having it from the rest, by their middle return that year.
+              </p>
+              <p>
+                <strong>It is all hindsight.</strong> Which strategy led changes from year to year;
+                picking one for a year to come needs a condition known when it starts, written as a
+                combination and backtested like any strategy.
+              </p>
+            </ReadingGuide>
             <DataTable
               columns={YEAR_COLUMNS}
               rows={reviews.data ?? []}
