@@ -39,7 +39,10 @@ describe("explanations", () => {
 
     const tip = screen.getByRole("tooltip");
     expect(tip).toHaveTextContent("Return per point of the deepest fall.");
-    expect(tip).toHaveClass("right-0");
+    // Above the page, not inside the table, so no border or scrolling box cuts it off.
+    expect(table).not.toContainElement(tip);
+    expect(tip.parentElement).toBe(document.body);
+    expect(tip).toHaveStyle({ position: "fixed" });
     expect(within(table).queryByRole("button", { name: "What Strategy means" })).toBeNull();
   });
 

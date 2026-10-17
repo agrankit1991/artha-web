@@ -12,7 +12,9 @@
  */
 
 import { Info } from "lucide-react";
-import { useId, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
+
+import { Floating } from "@/components/Floating";
 
 import { cn } from "@/lib/utils";
 
@@ -31,7 +33,8 @@ interface HintProps {
   /**
    * Which way the explanation opens from the mark: towards the end of the
    * line by default, towards its start for a mark near the right edge (a
-   * right-aligned column's header), so it does not run off the table.
+   * right-aligned column's header). Either way it floats above the page,
+   * so no table or scrolling box can cut it off (`Floating`).
    */
   side?: "start" | "end";
 }
@@ -51,16 +54,19 @@ export function Hint({
 }: HintProps): React.JSX.Element {
   const [showing, setShowing] = useState(false);
   const id = useId();
+  const mark = useRef<HTMLButtonElement>(null);
   const show = (): void => {
     setShowing(true);
   };
-  const hide = (): void => {
+  // Stable, since the floating bubble listens for scrolls with it while open.
+  const hide = useCallback((): void => {
     setShowing(false);
-  };
+  }, []);
   return (
     <span className={cn("relative inline-flex items-center gap-1", className)}>
       {children}
       <button
+        ref={mark}
         type="button"
         aria-label={`What ${term ?? (typeof children === "string" ? children : "this")} means`}
         aria-describedby={showing ? id : undefined}
@@ -73,16 +79,15 @@ export function Hint({
         <Info aria-hidden="true" className="h-3.5 w-3.5" />
       </button>
       {showing && (
-        <span
+        <Floating
+          anchor={mark}
+          side={side}
+          onDismiss={hide}
           id={id}
-          role="tooltip"
-          className={cn(
-            "absolute top-full z-50 mt-1 w-64 rounded-md border bg-popover p-2 text-left text-xs font-normal normal-case leading-relaxed text-popover-foreground shadow-lg",
-            side === "end" ? "left-0" : "right-0",
-          )}
+          className="z-50 w-64 max-w-[calc(100vw-16px)] rounded-md border bg-popover p-2 text-left text-xs font-normal normal-case leading-relaxed text-popover-foreground shadow-lg"
         >
           {text}
-        </span>
+        </Floating>
       )}
     </span>
   );
