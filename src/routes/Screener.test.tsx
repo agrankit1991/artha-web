@@ -244,6 +244,9 @@ describe("Screener", () => {
     expect(await screen.findByText(/No fields/)).toBeInTheDocument();
   });
 
+  // Eleven sorts in a row, each re-rendering the table: 1.1 s alone, but near
+  // five under the full suite's parallel load, where it timed out twice on
+  // 2026-10-17. A longer limit for this test alone; it does not hang.
   it("writes each figure by its unit", async () => {
     const hit = screenHit({
       figures: overview({
@@ -287,7 +290,7 @@ describe("Screener", () => {
     expect(figureAt(hit.figures, ["momentum", "nowhere"])).toBeNull();
     expect(figureAt(hit.figures, ["day", "close", "deeper"])).toBeNull();
     expect(figureAt(hit.figures, ["sessions"])).toBe(hit.figures.sessions);
-  });
+  }, 15_000);
 
   it("applies a scan's order with its conditions, reading standing from the snapshot", async () => {
     const fields: ScreenField[] = [
