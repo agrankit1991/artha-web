@@ -207,6 +207,10 @@ describe("MarketCalendar", () => {
 
     const next = await screen.findByRole("region", { name: "What's next" });
     expect(await within(next).findByText("NSE monthly expiry")).toBeInTheDocument();
+    // In a scrolling box of its own, so two weeks of events never push the season down.
+    expect(
+      within(next).getByRole("region", { name: "Events in the next two weeks" }),
+    ).toContainElement(within(next).getByText("NSE monthly expiry"));
     expect(within(next).queryByText("US CPI inflation (Oct)")).toBeNull();
     expect(within(next).queryByRole("link", { name: /Veegaland/ })).toBeNull();
     expect(within(next).getByText(/2 IPO events in these two weeks/)).toBeInTheDocument();

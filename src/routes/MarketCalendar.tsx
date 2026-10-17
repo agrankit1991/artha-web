@@ -236,11 +236,20 @@ export function MarketCalendar(): React.JSX.Element {
           <p className="text-sm text-muted-foreground">Reading the calendar...</p>
         ) : (
           <>
-            <CalendarEventList
-              events={comingListed}
-              showDays
-              empty="Nothing in the next two weeks."
-            />
+            {/* Its own scrolling box (the owner asked, 2026-10-17): two weeks of
+                events would otherwise push the results season far down the page. */}
+            <div
+              role="region"
+              aria-label="Events in the next two weeks"
+              tabIndex={0}
+              className="max-h-[32rem] overflow-y-auto rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
+              <CalendarEventList
+                events={comingListed}
+                showDays
+                empty="Nothing in the next two weeks."
+              />
+            </div>
             {comingCrowds.map((crowd) => (
               <p
                 key={crowd.key}
