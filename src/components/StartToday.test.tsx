@@ -106,6 +106,7 @@ describe("StartToday", () => {
     });
     await userEvent.click(screen.getByRole("button", { name: "If it fell" }));
 
+    // Ranked by the balance of the episodes after which the market fell.
     expect(screen.getByRole("note")).toHaveTextContent("when the call turned out wrong");
     const table = screen.getByRole("table", { name: "Strategies for this phase" });
     await waitFor(() => {

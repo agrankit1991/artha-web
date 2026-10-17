@@ -30,7 +30,7 @@ describe("StrategyYears", () => {
     renderPage(<StrategyYears />);
 
     const bars = await screen.findByRole("list", {
-      name: "Each year's best strategy against the Nifty 500",
+      name: "Each year's best-balanced strategy against the Nifty 500",
     });
     const items = within(bars).getAllByRole("listitem");
     // 2023 had no strategy to lead it, so it is not drawn.
@@ -97,14 +97,14 @@ describe("StrategyYears", () => {
       /^Nifty 500's worst fall/,
       /^Large companies/,
       /^Nifty 50 above/,
-      /^Best strategy/,
+      /^Best balanced/,
       /^Its return/,
       /^What the leaders had/,
     ]) {
       await userEvent.click(within(years).getByRole("button", { name }));
     }
     const strategies = screen.getByRole("table", { name: /^Strategies in/ });
-    for (const name of [/^Strategy/, /^Return/, /^Worst fall/, /^Held on average/]) {
+    for (const name of [/^Strategy/, /^Return/, /^Worst fall/, /^Balance/, /^Held on average/]) {
       await userEvent.click(within(strategies).getByRole("button", { name }));
     }
 

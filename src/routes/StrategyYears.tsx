@@ -1,7 +1,9 @@
 /**
  * What worked each year: every saved strategy's calendar years beside the market's.
  *
- * First each year's best strategy against the market, as paired bars, so
+ * First each year's best-balanced strategy (its return per point of that
+ * year's worst fall, the owner's order for every list, 2026-10-17) against
+ * the market, as paired bars, so
  * the gap is seen before it is read; then every strategy in every year as
  * one coloured table, so a strategy that held up and a year nothing escaped
  * both show at a glance. Then one row per year, newest first: the market
@@ -35,7 +37,7 @@ import { StrategyYearGrid } from "@/components/StrategyYearGrid";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useResource } from "@/hooks/useResource";
-import { percent, points, share } from "@/lib/backtestFigures";
+import { percent, points, ratio, share } from "@/lib/backtestFigures";
 import { MARKS } from "@/lib/entities";
 import { ABSENT, formatPercentTenths } from "@/lib/format";
 import { strategyPath } from "@/lib/paths";
@@ -120,7 +122,7 @@ const YEAR_COLUMNS: Column<YearReview>[] = [
   },
   {
     id: "best",
-    header: "Best strategy",
+    header: "Best balanced",
     accessorFn: (row) => row.strategies[0]?.name ?? "",
     cell: ({ row }) => row.original.strategies[0]?.name ?? ABSENT,
   },
@@ -158,6 +160,17 @@ const STRATEGY_COLUMNS: Column<StrategyYear>[] = [
     header: "Worst fall",
     accessorFn: (row) => row.max_drawdown,
     cell: ({ row }) => percent(row.original.max_drawdown),
+    meta: { align: "right" },
+  },
+  {
+    id: "balance",
+    header: "Balance",
+    accessorFn: (row) => row.balance,
+    cell: ({ row }) => (
+      <span title="That year's return per point of that year's worst fall" className="tabular">
+        {ratio(row.original.balance)}
+      </span>
+    ),
     meta: { align: "right" },
   },
   {
@@ -200,14 +213,14 @@ export function StrategyYears(): React.JSX.Element {
             <SectionHeader
               icon={MARKS.returns}
               title="Each year's best against the market"
-              description="The strategy that did best in each calendar year, against the Nifty 500 that year. Hindsight: which one led changes from year to year."
+              description="The best-balanced strategy in each calendar year, its return per point of that year's worst fall, against the Nifty 500 that year. Hindsight: which one led changes from year to year."
             />
             {reviews.data === null ? (
               <Skeleton className="h-48 w-full" />
             ) : (
               <DivergingBars
-                label="Each year's best strategy against the Nifty 500"
-                legend={{ value: "Best strategy", against: "Nifty 500" }}
+                label="Each year's best-balanced strategy against the Nifty 500"
+                legend={{ value: "Best balanced", against: "Nifty 500" }}
                 format={formatPercentTenths}
                 rows={reviews.data.flatMap((review) => {
                   const best = review.strategies[0];

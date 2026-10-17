@@ -53,6 +53,8 @@ describe("Backtests", () => {
       /^CAGR/,
       /^Out of sample/,
       /^Edge vs random/,
+      /^vs index/,
+      /^Balance/,
       /^Max drawdown/,
       /^Sharpe/,
       /^Run/,
@@ -75,5 +77,34 @@ describe("Backtests", () => {
     renderPage(<Backtests />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Backtests broke");
+  });
+});
+
+describe("Backtests' order", () => {
+  it("opens best balanced first, a backtest's lead over its index beside it", async () => {
+    stubPlatform({
+      "/api/backtests": {
+        body: [
+          backtestSummary({ backtest_id: 1, name: "Steep", balance: 0.6 }),
+          backtestSummary({
+            backtest_id: 2,
+            name: "Balanced",
+            balance: 1.25,
+            benchmark_lead: 21.4,
+          }),
+        ],
+      },
+    });
+    renderPage(<Backtests />);
+
+    const table = await screen.findByRole("table", { name: "Kept backtests" });
+    await within(table).findByRole("link", { name: "Balanced" });
+    expect(
+      within(table)
+        .getAllByRole("link")
+        .map((link) => link.textContent),
+    ).toEqual(["Balanced", "Steep"]);
+    expect(within(table).getByText("1.25")).toBeInTheDocument();
+    expect(within(table).getByText("+21.4 pp")).toBeInTheDocument();
   });
 });

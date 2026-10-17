@@ -2330,6 +2330,10 @@ export interface BacktestSummary {
   out_of_sample_cagr: number | null;
   /** The lead there over random picks under the same rules, in points. */
   out_of_sample_edge: number | null;
+  /** Its weaker period's return per point of its deepest fall; lists open on it, highest first. */
+  balance: number;
+  /** Its rate after the split less the benchmark's, points a year; null without a split. */
+  benchmark_lead: number | null;
 }
 
 /** One period of a backtest: in sample, out of sample, or the whole stretch. */
@@ -2601,6 +2605,10 @@ export interface StrategyResult {
   max_drawdown: number;
   out_of_sample_cagr: number | null;
   out_of_sample_edge: number | null;
+  /** Its weaker period's return per point of its deepest fall; lists open on it, highest first. */
+  balance: number;
+  /** Its rate after the split less the benchmark's, points a year; null without a split. */
+  benchmark_lead: number | null;
 }
 
 /** A saved strategy as the list shows it. */
@@ -2781,6 +2789,8 @@ export interface StrategyYear {
   max_drawdown: number | null;
   /** How many companies it held on average. */
   holdings: number | null;
+  /** Its return that year per point of that year's deepest fall; the year is ranked by it. */
+  balance: number | null;
 }
 
 /** How a trait separated the strategies having it from the rest, in one year. */
@@ -2896,6 +2906,8 @@ export interface PhaseStarts {
   yardstick: number | null;
   /** The Nifty 500's median growth from the same days. */
   benchmark: number | null;
+  /** The median growth per point of the worst episode's loss; the list opens on it. */
+  balance: number | null;
 }
 
 /** One past episode of a phase and what followed. */

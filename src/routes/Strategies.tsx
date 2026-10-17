@@ -31,7 +31,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useResource } from "@/hooks/useResource";
 import { useSearchParam } from "@/hooks/useSearchParam";
-import { percent } from "@/lib/backtestFigures";
+import { percent, ratio } from "@/lib/backtestFigures";
+import { BALANCE_MEANING, byBalance } from "@/lib/balance";
 import { ABSENT, formatPercentTenths, formatPercentagePoints, formatSince } from "@/lib/format";
 import { RISK_BANDS, STYLES, riskBand, riskLabel } from "@/lib/marketPhases";
 import { PATHS, strategyPath } from "@/lib/paths";
@@ -77,6 +78,31 @@ const COLUMNS: Column<StrategySummary>[] = [
       ) : (
         <Badge variant="outline">{riskLabel(riskBand(row.original.result.max_drawdown))}</Badge>
       ),
+  },
+  {
+    id: "balance",
+    header: "Balance",
+    accessorFn: (row) => row.result?.balance ?? null,
+    cell: ({ row }) => (
+      <span title={BALANCE_MEANING} className="tabular">
+        {ratio(row.original.result?.balance)}
+      </span>
+    ),
+    meta: { align: "right" },
+  },
+  {
+    id: "benchmark_lead",
+    header: "vs Nifty 500",
+    accessorFn: (row) => row.result?.benchmark_lead ?? null,
+    cell: ({ row }) => {
+      const lead = row.original.result?.benchmark_lead;
+      return lead === null || lead === undefined ? (
+        ABSENT
+      ) : (
+        <Delta value={String(lead)} format={formatPercentagePoints} />
+      );
+    },
+    meta: { align: "right" },
   },
   {
     id: "status",
@@ -139,6 +165,7 @@ export function Strategies(): React.JSX.Element {
   const strategies = useResource(fetchStrategies);
   const [style, setStyle] = useSearchParam("style", "all");
   const [risk, setRisk] = useSearchParam("risk", "all");
+  const [beats, setBeats] = useSearchParam("beats", "any");
 
   const all = useMemo(() => strategies.data ?? [], [strategies.data]);
   const styles = useMemo(
@@ -150,17 +177,23 @@ export function Strategies(): React.JSX.Element {
   );
   const listed = useMemo(
     () =>
-      all.filter(
-        (one) =>
-          (style === "all" || one.style === style) &&
-          (risk === "all" || riskBand(one.result?.max_drawdown) === risk),
+      byBalance(
+        all.filter(
+          (one) =>
+            (style === "all" || one.style === style) &&
+            (risk === "all" || riskBand(one.result?.max_drawdown) === risk) &&
+            (beats === "any" || (one.result?.benchmark_lead ?? 0) > 0),
+        ),
+        (one) => one.result?.balance,
       ),
-    [all, style, risk],
+    [all, style, risk, beats],
   );
   const shown = useMemo(
     () =>
-      style === "all" && risk === "all" ? null : new Set(listed.map((one) => one.strategy_id)),
-    [listed, style, risk],
+      style === "all" && risk === "all" && beats === "any"
+        ? null
+        : new Set(listed.map((one) => one.strategy_id)),
+    [listed, style, risk, beats],
   );
 
   if (strategies.error !== null) {
@@ -174,7 +207,7 @@ export function Strategies(): React.JSX.Element {
         count={
           strategies.data === null ? undefined : `${String(strategies.data.length)} strategies`
         }
-        description="Write a strategy as rules, or combine saved ones by the market's conditions, and backtest it on the stored history. Each shows the companies it would hold today. History before September 2026 holds only the companies that survived, so every return is optimistic: the edge over random picks is the figure to trust."
+        description="Write a strategy as rules, or combine saved ones by the market's conditions, and backtest it on the stored history. Each shows the companies it would hold today. They open best balanced first: the CAGR per point of the deepest fall, in whichever of the two periods (to 2017, from 2018) was weaker. History before September 2026 holds only the companies that survived, so every return is optimistic: the edge over random picks is the figure to trust."
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" asChild>
@@ -215,6 +248,15 @@ export function Strategies(): React.JSX.Element {
               ]}
               chosen={risk}
               onChange={setRisk}
+            />
+            <Chooser
+              label="Index"
+              options={[
+                { key: "any", label: "Any" },
+                { key: "nifty500", label: "Beats the Nifty 500" },
+              ]}
+              chosen={beats}
+              onChange={setBeats}
             />
           </div>
           <StartToday shown={shown} />

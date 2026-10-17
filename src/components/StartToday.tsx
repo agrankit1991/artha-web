@@ -11,9 +11,12 @@
  * page), else on the phase the data reads. Its choices live in the address
  * (`?phase=`, `?months=`, `?outcome=`), so a reading can be bookmarked.
  *
- * The ranking is by the lead over a basket of every liquid company started
- * the same days: the history holds only the companies that survived, and
- * that basket shares the flattery, so the lead is the honest figure. "If
+ * It opens best balanced first, the owner's order for every list of
+ * strategies (2026-10-17): the median return per point of the worst
+ * episode's loss. Beside it is the lead over a basket of every liquid
+ * company started the same days: the history holds only the companies that
+ * survived, and that basket shares the flattery, so the lead is the honest
+ * figure. "If
  * the market rose" and "if it fell" split the episodes by what came next,
  * which no one knows when starting: they answer "if my call is right" and
  * "if it is wrong", never "what will happen".
@@ -39,6 +42,8 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { Badge } from "@/components/ui/badge";
 import { useResource } from "@/hooks/useResource";
 import { useSearchParam } from "@/hooks/useSearchParam";
+import { ratio } from "@/lib/backtestFigures";
+import { byBalance } from "@/lib/balance";
 import { ABSENT, formatDay, formatPercentagePoints, formatPercentTenths } from "@/lib/format";
 import {
   HORIZON_MONTHS,
@@ -89,6 +94,20 @@ const COLUMNS: Column<Ranked>[] = [
     cell: ({ row }) => (
       <Badge variant="outline">{riskLabel(riskBand(row.original.strategy.max_drawdown))}</Badge>
     ),
+  },
+  {
+    id: "balance",
+    header: "Balance",
+    accessorFn: (row) => row.starts.balance,
+    cell: ({ row }) => (
+      <span
+        title="The median return per point of the worst episode's loss: high only if it did well and its worst start was mild."
+        className="tabular"
+      >
+        {ratio(row.original.starts.balance)}
+      </span>
+    ),
+    meta: { align: "right" },
   },
   {
     id: "excess",
@@ -173,7 +192,7 @@ export function StartToday({ shown }: StartTodayProps): React.JSX.Element {
         ranked.push({ strategy, starts });
       }
     }
-    return ranked.sort((a, b) => (b.starts.excess ?? -Infinity) - (a.starts.excess ?? -Infinity));
+    return byBalance(ranked, (row) => row.starts.balance);
   }, [review.data, outcome, shown]);
   const unmeasured = (review.data?.strategies ?? []).filter((one) => one.every === null).length;
   const words = PHASES.find((one) => one.key === phase);
@@ -183,7 +202,7 @@ export function StartToday({ shown }: StartTodayProps): React.JSX.Element {
     <section aria-label="Start today" className="space-y-4">
       <SectionHeader
         title="Start today"
-        description="Which strategy did best when started in a market like this one: every past episode of the phase counts once, against a basket of every liquid company started the same days."
+        description="Which strategy did best when started in a market like this one, best balanced first: its median return per point of its worst episode's loss. Every past episode of the phase counts once, beside a basket of every liquid company started the same days."
       />
       <p className="text-sm text-muted-foreground">
         The data reads{" "}

@@ -1606,6 +1606,8 @@ export function backtestSummary(overrides: Partial<BacktestSummary> = {}): Backt
     sharpe: 1.2,
     out_of_sample_cagr: 30.4,
     out_of_sample_edge: 12.94,
+    balance: 0.78,
+    benchmark_lead: 19.9,
     ...overrides,
   };
 }
@@ -1924,6 +1926,8 @@ export function strategyResult(overrides: Partial<StrategyResult> = {}): Strateg
     max_drawdown: -34.4,
     out_of_sample_cagr: 30.4,
     out_of_sample_edge: 12.94,
+    balance: 0.78,
+    benchmark_lead: 19.9,
     ...overrides,
   };
 }
@@ -1977,6 +1981,7 @@ export function strategyYear(overrides: Partial<StrategyYear> = {}): StrategyYea
     change: 52.9,
     max_drawdown: -11.8,
     holdings: 8.7,
+    balance: 4.48,
     ...overrides,
   };
 }
@@ -2094,6 +2099,7 @@ export function phaseStarts(overrides: Partial<PhaseStarts> = {}): PhaseStarts {
     beaten: 66.7,
     yardstick: 11.2,
     benchmark: 7.4,
+    balance: 1.21,
     ...overrides,
   };
 }
@@ -2114,8 +2120,8 @@ export function strategyPhaseStarts(
     backtest_id: 7,
     max_drawdown: -26.3,
     every: phaseStarts(),
-    rose: phaseStarts({ episodes: 15, growth: 18.2, excess: 4.1 }),
-    fell: phaseStarts({ episodes: 6, growth: -2.1, excess: 20.5 }),
+    rose: phaseStarts({ episodes: 15, growth: 18.2, excess: 4.1, balance: 2.04 }),
+    fell: phaseStarts({ episodes: 6, growth: -2.1, excess: 20.5, balance: -0.24 }),
     ...overrides,
   };
 }
@@ -2152,9 +2158,9 @@ export function phaseReview(overrides: Partial<PhaseReview> = {}): PhaseReview {
         name: "Rebound",
         style: "rebound",
         max_drawdown: -38.5,
-        every: phaseStarts({ excess: 12.1, growth: 20.5 }),
-        rose: phaseStarts({ episodes: 15, excess: 15.3 }),
-        fell: phaseStarts({ episodes: 6, excess: -9.8 }),
+        every: phaseStarts({ excess: 12.1, growth: 20.5, balance: 2.3 }),
+        rose: phaseStarts({ episodes: 15, excess: 15.3, balance: 3.1 }),
+        fell: phaseStarts({ episodes: 6, excess: -9.8, growth: -12, worst: -20, balance: -0.6 }),
       }),
       strategyPhaseStarts({
         strategy_id: 8,

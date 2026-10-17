@@ -16,6 +16,7 @@ import { Empty } from "@/components/Empty";
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
 import { useResource } from "@/hooks/useResource";
+import { BALANCE_MEANING, byBalance } from "@/lib/balance";
 import { formatDay, formatDayInIndia } from "@/lib/format";
 import { percent, points, ratio } from "@/lib/backtestFigures";
 import { backtestPath } from "@/lib/paths";
@@ -56,6 +57,24 @@ const COLUMNS: Column<BacktestSummary>[] = [
     meta: { align: "right", emphasis: true },
   },
   {
+    id: "benchmark_lead",
+    header: "vs index",
+    accessorFn: (row) => row.benchmark_lead,
+    cell: ({ row }) => points(row.original.benchmark_lead),
+    meta: { align: "right" },
+  },
+  {
+    id: "balance",
+    header: "Balance",
+    accessorFn: (row) => row.balance,
+    cell: ({ row }) => (
+      <span title={BALANCE_MEANING} className="tabular">
+        {ratio(row.original.balance)}
+      </span>
+    ),
+    meta: { align: "right" },
+  },
+  {
     id: "max_drawdown",
     header: "Max drawdown",
     accessorFn: (row) => row.max_drawdown,
@@ -94,7 +113,7 @@ export function Backtests(): React.JSX.Element {
       <PageHeader
         title="Backtests"
         count={backtests.data === null ? undefined : `${String(backtests.data.length)} backtests`}
-        description="Every strategy tested on the stored history and kept, judged in and out of sample, against its index, and against random picks under the same rules. History before September 2026 holds only the companies that survived, so every return is optimistic: the edge over random picks is the figure to trust."
+        description="Every strategy tested on the stored history and kept, judged in and out of sample, against its index, and against random picks under the same rules, best balanced first: the CAGR per point of the deepest fall, in whichever period was weaker. History before September 2026 holds only the companies that survived, so every return is optimistic: the edge over random picks is the figure to trust."
       />
       {backtests.data?.length === 0 ? (
         <Empty
@@ -104,7 +123,7 @@ export function Backtests(): React.JSX.Element {
       ) : (
         <DataTable
           columns={COLUMNS}
-          rows={backtests.data ?? []}
+          rows={byBalance(backtests.data ?? [], (row) => row.balance)}
           loading={backtests.loading}
           linkTo={(row) => backtestPath(row.backtest_id)}
           label="Kept backtests"

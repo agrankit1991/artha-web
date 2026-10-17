@@ -110,6 +110,8 @@ describe("Strategies", () => {
       /^Out of sample/,
       /^Edge vs random/,
       /^CAGR/,
+      /^Balance/,
+      /^vs Nifty 500/,
       /^Max drawdown/,
       /^Changed/,
     ]) {
@@ -170,5 +172,45 @@ describe("Strategies", () => {
     renderPage(<Strategies />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Strategies broke");
+  });
+});
+
+describe("Strategies' order", () => {
+  it("opens best balanced first, unrun last, and keeps only those beating the Nifty 500 when asked", async () => {
+    platform([
+      strategySummary({ strategy_id: 1, name: "Unrun", latest: null, result: null }),
+      strategySummary({
+        strategy_id: 2,
+        name: "Steep",
+        result: strategyResult({ balance: 0.7, benchmark_lead: 25 }),
+      }),
+      strategySummary({
+        strategy_id: 3,
+        name: "Balanced",
+        result: strategyResult({ balance: 1.2, benchmark_lead: 21 }),
+      }),
+      strategySummary({
+        strategy_id: 4,
+        name: "Trailing",
+        result: strategyResult({ balance: 0.5, benchmark_lead: -1.5 }),
+      }),
+    ]);
+    renderPage(<Strategies />);
+    const table = await screen.findByRole("table", { name: "Strategies" });
+    await within(table).findByRole("link", { name: "Balanced" });
+    const names = (): (string | null)[] =>
+      within(table)
+        .getAllByRole("link")
+        .map((link) => link.textContent);
+
+    expect(names()).toEqual(["Balanced", "Steep", "Trailing", "Unrun"]);
+    expect(within(table).getByText("-1.5 pp")).toBeInTheDocument();
+    await userEvent.click(
+      within(screen.getByRole("group", { name: "Index" })).getByRole("button", {
+        name: "Beats the Nifty 500",
+      }),
+    );
+
+    expect(names()).toEqual(["Balanced", "Steep"]);
   });
 });
