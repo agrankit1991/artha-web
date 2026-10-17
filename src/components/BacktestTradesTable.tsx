@@ -4,33 +4,65 @@
  * A holding sold in parts -- a portion at its target, its cost recovered in
  * a sideways market -- is one row per part, with the share of the purchase
  * each sold. A company still listed leads to its page; one that is not has
- * no page to lead to and its key is shown instead.
+ * no page to lead to and its key is shown instead. Each sale's reason says
+ * what it means on its own mark, and `SaleReasonsGuide` lists them all.
  */
 
 import type { BacktestTrade } from "@/api/client";
 import { type Column, DataTable } from "@/components/DataTable";
+import { Hint } from "@/components/Hint";
 import { symbolColumn } from "@/components/identityColumns";
+import { ReadingGuide } from "@/components/ReadingGuide";
 import { Badge } from "@/components/ui/badge";
 import { percent, share, weight } from "@/lib/backtestFigures";
 import { ABSENT, formatDay, formatPrice, formatWhole } from "@/lib/format";
 import { companyPath } from "@/lib/paths";
 import { cn } from "@/lib/utils";
-import { RECORD_TERMS } from "@/lib/strategyTerms";
+import { RECORD_TERMS, SALE_REASONS } from "@/lib/strategyTerms";
 
-/** Why each sale was made, as a reader would say it. */
-const REASONS: Record<string, string> = {
-  rebalance: "Rebalance",
-  exit: "Exit",
-  stop: "Stop",
-  target: "Target",
-  time: "Time",
-  regime: "Regime",
-  exposure: "Exposure",
-  recover: "Recover cost",
-  switch: "Switch",
-  discontinuity: "Neutralised",
-  end: "Still held",
-};
+/**
+ * Why a sale was made, as a badge with a mark saying what the reason means.
+ *
+ * A reason the platform has added since `SALE_REASONS` was written is shown
+ * as the platform names it, with no mark, rather than as nothing.
+ *
+ * @param props - The platform's reason.
+ * @returns The badge.
+ */
+function SaleReasonBadge({ reason }: { reason: string }): React.JSX.Element {
+  const known = SALE_REASONS[reason];
+  if (known === undefined) {
+    return <Badge variant="outline">{reason}</Badge>;
+  }
+  return (
+    // The last column, so the explanation opens back over the table.
+    <Hint text={known.meaning} term={known.word} side="start">
+      <Badge variant="outline">{known.word}</Badge>
+    </Hint>
+  );
+}
+
+/**
+ * Every reason a backtest sells for and what it means: the Why column, read whole.
+ *
+ * @returns The guide, shut until asked.
+ */
+export function SaleReasonsGuide(): React.JSX.Element {
+  return (
+    <ReadingGuide title="What each reason in Why means">
+      <dl className="grid gap-x-3 gap-y-2 sm:grid-cols-[auto_1fr]">
+        {Object.values(SALE_REASONS).map(({ word, meaning }) => (
+          <div key={word} className="contents">
+            <dt>
+              <Badge variant="outline">{word}</Badge>
+            </dt>
+            <dd>{meaning}</dd>
+          </div>
+        ))}
+      </dl>
+    </ReadingGuide>
+  );
+}
 
 const COLUMNS: Column<BacktestTrade>[] = [
   symbolColumn((row) => ({ symbol: row.symbol ?? row.instrument_key, name: null })),
@@ -112,9 +144,7 @@ const COLUMNS: Column<BacktestTrade>[] = [
     id: "reason",
     header: "Why",
     accessorFn: (row) => row.reason,
-    cell: ({ row }) => (
-      <Badge variant="outline">{REASONS[row.original.reason] ?? row.original.reason}</Badge>
-    ),
+    cell: ({ row }) => <SaleReasonBadge reason={row.original.reason} />,
     meta: { hint: RECORD_TERMS.reason },
   },
 ];

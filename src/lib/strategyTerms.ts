@@ -100,8 +100,82 @@ export const RECORD_TERMS = {
   firstWeight: "Its share of the whole portfolio at its first close.",
   weightRange: "Its lowest and highest share of the portfolio while held.",
   reason:
-    "Why it was sold: its own exit rule, a stop, a target, a rebalance that ranked it out, the market gate shutting, exposure easing, a switch to another strategy, a time limit, cost recovery, or still held at the end.",
+    "Why it was sold. Each reason's mark says what it means, and the guide above the table lists them all.",
 } as const;
+
+/** A reason a backtest sold a holding. */
+export interface SaleReason {
+  /** The word on the trades table's badge. */
+  word: string;
+  /** What made the sale, and at what price. */
+  meaning: string;
+}
+
+/**
+ * Why a backtest sold, keyed by the platform's reason (`artha.backtest.ledger.Trade.reason`).
+ *
+ * The owner did not know what Regime, Exit and the rest meant (2026-10-17).
+ * Each meaning is what the simulation does (`artha.backtest.simulation`):
+ * a sale decided at a close is made at the next open, a stop or a target
+ * during the session. The examples are M147's own rules.
+ */
+export const SALE_REASONS: Record<string, SaleReason> = {
+  rebalance: {
+    word: "Rebalance",
+    meaning:
+      "At a scheduled rebalance it no longer ranked among the companies the strategy's slots hold (or no longer passed its rules), so it was sold at the next open to make room for one that did.",
+  },
+  exit: {
+    word: "Exit",
+    meaning:
+      "The strategy's own exit rule held at a close (M147's: a close below its 100-session average), so it was sold at the next open. Checked every session, not only at a rebalance.",
+  },
+  stop: {
+    word: "Stop",
+    meaning:
+      "The session's low reached its stop-loss, so it was sold at the stop, or at the open if it opened below. A trailing stop rises with the highest close since it was bought.",
+  },
+  target: {
+    word: "Target",
+    meaning:
+      "It reached its take-profit price: sold at the open if it opened above, else at the target. The rules may sell only part there (Of the holding says how much), the rest riding on.",
+  },
+  time: {
+    word: "Time",
+    meaning:
+      "It had been held as many sessions as the strategy allows (its hold_sessions), so it was sold at the next open.",
+  },
+  regime: {
+    word: "Regime",
+    meaning:
+      "The strategy's market gate shut (M147's: the Nifty 50 closing 2% below its 150-session average), so every holding was sold at the next open, and nothing is bought until the gate opens again.",
+  },
+  exposure: {
+    word: "Exposure",
+    meaning:
+      "The strategy's exposure rule cut how many holdings it may keep (M147 fills 60% of its slots while the Nifty 50 is below its 50-session average), so its lowest-ranked holdings were sold at the next open.",
+  },
+  recover: {
+    word: "Recover cost",
+    meaning:
+      "The strategy's recover-cost rule held (a sideways market, say): a holding in profit sold just enough to take back what it cost, the rest riding on; one not in profit was sold whole.",
+  },
+  switch: {
+    word: "Switch",
+    meaning:
+      "A combination changed which strategy is in play (or none is), and the one now in play would not hold it, so it was sold at the next open.",
+  },
+  discontinuity: {
+    word: "Neutralised",
+    meaning:
+      "It opened at half or less, or double or more, of its last close: a demerger, a split the history missed or a data error rather than a real move. Taken out at that last close, and left out of the trade figures (trades, won).",
+  },
+  end: {
+    word: "Still held",
+    meaning:
+      "Still held when the backtest ended: valued at its last close less the cost of selling, as if sold then, and counted with the trades.",
+  },
+};
 
 /** The columns of a strategy's picks today. */
 export const PICK_TERMS = {

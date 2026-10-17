@@ -17,7 +17,7 @@ import { BacktestMeasures } from "@/components/BacktestMeasures";
 import { BacktestPeriodsTable } from "@/components/BacktestPeriodsTable";
 import { BacktestPicksPanel } from "@/components/BacktestPicks";
 import { BacktestPlays } from "@/components/BacktestPlays";
-import { BacktestTradesTable } from "@/components/BacktestTradesTable";
+import { BacktestTradesTable, SaleReasonsGuide } from "@/components/BacktestTradesTable";
 import { Chart, type Series } from "@/components/Chart";
 import { type Column, DataTable } from "@/components/DataTable";
 import { DivergingBars } from "@/components/DivergingBars";
@@ -315,6 +315,7 @@ export function Backtest(): React.JSX.Element {
           title="Trades"
           description={`${String(shown.trades.length)} sales, newest first.`}
         />
+        <SaleReasonsGuide />
         <BacktestTradesTable trades={shown.trades} />
       </section>
     </div>
