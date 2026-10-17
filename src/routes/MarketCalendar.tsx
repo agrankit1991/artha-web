@@ -135,6 +135,38 @@ export function MarketCalendar(): React.JSX.Element {
         description="Holidays, expiries, public offerings, results deadlines, and the policy and data days that move the market, in India and abroad. Choose a day to read its events in full."
       />
 
+      <ReadingGuide>
+        <p>
+          <strong>Confirmed or expected.</strong> A confirmed date is on its publisher's own
+          calendar or in the exchange's own data. An expected one follows a convention or a
+          published rule and is not yet announced: the Budget on 1 February, a release moved off a
+          weekend, next year's Fed meetings, an offering's provisional dates. Expected events are in
+          italics on the grid and marked in the lists.
+        </p>
+        {EVENT_GROUPS.map((one) => (
+          <p key={one.key}>
+            <strong>{one.label}.</strong> {one.description}
+          </p>
+        ))}
+        <p>
+          <strong>Expiries.</strong> NSE's index options expire on Tuesdays and BSE's on Thursdays,
+          the month's on its last; a holiday moves an expiry to the trading day before. The days
+          come from the contracts listed, so a change of rule arrives with them.
+        </p>
+        <p>
+          <strong>Results days</strong> come from companies' notices of board meetings to NSE, read
+          every hour: a company tells the exchange days ahead when its board will meet to approve
+          its results. A meeting notified before the platform began reading them is missing.{" "}
+          <strong>Not here:</strong> upcoming dividends, bonuses and splits, which only NSE and BSE
+          publish in a form the platform does not read.
+        </p>
+        <p>
+          <strong>Times</strong> are India's. The policy and data dates are typed in from the RBI,
+          MoSPI, the Office of the Economic Adviser, the US Fed and the US Bureau of Labor
+          Statistics; each event links to where its date is published.
+        </p>
+      </ReadingGuide>
+
       <section aria-label="Month" className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -290,35 +322,6 @@ export function MarketCalendar(): React.JSX.Element {
         </section>
       )}
 
-      <ReadingGuide>
-        <p>
-          <strong>Confirmed or expected.</strong> A confirmed date is on its publisher's own
-          calendar or in the exchange's own data. An expected one follows a convention or a
-          published rule and is not yet announced: the Budget on 1 February, a release moved off a
-          weekend, next year's Fed meetings, an offering's provisional dates. Expected events are in
-          italics on the grid and marked in the lists.
-        </p>
-        {EVENT_GROUPS.map((one) => (
-          <p key={one.key}>
-            <strong>{one.label}.</strong> {one.description}
-          </p>
-        ))}
-        <p>
-          <strong>Expiries.</strong> NSE's index options expire on Tuesdays and BSE's on Thursdays,
-          the month's on its last; a holiday moves an expiry to the trading day before. The days
-          come from the contracts listed, so a change of rule arrives with them.
-        </p>
-        <p>
-          <strong>Not here yet.</strong> The day each company announces its results, and upcoming
-          dividends, bonuses and splits: only NSE and BSE publish them, NSE's terms forbid
-          collecting them automatically, and BSE refuses the platform's requests.
-        </p>
-        <p>
-          <strong>Times</strong> are India's. The policy and data dates are typed in from the RBI,
-          MoSPI, the Office of the Economic Adviser, the US Fed and the US Bureau of Labor
-          Statistics; each event links to where its date is published.
-        </p>
-      </ReadingGuide>
       {grid.data !== null && (
         <p className="text-xs text-muted-foreground">
           Hand-entered dates last checked against their publishers on{" "}
