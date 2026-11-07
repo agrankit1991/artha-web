@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { useResource } from "@/hooks/useResource";
 import { cn } from "@/lib/utils";
 import { sentence } from "@/lib/format";
+import { useWatchlistMembership } from "@/lib/watchlistMembership";
 
 interface WatchButtonProps {
   instrumentKey: string;
@@ -56,12 +57,17 @@ export function WatchButton({
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const membership = useWatchlistMembership();
+
   const held = new Map((holding.data ?? []).map((one) => [one.watchlist_id, one.item_id]));
   const watched = held.size > 0;
+  const onLists = `${String(held.size)} ${held.size === 1 ? "list" : "lists"}`;
 
   const refresh = (): void => {
     holding.reload();
     lists.reload();
+    // The count beside this company in every table on screen follows.
+    membership.refresh();
   };
 
   const toggle = async (watchlistId: number): Promise<void> => {
@@ -86,8 +92,8 @@ export function WatchButton({
     setBusy(true);
     setProblem(null);
     try {
-      const made = await createWatchlist({ name });
-      await addWatchlistItem(made.watchlist_id, { instrument_key: instrumentKey });
+      // One request, so a refused add cannot leave an empty list behind.
+      await createWatchlist({ name, instrument_keys: [instrumentKey] });
       setNaming(false);
       setName("");
       refresh();
@@ -101,7 +107,7 @@ export function WatchButton({
   return (
     <>
       <Menu
-        label={watched ? `On a watchlist: ${symbol}` : `Watch ${symbol}`}
+        label={watched ? `${symbol} is on ${onLists} of yours` : `Watch ${symbol}`}
         align="end"
         {...(className === undefined ? {} : { className })}
         triggerClassName={cn(
@@ -111,7 +117,7 @@ export function WatchButton({
         trigger={
           <>
             <Star aria-hidden="true" className={cn("h-4 w-4", watched && "fill-current")} />
-            {watched ? "Watching" : "Watch"}
+            {watched ? `On ${onLists}` : "Watch"}
           </>
         }
       >

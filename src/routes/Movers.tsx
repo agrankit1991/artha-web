@@ -19,6 +19,7 @@ import { StreakBadge, nameColumn, symbolColumn } from "@/components/identityColu
 import { Delta } from "@/components/Delta";
 import { Empty } from "@/components/Empty";
 import { Failed } from "@/components/Failed";
+import { ListActions } from "@/components/ListActions";
 import { MOVER_LISTS } from "@/components/MoverPanel";
 import { PageHeader } from "@/components/PageHeader";
 import { MoverUniverseSwitch } from "@/components/MoverUniverseSwitch";
@@ -109,15 +110,21 @@ export function Movers(): React.JSX.Element {
             go(name, next);
           }}
         />
-        {/* The indices are not companies, so there is no liquid ranking of them. */}
-        {scope.kind !== "indices" && (
-          <MoverUniverseSwitch
-            universe={universe}
-            onChange={(next) => {
-              writePreferences({ movers: next });
-            }}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* The indices are not companies, so there is no liquid ranking of them. */}
+          {scope.kind !== "indices" && (
+            <MoverUniverseSwitch
+              universe={universe}
+              onChange={(next) => {
+                writePreferences({ movers: next });
+              }}
+            />
+          )}
+          <ListActions
+            keys={ranking.data?.rows.map((row) => row.instrument_key) ?? []}
+            label={MOVER_LISTS[name].title}
           />
-        )}
+        </div>
       </div>
       <Tabs
         tabs={tabs}

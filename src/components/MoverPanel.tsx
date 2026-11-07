@@ -23,6 +23,7 @@ import type { MoverListName, MoverPanel as Panel, MoverRow } from "@/api/client"
 import { type Column, DataTable } from "@/components/DataTable";
 import { nameColumn, symbolColumn } from "@/components/identityColumns";
 import { Delta } from "@/components/Delta";
+import { ListActions } from "@/components/ListActions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -231,14 +232,17 @@ export function MoverPanelCard({
               {panel.as_of === null ? "No session ranked yet" : formatDay(panel.as_of)}
             </CardDescription>
           </div>
-          {href !== undefined && (
-            <Link
-              to={href}
-              className="shrink-0 text-xs text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
-            >
-              See all →
-            </Link>
-          )}
+          <div className="flex shrink-0 items-center gap-2">
+            <ListActions keys={panel.rows.map((row) => row.instrument_key)} label={title} />
+            {href !== undefined && (
+              <Link
+                to={href}
+                className="shrink-0 text-xs text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
+              >
+                See all →
+              </Link>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>

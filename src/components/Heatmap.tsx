@@ -53,6 +53,7 @@ import {
 } from "@/lib/format";
 import { type Rect, type Sized, squarifyGroups } from "@/lib/treemap";
 import { cn } from "@/lib/utils";
+import { ListActions } from "@/components/ListActions";
 
 /** What a tile's area stands for. */
 type SizeBy = "market_cap" | "traded_value" | "equal";
@@ -208,6 +209,7 @@ export function Heatmap({ tiles, label, linkTo }: HeatmapProps): React.JSX.Eleme
           className="w-44"
         />
         <div className="ml-auto flex items-center gap-2">
+          <ListActions keys={tiles?.map((tile) => tile.instrument_key) ?? []} label={label} />
           <Chooser options={LAYOUTS} chosen={layout} onChange={setLayout} label="Show as" />
           {"requestFullscreen" in HTMLElement.prototype && (
             <Button

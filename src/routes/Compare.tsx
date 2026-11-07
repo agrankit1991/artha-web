@@ -24,6 +24,7 @@ import {
   fetchScreenFields,
   fetchSeries,
 } from "@/api/client";
+import { ListActions } from "@/components/ListActions";
 import { InstrumentPicker } from "@/components/InstrumentPicker";
 import { Chip } from "@/components/Chip";
 import { type ChartLine, ComparisonChart } from "@/components/ComparisonChart";
@@ -135,6 +136,7 @@ export function Compare(): React.JSX.Element {
       <PageHeader
         title="Compare"
         description={`Up to ${String(MOST)} companies or indices side by side: rebased on one chart, their returns by period, and every other figure a column apiece. The set lives in the address, so a comparison is a link.`}
+        actions={<ListActions keys={keys} label="Compared" />}
       />
       {names.error !== null && <Failed message={names.error} />}
 

@@ -50,6 +50,7 @@ import { nameColumn, symbolColumn } from "@/components/identityColumns";
 import { Delta } from "@/components/Delta";
 import { DivergingBars } from "@/components/DivergingBars";
 import { Menu, MenuItem } from "@/components/Menu";
+import { ListActions } from "@/components/ListActions";
 import { Failed } from "@/components/Failed";
 import { Financials } from "@/components/Financials";
 import { GrowthChart, ShareholdingChart } from "@/components/FundamentalsChart";
@@ -425,11 +426,15 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
                 )}
                 {found.peers.length > 0 && (
                   <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
                       <CardTitle className="flex items-center gap-2">
                         <MARKS.peers aria-hidden="true" className="h-4 w-4 text-primary" />
                         Peers
                       </CardTitle>
+                      <ListActions
+                        keys={found.peers.map((one) => one.instrument_key)}
+                        label={`Peers of ${found.symbol}`}
+                      />
                     </CardHeader>
                     <CardContent>
                       <Peers peers={found.peers} loading={company.loading} />

@@ -1777,6 +1777,41 @@ export function fetchScreen(query: ScreenQuery): Promise<ScreenPage> {
   return request<ScreenPage>(`/api/screen?${parameters.toString()}`);
 }
 
+/** The most hits the platform returns for one screen request. */
+const SCREEN_PAGE = 200;
+
+/**
+ * Collect the instruments a screen found, past the page the screener shows.
+ *
+ * The screener grows by fifty at a time, so the rows on screen are the
+ * start of what met the conditions rather than all of it, and a list taken
+ * from them would silently stop short. This asks for the same screen in the
+ * platform's largest pages and keeps only the instruments.
+ *
+ * @param query - The conditions, the population and the ordering.
+ * @param limit - The most instruments wanted.
+ * @returns The instruments, in the screen's order; fewer than `limit` when
+ *   fewer met the conditions.
+ */
+export async function fetchScreenKeys(
+  query: Omit<ScreenQuery, "limit" | "offset">,
+  limit: number,
+): Promise<string[]> {
+  const first = await fetchScreen({ ...query, limit: Math.min(limit, SCREEN_PAGE), offset: 0 });
+  const wanted = Math.min(first.total, limit);
+  // The first page told how many there are, so the rest can be asked for together.
+  const offsets: number[] = [];
+  for (let offset = SCREEN_PAGE; offset < wanted; offset += SCREEN_PAGE) {
+    offsets.push(offset);
+  }
+  const rest = await Promise.all(
+    offsets.map((offset) =>
+      fetchScreen({ ...query, limit: Math.min(SCREEN_PAGE, wanted - offset), offset }),
+    ),
+  );
+  return [first, ...rest].flatMap((page) => page.items.map((hit) => hit.instrument_key));
+}
+
 /** One watchlist, as the list of lists shows it. */
 export interface WatchlistSummary {
   watchlist_id: number;
@@ -1863,11 +1898,57 @@ export function fetchWatchlistsHolding(instrumentKey: string): Promise<HeldBy[]>
   );
 }
 
-/** Make a watchlist. */
-export function createWatchlist(draft: WatchlistDraft): Promise<WatchlistSummary> {
+/**
+ * Which of the account's watchlists hold each instrument on any of them:
+ * the lists' identifiers, oldest first. An instrument on none is absent.
+ */
+export type WatchlistMembership = Record<string, number[]>;
+
+/**
+ * Fetch the whole account's membership at once, so a count beside every
+ * row of every table costs one request rather than one per table.
+ */
+export function fetchWatchlistMembership(): Promise<WatchlistMembership> {
+  return request<WatchlistMembership>("/api/watchlists/membership");
+}
+
+/** What a watchlist is made from, with the instruments to put on it as it is made. */
+export interface NewWatchlist extends WatchlistDraft {
+  /** In the order they should appear; any the platform does not list are left off. */
+  instrument_keys?: readonly string[];
+}
+
+/**
+ * Make a watchlist, with instruments already on it when given: one request,
+ * so a list saved from a page is never left behind empty.
+ *
+ * @returns The list; its `items` counts the instruments that went on.
+ */
+export function createWatchlist(draft: NewWatchlist): Promise<WatchlistSummary> {
   return request<WatchlistSummary>("/api/watchlists", {
     method: "POST",
     body: JSON.stringify(draft),
+  });
+}
+
+/** What putting many instruments on a list did. */
+export interface BatchAdded {
+  /** Put on the list now. */
+  added: number;
+  /** On it before, left as they were with their notes and levels. */
+  already: number;
+  /** Not instruments the platform lists, so left off. */
+  unknown: number;
+}
+
+/** Put many instruments on a watchlist at once, in the order given. */
+export function addWatchlistItems(
+  watchlistId: number,
+  instrumentKeys: readonly string[],
+): Promise<BatchAdded> {
+  return request<BatchAdded>(`/api/watchlists/${String(watchlistId)}/items/batch`, {
+    method: "POST",
+    body: JSON.stringify({ instrument_keys: instrumentKeys }),
   });
 }
 

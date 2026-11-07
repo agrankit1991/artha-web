@@ -174,3 +174,63 @@ describe("fetchPriceBands", () => {
     await expect(fetchPriceBands("NSE_EQ|X")).rejects.toBeInstanceOf(ApiError);
   });
 });
+
+describe("fetchScreenKeys", () => {
+  it("collects a whole screen in the platform's largest pages, in order", async () => {
+    const { fetchScreenKeys } = await import("./client");
+    const total = 450;
+    const fetched = vi.fn((path: string) => {
+      const query = new URLSearchParams(path.split("?")[1]);
+      const offset = Number(query.get("offset"));
+      const limit = Number(query.get("limit"));
+      const items = Array.from({ length: Math.min(limit, total - offset) }, (_, at) => ({
+        instrument_key: `NSE_EQ|${String(offset + at)}`,
+      }));
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ total, items }),
+      } as Response);
+    });
+    vi.stubGlobal("fetch", fetched);
+
+    const keys = await fetchScreenKeys(
+      { conditions: [], scope_kind: "companies", scope_key: "all", sort: null, order: "desc" },
+      1_000,
+    );
+
+    expect(keys).toHaveLength(450);
+    expect(keys[0]).toBe("NSE_EQ|0");
+    expect(keys[449]).toBe("NSE_EQ|449");
+    // 200 first; then the rest asked for together, never more than the cap.
+    const asked = fetched.mock.calls.map(([path]) => {
+      const query = new URLSearchParams(path.split("?")[1]);
+      return [query.get("offset"), query.get("limit")];
+    });
+    expect(asked).toEqual([
+      ["0", "200"],
+      ["200", "200"],
+      ["400", "50"],
+    ]);
+  });
+
+  it("asks for no more than are wanted", async () => {
+    const { fetchScreenKeys } = await import("./client");
+    const fetched = vi.fn<(path: string) => Promise<Response>>(() =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ total: 9_000, items: [{ instrument_key: "NSE_EQ|0" }] }),
+      } as Response),
+    );
+    vi.stubGlobal("fetch", fetched);
+
+    await fetchScreenKeys(
+      { conditions: [], scope_kind: "companies", scope_key: "all", sort: null, order: "desc" },
+      5,
+    );
+
+    expect(fetched).toHaveBeenCalledTimes(1);
+    expect(fetched.mock.calls[0]?.[0]).toContain("limit=5");
+  });
+});

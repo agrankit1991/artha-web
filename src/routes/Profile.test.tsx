@@ -119,6 +119,7 @@ describe("Profile", () => {
       views: {},
       participation: null,
       movers: "liquid",
+      exportSize: "200",
     });
     await userEvent.click(screen.getByRole("button", { name: "Forget my preferences" }));
     expect(readPreferences()).toEqual(DEFAULT_PREFERENCES);

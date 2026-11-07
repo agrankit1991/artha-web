@@ -395,7 +395,9 @@ describe("Breadth", () => {
   it("remembers the populations a reader changes, and resets to the headline indices", async () => {
     const fetchMock = stubEverything();
     renderPage(<Breadth />);
-    await screen.findByRole("table", { name: /Share above/ });
+    // The whole page's first draw: well under a second alone, but it missed
+    // the default second under the full suite's parallel load (2026-11-07).
+    await screen.findByRole("table", { name: /Share above/ }, { timeout: 5_000 });
 
     await userEvent.click(screen.getByRole("button", { name: "Remove Nifty 50" }));
 

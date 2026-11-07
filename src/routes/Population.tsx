@@ -45,6 +45,7 @@ import { PRICE_RANGES } from "@/lib/priceRanges";
 import { type Tab, Tabs } from "@/components/Tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ListActions } from "@/components/ListActions";
 import { Failed } from "@/components/Failed";
 import { IndexChanges } from "@/components/IndexChanges";
 import { InstrumentHeader } from "@/components/InstrumentHeader";
@@ -422,8 +423,12 @@ export function Population({ kind, scopeKey }: PopulationProps): React.JSX.Eleme
             <IndexChanges changes={changes.data ?? []} />
 
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
                 <CardTitle>Constituents</CardTitle>
+                <ListActions
+                  keys={members.map((one) => one.instrument_key)}
+                  label={population.data?.name ?? "Constituents"}
+                />
               </CardHeader>
               <CardContent>
                 <Members

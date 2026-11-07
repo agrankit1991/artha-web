@@ -19,6 +19,7 @@ import { ReadingGuide } from "@/components/ReadingGuide";
 import type { BacktestPick, BacktestPicks } from "@/api/client";
 import { type Column, DataTable } from "@/components/DataTable";
 import { symbolColumn } from "@/components/identityColumns";
+import { ListActions } from "@/components/ListActions";
 import { Badge } from "@/components/ui/badge";
 import { formatDay, formatPrice } from "@/lib/format";
 import { companyPath } from "@/lib/paths";
@@ -95,16 +96,22 @@ export function BacktestPicksPanel({ picks }: BacktestPicksProps): React.JSX.Ele
   const columns = useMemo(() => columnsFor(picks), [picks]);
   return (
     <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
-        As of {formatDay(picks.as_of)}
-        {picks.play !== null && <>, by {picks.play}</>}
-        {buying && (
-          <>
-            {" "}
-            -- holding {String(picks.room)} of at most {String(picks.slots)}.
-          </>
-        )}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">
+          As of {formatDay(picks.as_of)}
+          {picks.play !== null && <>, by {picks.play}</>}
+          {buying && (
+            <>
+              {" "}
+              -- holding {String(picks.room)} of at most {String(picks.slots)}.
+            </>
+          )}
+        </p>
+        <ListActions
+          keys={picks.candidates.map((one) => one.instrument_key)}
+          label={picks.play === null ? "Picks today" : `Picks today, ${picks.play}`}
+        />
+      </div>
       <PicksGuide slots={picks.slots} />
       {!buying && (
         <Callout tone="info" role="status">

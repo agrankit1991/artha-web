@@ -20,6 +20,7 @@ import {
   type SeasonCompany,
   fetchSeasonCompanies,
 } from "@/api/client";
+import { ListActions } from "@/components/ListActions";
 import { type Column, DataTable } from "@/components/DataTable";
 import { Failed } from "@/components/Failed";
 import { type Identity, nameColumn, symbolColumn } from "@/components/identityColumns";
@@ -27,6 +28,7 @@ import { Meter } from "@/components/Meter";
 import { ResultsDeclaring } from "@/components/ResultsDeclaring";
 import { Button } from "@/components/ui/button";
 import { useResource } from "@/hooks/useResource";
+import { presentKeys } from "@/lib/keySource";
 import { daysBetween } from "@/lib/calendar";
 import { EVENT_COLOURS } from "@/lib/chartPalette";
 import { formatCount, formatDay, formatDayMonth } from "@/lib/format";
@@ -181,18 +183,26 @@ function SeasonCompanies({ quarterEnd }: { quarterEnd: string }): React.JSX.Elem
     return <Failed message={companies.error} />;
   }
   return (
-    <DataTable
-      columns={COLUMNS}
-      rows={companies.data ?? []}
-      loading={companies.loading}
-      linkTo={(row) =>
-        row.instrument_key === null || row.symbol === null
-          ? null
-          : companyPath(row.instrument_key, row.symbol)
-      }
-      label="Companies with results held"
-      empty="No company's results for this quarter are held yet."
-      maxHeight="24rem"
-    />
+    <div className="space-y-2">
+      <div className="flex justify-end">
+        <ListActions
+          keys={presentKeys((companies.data ?? []).map((row) => row.instrument_key))}
+          label="Companies with results held"
+        />
+      </div>
+      <DataTable
+        columns={COLUMNS}
+        rows={companies.data ?? []}
+        loading={companies.loading}
+        linkTo={(row) =>
+          row.instrument_key === null || row.symbol === null
+            ? null
+            : companyPath(row.instrument_key, row.symbol)
+        }
+        label="Companies with results held"
+        empty="No company's results for this quarter are held yet."
+        maxHeight="24rem"
+      />
+    </div>
   );
 }

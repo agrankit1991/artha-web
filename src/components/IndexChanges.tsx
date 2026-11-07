@@ -9,7 +9,9 @@
 import { Link } from "react-router-dom";
 
 import type { IndexChange } from "@/api/client";
+import { ListActions } from "@/components/ListActions";
 import { Badge } from "@/components/ui/badge";
+import { presentKeys } from "@/lib/keySource";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDay } from "@/lib/format";
 import { companyPath } from "@/lib/paths";
@@ -26,9 +28,15 @@ export function IndexChanges({ changes }: { changes: IndexChange[] }): React.JSX
   }
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Index Changes</CardTitle>
-        <CardDescription>Companies added and removed since the record began.</CardDescription>
+      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2">
+        <div className="space-y-1.5">
+          <CardTitle className="text-base">Index Changes</CardTitle>
+          <CardDescription>Companies added and removed since the record began.</CardDescription>
+        </div>
+        <ListActions
+          keys={presentKeys(changes.map((change) => change.instrument_key))}
+          label="Companies added to and removed from the index"
+        />
       </CardHeader>
       <CardContent>
         <ol className="divide-y">

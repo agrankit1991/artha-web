@@ -6,10 +6,12 @@
  * accent colour because it is the way through to the company's page, and
  * the full name beside it, carrying the streak badge where a list has one.
  * Both sort. Every company table builds them here, so the decision of what
- * a company looks like in a row is made once.
+ * a company looks like in a row is made once -- including how many of the
+ * reader's watchlists hold it, which is therefore on every table at once.
  */
 
 import type { Column } from "@/components/DataTable";
+import { WatchCount } from "@/components/WatchCount";
 import { Badge } from "@/components/ui/badge";
 import { ABSENT, formatStreak } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -18,6 +20,11 @@ import { cn } from "@/lib/utils";
 export interface Identity {
   symbol: string;
   name: string | null;
+  /**
+   * Which instrument the row is, for the count of watchlists holding it;
+   * absent or null where the row has none (a company no longer listed).
+   */
+  instrument_key?: string | null;
 }
 
 interface SymbolColumnOptions<Row> {
@@ -45,12 +52,18 @@ export function symbolColumn<Row>(
     id: "symbol",
     header,
     accessorFn: (row) => identify(row).symbol,
-    cell: ({ row }) => (
-      <span className="flex min-w-0 items-center gap-2">
-        {lead?.(row.original)}
-        <span className="truncate font-medium text-primary">{identify(row.original).symbol}</span>
-      </span>
-    ),
+    cell: ({ row }) => {
+      const identity = identify(row.original);
+      return (
+        <span className="flex min-w-0 items-center gap-2">
+          {lead?.(row.original)}
+          <span className="truncate font-medium text-primary">{identity.symbol}</span>
+          {identity.instrument_key != null && (
+            <WatchCount instrumentKey={identity.instrument_key} symbol={identity.symbol} />
+          )}
+        </span>
+      );
+    },
   };
 }
 

@@ -604,3 +604,41 @@ describe("Screener", () => {
     expect(within(table).getByRole("link", { name: /RELIANCE/ })).toBeInTheDocument();
   });
 });
+
+describe("Screener, saving a screen as a watchlist", () => {
+  it("saves every match, not the fifty shown, by paging through the platform", async () => {
+    const total = 250;
+    const fetched = stubPlatform({
+      "/api/screen/fields": { body: screenFields() },
+      "/api/movers/scopes": { body: scopeOptions() },
+      "/api/screen?": {
+        bodyFor: (path) => {
+          const query = new URLSearchParams(path.split("?")[1]);
+          const offset = Number(query.get("offset"));
+          const limit = Number(query.get("limit"));
+          const items = Array.from(
+            { length: Math.max(0, Math.min(limit, total - offset)) },
+            (_, at) => screenHit({ instrument_key: `NSE_EQ|S${String(offset + at)}` }),
+          );
+          return screenPage({ total, limit, offset, items });
+        },
+      },
+    });
+    renderPage(<Screener />);
+    await screen.findByRole("table", { name: "Screen results" });
+
+    await userEvent.click(screen.getByRole("button", { name: "Save or export Screener results" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /Save as a new watchlist/ }));
+
+    const dialog = screen.getByRole("dialog");
+    expect(await within(dialog).findByText(/250 companies/)).toBeVisible();
+    const pages = asked(fetched)
+      .filter((path) => path.startsWith("/api/screen?"))
+      .map((path) => {
+        const query = new URLSearchParams(path.split("?")[1]);
+        return `${query.get("offset") ?? ""}+${query.get("limit") ?? ""}`;
+      });
+    expect(pages).toContain("0+200");
+    expect(pages).toContain("200+50");
+  });
+});

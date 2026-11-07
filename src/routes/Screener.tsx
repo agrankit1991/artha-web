@@ -32,11 +32,13 @@ import type {
   ScreenCondition,
   ScreenField,
   ScreenHit,
+  ScreenQuery,
   TrailingReturns,
   ScreenOperator,
 } from "@/api/client";
-import { fetchScopes, fetchScreen, fetchScreenFields } from "@/api/client";
+import { fetchScopes, fetchScreen, fetchScreenFields, fetchScreenKeys } from "@/api/client";
 import { Callout } from "@/components/Callout";
+import { ListActions } from "@/components/ListActions";
 import { type Column, DataTable } from "@/components/DataTable";
 import { nameColumn, symbolColumn } from "@/components/identityColumns";
 import { Delta } from "@/components/Delta";
@@ -142,24 +144,16 @@ export function Screener(): React.JSX.Element {
     }),
   );
   const loadHits = useCallback(() => {
-    const query = JSON.parse(asked) as {
-      scope: Scope;
-      conditions: ScreenCondition[];
-      sort: string | null;
-      order: "asc" | "desc";
-      limit: number;
-    };
-    return fetchScreen({
-      conditions: query.conditions,
-      scope_kind: query.scope.kind,
-      scope_key: query.scope.key ?? "all",
-      sort: query.sort,
-      order: query.order,
-      limit: query.limit,
-      offset: 0,
-    });
+    const { query, limit } = screenOf(asked);
+    return fetchScreen({ ...query, limit, offset: 0 });
   }, [asked]);
   const hits = useResource(loadHits);
+  // The whole screen, not the rows grown so far: a list saved from those
+  // would silently stop at the fifty, or hundred, loaded.
+  const allHits = useCallback(
+    (most: number) => fetchScreenKeys(screenOf(asked).query, most),
+    [asked],
+  );
 
   const update = (change: (next: URLSearchParams) => void): void => {
     const next = new URLSearchParams(params);
@@ -323,6 +317,11 @@ export function Screener(): React.JSX.Element {
             hits.data === null
               ? "Screening…"
               : `${formatWhole(hits.data.total)} ${hits.data.total === 1 ? "company" : "companies"}`
+          }
+          actions={
+            hits.data !== null && hits.data.total > 0 ? (
+              <ListActions keys={allHits} label="Screener results" />
+            ) : undefined
           }
           description={
             hits.data?.as_of == null
@@ -541,4 +540,33 @@ function columnsFor(fields: ScreenField[]): Column<ScreenHit>[] {
       meta: { align: "right" },
     })),
   ];
+}
+
+/**
+ * Read the screen the address asks for, as the platform takes it.
+ *
+ * One reading for the rows shown and for a whole screen saved as a list,
+ * so the two cannot ask different questions.
+ *
+ * @param asked - The screen as it is kept, in JSON.
+ * @returns The query without its paging, and how many rows are shown.
+ */
+function screenOf(asked: string): { query: Omit<ScreenQuery, "limit" | "offset">; limit: number } {
+  const screen = JSON.parse(asked) as {
+    scope: Scope;
+    conditions: ScreenCondition[];
+    sort: string | null;
+    order: "asc" | "desc";
+    limit: number;
+  };
+  return {
+    query: {
+      conditions: screen.conditions,
+      scope_kind: screen.scope.kind,
+      scope_key: screen.scope.key ?? "all",
+      sort: screen.sort,
+      order: screen.order,
+    },
+    limit: screen.limit,
+  };
 }

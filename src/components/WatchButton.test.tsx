@@ -41,8 +41,8 @@ describe("WatchButton", () => {
     stubEverything();
     renderPage(<WatchButton instrumentKey="NSE_EQ|INE002A01018" symbol="RELIANCE" />);
 
-    const star = await screen.findByRole("button", { name: "On a watchlist: RELIANCE" });
-    expect(star).toHaveTextContent("Watching");
+    const star = await screen.findByRole("button", { name: "RELIANCE is on 1 list of yours" });
+    expect(star).toHaveTextContent("On 1 list");
     await userEvent.click(star);
 
     const menu = screen.getByRole("menu");
@@ -82,10 +82,18 @@ describe("WatchButton", () => {
     expect(within(dialog).getByRole("button", { name: "Make and add" })).toBeDisabled();
     await userEvent.type(within(dialog).getByRole("textbox", { name: "Name" }), "Fresh{Enter}");
 
+    // One request makes the list with the instrument on it.
     await waitFor(() => {
       expect(made(fetched)).toContain("POST /api/watchlists");
-      expect(made(fetched)).toContain("POST /api/watchlists/3/items");
     });
+    const posted = fetched.mock.calls.find(
+      ([path, init]) => path === "/api/watchlists" && init?.method === "POST",
+    );
+    expect(JSON.parse(posted?.[1]?.body as string)).toEqual({
+      name: "Fresh",
+      instrument_keys: ["NSE_EQ|INE002A01018"],
+    });
+    expect(made(fetched)).not.toContain("POST /api/watchlists/3/items");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 

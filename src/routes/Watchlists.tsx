@@ -28,6 +28,7 @@ import {
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { DivergingBars } from "@/components/DivergingBars";
 import { Empty } from "@/components/Empty";
+import { ListActions } from "@/components/ListActions";
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
 import { AddDialog, ItemDialog, ListDialog } from "@/components/WatchlistDialogs";
@@ -172,6 +173,7 @@ export function Watchlists(): React.JSX.Element {
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  <ListActions keys={items.map((one) => one.instrument_key)} label={chosen.name} />
                   <Button
                     size="sm"
                     onClick={() => {

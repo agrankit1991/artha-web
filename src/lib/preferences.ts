@@ -29,6 +29,20 @@ export type ViewMode = "list" | "grouped" | "cards";
 /** Every layout, in the order a page offers them. */
 export const VIEW_MODES: readonly ViewMode[] = ["list", "grouped", "cards"];
 
+/**
+ * How many symbols go in one exported watchlist, or `all` for no splitting.
+ *
+ * Each platform holds only so many in a list -- 30 on TradingView's free
+ * plan, 1,000 on its paid ones, 100 on Upstox and 200 on Upstox Plus -- and
+ * refuses a paste that overruns it, so a long list is cut into parts of the
+ * size the reader's own plan allows. Strings, so the chooser that offers
+ * them hands back exactly one of these and nothing needs converting.
+ */
+export type ExportSize = "30" | "100" | "200" | "500" | "1000" | "all";
+
+/** Every size, in the order the export offers them. */
+export const EXPORT_SIZES: readonly ExportSize[] = ["30", "100", "200", "500", "1000", "all"];
+
 export interface Preferences {
   /** The population the overview opens on. */
   scope: { kind: ScopeKind; key: string | null };
@@ -54,6 +68,8 @@ export interface Preferences {
    * reader asks for all (the owner's choice, 2026-09-30).
    */
   movers: MoverUniverse;
+  /** How many symbols an exported watchlist holds before it is cut into parts. */
+  exportSize: ExportSize;
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -67,6 +83,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   views: {},
   participation: null,
   movers: "liquid",
+  // The owner's own plan: Upstox Plus holds 200 to a list.
+  exportSize: "200",
 };
 
 const STORAGE_KEY = "artha.preferences";
@@ -157,6 +175,7 @@ export function parse(stored: unknown): Preferences {
   const range = record["range"];
   const views = record["views"];
   const participation = record["participation"];
+  const exportSize = record["exportSize"];
   return {
     // Liquid unless the reader chose all: anything else stored is not a choice.
     movers: record["movers"] === "all" ? "all" : "liquid",
@@ -195,6 +214,10 @@ export function parse(stored: unknown): Preferences {
               scope !== null && (scope.key !== null || !KEYED_KINDS.includes(scope.kind)),
           )
       : DEFAULT_PREFERENCES.participation,
+    exportSize:
+      typeof exportSize === "string" && (EXPORT_SIZES as readonly string[]).includes(exportSize)
+        ? (exportSize as ExportSize)
+        : DEFAULT_PREFERENCES.exportSize,
   };
 }
 

@@ -11,6 +11,7 @@
 import { useCallback, useMemo } from "react";
 
 import { type Deal, type DealKind, fetchDeals } from "@/api/client";
+import { ListActions } from "@/components/ListActions";
 import { Chooser, type Option } from "@/components/Chooser";
 import { DealsTable } from "@/components/DealsTable";
 import { Failed } from "@/components/Failed";
@@ -19,6 +20,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useResource } from "@/hooks/useResource";
 import { useSearchParam } from "@/hooks/useSearchParam";
+import { presentKeys } from "@/lib/keySource";
 import { companyPath } from "@/lib/paths";
 import { formatCroreSigned } from "@/lib/format";
 
@@ -81,7 +83,13 @@ export function Deals(): React.JSX.Element {
           {byCompany.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle as="h2">Where the deal money went</CardTitle>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <CardTitle as="h2">Where the deal money went</CardTitle>
+                  <ListActions
+                    keys={presentKeys((deals.data ?? []).map((deal) => deal.instrument_key))}
+                    label="Companies in the window's disclosed deals"
+                  />
+                </div>
                 <CardDescription>
                   Each company&apos;s disclosed deals in the window, bought less sold, in rupees
                   crore: the most bought and the most sold. A deal&apos;s other side is disclosed

@@ -91,10 +91,12 @@ describe("Watchlists", () => {
     // No level set: a dash, not a nought.
     const tcs = within(table).getByRole("link", { name: /TCS/ }).closest("tr");
     expect(tcs).toHaveTextContent("-");
-    expect(screen.getByRole("button", { name: /Long term/ })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+    // In the side list: the list's own menu is named after it too.
+    expect(
+      within(screen.getByRole("navigation", { name: "Watchlists" })).getByRole("button", {
+        name: /Long term/,
+      }),
+    ).toHaveAttribute("aria-current", "page");
   });
 
   it("switches list from the side and from the address, and narrows by tag", async () => {

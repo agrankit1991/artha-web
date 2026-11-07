@@ -22,6 +22,7 @@ import { Chart, type Series } from "@/components/Chart";
 import { type Column, DataTable } from "@/components/DataTable";
 import { DivergingBars } from "@/components/DivergingBars";
 import { Empty } from "@/components/Empty";
+import { ListActions } from "@/components/ListActions";
 import { Failed } from "@/components/Failed";
 import { PageHeader } from "@/components/PageHeader";
 import { type BarSection, SectionBar } from "@/components/SectionBar";
@@ -314,6 +315,12 @@ export function Backtest(): React.JSX.Element {
         <SectionHeader
           title="Trades"
           description={`${String(shown.trades.length)} sales, newest first.`}
+          actions={
+            <ListActions
+              keys={shown.trades.map((trade) => trade.instrument_key)}
+              label="Companies this backtest traded"
+            />
+          }
         />
         <SaleReasonsGuide />
         <BacktestTradesTable trades={shown.trades} />

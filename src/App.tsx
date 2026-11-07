@@ -25,6 +25,7 @@ import { useResource } from "@/hooks/useResource";
 import { ENTITIES, MARKS } from "@/lib/entities";
 import { PATHS, populationPath } from "@/lib/paths";
 import { ThemeProvider } from "@/lib/theme";
+import { WatchlistMembershipProvider } from "@/lib/watchlistMembership";
 import { Breadth } from "@/routes/Breadth";
 import { MarketCalendar } from "@/routes/MarketCalendar";
 import { MarketPhases } from "@/routes/MarketPhases";
@@ -219,91 +220,97 @@ function SignedIn({
   const sessions = useResource(latest);
 
   return (
-    <AppShell
-      account={account}
-      screens={account.is_owner ? [...SCREENS, ...OWNER_SCREENS] : SCREENS}
-      build={hello.data}
-      latestSession={sessions.data?.[0]?.day ?? null}
-      onOpenProfile={() => {
-        onNavigate(PATHS.profile);
-      }}
-      onSignOut={onSignOut}
-    >
-      <KeyboardShortcuts />
-      <Routes>
-        <Route
-          path={PATHS.overview}
-          element={
-            <Overview
-              onOpenIndex={(key) => {
-                onNavigate(populationPath("index", key));
-              }}
-              onOpenPopulation={(kind, key) => {
-                onNavigate(populationPath(kind, key));
-              }}
-              onOpenBreadth={() => {
-                onNavigate(PATHS.breadth);
-              }}
-              onOpenNews={() => {
-                onNavigate(PATHS.news);
-              }}
-            />
-          }
-        />
-        <Route path={PATHS.breadth} element={<Breadth />} />
-        <Route path={PATHS.marketPhase} element={<MarketPhases />} />
-        <Route path={PATHS.calendar} element={<MarketCalendar />} />
-        <Route path={PATHS.flows} element={<Flows />} />
-        <Route path={PATHS.deals} element={<Deals />} />
-        <Route path={PATHS.news} element={<News />} />
-        <Route path="/movers/:list" element={<Movers />} />
-        <Route path={PATHS.earnings} element={<EarningsPage />} />
-        <Route path={PATHS.indices} element={<Indices />} />
-        <Route path={PATHS.sectors} element={<Sectors />} />
-        <Route path={PATHS.screen} element={<Screener />} />
-        <Route path={PATHS.scans} element={<Scans />} />
-        <Route path={PATHS.strategies} element={<Strategies />} />
-        <Route path={PATHS.strategyYears} element={<StrategyYears />} />
-        <Route path="/strategy/:id" element={<Strategy />} />
-        <Route path={PATHS.backtests} element={<Backtests />} />
-        <Route path="/backtest/:id" element={<Backtest />} />
-        <Route path={PATHS.compare} element={<Compare />} />
-        <Route path={PATHS.watchlists} element={<Watchlists />} />
-        <Route path={PATHS.ipos} element={<Ipos />} />
-        <Route path="/ipo/:id" element={<IpoRoute />} />
-        <Route path={PATHS.funds} element={<Funds />} />
-        <Route path={PATHS.futures} element={<Futures />} />
-        <Route path="/future/:key" element={<FutureRoute />} />
-        <Route path="/fund/:code" element={<FundRoute />} />
-        <Route
-          path="/company/:ref"
-          element={
-            <ReferencedPage kind="company">
-              {(key) => <Company instrumentKey={key} />}
-            </ReferencedPage>
-          }
-        />
-        <Route
-          path="/index/:ref"
-          element={
-            <ReferencedPage kind="index">
-              {(key) => <Population kind="index" scopeKey={key} />}
-            </ReferencedPage>
-          }
-        />
-        <Route
-          path="/sector/:ref"
-          element={
-            <ReferencedPage kind="sector">
-              {(key) => <Population kind="sector" scopeKey={key} />}
-            </ReferencedPage>
-          }
-        />
-        <Route path={PATHS.profile} element={<Profile account={account} onSignOut={onSignOut} />} />
-        {account.is_owner && <Route path={PATHS.visitors} element={<Visitors />} />}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </AppShell>
+    // Here, not at the root: only somebody signed in has watchlists to count.
+    <WatchlistMembershipProvider>
+      <AppShell
+        account={account}
+        screens={account.is_owner ? [...SCREENS, ...OWNER_SCREENS] : SCREENS}
+        build={hello.data}
+        latestSession={sessions.data?.[0]?.day ?? null}
+        onOpenProfile={() => {
+          onNavigate(PATHS.profile);
+        }}
+        onSignOut={onSignOut}
+      >
+        <KeyboardShortcuts />
+        <Routes>
+          <Route
+            path={PATHS.overview}
+            element={
+              <Overview
+                onOpenIndex={(key) => {
+                  onNavigate(populationPath("index", key));
+                }}
+                onOpenPopulation={(kind, key) => {
+                  onNavigate(populationPath(kind, key));
+                }}
+                onOpenBreadth={() => {
+                  onNavigate(PATHS.breadth);
+                }}
+                onOpenNews={() => {
+                  onNavigate(PATHS.news);
+                }}
+              />
+            }
+          />
+          <Route path={PATHS.breadth} element={<Breadth />} />
+          <Route path={PATHS.marketPhase} element={<MarketPhases />} />
+          <Route path={PATHS.calendar} element={<MarketCalendar />} />
+          <Route path={PATHS.flows} element={<Flows />} />
+          <Route path={PATHS.deals} element={<Deals />} />
+          <Route path={PATHS.news} element={<News />} />
+          <Route path="/movers/:list" element={<Movers />} />
+          <Route path={PATHS.earnings} element={<EarningsPage />} />
+          <Route path={PATHS.indices} element={<Indices />} />
+          <Route path={PATHS.sectors} element={<Sectors />} />
+          <Route path={PATHS.screen} element={<Screener />} />
+          <Route path={PATHS.scans} element={<Scans />} />
+          <Route path={PATHS.strategies} element={<Strategies />} />
+          <Route path={PATHS.strategyYears} element={<StrategyYears />} />
+          <Route path="/strategy/:id" element={<Strategy />} />
+          <Route path={PATHS.backtests} element={<Backtests />} />
+          <Route path="/backtest/:id" element={<Backtest />} />
+          <Route path={PATHS.compare} element={<Compare />} />
+          <Route path={PATHS.watchlists} element={<Watchlists />} />
+          <Route path={PATHS.ipos} element={<Ipos />} />
+          <Route path="/ipo/:id" element={<IpoRoute />} />
+          <Route path={PATHS.funds} element={<Funds />} />
+          <Route path={PATHS.futures} element={<Futures />} />
+          <Route path="/future/:key" element={<FutureRoute />} />
+          <Route path="/fund/:code" element={<FundRoute />} />
+          <Route
+            path="/company/:ref"
+            element={
+              <ReferencedPage kind="company">
+                {(key) => <Company instrumentKey={key} />}
+              </ReferencedPage>
+            }
+          />
+          <Route
+            path="/index/:ref"
+            element={
+              <ReferencedPage kind="index">
+                {(key) => <Population kind="index" scopeKey={key} />}
+              </ReferencedPage>
+            }
+          />
+          <Route
+            path="/sector/:ref"
+            element={
+              <ReferencedPage kind="sector">
+                {(key) => <Population kind="sector" scopeKey={key} />}
+              </ReferencedPage>
+            }
+          />
+          <Route
+            path={PATHS.profile}
+            element={<Profile account={account} onSignOut={onSignOut} />}
+          />
+          {account.is_owner && <Route path={PATHS.visitors} element={<Visitors />} />}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </AppShell>
+    </WatchlistMembershipProvider>
   );
 }
 
