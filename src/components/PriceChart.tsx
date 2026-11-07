@@ -35,7 +35,11 @@ import {
   PRICE_WIDTH,
   RISE,
 } from "@/lib/chartPalette";
+import type { ChartMarker } from "@/lib/chartMarkers";
 import { toNumber } from "@/lib/format";
+
+/** No extra lines, as one value so the series are not rebuilt each render. */
+const NO_EXTRA: Series[] = [];
 
 interface PriceChartProps {
   points: ChartPoint[] | null;
@@ -50,6 +54,8 @@ interface PriceChartProps {
   decorate?: React.ComponentProps<typeof Chart>["decorate"];
   /** Lines laid over the price, as another instrument for comparison. */
   extra?: Series[];
+  /** Marks on the price: a strategy's trades, a company's bonuses and splits. */
+  markers?: ChartMarker[];
 }
 
 /** The averages, and which figure each reads. */
@@ -97,7 +103,8 @@ export function PriceChart({
   forecast = null,
   loading = false,
   decorate,
-  extra = [],
+  extra = NO_EXTRA,
+  markers,
 }: PriceChartProps): React.JSX.Element {
   // What the reader chose last time, unless the page asks for something
   // particular; what they choose now is remembered for next time.
@@ -226,6 +233,7 @@ export function PriceChart({
         inverted={inverted}
         imageName={instrument?.label ?? "chart"}
         {...(decorate === undefined ? {} : { decorate })}
+        {...(markers === undefined ? {} : { markers })}
       />
       {band !== null && <ForecastNote bands={band} />}
     </div>

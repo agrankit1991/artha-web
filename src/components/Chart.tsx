@@ -29,14 +29,18 @@ import {
   type MouseEventParams,
   type PriceFormatCustom,
   PriceScaleMode,
+  type SeriesMarker,
   type SeriesType,
+  type Time,
   createChart,
+  createSeriesMarkers,
 } from "lightweight-charts";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ImageDown, RotateCcw } from "lucide-react";
 
 import type { ChartScale } from "@/components/ChartControls";
+import type { ChartMarker } from "@/lib/chartMarkers";
 
 import { TradingViewLink } from "@/components/TradingViewLink";
 import { AVERAGE_WIDTH, FALL, NEUTRAL, PRICE_WIDTH, RISE, THRESHOLD } from "@/lib/chartPalette";
@@ -187,10 +191,40 @@ interface ChartProps {
   ) => (() => void) | undefined;
   /** What a saved image is called; "chart" unless given. */
   imageName?: string;
+  /** Marks on the first series, the price: trades, corporate actions. */
+  markers?: ChartMarker[];
   className?: string;
 }
 
 const DEFAULT_HEIGHT = 360;
+
+/** No marks, kept as one value so a chart without them is not rebuilt each render. */
+const NO_MARKERS: ChartMarker[] = [];
+
+/**
+ * Hand marks to the library: in time order, as it requires, coloured by the
+ * palette's rise and fall.
+ *
+ * @param markers - The marks, in any order.
+ * @returns The library's markers.
+ */
+function libraryMarkers(markers: readonly ChartMarker[]): SeriesMarker<Time>[] {
+  const colours = {
+    gain: tokenColour(RISE),
+    loss: tokenColour(FALL),
+    neutral: tokenColour(NEUTRAL),
+  };
+  const shapes = { up: "arrowUp", down: "arrowDown", circle: "circle" } as const;
+  return [...markers]
+    .sort((one, other) => one.time.localeCompare(other.time))
+    .map((one) => ({
+      time: one.time,
+      position: one.position === "above" ? "aboveBar" : "belowBar",
+      shape: shapes[one.shape],
+      color: colours[one.tone],
+      text: one.text,
+    }));
+}
 
 /** The library's mode for each way the price axis can be laid out. */
 const SCALE_MODES: Record<ChartScale, PriceScaleMode> = {
@@ -235,6 +269,7 @@ export function Chart({
   inverted = false,
   decorate,
   imageName = "chart",
+  markers = NO_MARKERS,
   className,
 }: ChartProps): React.JSX.Element {
   const holder = useRef<HTMLDivElement>(null);
@@ -315,6 +350,10 @@ export function Chart({
     const named = new Map<ISeriesApi<SeriesType>, Series>();
     for (const one of drawable) {
       named.set(draw(created, one, scale), one);
+    }
+    const price = [...named.keys()][0];
+    if (price !== undefined && markers.length > 0) {
+      createSeriesMarkers(price, libraryMarkers(markers));
     }
     created.priceScale("right").applyOptions({
       mode: SCALE_MODES[priceScale],
@@ -430,7 +469,18 @@ export function Chart({
     // `drawable` is rebuilt on every render; `series` is what a caller
     // actually changes, and is what this should redraw for.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [series, total, appearance, scale, hasBars, paneHeight, priceScale, inverted, decorate]);
+  }, [
+    series,
+    total,
+    appearance,
+    scale,
+    hasBars,
+    paneHeight,
+    priceScale,
+    inverted,
+    decorate,
+    markers,
+  ]);
 
   const reset = useCallback(() => {
     const frame = opening.current;

@@ -16,6 +16,7 @@ export const chartCalls = {
   setData: vi.fn(),
   createPriceLine: vi.fn(),
   takeScreenshot: vi.fn(),
+  createSeriesMarkers: vi.fn(),
   remove: vi.fn(),
   fitContent: vi.fn(),
   setVisibleLogicalRange: vi.fn(),
@@ -136,6 +137,7 @@ export function chartModule(): Record<string, unknown> {
     HistogramSeries: "histogram",
     AreaSeries: "area",
     BarSeries: "bar",
+    createSeriesMarkers: chartCalls.createSeriesMarkers,
     BaselineSeries: "baseline",
     // The library's own values, so a test can say which mode was asked for.
     PriceScaleMode: { Normal: 0, Logarithmic: 1, Percentage: 2, IndexedTo100: 3 },

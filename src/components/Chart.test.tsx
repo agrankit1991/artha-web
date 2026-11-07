@@ -544,3 +544,31 @@ describe("Chart, shapes, scales, decoration and saving", () => {
     click.mockRestore();
   });
 });
+
+describe("Chart, marks", () => {
+  it("hands its marks to the library on the price, in time order, shaped and coloured", () => {
+    draw([LINE], {
+      markers: [
+        { time: "2026-09-02", position: "above", shape: "down", tone: "loss", text: "Sell: Stop" },
+        { time: "2026-09-01", position: "below", shape: "up", tone: "gain", text: "Buy" },
+        { time: "2026-09-02", position: "above", shape: "circle", tone: "neutral", text: "Bonus" },
+      ],
+    });
+
+    expect(chartCalls.createSeriesMarkers).toHaveBeenCalledTimes(1);
+    const [, marks] = chartCalls.createSeriesMarkers.mock.calls[0] as [
+      unknown,
+      { time: string; position: string; shape: string; text: string }[],
+    ];
+    expect(marks.map((one) => [one.time, one.position, one.shape, one.text])).toEqual([
+      ["2026-09-01", "belowBar", "arrowUp", "Buy"],
+      ["2026-09-02", "aboveBar", "arrowDown", "Sell: Stop"],
+      ["2026-09-02", "aboveBar", "circle", "Bonus"],
+    ]);
+  });
+
+  it("asks for no marks when it has none", () => {
+    draw([LINE]);
+    expect(chartCalls.createSeriesMarkers).not.toHaveBeenCalled();
+  });
+});

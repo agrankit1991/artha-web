@@ -15,19 +15,36 @@ import { useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import type { SearchHit } from "@/api/client";
-import { fetchFigures, fetchPriceBands } from "@/api/client";
+import {
+  fetchCorporateActions,
+  fetchFigures,
+  fetchPriceBands,
+  fetchStrategies,
+  fetchStrategyTrades,
+} from "@/api/client";
 import type { Series } from "@/components/Chart";
 import { Chip } from "@/components/Chip";
 import { Failed } from "@/components/Failed";
 import { InstrumentPicker } from "@/components/InstrumentPicker";
 import { PriceChart } from "@/components/PriceChart";
 import { RangeSelector } from "@/components/RangeSelector";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useChartRange } from "@/hooks/useChartRange";
 import { useResource } from "@/hooks/useResource";
 import { MOST_SERIES, PRICE_LINE, SERIES_COLOURS } from "@/lib/chartPalette";
+import { actionMarkers, tradeMarkers } from "@/lib/chartMarkers";
 import { toNumber } from "@/lib/format";
 import { companyPath, populationPath } from "@/lib/paths";
 import { PRICE_RANGES } from "@/lib/priceRanges";
+
+/** The chooser's value for no strategy's trades. */
+const NO_STRATEGY = "none";
 
 /** How many instruments may be laid over the chart: the palette's colours, less the price's. */
 const MOST_COMPARED = MOST_SERIES - 1;
@@ -82,6 +99,29 @@ export function WorkspaceChart({
     [compared, comparedFigures.data],
   );
 
+  // A strategy's buys and sells, marked: why a signal fired, on the prices
+  // the rule read (owner's choice, 2026-11-08: any saved strategy, chosen here).
+  const loadStrategies = useCallback(() => fetchStrategies(), []);
+  const strategies = useResource(loadStrategies);
+  const [strategy, setStrategy] = useState<number | null>(null);
+  const loadTrades = useCallback(
+    () =>
+      strategy === null ? Promise.resolve(null) : fetchStrategyTrades(strategy, instrumentKey),
+    [strategy, instrumentKey],
+  );
+  const trades = useResource(loadTrades);
+  // An index has no corporate actions; a company's bonuses and splits are marked.
+  const loadActions = useCallback(
+    () => (isIndex ? Promise.resolve([]) : fetchCorporateActions(instrumentKey)),
+    [isIndex, instrumentKey],
+  );
+  const actions = useResource(loadActions);
+  const markers = useMemo(
+    () => [...actionMarkers(actions.data ?? []), ...tradeMarkers(trades.data?.trades ?? [])],
+    [actions.data, trades.data],
+  );
+  const traded = trades.data;
+
   const add = (hit: SearchHit): void => {
     setCompared((now) =>
       now.some((one) => one.key === hit.key) || now.length >= MOST_COMPARED
@@ -132,7 +172,32 @@ export function WorkspaceChart({
             Read in per cent from the first session shown.
           </span>
         )}
+        <Select
+          value={strategy === null ? NO_STRATEGY : String(strategy)}
+          onValueChange={(value) => {
+            setStrategy(value === NO_STRATEGY ? null : Number(value));
+          }}
+        >
+          <SelectTrigger aria-label="Show a strategy's trades" className="h-9 w-56">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NO_STRATEGY}>No strategy's trades</SelectItem>
+            {(strategies.data ?? []).map((one) => (
+              <SelectItem key={one.strategy_id} value={String(one.strategy_id)}>
+                {one.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+      {traded !== null && traded.trades.length === 0 && (
+        <p className="text-xs text-muted-foreground">
+          {traded.backtest_id === null
+            ? `${traded.name} has not been backtested yet.`
+            : `${traded.name} never traded ${symbol} in its latest backtest.`}
+        </p>
+      )}
       {chart.error !== null ? (
         <Failed message={chart.error} />
       ) : (
@@ -145,6 +210,7 @@ export function WorkspaceChart({
           loading={chart.loading}
           instrument={{ label: symbol }}
           extra={extra}
+          markers={markers}
         />
       )}
     </section>
