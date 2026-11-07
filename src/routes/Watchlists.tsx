@@ -26,6 +26,7 @@ import type {
 import {
   deleteWatchlist,
   deleteWatchlistFolder,
+  fetchKeptList,
   fetchKeptLists,
   fetchWatchlist,
   fetchWatchlistFolders,
@@ -34,15 +35,18 @@ import {
   removeWatchlistItem,
   updateWatchlistItem,
 } from "@/api/client";
+import type { PanelRow } from "@/components/ChartListPanel";
+import { Chooser } from "@/components/Chooser";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { DivergingBars } from "@/components/DivergingBars";
 import { Empty } from "@/components/Empty";
-import { KeptListView } from "@/components/KeptListView";
+import { KeptListView, keptTitle } from "@/components/KeptListView";
 import { ListActions } from "@/components/ListActions";
 import { Failed } from "@/components/Failed";
 import { Menu, MenuItem } from "@/components/Menu";
 import { PageHeader } from "@/components/PageHeader";
 import { AddDialog, FolderDialog, ItemDialog, ListDialog } from "@/components/WatchlistDialogs";
+import { WatchlistChartView } from "@/components/WatchlistChartView";
 import { WatchlistTable } from "@/components/WatchlistTable";
 import { WatchlistTree } from "@/components/WatchlistTree";
 import { Button } from "@/components/ui/button";
@@ -51,6 +55,7 @@ import { MARKS } from "@/lib/entities";
 import { formatDay, sentence, toNumber } from "@/lib/format";
 import { keptFromParams, keptParams, withoutKept } from "@/lib/keptLists";
 import { companyPath } from "@/lib/paths";
+import { usePreferences, writePreferences } from "@/lib/preferences";
 
 /**
  * Render the page.
@@ -80,6 +85,31 @@ export function Watchlists(): React.JSX.Element {
   }, [lists.data, asked, kept]);
   const chosenId = chosen?.watchlist_id ?? null;
   const [moveProblem, setMoveProblem] = useState<string | null>(null);
+
+  // Table or Chart: the address's, else the one the reader chose last.
+  const { watchlistView, movers: universe } = usePreferences();
+  const askedView = params.get("view");
+  const view = askedView === "chart" || askedView === "table" ? askedView : watchlistView;
+  const chooseView = (next: "table" | "chart"): void => {
+    writePreferences({ watchlistView: next });
+    const query = new URLSearchParams(params);
+    query.set("view", next);
+    setParams(query, { replace: true });
+  };
+  // A kept list's rows for the chart's panel; its table view reads them itself.
+  const loadKeptRows = useCallback(
+    () =>
+      kept === null || view !== "chart"
+        ? Promise.resolve(null)
+        : fetchKeptList(kept.source.kind === "movers" ? { ...kept.source, universe } : kept.source),
+    [kept, view, universe],
+  );
+  const keptRows = useResource(loadKeptRows);
+  const chartOf = (instrumentKey: string): void => {
+    const query = new URLSearchParams(params);
+    query.set("chart", instrumentKey);
+    setParams(query, { replace: true });
+  };
 
   const loadPage = useCallback(
     () => (chosenId === null ? Promise.resolve(null) : fetchWatchlist(chosenId)),
@@ -154,15 +184,26 @@ export function Watchlists(): React.JSX.Element {
         title="Watchlists"
         description="What you are keeping an eye on, and why: each company with its price beside your own stop and target, and how it has done since you added it."
         actions={
-          <Button
-            size="sm"
-            onClick={() => {
-              setDialog({ kind: "create" });
-            }}
-          >
-            <Plus aria-hidden="true" className="mr-1 h-4 w-4" />
-            New list
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Chooser
+              options={[
+                { key: "table", label: "Table" },
+                { key: "chart", label: "Chart" },
+              ]}
+              chosen={view}
+              onChange={chooseView}
+              label="Show as"
+            />
+            <Button
+              size="sm"
+              onClick={() => {
+                setDialog({ kind: "create" });
+              }}
+            >
+              <Plus aria-hidden="true" className="mr-1 h-4 w-4" />
+              New list
+            </Button>
+          </div>
         }
       />
 
@@ -190,7 +231,19 @@ export function Watchlists(): React.JSX.Element {
           }}
         />
 
-        {kept !== null ? (
+        {view === "chart" && (kept !== null || chosen !== null) ? (
+          <WatchlistChartView
+            title={
+              kept === null
+                ? (chosen?.name ?? "")
+                : keptTitle(kept.source, keptRows.data?.name ?? null)
+            }
+            rows={kept === null ? items.map(panelRow) : (keptRows.data?.rows ?? []).map(panelRow)}
+            asked={params.get("chart")}
+            loading={kept === null ? page.loading : keptRows.loading}
+            onChoose={chartOf}
+          />
+        ) : kept !== null ? (
           <section aria-label="Kept list">
             <KeptListView
               choice={kept}
@@ -457,4 +510,15 @@ export function Watchlists(): React.JSX.Element {
       />
     </div>
   );
+}
+
+/** A row of either kind of list, as the chart's panel shows it. */
+function panelRow(row: PanelRow): PanelRow {
+  return {
+    instrument_key: row.instrument_key,
+    symbol: row.symbol,
+    name: row.name,
+    close: row.close,
+    change_percent: row.change_percent,
+  };
 }

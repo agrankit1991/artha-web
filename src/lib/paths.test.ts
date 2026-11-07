@@ -10,6 +10,7 @@ import {
   scopeFromParams,
   slug,
   withScope,
+  workspacePath,
 } from "./paths";
 
 describe("paths", () => {
@@ -88,5 +89,15 @@ describe("scope in the address", () => {
     const whole = withScope(withIndex, { kind: "companies", key: null });
     expect(whole.get("scope_kind")).toBe("companies");
     expect(whole.has("scope_key")).toBe(false);
+  });
+});
+
+describe("workspacePath", () => {
+  it("asks the watchlist page's Chart view for the instrument", () => {
+    const path = workspacePath("NSE_EQ|INE002A01018");
+    const query = new URLSearchParams(path.split("?")[1]);
+    expect(path.startsWith("/watchlists?")).toBe(true);
+    expect(query.get("view")).toBe("chart");
+    expect(query.get("chart")).toBe("NSE_EQ|INE002A01018");
   });
 });

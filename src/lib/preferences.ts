@@ -78,6 +78,8 @@ export interface Preferences {
   exportSize: ExportSize;
   /** How a price chart's axis is laid out. */
   chartScale: ChartScale;
+  /** Whether the watchlist page opens on its table or its chart. */
+  watchlistView: "table" | "chart";
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -94,6 +96,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   // The owner's own plan: Upstox Plus holds 200 to a list.
   exportSize: "200",
   chartScale: "linear",
+  // The table the page has always opened on, until the reader chooses the chart.
+  watchlistView: "table",
 };
 
 const STORAGE_KEY = "artha.preferences";
@@ -233,6 +237,7 @@ export function parse(stored: unknown): Preferences {
       typeof chartScale === "string" && SCALE_KEYS.includes(chartScale)
         ? (chartScale as ChartScale)
         : DEFAULT_PREFERENCES.chartScale,
+    watchlistView: record["watchlistView"] === "chart" ? "chart" : "table",
   };
 }
 

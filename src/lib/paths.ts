@@ -170,6 +170,17 @@ export function watchlistPath(watchlistId: number): string {
 }
 
 /**
+ * Build the path to an instrument charted in the watchlist page's Chart
+ * view, beside the reader's first list.
+ *
+ * @param instrumentKey - The instrument to chart.
+ * @returns The path, with the view and the instrument in the query.
+ */
+export function workspacePath(instrumentKey: string): string {
+  return `${PATHS.watchlists}?${new URLSearchParams({ view: "chart", chart: instrumentKey }).toString()}`;
+}
+
+/**
  * A comparison with these instruments already on it.
  *
  * @param keys - The instrument keys, in the order to draw them.

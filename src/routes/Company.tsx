@@ -13,6 +13,7 @@
  * reader scrolls for is one click away instead.
  */
 
+import { ChartCandlestick } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -91,7 +92,7 @@ import {
   todayInIndia,
 } from "@/lib/format";
 import { monthOfCloses } from "@/lib/sharing";
-import { companyPath, comparePath, newsPath, populationPath } from "@/lib/paths";
+import { companyPath, comparePath, newsPath, populationPath, workspacePath } from "@/lib/paths";
 
 interface CompanyProps {
   /** The company's listing on either exchange. Both reach this page. */
@@ -301,6 +302,12 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
                 <Link to={comparePath([key])}>
                   <MARKS.compare aria-hidden="true" className="mr-1.5 h-4 w-4" />
                   Compare
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to={workspacePath(key)}>
+                  <ChartCandlestick aria-hidden="true" className="mr-1.5 h-4 w-4" />
+                  Chart view
                 </Link>
               </Button>
               <WatchButton instrumentKey={key} symbol={found.symbol} />

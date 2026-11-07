@@ -125,6 +125,10 @@ export function PriceChart({
     writePreferences({ forecast: next });
   };
   const band = forecast !== null && showForecast ? forecast : null;
+  // With other instruments laid over the price, a price axis flattens the
+  // cheaper ones into the floor; per cent from the first session shown puts
+  // them on one footing. Indexed to a hundred does too, so it is kept.
+  const shownScale: ChartScale = extra.length > 0 && scale !== "indexed" ? "percent" : scale;
   const sessions = useMemo(() => points ?? [], [points]);
 
   const series = useMemo<Series[]>(() => {
@@ -208,7 +212,7 @@ export function PriceChart({
         overlays={overlays}
         onStyle={chooseStyle}
         onOverlays={chooseOverlays}
-        scale={{ chosen: scale, inverted, onScale: chooseScale, onInvert: setInverted }}
+        scale={{ chosen: shownScale, inverted, onScale: chooseScale, onInvert: setInverted }}
         {...(forecast === null
           ? {}
           : { forecast: { shown: showForecast, onToggle: chooseForecast } })}
@@ -218,7 +222,7 @@ export function PriceChart({
         instruments={instrument ? [instrument] : []}
         loading={loading}
         empty="No sessions to draw"
-        priceScale={scale}
+        priceScale={shownScale}
         inverted={inverted}
         imageName={instrument?.label ?? "chart"}
         {...(decorate === undefined ? {} : { decorate })}
