@@ -1416,6 +1416,7 @@ export function watchlistSummary(overrides: Partial<WatchlistSummary> = {}): Wat
     description: "Compounders",
     items: 2,
     created_at: "2026-09-01",
+    folder_id: null,
     ...overrides,
   };
 }

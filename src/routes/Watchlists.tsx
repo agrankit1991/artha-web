@@ -13,32 +13,44 @@
  * The chosen list lives in the address, so a list is a link.
  */
 
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { FolderInput, Pencil, Plus, Trash2 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import type { WatchedInstrument, WatchlistSummary } from "@/api/client";
+import type {
+  KeptSource,
+  WatchedInstrument,
+  WatchlistFolder,
+  WatchlistSummary,
+} from "@/api/client";
 import {
   deleteWatchlist,
+  deleteWatchlistFolder,
+  fetchKeptLists,
   fetchWatchlist,
+  fetchWatchlistFolders,
   fetchWatchlists,
+  moveWatchlist,
   removeWatchlistItem,
   updateWatchlistItem,
 } from "@/api/client";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { DivergingBars } from "@/components/DivergingBars";
 import { Empty } from "@/components/Empty";
+import { KeptListView } from "@/components/KeptListView";
 import { ListActions } from "@/components/ListActions";
 import { Failed } from "@/components/Failed";
+import { Menu, MenuItem } from "@/components/Menu";
 import { PageHeader } from "@/components/PageHeader";
-import { AddDialog, ItemDialog, ListDialog } from "@/components/WatchlistDialogs";
+import { AddDialog, FolderDialog, ItemDialog, ListDialog } from "@/components/WatchlistDialogs";
 import { WatchlistTable } from "@/components/WatchlistTable";
+import { WatchlistTree } from "@/components/WatchlistTree";
 import { Button } from "@/components/ui/button";
 import { useResource } from "@/hooks/useResource";
 import { MARKS } from "@/lib/entities";
-import { formatDay, toNumber } from "@/lib/format";
+import { formatDay, sentence, toNumber } from "@/lib/format";
+import { keptFromParams, keptParams, withoutKept } from "@/lib/keptLists";
 import { companyPath } from "@/lib/paths";
-import { cn } from "@/lib/utils";
 
 /**
  * Render the page.
@@ -49,14 +61,25 @@ export function Watchlists(): React.JSX.Element {
   const [params, setParams] = useSearchParams();
   const loadLists = useCallback(() => fetchWatchlists(), []);
   const lists = useResource(loadLists);
+  const loadFolders = useCallback(() => fetchWatchlistFolders(), []);
+  const folders = useResource(loadFolders);
+  const loadKept = useCallback(() => fetchKeptLists(), []);
+  const keptLists = useResource(loadKept);
+  // A kept list named in the address is shown instead of the reader's own.
+  const kept = useMemo(() => keptFromParams(params), [params]);
 
-  // The chosen list: the address's, or the first one there is.
+  // The chosen list: the address's, or the first one there is -- unless a
+  // kept list is shown.
   const asked = toNumber(params.get("list"));
   const chosen = useMemo(() => {
+    if (kept !== null) {
+      return null;
+    }
     const found = lists.data ?? [];
     return found.find((one) => one.watchlist_id === asked) ?? found[0] ?? null;
-  }, [lists.data, asked]);
+  }, [lists.data, asked, kept]);
   const chosenId = chosen?.watchlist_id ?? null;
+  const [moveProblem, setMoveProblem] = useState<string | null>(null);
 
   const loadPage = useCallback(
     () => (chosenId === null ? Promise.resolve(null) : fetchWatchlist(chosenId)),
@@ -65,9 +88,14 @@ export function Watchlists(): React.JSX.Element {
   const page = useResource(loadPage);
 
   const choose = (watchlistId: number): void => {
-    const next = new URLSearchParams(params);
+    const next = withoutKept(params);
     next.set("list", String(watchlistId));
     setParams(next, { replace: true });
+  };
+  const chooseKept = (source: KeptSource, from: KeptSource | null = null): void => {
+    // Pushed, not replaced: opening an index from its category is a step a
+    // reader goes Back from.
+    setParams(keptParams(params, source, from));
   };
 
   const [dialog, setDialog] = useState<
@@ -77,6 +105,9 @@ export function Watchlists(): React.JSX.Element {
     | { kind: "add" }
     | { kind: "edit"; item: WatchedInstrument }
     | { kind: "remove"; item: WatchedInstrument }
+    | { kind: "folder-create" }
+    | { kind: "folder-rename"; folder: WatchlistFolder }
+    | { kind: "folder-delete"; folder: WatchlistFolder }
     | null
   >(null);
   const [tag, setTag] = useState<string | null>(null);
@@ -87,6 +118,17 @@ export function Watchlists(): React.JSX.Element {
   const refresh = (): void => {
     lists.reload();
     page.reload();
+  };
+
+  const move = (list: WatchlistSummary, folderId: number | null): void => {
+    setMoveProblem(null);
+    moveWatchlist(list.watchlist_id, folderId)
+      .then(() => {
+        lists.reload();
+      })
+      .catch((error: unknown) => {
+        setMoveProblem(error instanceof Error ? error.message : "Could not move the list");
+      });
   };
 
   if (lists.error !== null) {
@@ -124,44 +166,48 @@ export function Watchlists(): React.JSX.Element {
         }
       />
 
-      {lists.data !== null && lists.data.length === 0 ? (
-        <Empty
-          title="No watchlists yet"
-          reason="Make one here, or press Watch on any company's page and it is made there."
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
+        {/* One column that may shrink on a phone: an implicit column is as
+            wide as the widest table in it, and the page scrolled sideways. */}
+        <WatchlistTree
+          lists={lists.data ?? []}
+          folders={folders.data ?? []}
+          kept={keptLists.data}
+          chosenList={chosenId}
+          chosenKept={kept}
+          onChooseList={choose}
+          onChooseKept={(source) => {
+            chooseKept(source);
+          }}
+          onNewFolder={() => {
+            setDialog({ kind: "folder-create" });
+          }}
+          onRenameFolder={(folder) => {
+            setDialog({ kind: "folder-rename", folder });
+          }}
+          onDeleteFolder={(folder) => {
+            setDialog({ kind: "folder-delete", folder });
+          }}
         />
-      ) : (
-        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
-          {/* One column that may shrink on a phone: an implicit column is as
-              wide as the widest table in it, and the page scrolled sideways. */}
-          <nav aria-label="Watchlists" className="space-y-1">
-            {(lists.data ?? []).map((list) => (
-              <button
-                key={list.watchlist_id}
-                type="button"
-                aria-current={list.watchlist_id === chosenId ? "page" : undefined}
-                onClick={() => {
-                  choose(list.watchlist_id);
-                }}
-                className={cn(
-                  "flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-accent",
-                  list.watchlist_id === chosenId && "bg-accent font-medium",
-                )}
-              >
-                <span className="min-w-0">
-                  <span className="block truncate">{list.name}</span>
-                  {list.description !== null && (
-                    <span className="block truncate text-xs text-muted-foreground">
-                      {list.description}
-                    </span>
-                  )}
-                </span>
-                <span className="ml-2 shrink-0 text-xs tabular text-muted-foreground">
-                  {list.items}
-                </span>
-              </button>
-            ))}
-          </nav>
 
+        {kept !== null ? (
+          <section aria-label="Kept list">
+            <KeptListView
+              choice={kept}
+              onOpen={(source, from) => {
+                chooseKept(source, from);
+              }}
+              onBack={(source) => {
+                chooseKept(source);
+              }}
+            />
+          </section>
+        ) : lists.data !== null && lists.data.length === 0 ? (
+          <Empty
+            title="No watchlists of your own yet"
+            reason="Save any list on the site as one, press Watch on a company's page, or open one the platform keeps on the left."
+          />
+        ) : (
           <section className="space-y-3" aria-label="Companies">
             {chosen !== null && (
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -174,6 +220,45 @@ export function Watchlists(): React.JSX.Element {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <ListActions keys={items.map((one) => one.instrument_key)} label={chosen.name} />
+                  {(folders.data ?? []).length > 0 && (
+                    <Menu
+                      label={`Move ${chosen.name} to a folder`}
+                      align="end"
+                      triggerClassName="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-sm font-medium hover:bg-accent"
+                      trigger={
+                        <>
+                          <FolderInput aria-hidden="true" className="h-4 w-4" />
+                          Move
+                        </>
+                      }
+                    >
+                      {(close) => (
+                        <>
+                          <MenuItem
+                            selected={chosen.folder_id === null}
+                            onSelect={() => {
+                              close();
+                              move(chosen, null);
+                            }}
+                          >
+                            Top level
+                          </MenuItem>
+                          {(folders.data ?? []).map((folder) => (
+                            <MenuItem
+                              key={folder.folder_id}
+                              selected={chosen.folder_id === folder.folder_id}
+                              onSelect={() => {
+                                close();
+                                move(chosen, folder.folder_id);
+                              }}
+                            >
+                              {folder.name}
+                            </MenuItem>
+                          ))}
+                        </>
+                      )}
+                    </Menu>
+                  )}
                   <Button
                     size="sm"
                     onClick={() => {
@@ -205,6 +290,10 @@ export function Watchlists(): React.JSX.Element {
                   </Button>
                 </div>
               </div>
+            )}
+
+            {moveProblem !== null && (
+              <p className="text-sm text-destructive">{sentence(moveProblem)}</p>
             )}
 
             {tags.length > 0 && (
@@ -272,9 +361,38 @@ export function Watchlists(): React.JSX.Element {
               />
             )}
           </section>
-        </div>
-      )}
+        )}
+      </div>
 
+      <FolderDialog
+        state={
+          dialog?.kind === "folder-create"
+            ? { kind: "create" }
+            : dialog?.kind === "folder-rename"
+              ? { kind: "rename", folder: dialog.folder }
+              : null
+        }
+        onClose={closeDialog}
+        onDone={() => {
+          closeDialog();
+          folders.reload();
+        }}
+      />
+      <ConfirmDialog
+        open={dialog?.kind === "folder-delete"}
+        title={dialog?.kind === "folder-delete" ? `Delete the folder “${dialog.folder.name}”?` : ""}
+        description="Its lists move to the top level; none of them is deleted."
+        action="Delete folder"
+        onClose={closeDialog}
+        onConfirm={async () => {
+          if (dialog?.kind === "folder-delete") {
+            await deleteWatchlistFolder(dialog.folder.folder_id);
+            closeDialog();
+            folders.reload();
+            lists.reload();
+          }
+        }}
+      />
       <ListDialog
         state={dialog?.kind === "create" || dialog?.kind === "rename" ? dialog : null}
         onClose={closeDialog}

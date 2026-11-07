@@ -184,7 +184,7 @@ describe("Watchlists", () => {
   it("says when there are no lists, when a list is empty, and when a read fails", async () => {
     stubPlatform({ "/api/watchlists": { body: [] } });
     const none = renderPage(<Watchlists />);
-    expect(await screen.findByText("No watchlists yet")).toBeInTheDocument();
+    expect(await screen.findByText("No watchlists of your own yet")).toBeInTheDocument();
     none.unmount();
 
     vi.unstubAllGlobals();
@@ -397,5 +397,187 @@ describe("Watchlists", () => {
     });
     // Starring stays on the list rather than opening the company.
     expect(screen.getByRole("table", { name: "Watched companies" })).toBeInTheDocument();
+  });
+});
+
+describe("Watchlists, folders and kept lists", () => {
+  const FOLDER = { folder_id: 7, name: "Swing", created_at: "2026-11-07" };
+
+  /** The platform with one folder, the kept lists, and the writes these tests make. */
+  function stubFolders(): ReturnType<typeof stubPlatform> {
+    return stubPlatform({
+      "/api/watchlist-folders/7": { body: { ...FOLDER, name: "Short term" } },
+      "/api/watchlist-folders": {
+        bodyFor: (_path, method) =>
+          method === "POST" ? { folder_id: 8, name: "Banks", created_at: "2026-11-07" } : [FOLDER],
+        statusFor: (path, method) => (method === "POST" && path.includes("taken") ? 409 : 200),
+      },
+      "/api/watchlists/1/folder": { body: watchlistSummary({ folder_id: 7 }) },
+      "/api/watchlists/1": { body: watchlistPage() },
+      "/api/watchlists": { body: [watchlistSummary()] },
+      "/api/kept-lists/rows": {
+        body: { kind: "sector", key: "IT", name: "IT - Software", rows: [] },
+      },
+      "/api/kept-lists": {
+        body: {
+          indices: [],
+          sectors: [{ kind: "sector", key: "IT", name: "IT - Software", count: 3 }],
+          movers: [],
+          strategies: [],
+        },
+      },
+    });
+  }
+
+  /** The requests made, as method and decoded path. */
+  function made(fetched: ReturnType<typeof stubPlatform>): string[] {
+    return fetched.mock.calls.map(
+      ([path, init]) => `${init?.method ?? "GET"} ${decodeURIComponent(path)}`,
+    );
+  }
+
+  it("makes and renames a folder, and moves a list into it", async () => {
+    const fetched = stubFolders();
+    renderPage(<Watchlists />);
+    await screen.findByRole("heading", { name: "Long term" });
+
+    await userEvent.click(screen.getByRole("button", { name: "New folder" }));
+    const dialog = screen.getByRole("dialog", { name: "New folder" });
+    await userEvent.type(within(dialog).getByLabelText("Folder name"), "Banks{Enter}");
+    await waitFor(() => {
+      expect(made(fetched)).toContain("POST /api/watchlist-folders");
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "Folder Swing" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Rename folder…" }));
+    const rename = screen.getByRole("dialog", { name: "Rename folder" });
+    expect(within(rename).getByLabelText("Folder name")).toHaveValue("Swing");
+    await userEvent.clear(within(rename).getByLabelText("Folder name"));
+    await userEvent.type(within(rename).getByLabelText("Folder name"), "Short term");
+    await userEvent.click(within(rename).getByRole("button", { name: "Save" }));
+    await waitFor(() => {
+      expect(made(fetched)).toContain("PATCH /api/watchlist-folders/7");
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "Move Long term to a folder" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Swing" }));
+    await waitFor(() => {
+      expect(made(fetched)).toContain("PUT /api/watchlists/1/folder");
+    });
+    const moved = fetched.mock.calls.find(([path]) => path === "/api/watchlists/1/folder");
+    expect(JSON.parse(moved?.[1]?.body as string)).toEqual({ folder_id: 7 });
+  });
+
+  it("shows why a folder or a move was refused", async () => {
+    stubPlatform({
+      "/api/watchlist-folders": {
+        bodyFor: (_path, method) =>
+          method === "POST" ? { detail: "you already have a folder called 'Swing'" } : [FOLDER],
+        statusFor: (_path, method) => (method === "POST" ? 409 : 200),
+      },
+      "/api/watchlists/1/folder": { status: 404, body: { detail: "no such folder" } },
+      "/api/watchlists/1": { body: watchlistPage() },
+      "/api/watchlists": { body: [watchlistSummary()] },
+    });
+    renderPage(<Watchlists />);
+    await screen.findByRole("heading", { name: "Long term" });
+
+    await userEvent.click(screen.getByRole("button", { name: "New folder" }));
+    const dialog = screen.getByRole("dialog", { name: "New folder" });
+    await userEvent.type(within(dialog).getByLabelText("Folder name"), "Swing{Enter}");
+    expect(await within(dialog).findByText(/already have a folder called/)).toBeVisible();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    await userEvent.click(screen.getByRole("button", { name: "Move Long term to a folder" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Top level" }));
+    expect(await screen.findByText("No such folder")).toBeVisible();
+  });
+
+  it("deletes a folder after saying its lists are kept", async () => {
+    const fetched = stubFolders();
+    renderPage(<Watchlists />);
+    await screen.findByRole("heading", { name: "Long term" });
+
+    await userEvent.click(screen.getByRole("button", { name: "Folder Swing" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Delete folder…" }));
+    const confirm = screen.getByRole("dialog", { name: /Delete the folder “Swing”/ });
+    expect(within(confirm).getByText(/none of them is deleted/)).toBeVisible();
+    await userEvent.click(within(confirm).getByRole("button", { name: "Delete folder" }));
+
+    await waitFor(() => {
+      expect(made(fetched)).toContain("DELETE /api/watchlist-folders/7");
+    });
+  });
+
+  it("shows a kept list the address names, and returns to the reader's own when one is chosen", async () => {
+    stubFolders();
+    renderPage(<Watchlists />, { at: "/watchlists?kept=sector&key=IT" });
+
+    expect(await screen.findByRole("heading", { name: "IT - Software" })).toBeVisible();
+    expect(screen.queryByRole("heading", { name: "Long term" })).toBeNull();
+    // The group holding what is shown is open, and the list in it marked.
+    expect(screen.getByRole("button", { name: /IT - Software/ })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Long term/ }));
+    expect(await screen.findByRole("heading", { name: "Long term" })).toBeVisible();
+  });
+
+  it("opens a kept list from the panel", async () => {
+    stubFolders();
+    renderPage(<Watchlists />);
+    await screen.findByRole("heading", { name: "Long term" });
+
+    await userEvent.click(screen.getByRole("button", { name: /Sectors/ }));
+    await userEvent.click(screen.getByRole("button", { name: /IT - Software/ }));
+
+    expect(await screen.findByRole("heading", { name: "IT - Software" })).toBeVisible();
+  });
+});
+
+describe("Watchlists, opening an index from its category", () => {
+  it("opens an index into its companies and goes back to the category", async () => {
+    stubPlatform({
+      "/api/kept-lists/rows": {
+        bodyFor: (path) =>
+          decodeURIComponent(path).includes("kind=index")
+            ? { kind: "index", key: "NSE_INDEX|Nifty Bank", name: "Nifty Bank", rows: [] }
+            : {
+                kind: "indices",
+                key: "SECTORAL",
+                name: null,
+                rows: [
+                  {
+                    instrument_key: "NSE_INDEX|Nifty Bank",
+                    symbol: "Nifty Bank",
+                    name: "Nifty Bank",
+                    is_index: true,
+                    constituents: 12,
+                    rank: null,
+                    held: false,
+                    close: null,
+                    change_percent: null,
+                    one_month: null,
+                    one_year: null,
+                    volume: null,
+                    as_of: null,
+                  },
+                ],
+              },
+      },
+      "/api/kept-lists": { body: { indices: [], sectors: [], movers: [], strategies: [] } },
+      "/api/watchlists": { body: [] },
+    });
+    renderPage(<Watchlists />, { at: "/watchlists?kept=indices&key=SECTORAL" });
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Open Nifty Bank's 12 companies" }),
+    );
+    expect(await screen.findByRole("heading", { name: "Nifty Bank" })).toBeVisible();
+
+    await userEvent.click(screen.getByRole("button", { name: "Sectoral indices" }));
+    expect(await screen.findByRole("heading", { name: "Sectoral indices" })).toBeVisible();
   });
 });

@@ -1820,6 +1820,125 @@ export interface WatchlistSummary {
   /** How many instruments are on it. */
   items: number;
   created_at: string;
+  /** The folder it sits in, or null at the top level. */
+  folder_id: number | null;
+}
+
+/** A folder the reader groups watchlists in, one level up. */
+export interface WatchlistFolder {
+  folder_id: number;
+  name: string;
+  created_at: string;
+}
+
+/** Fetch the reader's folders, by name. */
+export function fetchWatchlistFolders(): Promise<WatchlistFolder[]> {
+  return request<WatchlistFolder[]>("/api/watchlist-folders");
+}
+
+/** Make a folder. */
+export function createWatchlistFolder(name: string): Promise<WatchlistFolder> {
+  return request<WatchlistFolder>("/api/watchlist-folders", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+}
+
+/** Rename a folder. */
+export function renameWatchlistFolder(folderId: number, name: string): Promise<WatchlistFolder> {
+  return request<WatchlistFolder>(`/api/watchlist-folders/${String(folderId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ name }),
+  });
+}
+
+/** Delete a folder; the lists in it move to the top level, none is lost. */
+export async function deleteWatchlistFolder(folderId: number): Promise<void> {
+  await request<unknown>(`/api/watchlist-folders/${String(folderId)}`, { method: "DELETE" });
+}
+
+/** Put a watchlist in a folder, or back at the top level with null. */
+export function moveWatchlist(
+  watchlistId: number,
+  folderId: number | null,
+): Promise<WatchlistSummary> {
+  return request<WatchlistSummary>(`/api/watchlists/${String(watchlistId)}/folder`, {
+    method: "PUT",
+    body: JSON.stringify({ folder_id: folderId }),
+  });
+}
+
+/**
+ * What kind of list the platform keeps: an index's companies, a sector's,
+ * the indices of one category, a mover ranking, a strategy's picks today.
+ */
+export type KeptKind = "index" | "sector" | "indices" | "movers" | "strategy";
+
+/** One kept list, as the watchlist page's tree names it. */
+export interface KeptListSummary {
+  kind: KeptKind;
+  key: string;
+  /** Its name where the data gives one; null where the page names it. */
+  name: string | null;
+  /** How many it holds, where known without reading it. */
+  count: number | null;
+}
+
+/** Every kept list, by kind. */
+export interface KeptLists {
+  indices: KeptListSummary[];
+  sectors: KeptListSummary[];
+  movers: KeptListSummary[];
+  strategies: KeptListSummary[];
+}
+
+/** Fetch the catalogue of every list the platform keeps. */
+export function fetchKeptLists(): Promise<KeptLists> {
+  return request<KeptLists>("/api/kept-lists");
+}
+
+/** Which kept list: its kind, its key and, for a ranking, which companies it ranks. */
+export interface KeptSource {
+  kind: KeptKind;
+  key: string;
+  universe?: MoverUniverse;
+}
+
+/** One instrument on a kept list, with its latest figures. */
+export interface ListedInstrument {
+  instrument_key: string;
+  symbol: string;
+  name: string;
+  is_index: boolean;
+  /** For an index, how many companies it holds; none means it cannot be opened. */
+  constituents: number | null;
+  /** Its place, where the list is a ranking or a strategy's picks. */
+  rank: number | null;
+  /** Whether a strategy holds it today, rather than waiting to. */
+  held: boolean;
+  close: string | null;
+  change_percent: string | null;
+  one_month: string | null;
+  one_year: string | null;
+  volume: number | null;
+  as_of: string | null;
+}
+
+/** One kept list, read whole. */
+export interface KeptListPage {
+  kind: KeptKind;
+  key: string;
+  name: string | null;
+  rows: ListedInstrument[];
+}
+
+/** Read one kept list whole, every instrument with its latest figures. */
+export function fetchKeptList(source: KeptSource): Promise<KeptListPage> {
+  const parameters = new URLSearchParams({ kind: source.kind, key: source.key });
+  if (source.universe !== undefined) {
+    parameters.set("universe", source.universe);
+  }
+  return request<KeptListPage>(`/api/kept-lists/rows?${parameters.toString()}`);
 }
 
 /** What a watchlist is made or changed from. */

@@ -12,12 +12,15 @@ import { Link } from "react-router-dom";
 import type {
   SearchHit,
   WatchedInstrument,
+  WatchlistFolder,
   WatchlistItemDraft,
   WatchlistSummary,
 } from "@/api/client";
 import {
   addWatchlistItem,
   createWatchlist,
+  createWatchlistFolder,
+  renameWatchlistFolder,
   updateWatchlist,
   updateWatchlistItem,
 } from "@/api/client";
@@ -313,6 +316,92 @@ export function ItemDialog({
             Open the company page
           </Link>
         </p>
+      </form>
+    </Dialog>
+  );
+}
+
+/**
+ * Make or rename a folder.
+ *
+ * @param props - What the dialog is doing (null while closed), and what to
+ *   do once the folder is saved.
+ * @returns The dialog.
+ */
+export function FolderDialog({
+  state,
+  onClose,
+  onDone,
+}: {
+  state: { kind: "create" } | { kind: "rename"; folder: WatchlistFolder } | null;
+  onClose: () => void;
+  onDone: (folder: WatchlistFolder) => void;
+}): React.JSX.Element {
+  const [name, setName] = useState("");
+  const [problem, setProblem] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setName(state?.kind === "rename" ? state.folder.name : "");
+    setProblem(null);
+  }, [state]);
+
+  const save = async (): Promise<void> => {
+    if (state === null) {
+      return; // Unreachable: the form exists only while the dialog is open.
+    }
+    setBusy(true);
+    setProblem(null);
+    try {
+      onDone(
+        state.kind === "create"
+          ? await createWatchlistFolder(name)
+          : await renameWatchlistFolder(state.folder.folder_id, name),
+      );
+    } catch (error) {
+      setProblem(error instanceof Error ? error.message : "Could not save the folder");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog
+      open={state !== null}
+      onClose={onClose}
+      title={state?.kind === "rename" ? "Rename folder" : "New folder"}
+      description="A folder groups your lists; move a list into it from the list's header."
+    >
+      <form
+        className="space-y-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!busy && name.trim() !== "") {
+            void save();
+          }
+        }}
+      >
+        <label className="block text-sm">
+          <span className="text-muted-foreground">Name</span>
+          <Input
+            aria-label="Folder name"
+            value={name}
+            maxLength={60}
+            onChange={(event) => {
+              setName(event.target.value);
+            }}
+            className="mt-1"
+          />
+        </label>
+        {problem !== null && <p className="text-sm text-destructive">{sentence(problem)}</p>}
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={busy || name.trim() === ""}>
+            {state?.kind === "rename" ? "Save" : "Make folder"}
+          </Button>
+        </div>
       </form>
     </Dialog>
   );
