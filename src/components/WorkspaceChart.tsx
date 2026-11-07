@@ -39,6 +39,7 @@ import { useChartRange } from "@/hooks/useChartRange";
 import { useResource } from "@/hooks/useResource";
 import { MOST_SERIES, PRICE_LINE, SERIES_COLOURS } from "@/lib/chartPalette";
 import { actionMarkers, tradeMarkers } from "@/lib/chartMarkers";
+import type { ChartSync } from "@/lib/chartSync";
 import { toNumber } from "@/lib/format";
 import { companyPath, populationPath } from "@/lib/paths";
 import { PRICE_RANGES } from "@/lib/priceRanges";
@@ -54,6 +55,12 @@ interface WorkspaceChartProps {
   symbol: string;
   /** Whether it is an index, whose page is a population's rather than a company's. */
   isIndex: boolean;
+  /** A group of charts this one keeps in step with, when laid out beside others. */
+  sync?: ChartSync;
+  /** How tall the price is drawn: shorter when several charts share the space. */
+  height?: number;
+  /** Something for the chart's own header, such as making it fill the view. */
+  controls?: React.ReactNode;
 }
 
 /**
@@ -66,6 +73,9 @@ export function WorkspaceChart({
   instrumentKey,
   symbol,
   isIndex,
+  sync,
+  height,
+  controls,
 }: WorkspaceChartProps): React.JSX.Element {
   const [sessions, setSessions] = useChartRange();
   const loadChart = useCallback(
@@ -139,12 +149,15 @@ export function WorkspaceChart({
         >
           {symbol}
         </Link>
-        <RangeSelector
-          ranges={PRICE_RANGES}
-          sessions={sessions}
-          onChange={setSessions}
-          label="History"
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <RangeSelector
+            ranges={PRICE_RANGES}
+            sessions={sessions}
+            onChange={setSessions}
+            label="History"
+          />
+          {controls}
+        </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <div className="w-56">
@@ -211,6 +224,8 @@ export function WorkspaceChart({
           instrument={{ label: symbol }}
           extra={extra}
           markers={markers}
+          {...(sync === undefined ? {} : { sync })}
+          {...(height === undefined ? {} : { height })}
         />
       )}
     </section>

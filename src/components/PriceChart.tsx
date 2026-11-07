@@ -36,6 +36,7 @@ import {
   RISE,
 } from "@/lib/chartPalette";
 import type { ChartMarker } from "@/lib/chartMarkers";
+import type { ChartSync } from "@/lib/chartSync";
 import { toNumber } from "@/lib/format";
 
 /** No extra lines, as one value so the series are not rebuilt each render. */
@@ -56,6 +57,10 @@ interface PriceChartProps {
   extra?: Series[];
   /** Marks on the price: a strategy's trades, a company's bonuses and splits. */
   markers?: ChartMarker[];
+  /** A group of charts this one keeps in step with. */
+  sync?: ChartSync;
+  /** How tall the price pane is drawn; the chart's own height unless asked. */
+  height?: number;
 }
 
 /** The averages, and which figure each reads. */
@@ -105,6 +110,8 @@ export function PriceChart({
   decorate,
   extra = NO_EXTRA,
   markers,
+  sync,
+  height,
 }: PriceChartProps): React.JSX.Element {
   // What the reader chose last time, unless the page asks for something
   // particular; what they choose now is remembered for next time.
@@ -234,6 +241,8 @@ export function PriceChart({
         imageName={instrument?.label ?? "chart"}
         {...(decorate === undefined ? {} : { decorate })}
         {...(markers === undefined ? {} : { markers })}
+        {...(sync === undefined ? {} : { sync })}
+        {...(height === undefined ? {} : { height })}
       />
       {band !== null && <ForecastNote bands={band} />}
     </div>

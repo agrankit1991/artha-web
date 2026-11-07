@@ -1,6 +1,6 @@
 /** Tests for the watchlist page's Chart view. */
 
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -114,5 +114,59 @@ describe("Watchlists, the Chart view", () => {
 
     expect(await screen.findByRole("heading", { name: "Long term" })).toBeVisible();
     expect(readPreferences().watchlistView).toBe("table");
+  });
+});
+
+describe("Watchlists, several charts", () => {
+  it("lays out two charts, the list feeding the active one, and fills the view with one", async () => {
+    window.localStorage.setItem("artha.preferences", JSON.stringify({ watchlistView: "chart" }));
+    stub();
+    renderPage(<Watchlists />);
+    await screen.findByRole("list", { name: "Long term" });
+
+    await userEvent.click(screen.getByRole("button", { name: "2 side by side" }));
+    expect(readPreferences().chartLayout).toBe("2");
+    const first = await screen.findByRole("group", { name: "Chart 1" });
+    const second = screen.getByRole("group", { name: "Chart 2" });
+    expect(first).toHaveAttribute("aria-current", "true");
+    // Each takes the next company on the list.
+    expect(await within(first).findByRole("link", { name: "RELIANCE" })).toBeVisible();
+    expect(within(second).getByRole("link", { name: "TCS" })).toBeVisible();
+
+    // The second chart made active, the list's choice goes there.
+    await userEvent.click(second);
+    expect(second).toHaveAttribute("aria-current", "true");
+    await userEvent.click(
+      within(screen.getByRole("list", { name: "Long term" })).getByRole("button", {
+        name: /RELIANCE/,
+      }),
+    );
+    expect(
+      await within(screen.getByRole("group", { name: "Chart 2" })).findByRole("link", {
+        name: "RELIANCE",
+      }),
+    ).toBeVisible();
+
+    await userEvent.click(screen.getByRole("button", { name: "Fill the view with chart 1" }));
+    expect(screen.queryByRole("group", { name: "Chart 2" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Show every chart" }));
+    expect(screen.getByRole("group", { name: "Chart 2" })).toBeVisible();
+  });
+
+  it("keeps the charts in step unless told not to", async () => {
+    window.localStorage.setItem(
+      "artha.preferences",
+      JSON.stringify({ watchlistView: "chart", chartLayout: "4" }),
+    );
+    stub();
+    renderPage(<Watchlists />);
+    await screen.findByRole("group", { name: "Chart 1" });
+
+    const crosshair = screen.getByRole("button", { name: "Crosshair" });
+    expect(crosshair).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(crosshair);
+    expect(crosshair).toHaveAttribute("aria-pressed", "false");
+    // Four asked, two on the list: two charts drawn.
+    expect(screen.queryByRole("group", { name: "Chart 3" })).toBeNull();
   });
 });

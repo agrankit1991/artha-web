@@ -122,6 +122,7 @@ describe("Profile", () => {
       exportSize: "200",
       chartScale: "linear",
       watchlistView: "table",
+      chartLayout: "1",
     });
     await userEvent.click(screen.getByRole("button", { name: "Forget my preferences" }));
     expect(readPreferences()).toEqual(DEFAULT_PREFERENCES);

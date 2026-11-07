@@ -23,6 +23,7 @@ import {
   CrosshairMode,
   HistogramSeries,
   type IChartApi,
+  type IRange,
   type ISeriesApi,
   LineSeries,
   LineStyle,
@@ -41,6 +42,7 @@ import { ImageDown, RotateCcw } from "lucide-react";
 
 import type { ChartScale } from "@/components/ChartControls";
 import type { ChartMarker } from "@/lib/chartMarkers";
+import type { ChartSync, SyncedChart } from "@/lib/chartSync";
 
 import { TradingViewLink } from "@/components/TradingViewLink";
 import { AVERAGE_WIDTH, FALL, NEUTRAL, PRICE_WIDTH, RISE, THRESHOLD } from "@/lib/chartPalette";
@@ -193,6 +195,8 @@ interface ChartProps {
   imageName?: string;
   /** Marks on the first series, the price: trades, corporate actions. */
   markers?: ChartMarker[];
+  /** A group of charts this one keeps in step with: crosshair and span. */
+  sync?: ChartSync;
   className?: string;
 }
 
@@ -270,6 +274,7 @@ export function Chart({
   decorate,
   imageName = "chart",
   markers = NO_MARKERS,
+  sync,
   className,
 }: ChartProps): React.JSX.Element {
   const holder = useRef<HTMLDivElement>(null);
@@ -455,9 +460,12 @@ export function Chart({
       });
     };
     created.subscribeCrosshairMove(follow);
-    const undecorate = decorate?.(created, [...named.keys()][0]);
+    const undecorate = decorate?.(created, price);
+    const unsync =
+      sync === undefined || price === undefined ? undefined : joinSync(sync, created, price);
 
     return () => {
+      unsync?.();
       undecorate?.();
       created.unsubscribeCrosshairMove(follow);
       created.timeScale().unsubscribeVisibleLogicalRangeChange(watch);
@@ -480,6 +488,7 @@ export function Chart({
     inverted,
     decorate,
     markers,
+    sync,
   ]);
 
   const reset = useCallback(() => {
@@ -639,6 +648,63 @@ export function Chart({
  * a number asserted to the enum, where a `LineStyle` is expected.
  */
 const DASHED = LineStyle.Dashed;
+
+/**
+ * Keep a chart in step with a group: put the group's crosshair and span on
+ * it, and tell the group when the reader moves it.
+ *
+ * Only the reader's own moves are told -- the library reports the crosshair
+ * the group put there too, and passing that on would echo -- except leaving
+ * the plot, which every chart should follow.
+ *
+ * @param sync - The group.
+ * @param chart - The chart.
+ * @param price - Its price series, whose figure the crosshair sits on.
+ * @returns What takes it out of the group, called when the chart is torn down.
+ */
+function joinSync(sync: ChartSync, chart: IChartApi, price: ISeriesApi<SeriesType>): () => void {
+  const figures = new Map<string, number>();
+  for (const point of price.data()) {
+    const figure = figureOf(point);
+    if (typeof point.time === "string" && figure !== null) {
+      figures.set(point.time, figure);
+    }
+  }
+  const member: SyncedChart = {
+    showCrosshair: (day) => {
+      const figure = day === null ? undefined : figures.get(day);
+      if (day === null || figure === undefined) {
+        // A session this chart has no bar for is shown as no crosshair.
+        chart.clearCrosshairPosition();
+      } else {
+        chart.setCrosshairPosition(figure, day, price);
+      }
+    },
+    showSpan: (span) => {
+      chart.timeScale().setVisibleRange(span);
+    },
+  };
+  const leave = sync.join(member);
+  const moved = (event: MouseEventParams): void => {
+    if (event.point === undefined) {
+      sync.crosshairMoved(member, null);
+    } else if (event.sourceEvent !== undefined) {
+      sync.crosshairMoved(member, typeof event.time === "string" ? event.time : null);
+    }
+  };
+  const spanned = (range: IRange<Time> | null): void => {
+    if (range !== null && typeof range.from === "string" && typeof range.to === "string") {
+      sync.spanChanged(member, { from: range.from, to: range.to });
+    }
+  };
+  chart.subscribeCrosshairMove(moved);
+  chart.timeScale().subscribeVisibleTimeRangeChange(spanned);
+  return () => {
+    leave();
+    chart.unsubscribeCrosshairMove(moved);
+    chart.timeScale().unsubscribeVisibleTimeRangeChange(spanned);
+  };
+}
 
 /**
  * Add one series to a chart.

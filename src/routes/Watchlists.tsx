@@ -105,9 +105,12 @@ export function Watchlists(): React.JSX.Element {
     [kept, view, universe],
   );
   const keptRows = useResource(loadKeptRows);
-  const chartOf = (instrumentKey: string): void => {
+  const chartOf = (instrumentKeys: string[]): void => {
     const query = new URLSearchParams(params);
-    query.set("chart", instrumentKey);
+    query.delete("chart");
+    for (const key of instrumentKeys) {
+      query.append("chart", key);
+    }
     setParams(query, { replace: true });
   };
 
@@ -239,7 +242,7 @@ export function Watchlists(): React.JSX.Element {
                 : keptTitle(kept.source, keptRows.data?.name ?? null)
             }
             rows={kept === null ? items.map(panelRow) : (keptRows.data?.rows ?? []).map(panelRow)}
-            asked={params.get("chart")}
+            asked={params.getAll("chart")}
             loading={kept === null ? page.loading : keptRows.loading}
             onChoose={chartOf}
           />

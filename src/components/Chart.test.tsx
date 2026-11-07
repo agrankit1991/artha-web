@@ -572,3 +572,68 @@ describe("Chart, marks", () => {
     expect(chartCalls.createSeriesMarkers).not.toHaveBeenCalled();
   });
 });
+
+describe("Chart, kept in step with others", () => {
+  /** Every crosshair handler the charts subscribed, in order. */
+  function crosshairHandlers(): ((event: unknown) => void)[] {
+    return chartCalls.subscribeCrosshairMove.mock.calls.map(
+      ([handler]) => handler as (event: unknown) => void,
+    );
+  }
+
+  it("puts the reader's crosshair on the others, each at its own figure, and clears it as the pointer leaves", async () => {
+    const { ChartSync } = await import("@/lib/chartSync");
+    const sync = new ChartSync();
+    render(
+      <ThemeProvider>
+        <Chart series={[LINE]} sync={sync} />
+        <Chart series={[{ ...LINE, label: "Other" }]} sync={sync} />
+      </ThemeProvider>,
+    );
+    // Each chart subscribes its reading and its place in the group.
+    const [, firstInGroup, , secondInGroup] = crosshairHandlers();
+
+    firstInGroup?.({ time: "2026-09-02", point: { x: 1, y: 1 }, sourceEvent: {} });
+    expect(chartCalls.setCrosshairPosition).toHaveBeenCalledWith(
+      5,
+      "2026-09-02",
+      expect.anything(),
+    );
+
+    // A move the library made itself, as when the group put it there, is not passed on.
+    chartCalls.setCrosshairPosition.mockClear();
+    secondInGroup?.({ time: "2026-09-01", point: { x: 1, y: 1 } });
+    expect(chartCalls.setCrosshairPosition).not.toHaveBeenCalled();
+
+    // A session the other chart has no bar for, and leaving the plot, clear it.
+    firstInGroup?.({ time: "2027-01-01", point: { x: 1, y: 1 }, sourceEvent: {} });
+    firstInGroup?.({});
+    expect(chartCalls.clearCrosshairPosition).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows the others the same span by date, and leaves the group when torn down", async () => {
+    const { ChartSync } = await import("@/lib/chartSync");
+    const sync = new ChartSync();
+    const { unmount } = render(
+      <ThemeProvider>
+        <Chart series={[LINE]} sync={sync} />
+        <Chart series={[LINE]} sync={sync} />
+      </ThemeProvider>,
+    );
+    const [first] = chartCalls.subscribeVisibleTimeRangeChange.mock.calls.map(
+      ([handler]) => handler as (range: unknown) => void,
+    );
+
+    first?.({ from: "2026-09-01", to: "2026-09-02" });
+    first?.(null);
+    first?.({ from: 1, to: 2 });
+    expect(chartCalls.setVisibleRange).toHaveBeenCalledTimes(1);
+    expect(chartCalls.setVisibleRange).toHaveBeenCalledWith({
+      from: "2026-09-01",
+      to: "2026-09-02",
+    });
+
+    unmount();
+    expect(chartCalls.unsubscribeVisibleTimeRangeChange).toHaveBeenCalledTimes(2);
+  });
+});

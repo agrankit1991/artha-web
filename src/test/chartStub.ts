@@ -17,6 +17,11 @@ export const chartCalls = {
   createPriceLine: vi.fn(),
   takeScreenshot: vi.fn(),
   createSeriesMarkers: vi.fn(),
+  setCrosshairPosition: vi.fn(),
+  clearCrosshairPosition: vi.fn(),
+  setVisibleRange: vi.fn(),
+  subscribeVisibleTimeRangeChange: vi.fn(),
+  unsubscribeVisibleTimeRangeChange: vi.fn(),
   remove: vi.fn(),
   fitContent: vi.fn(),
   setVisibleLogicalRange: vi.fn(),
@@ -108,7 +113,11 @@ export function chartModule(): Record<string, unknown> {
       addSeries: chartCalls.addSeries.mockImplementation(() => ({
         setData: chartCalls.setData,
         createPriceLine: chartCalls.createPriceLine,
+        // Whatever the last series was handed, as the library would give back.
+        data: () => (chartCalls.setData.mock.lastCall?.[0] as unknown[] | undefined) ?? [],
       })),
+      setCrosshairPosition: chartCalls.setCrosshairPosition,
+      clearCrosshairPosition: chartCalls.clearCrosshairPosition,
       remove: chartCalls.remove,
       subscribeCrosshairMove: chartCalls.subscribeCrosshairMove,
       unsubscribeCrosshairMove: chartCalls.unsubscribeCrosshairMove,
@@ -117,6 +126,9 @@ export function chartModule(): Record<string, unknown> {
         setVisibleLogicalRange: chartCalls.setVisibleLogicalRange,
         subscribeVisibleLogicalRangeChange: chartCalls.subscribeVisibleLogicalRangeChange,
         unsubscribeVisibleLogicalRangeChange: chartCalls.unsubscribeVisibleLogicalRangeChange,
+        setVisibleRange: chartCalls.setVisibleRange,
+        subscribeVisibleTimeRangeChange: chartCalls.subscribeVisibleTimeRangeChange,
+        unsubscribeVisibleTimeRangeChange: chartCalls.unsubscribeVisibleTimeRangeChange,
       }),
       priceScale: () => ({ applyOptions: chartCalls.applyOptions }),
       // A canvas that writes a fixed address, for a test of saving the image.

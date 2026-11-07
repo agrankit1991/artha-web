@@ -80,7 +80,14 @@ export interface Preferences {
   chartScale: ChartScale;
   /** Whether the watchlist page opens on its table or its chart. */
   watchlistView: "table" | "chart";
+  /** How many charts the Chart view lays out, and how. */
+  chartLayout: ChartLayout;
 }
+
+/** How the watchlist's Chart view lays its charts out: one, two either way, three or four. */
+export type ChartLayout = "1" | "2" | "2v" | "3" | "4";
+
+const CHART_LAYOUTS: readonly string[] = ["1", "2", "2v", "3", "4"];
 
 export const DEFAULT_PREFERENCES: Preferences = {
   scope: { kind: "companies", key: null },
@@ -98,6 +105,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   chartScale: "linear",
   // The table the page has always opened on, until the reader chooses the chart.
   watchlistView: "table",
+  chartLayout: "1",
 };
 
 const STORAGE_KEY = "artha.preferences";
@@ -238,6 +246,10 @@ export function parse(stored: unknown): Preferences {
         ? (chartScale as ChartScale)
         : DEFAULT_PREFERENCES.chartScale,
     watchlistView: record["watchlistView"] === "chart" ? "chart" : "table",
+    chartLayout:
+      typeof record["chartLayout"] === "string" && CHART_LAYOUTS.includes(record["chartLayout"])
+        ? (record["chartLayout"] as ChartLayout)
+        : DEFAULT_PREFERENCES.chartLayout,
   };
 }
 
