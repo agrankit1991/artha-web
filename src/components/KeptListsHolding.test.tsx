@@ -1,6 +1,8 @@
 /** Tests for the line naming the kept lists a company is in today. */
 
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { useLocation } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { KeptListsHolding } from "./KeptListsHolding";
@@ -23,28 +25,60 @@ const HOLDING = [
   { kind: "strategy", key: "9", name: "Pullback", rank: 12, held: false },
 ];
 
+/** Where the page is, so a test can see a choice lead somewhere. */
+function Where(): React.JSX.Element {
+  const { pathname, search } = useLocation();
+  return <output data-testid="where">{`${pathname}${search}`}</output>;
+}
+
 /** The paths asked for, decoded, spaces restored. */
 function asked(fetched: ReturnType<typeof stubPlatform>): string[] {
   return fetched.mock.calls.map(([path]) => decodeURIComponent(path).replaceAll("+", " "));
 }
 
 describe("KeptListsHolding", () => {
-  it("names the rankings and the strategies' picks it is in, each leading to that list", async () => {
+  it("names the rankings it places in, each leading to that list", async () => {
     const fetched = stubPlatform({ "/api/kept-lists/holding": { body: HOLDING } });
     renderPage(<KeptListsHolding instrumentKey={KEY} />);
 
     const gainers = await screen.findByRole("link", { name: "Top gainers, place 2" });
     expect(gainers).toHaveAttribute("href", "/watchlists?kept=movers&key=top-gainers");
-    expect(
-      screen.getByRole("link", { name: "Momentum's picks, place 1, held today" }),
-    ).toHaveAttribute("href", "/watchlists?kept=strategy&key=4");
-    expect(screen.getByRole("link", { name: "Pullback's picks, place 12" })).toBeVisible();
     expect(screen.getByText("Also in today:")).toBeVisible();
     // The header names the sector and the indices already.
-    expect(screen.queryByRole("link", { name: /Nifty 50|Refineries/ })).toBeNull();
+    expect(screen.queryByText(/Nifty 50|Refineries/)).toBeNull();
     expect(asked(fetched)).toContain(
       `/api/kept-lists/holding?instrument_key=${KEY}&universe=liquid`,
     );
+  });
+
+  it("counts the strategies picking it in one chip, listing them held first", async () => {
+    stubPlatform({ "/api/kept-lists/holding": { body: HOLDING } });
+    renderPage(
+      <>
+        <KeptListsHolding instrumentKey={KEY} />
+        <Where />
+      </>,
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "In 2 strategies' picks, held by 1" }),
+    );
+    const menu = screen.getByRole("menu", { name: "In 2 strategies' picks, held by 1" });
+    expect(
+      within(menu)
+        .getAllByRole("menuitem")
+        .map((one) => one.textContent),
+    ).toEqual(["Momentum - held, #1", "Pullback - waiting, #12"]);
+    await userEvent.click(within(menu).getByRole("menuitem", { name: /Pullback/ }));
+    expect(screen.getByTestId("where")).toHaveTextContent("/watchlists?kept=strategy&key=9");
+  });
+
+  it("says one strategy's picks without saying held when none would buy it", async () => {
+    stubPlatform({ "/api/kept-lists/holding": { body: [HOLDING[4]] } });
+    renderPage(<KeptListsHolding instrumentKey={KEY} />);
+
+    expect(await screen.findByRole("button", { name: "In 1 strategy's picks" })).toBeVisible();
+    expect(screen.queryByRole("link")).toBeNull();
   });
 
   it("asks for the rankings in the universe the reader chose", async () => {

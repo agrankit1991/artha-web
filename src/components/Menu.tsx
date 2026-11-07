@@ -93,8 +93,10 @@ export function Menu({
           id={panelId}
           role="menu"
           aria-label={label}
+          // Scrolls within the screen: a company's indices or the strategies
+          // picking it can run to fifty or a hundred and more.
           className={cn(
-            "absolute z-50 mt-2 min-w-56 overflow-hidden rounded-lg border bg-popover p-1 text-popover-foreground shadow-lg",
+            "absolute z-50 mt-2 max-h-[60vh] min-w-56 overflow-y-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-lg",
             align === "end" ? "right-0 origin-top-right" : "left-0 origin-top-left",
             "motion-safe:animate-surface-in",
           )}
