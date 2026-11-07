@@ -132,5 +132,7 @@ export function chartModule(): Record<string, unknown> {
     AreaSeries: "area",
     ColorType: { Solid: "solid" },
     CrosshairMode: { Magnet: 1, Normal: 0 },
+    // The library's own values, so a line drawn dashed reads as it would.
+    LineStyle: { Solid: 0, Dotted: 1, Dashed: 2, LargeDashed: 3, SparseDotted: 4 },
   };
 }

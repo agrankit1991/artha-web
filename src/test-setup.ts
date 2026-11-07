@@ -28,8 +28,12 @@ window.matchMedia = (query: string): MediaQueryList =>
     onchange: null,
     addEventListener: (): void => undefined,
     removeEventListener: (): void => undefined,
+    // Deprecated, but the type still declares them, so a stub of it must have
+    // them; nothing here calls them.
+    /* eslint-disable @typescript-eslint/no-deprecated */
     addListener: (): void => undefined,
     removeListener: (): void => undefined,
+    /* eslint-enable @typescript-eslint/no-deprecated */
     dispatchEvent: (): boolean => false,
   }) as MediaQueryList;
 

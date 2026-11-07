@@ -44,6 +44,17 @@ out.
 browser in a static bundle, and blocking on every moderate advisory in the
 test toolchain trains people to ignore the audit. High and critical block.
 
+**And weekly, not only on a push** (`.github/workflows/audit.yml`, Mondays
+06:00 IST, same threshold; added 2026-11-07, when Vite 6.4.3's high
+advisories had blocked the gate unseen since the last push). The lockfile
+is what both the gate and the bundle install, so the audit sees what ships.
+**One moderate advisory is left on purpose:** minimatch 10.2.6
+(GHSA-g3hv-75wg-m249) under typescript-eslint, whose every release up to
+8.72.1 requires minimatch ^10 while the fix is 11.0.1, and npm's only
+"fix" is typescript-eslint below 6.16. It is ESLint matching globs this
+repository writes, never input from a visitor. Re-check when
+typescript-eslint moves to minimatch 11; do not force it by override.
+
 ### Coverage ratchet
 
 Currently **99%** on lines, functions and statements and **96%** on branches,

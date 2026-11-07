@@ -1,0 +1,37 @@
+# Known vulnerabilities, checked every week whether or not anything is pushed.
+#
+# CI's gate audits on a push, so an advisory published against a dependency
+# that has not changed waits for the next push to be found. The lockfile is
+# what both the gate and the published bundle install, so auditing it is
+# auditing what ships. Same threshold as the gate (high and critical): a
+# weekly mail about a moderate advisory in the test toolchain is the noise
+# that trains people to ignore the audit. A failure here deploys nothing and
+# blocks nothing; GitHub mails it to whoever last changed the schedule.
+
+name: Audit
+
+on:
+  schedule:
+    # Mondays 00:30 UTC, 06:00 in India, beside the platform's.
+    - cron: "30 0 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Dependency audit
+        run: npm run audit

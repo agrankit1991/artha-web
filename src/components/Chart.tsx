@@ -23,6 +23,7 @@ import {
   type IChartApi,
   type ISeriesApi,
   LineSeries,
+  LineStyle,
   type MouseEventParams,
   type PriceFormatCustom,
   type SeriesType,
@@ -509,11 +510,11 @@ export function Chart({
 }
 
 /**
- * The library's dashed line style, by value. Its `LineStyle` enum is a
- * runtime object, and naming the number keeps the chart stub from having to
- * carry one.
+ * The library's dashed line style. Named through its enum, which the chart
+ * stub therefore carries: typescript-eslint 8.72 refuses a bare number, or
+ * a number asserted to the enum, where a `LineStyle` is expected.
  */
-const DASHED = 2;
+const DASHED = LineStyle.Dashed;
 
 /**
  * Add one series to a chart.
