@@ -12,7 +12,7 @@
  * instrument page or a comparison with its settings intact.
  */
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import type { ChartPoint, PriceBands } from "@/api/client";
 import { type Candle, Chart, type ChartInstrument, type Series } from "@/components/Chart";
@@ -22,7 +22,9 @@ import {
   ChartControls,
   type Overlay,
 } from "@/components/ChartControls";
+import { DrawingToolbar } from "@/components/DrawingToolbar";
 import { ForecastNote } from "@/components/ForecastNote";
+import { useChartDrawings } from "@/hooks/useChartDrawings";
 import { drawnBand } from "@/lib/forecastBands";
 import { readPreferences, writePreferences } from "@/lib/preferences";
 import {
@@ -61,6 +63,11 @@ interface PriceChartProps {
   sync?: ChartSync;
   /** How tall the price pane is drawn; the chart's own height unless asked. */
   height?: number;
+  /**
+   * The instrument whose drawings are shown and drawn on this chart: the
+   * reader's own, on every chart of it. Absent where nothing is drawn.
+   */
+  drawingsOf?: string;
 }
 
 /** The averages, and which figure each reads. */
@@ -112,7 +119,24 @@ export function PriceChart({
   markers,
   sync,
   height,
+  drawingsOf,
 }: PriceChartProps): React.JSX.Element {
+  const drawings = useChartDrawings(drawingsOf ?? null);
+  const own = drawings.decorate;
+  // The drawings and whatever the caller adds, both on each build, both undone.
+  const decorated = useCallback(
+    (...build: Parameters<typeof own>) => {
+      const mine = own(...build);
+      const theirs = decorate?.(...build);
+      return mine === undefined && theirs === undefined
+        ? undefined
+        : () => {
+            mine?.();
+            theirs?.();
+          };
+    },
+    [own, decorate],
+  );
   // What the reader chose last time, unless the page asks for something
   // particular; what they choose now is remembered for next time.
   const [style, setStyle] = useState<ChartStyle>(() => readPreferences().chartStyle);
@@ -231,6 +255,7 @@ export function PriceChart({
           ? {}
           : { forecast: { shown: showForecast, onToggle: chooseForecast } })}
       />
+      <DrawingToolbar drawings={drawings} />
       <Chart
         series={series}
         instruments={instrument ? [instrument] : []}
@@ -239,7 +264,7 @@ export function PriceChart({
         priceScale={shownScale}
         inverted={inverted}
         imageName={instrument?.label ?? "chart"}
-        {...(decorate === undefined ? {} : { decorate })}
+        decorate={decorated}
         {...(markers === undefined ? {} : { markers })}
         {...(sync === undefined ? {} : { sync })}
         {...(height === undefined ? {} : { height })}

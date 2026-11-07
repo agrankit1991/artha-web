@@ -605,10 +605,12 @@ describe("Chart, kept in step with others", () => {
     secondInGroup?.({ time: "2026-09-01", point: { x: 1, y: 1 } });
     expect(chartCalls.setCrosshairPosition).not.toHaveBeenCalled();
 
-    // A session the other chart has no bar for, and leaving the plot, clear it.
+    // A session the other chart has no bar for, the margin past the last
+    // bar, and leaving the plot, all clear it.
     firstInGroup?.({ time: "2027-01-01", point: { x: 1, y: 1 }, sourceEvent: {} });
+    firstInGroup?.({ point: { x: 390, y: 1 }, sourceEvent: {} });
     firstInGroup?.({});
-    expect(chartCalls.clearCrosshairPosition).toHaveBeenCalledTimes(2);
+    expect(chartCalls.clearCrosshairPosition).toHaveBeenCalledTimes(3);
   });
 
   it("shows the others the same span by date, and leaves the group when torn down", async () => {

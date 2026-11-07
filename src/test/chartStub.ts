@@ -10,6 +10,11 @@
 import { vi } from "vitest";
 
 /** The calls a test can assert on. */
+/** The plot every stubbed chart reports as its element: 400 by 200. */
+export const chartElement = document.createElement("div");
+Object.defineProperty(chartElement, "clientWidth", { value: 400 });
+Object.defineProperty(chartElement, "clientHeight", { value: 200 });
+
 export const chartCalls = {
   createChart: vi.fn(),
   addSeries: vi.fn(),
@@ -18,6 +23,11 @@ export const chartCalls = {
   takeScreenshot: vi.fn(),
   createSeriesMarkers: vi.fn(),
   setCrosshairPosition: vi.fn(),
+  attachPrimitive: vi.fn(),
+  detachPrimitive: vi.fn(),
+  subscribeClick: vi.fn(),
+  unsubscribeClick: vi.fn(),
+  applyChartOptions: vi.fn(),
   clearCrosshairPosition: vi.fn(),
   setVisibleRange: vi.fn(),
   subscribeVisibleTimeRangeChange: vi.fn(),
@@ -107,43 +117,77 @@ export function dataFor(kind: string): unknown[] | undefined {
  */
 export function chartModule(): Record<string, unknown> {
   return {
-    createChart: chartCalls.createChart.mockImplementation(() => ({
-      // A fresh object per call, so a chart keying a map by series holds
-      // one entry per series rather than one in total.
-      addSeries: chartCalls.addSeries.mockImplementation(() => ({
-        setData: chartCalls.setData,
-        createPriceLine: chartCalls.createPriceLine,
-        // Whatever the last series was handed, as the library would give back.
-        data: () => (chartCalls.setData.mock.lastCall?.[0] as unknown[] | undefined) ?? [],
-      })),
-      setCrosshairPosition: chartCalls.setCrosshairPosition,
-      clearCrosshairPosition: chartCalls.clearCrosshairPosition,
-      remove: chartCalls.remove,
-      subscribeCrosshairMove: chartCalls.subscribeCrosshairMove,
-      unsubscribeCrosshairMove: chartCalls.unsubscribeCrosshairMove,
-      timeScale: () => ({
-        fitContent: chartCalls.fitContent,
-        setVisibleLogicalRange: chartCalls.setVisibleLogicalRange,
-        subscribeVisibleLogicalRangeChange: chartCalls.subscribeVisibleLogicalRangeChange,
-        unsubscribeVisibleLogicalRangeChange: chartCalls.unsubscribeVisibleLogicalRangeChange,
-        setVisibleRange: chartCalls.setVisibleRange,
-        subscribeVisibleTimeRangeChange: chartCalls.subscribeVisibleTimeRangeChange,
-        unsubscribeVisibleTimeRangeChange: chartCalls.unsubscribeVisibleTimeRangeChange,
-      }),
-      priceScale: () => ({ applyOptions: chartCalls.applyOptions }),
-      // A canvas that writes a fixed address, for a test of saving the image.
-      takeScreenshot: chartCalls.takeScreenshot.mockImplementation(() => ({
-        toDataURL: () => "data:image/png;base64,",
-      })),
-      // Three panes, so a test of a series in a band of its own has one to
-      // be put in, and of two bands, two.
-      panes: () =>
-        [0, 1, 2].map((index) => ({
-          setStretchFactor: (factor: number): void => {
-            chartCalls.setStretchFactor(index, factor);
+    createChart: chartCalls.createChart.mockImplementation(() => {
+      // Named, so a series can hand its chart to a primitive attached to it.
+      const chart: Record<string, unknown> = {};
+      return Object.assign(chart, {
+        // A fresh object per call, so a chart keying a map by series holds
+        // one entry per series rather than one in total.
+        addSeries: chartCalls.addSeries.mockImplementation(() => {
+          const series: Record<string, unknown> = {
+            setData: chartCalls.setData,
+            createPriceLine: chartCalls.createPriceLine,
+            // Whatever the last series was handed, as the library would give back.
+            data: () => (chartCalls.setData.mock.lastCall?.[0] as unknown[] | undefined) ?? [],
+            // A price is its own pixel, so a test can say where a line sits.
+            priceToCoordinate: (price: number): number => price,
+            coordinateToPrice: (y: number): number => y,
+          };
+          // As the library does: a primitive is told its chart and series when
+          // attached, and told it is let go when detached.
+          series["attachPrimitive"] = (primitive: {
+            attached?: (param: unknown) => void;
+          }): void => {
+            chartCalls.attachPrimitive(primitive);
+            primitive.attached?.({ chart, series, requestUpdate: () => undefined });
+          };
+          series["detachPrimitive"] = (primitive: { detached?: () => void }): void => {
+            chartCalls.detachPrimitive(primitive);
+            primitive.detached?.();
+          };
+          return series;
+        }),
+        subscribeClick: chartCalls.subscribeClick,
+        unsubscribeClick: chartCalls.unsubscribeClick,
+        applyOptions: chartCalls.applyChartOptions,
+        // One element for every chart in a test, so pointer events can be sent to it.
+        chartElement: (): HTMLDivElement => chartElement,
+        setCrosshairPosition: chartCalls.setCrosshairPosition,
+        clearCrosshairPosition: chartCalls.clearCrosshairPosition,
+        remove: chartCalls.remove,
+        subscribeCrosshairMove: chartCalls.subscribeCrosshairMove,
+        unsubscribeCrosshairMove: chartCalls.unsubscribeCrosshairMove,
+        timeScale: () => ({
+          fitContent: chartCalls.fitContent,
+          setVisibleLogicalRange: chartCalls.setVisibleLogicalRange,
+          subscribeVisibleLogicalRangeChange: chartCalls.subscribeVisibleLogicalRangeChange,
+          unsubscribeVisibleLogicalRangeChange: chartCalls.unsubscribeVisibleLogicalRangeChange,
+          setVisibleRange: chartCalls.setVisibleRange,
+          // Each session's day of the month is its place across the plot, in tens.
+          timeToCoordinate: (day: string): number => Number(day.slice(8, 10)) * 10,
+          // Null off the time scale, as the library answers; the stub's runs 1-30 Sept.
+          coordinateToTime: (x: number): string | null => {
+            const day = Math.round(x / 10);
+            return day < 1 || day > 30 ? null : `2026-09-${String(day).padStart(2, "0")}`;
           },
+          subscribeVisibleTimeRangeChange: chartCalls.subscribeVisibleTimeRangeChange,
+          unsubscribeVisibleTimeRangeChange: chartCalls.unsubscribeVisibleTimeRangeChange,
+        }),
+        priceScale: () => ({ applyOptions: chartCalls.applyOptions }),
+        // A canvas that writes a fixed address, for a test of saving the image.
+        takeScreenshot: chartCalls.takeScreenshot.mockImplementation(() => ({
+          toDataURL: () => "data:image/png;base64,",
         })),
-    })),
+        // Three panes, so a test of a series in a band of its own has one to
+        // be put in, and of two bands, two.
+        panes: () =>
+          [0, 1, 2].map((index) => ({
+            setStretchFactor: (factor: number): void => {
+              chartCalls.setStretchFactor(index, factor);
+            },
+          })),
+      });
+    }),
     LineSeries: "line",
     CandlestickSeries: "candlestick",
     HistogramSeries: "histogram",

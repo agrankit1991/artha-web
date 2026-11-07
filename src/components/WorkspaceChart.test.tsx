@@ -200,3 +200,31 @@ describe("WorkspaceChart, marks", () => {
     expect(asked(fetched).some((path) => path.includes("corporate-actions"))).toBe(false);
   });
 });
+
+describe("WorkspaceChart, a comparison with a gap", () => {
+  it("leaves out a compared session with no close rather than drawing it at nought", async () => {
+    stubPlatform({
+      "/api/figures": {
+        bodyFor: (path) => {
+          const points = chartPoints(3);
+          return decodeURIComponent(path).includes("Nifty")
+            ? { points: points.map((one, at) => (at === 1 ? { ...one, close: null } : one)) }
+            : { points };
+        },
+      },
+      "/api/price-bands": { status: 404 },
+      "/api/search": { body: [NIFTY] },
+    });
+    renderPage(
+      <WorkspaceChart instrumentKey="NSE_EQ|INE002A01018" symbol="RELIANCE" isIndex={false} />,
+    );
+
+    await userEvent.type(screen.getByRole("combobox", { name: "Compare with" }), "nif");
+    await userEvent.click(await screen.findByRole("option", { name: /NIFTY 50/ }));
+
+    await waitFor(() => {
+      const handed = chartCalls.setData.mock.calls.map(([points]) => (points as unknown[]).length);
+      expect(handed).toContain(2);
+    });
+  });
+});

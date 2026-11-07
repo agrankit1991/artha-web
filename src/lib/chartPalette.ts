@@ -62,6 +62,12 @@ export const OSCILLATOR = token("chart-7");
 /** A rule a series is read against: nought, a median, seventy and thirty. */
 export const THRESHOLD = token("chart-threshold");
 
+/**
+ * A line or zone the reader draws, unless they choose its colour: apart from
+ * the price and its averages, so a drawn support never reads as an average.
+ */
+export const DRAWING = token("chart-4");
+
 /** A benchmark drawn beside the subject: the index a playbook is judged against. */
 export const BENCHMARK = token("chart-benchmark");
 

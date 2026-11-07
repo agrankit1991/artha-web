@@ -357,6 +357,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
                         points={chart.data?.points ?? null}
                         forecast={forecast.data ?? null}
                         loading={chart.loading}
+                        drawingsOf={key}
                         instrument={{
                           label: found.symbol,
                           symbol: symbols.data?.[key]?.symbol,

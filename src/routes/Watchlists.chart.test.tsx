@@ -170,3 +170,35 @@ describe("Watchlists, several charts", () => {
     expect(screen.queryByRole("group", { name: "Chart 3" })).toBeNull();
   });
 });
+
+describe("Watchlists, charts the address names", () => {
+  it("fills the other charts from the list without charting the address's company again", async () => {
+    window.localStorage.setItem(
+      "artha.preferences",
+      JSON.stringify({ watchlistView: "chart", chartLayout: "3" }),
+    );
+    stub();
+    renderPage(<Watchlists />, { at: "/watchlists?chart=NSE_EQ%7CINE467B01029" });
+
+    const first = await screen.findByRole("group", { name: "Chart 1" });
+    expect(await within(first).findByRole("link", { name: "TCS" })).toBeVisible();
+    expect(
+      await within(screen.getByRole("group", { name: "Chart 2" })).findByRole("link", {
+        name: "RELIANCE",
+      }),
+    ).toBeVisible();
+    // The list's own TCS is already charted, and the list holds no third.
+    expect(screen.queryByRole("group", { name: "Chart 3" })).toBeNull();
+  });
+
+  it("charts an index the list does not hold, named from its key", async () => {
+    window.localStorage.setItem("artha.preferences", JSON.stringify({ watchlistView: "chart" }));
+    stub();
+    renderPage(<Watchlists />, { at: "/watchlists?chart=NSE_INDEX%7CNifty%2050" });
+
+    expect(await screen.findByRole("link", { name: "Nifty 50" })).toHaveAttribute(
+      "href",
+      "/index/nifty-50",
+    );
+  });
+});

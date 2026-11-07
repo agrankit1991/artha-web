@@ -224,6 +224,7 @@ export function WorkspaceChart({
           instrument={{ label: symbol }}
           extra={extra}
           markers={markers}
+          drawingsOf={instrumentKey}
           {...(sync === undefined ? {} : { sync })}
           {...(height === undefined ? {} : { height })}
         />

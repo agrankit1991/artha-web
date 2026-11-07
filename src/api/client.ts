@@ -2894,6 +2894,79 @@ export function fetchStrategies(): Promise<StrategySummary[]> {
   return request<StrategySummary[]>("/api/strategies");
 }
 
+/**
+ * What a reader draws on a chart, as the platform names it: a price across
+ * the plot, a price from a session on, a line between two points, a ray, a
+ * line through two points both ways, a session marked, or a zone.
+ */
+export type DrawingKind =
+  "horizontal" | "horizontal-ray" | "trend" | "ray" | "extended" | "vertical" | "rectangle";
+
+/** A session and a price on the stored, adjusted scale. */
+export interface DrawingPoint {
+  day: string;
+  price: string;
+}
+
+/** One drawing on an instrument's chart, the reader's own. */
+export interface ChartDrawing {
+  drawing_id: number;
+  instrument_key: string;
+  kind: DrawingKind;
+  points: DrawingPoint[];
+  label: string | null;
+  /** `#rrggbb`, or null for the chart's own colour. */
+  colour: string | null;
+  /** Fixed against being dragged. */
+  locked: boolean;
+  drawn_on: string;
+}
+
+/** What a drawing is changed to; its instrument and kind stay. */
+export interface DrawingChange {
+  points: DrawingPoint[];
+  label: string | null;
+  colour: string | null;
+  locked: boolean;
+}
+
+/** Fetch the reader's drawings on an instrument, oldest first. */
+export function fetchDrawings(instrumentKey: string): Promise<ChartDrawing[]> {
+  const parameters = new URLSearchParams({ instrument_key: instrumentKey });
+  return request<ChartDrawing[]>(`/api/drawings?${parameters.toString()}`);
+}
+
+/** Keep a drawing. */
+export function createDrawing(
+  instrumentKey: string,
+  kind: DrawingKind,
+  change: DrawingChange,
+): Promise<ChartDrawing> {
+  return request<ChartDrawing>("/api/drawings", {
+    method: "POST",
+    body: JSON.stringify({ instrument_key: instrumentKey, kind, ...change }),
+  });
+}
+
+/** Move a drawing, or change its label, colour or lock. */
+export function updateDrawing(drawingId: number, change: DrawingChange): Promise<ChartDrawing> {
+  return request<ChartDrawing>(`/api/drawings/${String(drawingId)}`, {
+    method: "PATCH",
+    body: JSON.stringify(change),
+  });
+}
+
+/** Delete one drawing. */
+export async function deleteDrawing(drawingId: number): Promise<void> {
+  await request<unknown>(`/api/drawings/${String(drawingId)}`, { method: "DELETE" });
+}
+
+/** Delete every drawing the reader has on an instrument. */
+export async function deleteDrawings(instrumentKey: string): Promise<void> {
+  const parameters = new URLSearchParams({ instrument_key: instrumentKey });
+  await request<unknown>(`/api/drawings?${parameters.toString()}`, { method: "DELETE" });
+}
+
 /** A saved strategy's sales of one instrument on its latest kept backtest. */
 export interface StrategyTrades {
   strategy_id: number;
