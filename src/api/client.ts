@@ -1941,6 +1941,34 @@ export function fetchKeptList(source: KeptSource): Promise<KeptListPage> {
   return request<KeptListPage>(`/api/kept-lists/rows?${parameters.toString()}`);
 }
 
+/** One kept list holding a company today. */
+export interface KeptHolding {
+  kind: KeptKind;
+  key: string;
+  /** Its name where the data gives one; null for a ranking, which the page names. */
+  name: string | null;
+  /** The company's place, in a ranking or a strategy's picks. */
+  rank: number | null;
+  /** Whether a strategy would buy it today, as against its waiting. */
+  held: boolean;
+}
+
+/**
+ * Fetch the kept lists holding a company today: its indices, its sector,
+ * the rankings it places in and the strategies picking it.
+ *
+ * @param instrumentKey - The company, by any of its listings.
+ * @param universe - Whose rankings, as the reader shows the kept lists.
+ * @returns The lists; none for an instrument that is not a company.
+ */
+export function fetchKeptListsHolding(
+  instrumentKey: string,
+  universe: MoverUniverse,
+): Promise<KeptHolding[]> {
+  const parameters = new URLSearchParams({ instrument_key: instrumentKey, universe });
+  return request<KeptHolding[]>(`/api/kept-lists/holding?${parameters.toString()}`);
+}
+
 /** What a watchlist is made or changed from. */
 export interface WatchlistDraft {
   name: string;

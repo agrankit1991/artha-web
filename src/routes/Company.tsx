@@ -60,6 +60,7 @@ import { NewsFeed } from "@/components/NewsFeed";
 import { DealsTable } from "@/components/DealsTable";
 import { DeliveryCard } from "@/components/DeliveryCard";
 import { InstrumentHeader } from "@/components/InstrumentHeader";
+import { KeptListsHolding } from "@/components/KeptListsHolding";
 import { MomentumChip, SizeBadge } from "@/components/Standing";
 import { PriceChart } from "@/components/PriceChart";
 import { RangeSelector } from "@/components/RangeSelector";
@@ -315,6 +316,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
           )
         }
       />
+      {key !== null && <KeptListsHolding instrumentKey={key} />}
 
       <SessionPicker asOf={asOf} onChange={setAsOf} />
       {asOf !== null && (

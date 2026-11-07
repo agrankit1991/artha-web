@@ -9,7 +9,9 @@
  * so they are encoded into a path rather than laid into it raw.
  */
 
+import type { KeptSource } from "@/api/client";
 import type { Scope } from "@/components/ScopeSelector";
+import { keptParams } from "@/lib/keptLists";
 
 /** The screens reachable from the navigation. */
 export const PATHS = {
@@ -167,6 +169,16 @@ export function ipoPath(ipoId: string): string {
  */
 export function watchlistPath(watchlistId: number): string {
   return `${PATHS.watchlists}?list=${String(watchlistId)}`;
+}
+
+/**
+ * The watchlist page showing one of the lists the platform keeps.
+ *
+ * @param source - Which kept list.
+ * @returns The path, with the list named in the query as `keptParams` spells it.
+ */
+export function keptListPath(source: KeptSource): string {
+  return `${PATHS.watchlists}?${keptParams(new URLSearchParams(), source).toString()}`;
 }
 
 /**
