@@ -18,7 +18,13 @@
 import { DEFAULT_RANGE, rangeFrom } from "@/lib/priceRanges";
 import { useSyncExternalStore } from "react";
 
-import type { ChartStyle, Overlay } from "@/components/ChartControls";
+import {
+  type ChartScale,
+  type ChartStyle,
+  type Overlay,
+  SCALES,
+  SHAPES,
+} from "@/components/ChartControls";
 import type { Scope } from "@/components/ScopeSelector";
 import type { MoverUniverse, ScopeKind } from "@/api/client";
 
@@ -70,6 +76,8 @@ export interface Preferences {
   movers: MoverUniverse;
   /** How many symbols an exported watchlist holds before it is cut into parts. */
   exportSize: ExportSize;
+  /** How a price chart's axis is laid out. */
+  chartScale: ChartScale;
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -85,13 +93,15 @@ export const DEFAULT_PREFERENCES: Preferences = {
   movers: "liquid",
   // The owner's own plan: Upstox Plus holds 200 to a list.
   exportSize: "200",
+  chartScale: "linear",
 };
 
 const STORAGE_KEY = "artha.preferences";
 
 const SCOPE_KINDS: readonly ScopeKind[] = ["companies", "indices", "sector", "index"];
 const KEYED_KINDS: readonly ScopeKind[] = ["sector", "index"];
-const STYLES: readonly ChartStyle[] = ["line", "candles", "area"];
+const STYLES: readonly ChartStyle[] = SHAPES;
+const SCALE_KEYS: readonly string[] = SCALES.map((one) => one.key);
 const OVERLAYS: readonly Overlay[] = ["sma_20", "sma_50", "sma_200", "volume", "rsi"];
 
 const listeners = new Set<() => void>();
@@ -176,6 +186,7 @@ export function parse(stored: unknown): Preferences {
   const views = record["views"];
   const participation = record["participation"];
   const exportSize = record["exportSize"];
+  const chartScale = record["chartScale"];
   return {
     // Liquid unless the reader chose all: anything else stored is not a choice.
     movers: record["movers"] === "all" ? "all" : "liquid",
@@ -218,6 +229,10 @@ export function parse(stored: unknown): Preferences {
       typeof exportSize === "string" && (EXPORT_SIZES as readonly string[]).includes(exportSize)
         ? (exportSize as ExportSize)
         : DEFAULT_PREFERENCES.exportSize,
+    chartScale:
+      typeof chartScale === "string" && SCALE_KEYS.includes(chartScale)
+        ? (chartScale as ChartScale)
+        : DEFAULT_PREFERENCES.chartScale,
   };
 }
 

@@ -488,3 +488,59 @@ describe("Chart", () => {
     expect(chartCalls.unsubscribeCrosshairMove).toHaveBeenCalled();
   });
 });
+
+describe("Chart, shapes, scales, decoration and saving", () => {
+  const CANDLES: Series = {
+    kind: "candles",
+    label: "Price",
+    points: [{ time: "2026-09-01", open: 1, high: 3, low: 0.5, close: 2 }],
+  };
+
+  it("draws bars, a baseline and hollow candles as the library's own series", () => {
+    draw([
+      { ...CANDLES, kind: "ohlc" },
+      { kind: "baseline", label: "Base", points: LINE.points },
+      { ...CANDLES, label: "Hollow", hollow: true },
+    ]);
+
+    expect(seriesKinds()).toEqual(["bar", "baseline", "candlestick"]);
+    const hollow = chartCalls.addSeries.mock.calls[2] as unknown[];
+    expect(hollow[1]).toMatchObject({ upColor: "rgba(0, 0, 0, 0)", borderVisible: true });
+    // A baseline sits on its first point unless told otherwise.
+    const baseline = chartCalls.addSeries.mock.calls[1] as unknown[];
+    expect(baseline[1]).toMatchObject({ baseValue: { type: "price", price: 0 } });
+  });
+
+  it("lays the price axis out as asked, upside down when asked", () => {
+    draw([LINE], { priceScale: "log", inverted: true });
+    expect(chartCalls.applyOptions).toHaveBeenCalledWith({ mode: 1, invertScale: true });
+  });
+
+  it("is decorated on each build and the decoration undone with it", () => {
+    const undo = vi.fn();
+    const decorate = vi.fn<NonNullable<Parameters<typeof Chart>[0]["decorate"]>>(() => undo);
+    render(
+      <ThemeProvider>
+        <Chart series={[LINE]} decorate={decorate} />
+      </ThemeProvider>,
+    );
+    expect(decorate).toHaveBeenCalledTimes(1);
+    expect(decorate.mock.calls[0]?.[1]).toBeDefined();
+
+    cleanup();
+    expect(undo).toHaveBeenCalledTimes(1);
+  });
+
+  it("saves the plot as a picture named after what it shows", async () => {
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => undefined);
+    draw([LINE], { imageName: "RELIANCE" });
+
+    await userEvent.click(screen.getByRole("button", { name: "Save image" }));
+
+    expect(chartCalls.takeScreenshot).toHaveBeenCalledWith(true, false);
+    expect((click.mock.contexts[0] as HTMLAnchorElement).download).toBe("RELIANCE.png");
+    click.mockRestore();
+  });
+});

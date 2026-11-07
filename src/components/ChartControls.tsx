@@ -12,13 +12,39 @@
  * mandatory.
  */
 
-import { CandlestickChart, Check, ChevronDown, Layers, LineChart, TrendingUp } from "lucide-react";
+import {
+  ArrowUpDown,
+  CandlestickChart,
+  ChartCandlestick,
+  ChartColumn,
+  ChartSpline,
+  Check,
+  ChevronDown,
+  Layers,
+  LineChart,
+  TrendingUp,
+} from "lucide-react";
 
 import { Menu, MenuItem, MenuLabel, MenuSeparator } from "@/components/Menu";
 import { cn } from "@/lib/utils";
 
 /** The shape the price itself is drawn in. */
-export type ChartStyle = "candles" | "line" | "area";
+export type ChartStyle = "candles" | "hollow" | "ohlc" | "line" | "area" | "baseline";
+
+/**
+ * How the price axis is laid out: by price, by its logarithm (equal moves
+ * in per cent look equal, which a long history needs), as the change from
+ * the first session on screen, or rebased to a hundred there.
+ */
+export type ChartScale = "linear" | "log" | "percent" | "indexed";
+
+/** Every scale, in the order they are offered, with what each is called. */
+export const SCALES: { key: ChartScale; label: string; hint: string }[] = [
+  { key: "linear", label: "Price", hint: "The price itself" },
+  { key: "log", label: "Logarithmic", hint: "Equal moves in per cent look equal" },
+  { key: "percent", label: "Per cent", hint: "Change from the first session shown" },
+  { key: "indexed", label: "Indexed to 100", hint: "Rebased to a hundred where shown" },
+];
 
 /** Something that can be laid over or under the price. */
 export type Overlay = "sma_20" | "sma_50" | "sma_200" | "volume" | "rsi";
@@ -35,12 +61,22 @@ export const OVERLAYS: { key: Overlay; label: string; hint: string }[] = [
 /** Keyed rather than a list, so looking one up cannot come back empty. */
 const STYLES: Record<ChartStyle, { label: string; icon: typeof LineChart }> = {
   candles: { label: "Candles", icon: CandlestickChart },
+  hollow: { label: "Hollow candles", icon: ChartCandlestick },
+  ohlc: { label: "Bars", icon: ChartColumn },
   line: { label: "Line", icon: LineChart },
   area: { label: "Area", icon: Layers },
+  baseline: { label: "Baseline", icon: ChartSpline },
 };
 
 /** The shapes, in the order they are offered. */
-const SHAPES: ChartStyle[] = ["candles", "line", "area"];
+export const SHAPES: readonly ChartStyle[] = [
+  "candles",
+  "hollow",
+  "ohlc",
+  "line",
+  "area",
+  "baseline",
+];
 
 interface ChartControlsProps {
   style: ChartStyle;
@@ -52,6 +88,13 @@ interface ChartControlsProps {
    * Absent where the instrument has no forecast, and then not offered.
    */
   forecast?: { shown: boolean; onToggle: (shown: boolean) => void };
+  /** How the price axis is laid out, flipped or not, and what to call to change it. */
+  scale: {
+    chosen: ChartScale;
+    inverted: boolean;
+    onScale: (scale: ChartScale) => void;
+    onInvert: (inverted: boolean) => void;
+  };
   className?: string;
 }
 
@@ -69,10 +112,12 @@ export function ChartControls({
   onStyle,
   onOverlays,
   forecast,
+  scale,
   className,
 }: ChartControlsProps): React.JSX.Element {
   const showing = new Set(overlays);
   const chosen = STYLES[style];
+  const scaled = SCALES.find((one) => one.key === scale.chosen) ?? SCALES[0];
 
   const toggle = (overlay: Overlay): void => {
     const next = new Set(showing);
@@ -177,6 +222,61 @@ export function ChartControls({
                 </MenuItem>
               </>
             )}
+          </>
+        )}
+      </Menu>
+
+      <Menu
+        label="Price scale"
+        triggerClassName={TRIGGER}
+        trigger={
+          <>
+            <ArrowUpDown className="h-4 w-4" />
+            <span>
+              {scaled?.label}
+              {scale.inverted && <span className="ml-1 text-muted-foreground">(inverted)</span>}
+            </span>
+            <ChevronDown className="h-3 w-3" />
+          </>
+        }
+      >
+        {(close) => (
+          <>
+            <MenuLabel>Lay the price axis out by</MenuLabel>
+            {SCALES.map((one) => (
+              <MenuItem
+                key={one.key}
+                selected={one.key === scale.chosen}
+                onSelect={() => {
+                  scale.onScale(one.key);
+                  close();
+                }}
+              >
+                <span className="flex-1">
+                  <span className="block">{one.label}</span>
+                  <span className="block text-xs text-muted-foreground">{one.hint}</span>
+                </span>
+                <Check
+                  className={cn(
+                    "h-4 w-4 shrink-0",
+                    one.key === scale.chosen ? "opacity-100" : "opacity-0",
+                  )}
+                />
+              </MenuItem>
+            ))}
+            <MenuSeparator />
+            <MenuItem
+              selected={scale.inverted}
+              onSelect={() => {
+                scale.onInvert(!scale.inverted);
+                close();
+              }}
+            >
+              <span className="flex-1">Invert the scale</span>
+              <Check
+                className={cn("h-4 w-4 shrink-0", scale.inverted ? "opacity-100" : "opacity-0")}
+              />
+            </MenuItem>
           </>
         )}
       </Menu>

@@ -15,8 +15,13 @@
 import { useMemo, useState } from "react";
 
 import type { ChartPoint, PriceBands } from "@/api/client";
-import { Chart, type ChartInstrument, type Series } from "@/components/Chart";
-import { type ChartStyle, ChartControls, type Overlay } from "@/components/ChartControls";
+import { type Candle, Chart, type ChartInstrument, type Series } from "@/components/Chart";
+import {
+  type ChartScale,
+  type ChartStyle,
+  ChartControls,
+  type Overlay,
+} from "@/components/ChartControls";
 import { ForecastNote } from "@/components/ForecastNote";
 import { drawnBand } from "@/lib/forecastBands";
 import { readPreferences, writePreferences } from "@/lib/preferences";
@@ -41,6 +46,10 @@ interface PriceChartProps {
   /** Where the price may go past its last session; absent or null for none. */
   forecast?: PriceBands | null;
   loading?: boolean;
+  /** Work done on the chart each time it is built: markers, drawings. Stable. */
+  decorate?: React.ComponentProps<typeof Chart>["decorate"];
+  /** Lines laid over the price, as another instrument for comparison. */
+  extra?: Series[];
 }
 
 /** The averages, and which figure each reads. */
@@ -87,6 +96,8 @@ export function PriceChart({
   initialOverlays,
   forecast = null,
   loading = false,
+  decorate,
+  extra = [],
 }: PriceChartProps): React.JSX.Element {
   // What the reader chose last time, unless the page asks for something
   // particular; what they choose now is remembered for next time.
@@ -101,6 +112,12 @@ export function PriceChart({
   const chooseOverlays = (next: Overlay[]): void => {
     setOverlays(next);
     writePreferences({ overlays: next });
+  };
+  const [scale, setScale] = useState<ChartScale>(() => readPreferences().chartScale);
+  const [inverted, setInverted] = useState(false);
+  const chooseScale = (next: ChartScale): void => {
+    setScale(next);
+    writePreferences({ chartScale: next });
   };
   const [showForecast, setShowForecast] = useState<boolean>(() => readPreferences().forecast);
   const chooseForecast = (next: boolean): void => {
@@ -180,8 +197,9 @@ export function PriceChart({
       );
     }
 
+    drawn.push(...extra);
     return drawn;
-  }, [sessions, style, overlays, band]);
+  }, [sessions, style, overlays, band, extra]);
 
   return (
     <div className="space-y-3">
@@ -190,6 +208,7 @@ export function PriceChart({
         overlays={overlays}
         onStyle={chooseStyle}
         onOverlays={chooseOverlays}
+        scale={{ chosen: scale, inverted, onScale: chooseScale, onInvert: setInverted }}
         {...(forecast === null
           ? {}
           : { forecast: { shown: showForecast, onToggle: chooseForecast } })}
@@ -199,6 +218,10 @@ export function PriceChart({
         instruments={instrument ? [instrument] : []}
         loading={loading}
         empty="No sessions to draw"
+        priceScale={scale}
+        inverted={inverted}
+        imageName={instrument?.label ?? "chart"}
+        {...(decorate === undefined ? {} : { decorate })}
       />
       {band !== null && <ForecastNote bands={band} />}
     </div>
@@ -213,28 +236,45 @@ export function PriceChart({
  * @returns The series.
  */
 function priceOf(sessions: ChartPoint[], style: ChartStyle): Series {
-  if (style === "candles") {
+  if (style === "candles" || style === "hollow") {
     return {
       kind: "candles",
       label: "Price",
-      // A session whose prices will not parse is left out rather than
-      // drawn at nought, which would put a candle crashing to zero in the
-      // middle of the series and look like a real event.
-      points: sessions.flatMap((point) => {
-        const open = toNumber(point.open);
-        const high = toNumber(point.high);
-        const low = toNumber(point.low);
-        const close = toNumber(point.close);
-        return open === null || high === null || low === null || close === null
-          ? []
-          : [{ time: point.day, open, high, low, close }];
-      }),
+      points: candlesOf(sessions),
+      hollow: style === "hollow",
     };
   }
+  if (style === "ohlc") {
+    return { kind: "ohlc", label: "Price", points: candlesOf(sessions) };
+  }
   const closes = valuesOf(sessions, (point) => point.close);
+  if (style === "baseline") {
+    // Above the first session shown is a rise, below it a fall.
+    return { kind: "baseline", label: "Price", points: closes };
+  }
   return style === "area"
     ? { kind: "area", label: "Price", colour: PRICE_LINE, points: closes }
     : { kind: "line", label: "Price", colour: PRICE_LINE, width: PRICE_WIDTH, points: closes };
+}
+
+/**
+ * The sessions as open, high, low and close, for candles and bars alike.
+ *
+ * @param sessions - The sessions.
+ * @returns The points. A session whose prices will not parse is left out
+ *   rather than drawn at nought, which would put a candle crashing to zero
+ *   in the middle of the series and look like a real event.
+ */
+function candlesOf(sessions: ChartPoint[]): Candle[] {
+  return sessions.flatMap((point) => {
+    const open = toNumber(point.open);
+    const high = toNumber(point.high);
+    const low = toNumber(point.low);
+    const close = toNumber(point.close);
+    return open === null || high === null || low === null || close === null
+      ? []
+      : [{ time: point.day, open, high, low, close }];
+  });
 }
 
 /**

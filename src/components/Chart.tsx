@@ -16,6 +16,8 @@
 
 import {
   AreaSeries,
+  BarSeries,
+  BaselineSeries,
   CandlestickSeries,
   ColorType,
   CrosshairMode,
@@ -26,12 +28,15 @@ import {
   LineStyle,
   type MouseEventParams,
   type PriceFormatCustom,
+  PriceScaleMode,
   type SeriesType,
   createChart,
 } from "lightweight-charts";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { RotateCcw } from "lucide-react";
+import { ImageDown, RotateCcw } from "lucide-react";
+
+import type { ChartScale } from "@/components/ChartControls";
 
 import { TradingViewLink } from "@/components/TradingViewLink";
 import { AVERAGE_WIDTH, FALL, NEUTRAL, PRICE_WIDTH, RISE, THRESHOLD } from "@/lib/chartPalette";
@@ -96,7 +101,19 @@ interface Common {
 
 /** Something to draw, and what to call it. */
 export type Series =
-  | (Common & { kind: "candles"; points: Candle[] })
+  | (Common & {
+      kind: "candles";
+      points: Candle[];
+      /** Rising sessions drawn as outlines, falling ones filled. */
+      hollow?: boolean;
+    })
+  | (Common & { kind: "ohlc"; points: Candle[] })
+  | (Common & {
+      kind: "baseline";
+      points: Point[];
+      /** Above it is drawn as a rise, below as a fall; the first point when absent. */
+      base?: number;
+    })
   | (Common & {
       kind: "line";
       colour: string;
@@ -152,10 +169,36 @@ interface ChartProps {
   /** How tall each pane past the first is drawn. */
   paneHeight?: number;
   height?: number;
+  /** How the price axis is laid out; by price unless asked. */
+  priceScale?: ChartScale;
+  /** Whether the price axis runs upside down. */
+  inverted?: boolean;
+  /**
+   * Work done on the chart each time it is built -- markers, drawings, a
+   * second chart kept in step -- given the chart and the first series
+   * drawn, which is the price. The chart is rebuilt whenever what it
+   * draws or the theme changes, so this is called again then; what it
+   * returns is called when that build is torn down. Keep it stable
+   * (`useCallback`), or the chart is rebuilt on every render.
+   */
+  decorate?: (
+    chart: IChartApi,
+    price: ISeriesApi<SeriesType> | undefined,
+  ) => (() => void) | undefined;
+  /** What a saved image is called; "chart" unless given. */
+  imageName?: string;
   className?: string;
 }
 
 const DEFAULT_HEIGHT = 360;
+
+/** The library's mode for each way the price axis can be laid out. */
+const SCALE_MODES: Record<ChartScale, PriceScaleMode> = {
+  linear: PriceScaleMode.Normal,
+  log: PriceScaleMode.Logarithmic,
+  percent: PriceScaleMode.Percentage,
+  indexed: PriceScaleMode.IndexedTo100,
+};
 
 /**
  * The most bars of empty space to leave at each end.
@@ -188,6 +231,10 @@ export function Chart({
   scale = "price",
   paneHeight = DEFAULT_PANE_HEIGHT,
   height = DEFAULT_HEIGHT,
+  priceScale = "linear",
+  inverted = false,
+  decorate,
+  imageName = "chart",
   className,
 }: ChartProps): React.JSX.Element {
   const holder = useRef<HTMLDivElement>(null);
@@ -269,6 +316,10 @@ export function Chart({
     for (const one of drawable) {
       named.set(draw(created, one, scale), one);
     }
+    created.priceScale("right").applyOptions({
+      mode: SCALE_MODES[priceScale],
+      invertScale: inverted,
+    });
 
     // Panes past the first are given a fixed band rather than an equal
     // share: an oscillator is read for its shape against its thresholds,
@@ -312,7 +363,7 @@ export function Chart({
     // thousands of points, and a hover would walk all of them.
     const detailed = new Map<string, Map<string, string>>();
     for (const one of drawable) {
-      if (one.kind === "candles") {
+      if (one.kind === "candles" || one.kind === "ohlc") {
         continue;
       }
       const byDay = new Map<string, string>();
@@ -365,8 +416,10 @@ export function Chart({
       });
     };
     created.subscribeCrosshairMove(follow);
+    const undecorate = decorate?.(created, [...named.keys()][0]);
 
     return () => {
+      undecorate?.();
       created.unsubscribeCrosshairMove(follow);
       created.timeScale().unsubscribeVisibleLogicalRangeChange(watch);
       created.remove();
@@ -377,7 +430,7 @@ export function Chart({
     // `drawable` is rebuilt on every render; `series` is what a caller
     // actually changes, and is what this should redraw for.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [series, total, appearance, scale, hasBars, paneHeight]);
+  }, [series, total, appearance, scale, hasBars, paneHeight, priceScale, inverted, decorate]);
 
   const reset = useCallback(() => {
     const frame = opening.current;
@@ -385,6 +438,19 @@ export function Chart({
       chart.current.timeScale().setVisibleLogicalRange(frame);
     }
   }, []);
+
+  // The plot as drawn, drawings and markers included, as a picture to keep
+  // or send; the crosshair is left out, being wherever the pointer was.
+  const saveImage = (): void => {
+    const canvas = chart.current?.takeScreenshot(true, false);
+    if (canvas === undefined) {
+      return; // Unreachable: the button exists only while a chart is drawn.
+    }
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = `${imageName}.png`;
+    link.click();
+  };
 
   if (drawable.length === 0) {
     return (
@@ -453,6 +519,14 @@ export function Chart({
               Reset view
             </button>
           )}
+          <button
+            type="button"
+            onClick={saveImage}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
+          >
+            <ImageDown aria-hidden="true" className="h-3 w-3" />
+            Save image
+          </button>
           {instruments.map((instrument) => (
             <TradingViewLink
               key={instrument.label}
@@ -581,11 +655,62 @@ function add(
     const down = tokenColour(FALL);
     const candles = chart.addSeries(
       CandlestickSeries,
-      { upColor: up, downColor: down, borderVisible: false, wickUpColor: up, wickDownColor: down },
+      series.hollow === true
+        ? {
+            // A rise drawn as its outline, a fall filled: the shape tells
+            // the session's direction before its colour is read.
+            upColor: "rgba(0, 0, 0, 0)",
+            downColor: down,
+            borderVisible: true,
+            borderUpColor: up,
+            borderDownColor: down,
+            wickUpColor: up,
+            wickDownColor: down,
+          }
+        : {
+            upColor: up,
+            downColor: down,
+            borderVisible: false,
+            wickUpColor: up,
+            wickDownColor: down,
+          },
       pane,
     );
     candles.setData(series.points);
     return candles;
+  }
+
+  if (series.kind === "ohlc") {
+    const bars = chart.addSeries(
+      BarSeries,
+      { upColor: tokenColour(RISE), downColor: tokenColour(FALL), thinBars: false },
+      pane,
+    );
+    bars.setData(series.points);
+    return bars;
+  }
+
+  if (series.kind === "baseline") {
+    const up = tokenColour(RISE);
+    const down = tokenColour(FALL);
+    const base = series.base ?? series.points[0]?.value ?? 0;
+    const baseline = chart.addSeries(
+      BaselineSeries,
+      {
+        baseValue: { type: "price", price: base },
+        topLineColor: up,
+        topFillColor1: translucent(up, 0.28),
+        topFillColor2: translucent(up, 0.02),
+        bottomLineColor: down,
+        bottomFillColor1: translucent(down, 0.02),
+        bottomFillColor2: translucent(down, 0.28),
+        lineWidth: PRICE_WIDTH,
+        ...priceFormat(scale),
+      },
+      pane,
+    );
+    baseline.setData(series.points);
+    return baseline;
   }
 
   if (series.kind === "bars") {

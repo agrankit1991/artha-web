@@ -15,6 +15,7 @@ export const chartCalls = {
   addSeries: vi.fn(),
   setData: vi.fn(),
   createPriceLine: vi.fn(),
+  takeScreenshot: vi.fn(),
   remove: vi.fn(),
   fitContent: vi.fn(),
   setVisibleLogicalRange: vi.fn(),
@@ -117,6 +118,10 @@ export function chartModule(): Record<string, unknown> {
         unsubscribeVisibleLogicalRangeChange: chartCalls.unsubscribeVisibleLogicalRangeChange,
       }),
       priceScale: () => ({ applyOptions: chartCalls.applyOptions }),
+      // A canvas that writes a fixed address, for a test of saving the image.
+      takeScreenshot: chartCalls.takeScreenshot.mockImplementation(() => ({
+        toDataURL: () => "data:image/png;base64,",
+      })),
       // Three panes, so a test of a series in a band of its own has one to
       // be put in, and of two bands, two.
       panes: () =>
@@ -130,6 +135,10 @@ export function chartModule(): Record<string, unknown> {
     CandlestickSeries: "candlestick",
     HistogramSeries: "histogram",
     AreaSeries: "area",
+    BarSeries: "bar",
+    BaselineSeries: "baseline",
+    // The library's own values, so a test can say which mode was asked for.
+    PriceScaleMode: { Normal: 0, Logarithmic: 1, Percentage: 2, IndexedTo100: 3 },
     ColorType: { Solid: "solid" },
     CrosshairMode: { Magnet: 1, Normal: 0 },
     // The library's own values, so a line drawn dashed reads as it would.

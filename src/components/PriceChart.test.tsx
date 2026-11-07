@@ -297,3 +297,44 @@ describe("PriceChart", () => {
     expect(screen.queryByTestId("forecast-note")).not.toBeInTheDocument();
   });
 });
+
+describe("PriceChart, the new shapes, the scale and extra lines", () => {
+  it("draws the price as hollow candles, bars or a baseline, as chosen", async () => {
+    draw({ initialOverlays: [] });
+    const shapes: [RegExp, string][] = [
+      [/Hollow candles/, "candlestick"],
+      [/^Bars/, "bar"],
+      [/Baseline/, "baseline"],
+    ];
+    for (const [name, kind] of shapes) {
+      chartCalls.addSeries.mockClear();
+      await userEvent.click(screen.getByRole("button", { name: "Chart style" }));
+      await userEvent.click(screen.getByRole("menuitem", { name }));
+      expect(seriesKinds()[0]).toBe(kind);
+    }
+    expect(readPreferences().chartStyle).toBe("baseline");
+  });
+
+  it("remembers the scale chosen and passes it and the flip to the chart", async () => {
+    draw({ initialOverlays: [] });
+
+    await userEvent.click(screen.getByRole("button", { name: "Price scale" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /Per cent/ }));
+    expect(readPreferences().chartScale).toBe("percent");
+    expect(chartCalls.applyOptions).toHaveBeenLastCalledWith({ mode: 2, invertScale: false });
+
+    await userEvent.click(screen.getByRole("button", { name: "Price scale" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /Invert the scale/ }));
+    expect(chartCalls.applyOptions).toHaveBeenLastCalledWith({ mode: 2, invertScale: true });
+  });
+
+  it("draws the extra lines it is given over the price", () => {
+    draw({
+      initialOverlays: [],
+      extra: [
+        { kind: "line", label: "TCS", colour: "#000", points: [{ time: "2026-09-01", value: 1 }] },
+      ],
+    });
+    expect(seriesKinds()).toEqual(["line", "line"]);
+  });
+});
