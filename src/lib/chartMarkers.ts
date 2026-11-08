@@ -1,15 +1,15 @@
 /**
- * Marks on a price chart: where a strategy bought and sold, and the bonuses
- * and splits that changed a company's share count.
+ * Marks on a price chart: the bonuses and splits that changed a company's
+ * share count. (A chosen strategy's buys and sells were marked too, until
+ * the owner removed the choice on 2026-11-08: most strategies never traded
+ * the company charted, so a pick usually marked nothing.)
  *
  * Worked out here as plain arithmetic, apart from the chart that draws them
  * (artha-web CLAUDE.md: the chart is stubbed in tests, so what a mark says
- * and where it sits is tested here). The words are the trades table's own
- * (`SALE_REASONS`), so a mark and the row it stands for say the same thing.
+ * and where it sits is tested here).
  */
 
-import type { BacktestTrade, CorporateAction } from "@/api/client";
-import { SALE_REASONS } from "@/lib/strategyTerms";
+import type { CorporateAction } from "@/api/client";
 
 /** One mark, in the chart's own terms rather than the library's. */
 export interface ChartMarker {
@@ -25,39 +25,6 @@ export interface ChartMarker {
 
 /** The actions that change a share count and so show in an adjusted price. */
 const MARKED_ACTIONS = new Set<CorporateAction["kind"]>(["BONUS", "SPLIT", "RIGHTS"]);
-
-/**
- * Mark where a strategy bought and sold.
- *
- * @param trades - Its sales, each with the purchase it closed.
- * @returns A buy under each entry session -- once, though a purchase sold
- *   in parts has several sales -- and a sell over each exit, green when it
- *   made money and red when it lost, named by why it was sold.
- */
-export function tradeMarkers(trades: readonly BacktestTrade[]): ChartMarker[] {
-  const bought = new Set<string>();
-  const marks: ChartMarker[] = [];
-  for (const trade of trades) {
-    if (!bought.has(trade.entered)) {
-      bought.add(trade.entered);
-      marks.push({
-        time: trade.entered,
-        position: "below",
-        shape: "up",
-        tone: "gain",
-        text: "Buy",
-      });
-    }
-    marks.push({
-      time: trade.exited,
-      position: "above",
-      shape: "down",
-      tone: trade.gain_percent >= 0 ? "gain" : "loss",
-      text: `Sell: ${SALE_REASONS[trade.reason]?.word ?? trade.reason}`,
-    });
-  }
-  return marks;
-}
 
 /**
  * Mark the bonuses, splits and rights issues on a company's chart.

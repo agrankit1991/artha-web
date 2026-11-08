@@ -3095,26 +3095,6 @@ export async function forgetLineStyles(): Promise<void> {
   await request<unknown>("/api/line-styles", { method: "DELETE" });
 }
 
-/** A saved strategy's sales of one instrument on its latest kept backtest. */
-export interface StrategyTrades {
-  strategy_id: number;
-  name: string;
-  /** The backtest they are from; null when it has never been run. */
-  backtest_id: number | null;
-  trades: BacktestTrade[];
-}
-
-/** Fetch where a saved strategy bought and sold one instrument, for marks on its chart. */
-export function fetchStrategyTrades(
-  strategyId: number,
-  instrumentKey: string,
-): Promise<StrategyTrades> {
-  const parameters = new URLSearchParams({ instrument_key: instrumentKey });
-  return request<StrategyTrades>(
-    `/api/strategies/${String(strategyId)}/trades?${parameters.toString()}`,
-  );
-}
-
 /**
  * Fetch one saved strategy whole.
  *
