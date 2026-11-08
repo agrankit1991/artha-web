@@ -173,8 +173,13 @@ describe("PriceChart, drawing", () => {
     expect(made(fetched)).toContain(`GET /api/drawings?instrument_key=${KEY}`);
 
     click(200, 121, "2026-09-05");
-    const toolbar = await screen.findByRole("toolbar", { name: "Drawing tools" });
-    expect(within(toolbar).getByText("Horizontal line picked:")).toBeVisible();
+    // Said over the plot; its lock, style and delete join the tools down its left.
+    expect(await screen.findByText("Horizontal line picked:")).toBeVisible();
+    expect(
+      within(screen.getByRole("toolbar", { name: "Drawing tools" })).getByRole("button", {
+        name: "Lock the drawing",
+      }),
+    ).toBeVisible();
     await userEvent.click(screen.getByRole("button", { name: "Lock the drawing" }));
     await waitFor(() => {
       expect(made(fetched)).toContain("PATCH /api/drawings/7");

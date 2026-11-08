@@ -52,6 +52,9 @@ const NAMES = new Map(TOOLS.map((one) => [one.tool, one.label]));
 
 const BUTTON = "rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground";
 
+/** A note over the plot: a small card, so it reads over the lines under it. */
+const NOTE_CLASS = "w-fit rounded bg-popover/95 px-2 py-1 shadow-sm";
+
 /**
  * Render the toolbar, or nothing where there is no instrument to draw on.
  *
@@ -70,12 +73,17 @@ export function DrawingToolbar({
     return null;
   }
   const { tool, chosen, reading } = drawings;
+  const noting = chosen !== null || tool !== null || reading !== null || drawings.problem !== null;
   return (
-    // Its parts are laid into the row it sits in (`contents`): the tools
-    // follow the chart's controls on one line, each note a line of its own.
-    <div className="contents">
-      <div className="flex flex-wrap items-center gap-1" role="toolbar" aria-label="Drawing tools">
-        <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
+    <>
+      {/* Down the chart's left, as a trading screen keeps its drawing tools
+          (the owner, 2026-11-08), rather than a row over the chart. */}
+      <div
+        role="toolbar"
+        aria-label="Drawing tools"
+        aria-orientation="vertical"
+        className="flex shrink-0 flex-col items-center gap-0.5 self-start rounded-md border bg-card p-0.5"
+      >
         {TOOLS.map((one) => (
           <button
             key={one.tool}
@@ -91,7 +99,7 @@ export function DrawingToolbar({
             <one.icon aria-hidden="true" className="h-4 w-4" />
           </button>
         ))}
-        <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
+        <span aria-hidden="true" className="my-1 h-px w-5 bg-border" />
         <button
           type="button"
           aria-pressed={drawings.magnet}
@@ -134,10 +142,8 @@ export function DrawingToolbar({
           </button>
         )}
         {chosen !== null && (
-          <span className="ml-2 flex items-center gap-1 text-xs">
-            <span className="text-muted-foreground">
-              {NAMES.get(chosen.kind) ?? chosen.kind} picked:
-            </span>
+          <>
+            <span aria-hidden="true" className="my-1 h-px w-5 bg-border" />
             <button
               type="button"
               aria-label={chosen.locked ? "Unlock the drawing" : "Lock the drawing"}
@@ -176,38 +182,52 @@ export function DrawingToolbar({
             >
               <Trash2 aria-hidden="true" className="h-4 w-4" />
             </button>
-          </span>
+          </>
         )}
       </div>
-      {chosen !== null && styling && (
-        <div className="basis-full">
-          <LineStyleEditor
-            label="The drawing"
-            own={{ colour: chosen.colour, width: chosen.width }}
-            fallbackColour={every.colour}
-            fallbackName="Like every drawing"
-            onChange={(change) => {
-              drawings.restyle(chosen, change);
-            }}
-          />
+      {noting && (
+        // Over the plot, above its time axis, so a note never moves the
+        // chart; only the style editor takes the pointer.
+        <div className="pointer-events-none absolute bottom-20 left-12 z-20 max-w-md space-y-1.5 text-xs">
+          {chosen !== null && (
+            <p className={NOTE_CLASS}>
+              <span className="font-medium">{NAMES.get(chosen.kind) ?? chosen.kind} picked:</span>{" "}
+              <span className="text-muted-foreground">
+                lock, style or delete it from the tools.
+              </span>
+            </p>
+          )}
+          {chosen !== null && styling && (
+            <div className="pointer-events-auto rounded-md border bg-popover p-2 shadow-md">
+              <LineStyleEditor
+                label="The drawing"
+                own={{ colour: chosen.colour, width: chosen.width }}
+                fallbackColour={every.colour}
+                fallbackName="Like every drawing"
+                onChange={(change) => {
+                  drawings.restyle(chosen, change);
+                }}
+              />
+            </div>
+          )}
+          {tool !== null && (
+            <p className={NOTE_CLASS}>
+              Click {drawings.remaining} more {drawings.remaining === 1 ? "point" : "points"} on the
+              chart. Escape puts the tool down.
+            </p>
+          )}
+          {reading !== null && (
+            <p className={cn(NOTE_CLASS, "tabular")}>
+              Measured: {reading.change >= 0 ? "+" : ""}
+              {reading.percent.toFixed(2)}% ({reading.change >= 0 ? "+" : ""}
+              {reading.change.toFixed(2)}) over {reading.sessions}{" "}
+              {reading.sessions === 1 ? "session" : "sessions"}.
+            </p>
+          )}
+          {drawings.problem !== null && (
+            <p className={cn(NOTE_CLASS, "text-destructive")}>{drawings.problem}</p>
+          )}
         </div>
-      )}
-      {tool !== null && (
-        <p className="basis-full text-xs text-muted-foreground">
-          Click {drawings.remaining} more {drawings.remaining === 1 ? "point" : "points"} on the
-          chart. Escape puts the tool down.
-        </p>
-      )}
-      {reading !== null && (
-        <p className="basis-full text-xs tabular">
-          Measured: {reading.change >= 0 ? "+" : ""}
-          {reading.percent.toFixed(2)}% ({reading.change >= 0 ? "+" : ""}
-          {reading.change.toFixed(2)}) over {reading.sessions}{" "}
-          {reading.sessions === 1 ? "session" : "sessions"}.
-        </p>
-      )}
-      {drawings.problem !== null && (
-        <p className="basis-full text-xs text-destructive">{drawings.problem}</p>
       )}
       <ConfirmDialog
         open={clearing}
@@ -222,6 +242,6 @@ export function DrawingToolbar({
           setClearing(false);
         }}
       />
-    </div>
+    </>
   );
 }

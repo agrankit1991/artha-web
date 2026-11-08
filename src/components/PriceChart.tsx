@@ -21,6 +21,7 @@ import {
   type ChartStyle,
   ChartControls,
   type Overlay,
+  ScaleChooser,
 } from "@/components/ChartControls";
 import { DrawingToolbar } from "@/components/DrawingToolbar";
 import { ForecastNote } from "@/components/ForecastNote";
@@ -62,6 +63,12 @@ interface PriceChartProps {
    * reader's own, on every chart of it. Absent where nothing is drawn.
    */
   drawingsOf?: string;
+  /** What leads the bar over the chart: the instrument, what is laid over it. */
+  lead?: React.ReactNode;
+  /** What closes that bar at its far end, such as making the chart fill the view. */
+  trail?: React.ReactNode;
+  /** The span shown, chosen under the plot at its left as a trading screen has it. */
+  range?: React.ReactNode;
 }
 
 /** The averages, and which figure each reads. */
@@ -111,6 +118,9 @@ export function PriceChart({
   sync,
   height,
   drawingsOf,
+  lead,
+  trail,
+  range,
 }: PriceChartProps): React.JSX.Element {
   const drawings = useChartDrawings(drawingsOf ?? null);
   const lines = useLineStyles();
@@ -228,19 +238,19 @@ export function PriceChart({
   }, [sessions, style, overlays, band, extra, lines]);
 
   return (
-    <div className="space-y-3">
-      {/* One row: the chart's shape and overlays, then the drawing tools
-          (each laid out in it through `contents`). Two rows took the chart's
-          room (the owner, 2026-11-08); the tools' notes still take rows of
-          their own below. */}
+    <div className="space-y-2">
+      {/* As a trading screen lays a chart out (the owner, 2026-11-08: "the
+          scale and other tools should be visible on the chart something like
+          how trading view does"): one bar over it, the drawing tools down its
+          left, its legend over the plot and its span and price axis under it. */}
       <div className="flex flex-wrap items-center gap-2">
+        {lead}
         <ChartControls
           className="contents"
           style={style}
           overlays={overlays}
           onStyle={chooseStyle}
           onOverlays={chooseOverlays}
-          scale={{ chosen: shownScale, inverted, onScale: chooseScale, onInvert: setInverted }}
           onStyles={() => {
             setStyling(true);
           }}
@@ -248,21 +258,36 @@ export function PriceChart({
             ? {}
             : { forecast: { shown: showForecast, onToggle: chooseForecast } })}
         />
-        <DrawingToolbar drawings={drawings} />
+        {trail !== undefined && <div className="ml-auto flex items-center gap-2">{trail}</div>}
       </div>
-      <Chart
-        series={series}
-        instruments={instrument ? [instrument] : []}
-        loading={loading}
-        empty="No sessions to draw"
-        priceScale={shownScale}
-        inverted={inverted}
-        imageName={instrument?.label ?? "chart"}
-        decorate={decorated}
-        {...(markers === undefined ? {} : { markers })}
-        {...(sync === undefined ? {} : { sync })}
-        {...(height === undefined ? {} : { height })}
-      />
+      <div className="relative flex gap-2">
+        <DrawingToolbar drawings={drawings} />
+        <Chart
+          className="min-w-0 flex-1"
+          series={series}
+          instruments={instrument ? [instrument] : []}
+          loading={loading}
+          empty="No sessions to draw"
+          priceScale={shownScale}
+          inverted={inverted}
+          imageName={instrument?.label ?? "chart"}
+          decorate={decorated}
+          framed={{
+            start: range,
+            end: (
+              <ScaleChooser
+                chosen={shownScale}
+                inverted={inverted}
+                onScale={chooseScale}
+                onInvert={setInverted}
+              />
+            ),
+          }}
+          {...(markers === undefined ? {} : { markers })}
+          {...(sync === undefined ? {} : { sync })}
+          {...(height === undefined ? {} : { height })}
+        />
+      </div>
       <LineStylesDialog
         open={styling}
         onClose={() => {

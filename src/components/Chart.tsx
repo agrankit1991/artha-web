@@ -192,6 +192,16 @@ interface ChartProps {
   /** How tall each pane past the first is drawn. */
   paneHeight?: number;
   height?: number;
+  /**
+   * Lay the chart out as a trading screen does (the owner, 2026-11-08:
+   * "something like how trading view does"): the legend over the plot's
+   * top-left corner rather than a row above it, and under the plot one bar
+   * holding `start` at its left (a range) and, at its right, the chart's
+   * own actions and then `end` (the price axis's layout). The bar stays
+   * while the chart is loading or empty, so a range can still be changed.
+   * Absent, the legend and the actions are a row above the plot.
+   */
+  framed?: { start?: React.ReactNode; end?: React.ReactNode };
   /** How the price axis is laid out; by price unless asked. */
   priceScale?: ChartScale;
   /** Whether the price axis runs upside down. */
@@ -292,6 +302,7 @@ export function Chart({
   imageName = "chart",
   markers = NO_MARKERS,
   sync,
+  framed,
   className,
 }: ChartProps): React.JSX.Element {
   const holder = useRef<HTMLDivElement>(null);
@@ -526,8 +537,10 @@ export function Chart({
     link.click();
   };
 
-  if (drawable.length === 0) {
-    return (
+  // The pieces, laid out either as a trading screen frames them or in a
+  // row above the plot.
+  const placeholder =
+    drawable.length === 0 ? (
       <div
         className={cn("rounded-lg border", loading && "animate-pulse bg-muted/40", className)}
         style={{ height }}
@@ -540,119 +553,161 @@ export function Chart({
           </p>
         )}
       </div>
+    ) : null;
+  const legend = (
+    <ul className="flex flex-wrap gap-x-5 gap-y-1 text-xs" aria-label="Series drawn">
+      {drawable
+        .filter((one) => one.kind !== "bars")
+        .map((one) => (
+          <li key={one.label} className="flex items-center gap-1.5">
+            <span
+              aria-hidden="true"
+              className="h-0.5 w-3 rounded"
+              style={
+                one.kind === "line" || one.kind === "area"
+                  ? { backgroundColor: one.colour }
+                  : // Candles are both colours at once.
+                    { backgroundImage: `linear-gradient(90deg, ${RISE} 50%, ${FALL} 50%)` }
+              }
+            />
+            <span className="text-muted-foreground">{one.label}</span>
+            {one.about !== undefined && <Hint text={one.about} term={one.label} />}
+            {readings
+              .filter((reading) => reading.label === one.label)
+              .map((reading) => (
+                <span
+                  key={reading.label}
+                  className={cn(
+                    "tabular font-medium",
+                    reading.tone === "gain" && "text-gain",
+                    reading.tone === "loss" && "text-loss",
+                  )}
+                >
+                  {reading.value}
+                </span>
+              ))}
+          </li>
+        ))}
+    </ul>
+  );
+  const actions = (
+    <div className="flex flex-wrap items-center gap-3">
+      {moved && (
+        // Offered only once there is something to undo: a reset that
+        // is always on screen is a button that does nothing nearly
+        // every time it is looked at.
+        <button
+          type="button"
+          onClick={reset}
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
+        >
+          <RotateCcw className="h-3 w-3" />
+          Reset view
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={saveImage}
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
+      >
+        <ImageDown aria-hidden="true" className="h-3 w-3" />
+        Save image
+      </button>
+      {instruments.map((instrument) => (
+        <TradingViewLink
+          key={instrument.label}
+          label={instrument.label}
+          symbol={instrument.symbol}
+          derived={instrument.derived}
+        />
+      ))}
+    </div>
+  );
+  const reading = (
+    <>
+      {hovered !== null && hovered.figures.length > 0 && (
+        // Over the plot rather than beside it: a reading that appears
+        // in the margin makes the eye leave the line it is following.
+        <div
+          role="group"
+          aria-label="Crosshair reading"
+          className="pointer-events-none absolute z-10 whitespace-nowrap rounded-md border bg-popover/95 px-2.5 py-1.5 text-xs shadow-sm"
+          style={placed(hovered.at)}
+        >
+          <div className="mb-0.5 text-muted-foreground">{formatDay(hovered.day)}</div>
+          {hovered.figures.map((figure) => (
+            <div key={figure.label}>
+              <div className="flex items-center gap-2">
+                <span
+                  aria-hidden="true"
+                  className="h-0.5 w-3 shrink-0 rounded"
+                  style={{ backgroundColor: figure.colour }}
+                />
+                <span className="text-muted-foreground">{figure.label}</span>
+                <span className="tabular ml-auto font-medium">
+                  {written(figure.value, figure.scale)}
+                </span>
+              </div>
+              {figure.detail !== undefined && (
+                <div className="tabular pl-5 text-muted-foreground">{figure.detail}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+  const plot = (
+    <div
+      ref={holder}
+      style={{ height: total }}
+      data-testid="chart"
+      className="motion-safe:animate-fade-in"
+      // The conventional gesture, and the one somebody tries first. The
+      // button above says it is there; this is how it is reached
+      // without looking away from the chart.
+      onDoubleClick={reset}
+    />
+  );
+
+  if (framed !== undefined) {
+    return (
+      <div className={cn("space-y-1.5", className)}>
+        {placeholder ?? (
+          <div className="relative">
+            {/* Over the plot's corner, as a trading screen keeps it; only its
+                marks take the pointer, so the chart under it still pans. */}
+            <div className="pointer-events-none absolute top-1 left-1 z-[5] max-w-[calc(100%-5rem)] rounded bg-background/70 px-1.5 py-0.5 [&_button]:pointer-events-auto">
+              {legend}
+            </div>
+            {reading}
+            {plot}
+          </div>
+        )}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <div className="flex flex-wrap items-center gap-2">{framed.start}</div>
+          <div className="flex flex-wrap items-center gap-3">
+            {placeholder === null && actions}
+            {framed.end}
+          </div>
+        </div>
+      </div>
     );
+  }
+
+  if (placeholder !== null) {
+    return placeholder;
   }
 
   return (
     <div className={cn("space-y-2", className)}>
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-        <ul className="flex flex-wrap gap-x-5 gap-y-1 text-xs" aria-label="Series drawn">
-          {drawable
-            .filter((one) => one.kind !== "bars")
-            .map((one) => (
-              <li key={one.label} className="flex items-center gap-1.5">
-                <span
-                  aria-hidden="true"
-                  className="h-0.5 w-3 rounded"
-                  style={
-                    one.kind === "line" || one.kind === "area"
-                      ? { backgroundColor: one.colour }
-                      : // Candles are both colours at once.
-                        { backgroundImage: `linear-gradient(90deg, ${RISE} 50%, ${FALL} 50%)` }
-                  }
-                />
-                <span className="text-muted-foreground">{one.label}</span>
-                {one.about !== undefined && <Hint text={one.about} term={one.label} />}
-                {readings
-                  .filter((reading) => reading.label === one.label)
-                  .map((reading) => (
-                    <span
-                      key={reading.label}
-                      className={cn(
-                        "tabular font-medium",
-                        reading.tone === "gain" && "text-gain",
-                        reading.tone === "loss" && "text-loss",
-                      )}
-                    >
-                      {reading.value}
-                    </span>
-                  ))}
-              </li>
-            ))}
-        </ul>
-        <div className="flex flex-wrap items-center gap-3">
-          {moved && (
-            // Offered only once there is something to undo: a reset that
-            // is always on screen is a button that does nothing nearly
-            // every time it is looked at.
-            <button
-              type="button"
-              onClick={reset}
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
-            >
-              <RotateCcw className="h-3 w-3" />
-              Reset view
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={saveImage}
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
-          >
-            <ImageDown aria-hidden="true" className="h-3 w-3" />
-            Save image
-          </button>
-          {instruments.map((instrument) => (
-            <TradingViewLink
-              key={instrument.label}
-              label={instrument.label}
-              symbol={instrument.symbol}
-              derived={instrument.derived}
-            />
-          ))}
-        </div>
+        {legend}
+        {actions}
       </div>
       <div className="relative">
-        {hovered !== null && hovered.figures.length > 0 && (
-          // Over the plot rather than beside it: a reading that appears
-          // in the margin makes the eye leave the line it is following.
-          <div
-            role="group"
-            aria-label="Crosshair reading"
-            className="pointer-events-none absolute z-10 whitespace-nowrap rounded-md border bg-popover/95 px-2.5 py-1.5 text-xs shadow-sm"
-            style={placed(hovered.at)}
-          >
-            <div className="mb-0.5 text-muted-foreground">{formatDay(hovered.day)}</div>
-            {hovered.figures.map((figure) => (
-              <div key={figure.label}>
-                <div className="flex items-center gap-2">
-                  <span
-                    aria-hidden="true"
-                    className="h-0.5 w-3 shrink-0 rounded"
-                    style={{ backgroundColor: figure.colour }}
-                  />
-                  <span className="text-muted-foreground">{figure.label}</span>
-                  <span className="tabular ml-auto font-medium">
-                    {written(figure.value, figure.scale)}
-                  </span>
-                </div>
-                {figure.detail !== undefined && (
-                  <div className="tabular pl-5 text-muted-foreground">{figure.detail}</div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-        <div
-          ref={holder}
-          style={{ height: total }}
-          data-testid="chart"
-          className="motion-safe:animate-fade-in"
-          // The conventional gesture, and the one somebody tries first. The
-          // button above says it is there; this is how it is reached
-          // without looking away from the chart.
-          onDoubleClick={reset}
-        />
+        {reading}
+        {plot}
       </div>
     </div>
   );

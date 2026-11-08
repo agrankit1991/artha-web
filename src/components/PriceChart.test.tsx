@@ -323,13 +323,13 @@ describe("PriceChart, the new shapes, the scale and extra lines", () => {
   it("remembers the scale chosen and passes it and the flip to the chart", async () => {
     draw({ initialOverlays: [] });
 
-    await userEvent.click(screen.getByRole("button", { name: "Price scale" }));
-    await userEvent.click(screen.getByRole("menuitem", { name: /Per cent/ }));
+    // In view under the chart, not behind a menu.
+    const axis = screen.getByRole("group", { name: "Price axis" });
+    await userEvent.click(within(axis).getByRole("button", { name: "%" }));
     expect(readPreferences().chartScale).toBe("percent");
     expect(chartCalls.applyOptions).toHaveBeenLastCalledWith({ mode: 2, invertScale: false });
 
-    await userEvent.click(screen.getByRole("button", { name: "Price scale" }));
-    await userEvent.click(screen.getByRole("menuitem", { name: /Invert the scale/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Invert" }));
     expect(chartCalls.applyOptions).toHaveBeenLastCalledWith({ mode: 2, invertScale: true });
   });
 

@@ -140,80 +140,76 @@ export function WorkspaceChart({
     );
   };
 
-  return (
-    <section aria-label={`${symbol}, charted`} className="space-y-3">
-      {/* One row: the instrument, what is laid over it and whose trades, and
-          its span at the far end. Two rows took the chart's room (the owner,
-          2026-11-08); a narrow chart wraps them. */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Link
-          to={isIndex ? populationPath("index", instrumentKey) : companyPath(instrumentKey, symbol)}
-          className="mr-2 text-lg font-semibold text-primary hover:underline"
-        >
-          {symbol}
-        </Link>
-        <div className="w-56">
-          <InstrumentPicker
-            label="Compare with"
-            placeholder="Compare with…"
-            kinds={["company", "index"]}
-            excluded={[instrumentKey, ...compared.map((one) => one.key)]}
-            onPick={add}
-          />
-        </div>
-        {compared.map((one) => (
-          <Chip
-            key={one.key}
-            removeLabel={`Stop comparing with ${one.label}`}
-            onRemove={() => {
-              setCompared((now) => now.filter((other) => other.key !== one.key));
-            }}
-          >
-            {one.label}
-          </Chip>
-        ))}
-        {compared.length > 0 && (
-          <span className="text-xs text-muted-foreground">
-            Read in per cent from the first session shown.
-          </span>
-        )}
-        <Select
-          value={strategy === null ? NO_STRATEGY : String(strategy)}
-          onValueChange={(value) => {
-            setStrategy(value === NO_STRATEGY ? null : Number(value));
+  // The instrument, what is laid over it and whose trades: what leads the
+  // bar over the chart (`PriceChart`), the span going under the plot.
+  const lead = (
+    <>
+      <Link
+        to={isIndex ? populationPath("index", instrumentKey) : companyPath(instrumentKey, symbol)}
+        className="mr-2 text-lg font-semibold text-primary hover:underline"
+      >
+        {symbol}
+      </Link>
+      <div className="w-40">
+        <InstrumentPicker
+          label="Compare with"
+          placeholder="Compare with…"
+          kinds={["company", "index"]}
+          excluded={[instrumentKey, ...compared.map((one) => one.key)]}
+          onPick={add}
+        />
+      </div>
+      {compared.map((one) => (
+        <Chip
+          key={one.key}
+          removeLabel={`Stop comparing with ${one.label}`}
+          onRemove={() => {
+            setCompared((now) => now.filter((other) => other.key !== one.key));
           }}
         >
-          <SelectTrigger aria-label="Show a strategy's trades" className="h-9 w-56">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={NO_STRATEGY}>No strategy's trades</SelectItem>
-            {(strategies.data ?? []).map((one) => (
-              <SelectItem key={one.strategy_id} value={String(one.strategy_id)}>
-                {one.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          <RangeSelector
-            ranges={PRICE_RANGES}
-            sessions={sessions}
-            onChange={setSessions}
-            label="History"
-          />
-          {controls}
-        </div>
-      </div>
+          {one.label}
+        </Chip>
+      ))}
+      {compared.length > 0 && (
+        <span className="text-xs text-muted-foreground">
+          Read in per cent from the first session shown.
+        </span>
+      )}
+      <Select
+        value={strategy === null ? NO_STRATEGY : String(strategy)}
+        onValueChange={(value) => {
+          setStrategy(value === NO_STRATEGY ? null : Number(value));
+        }}
+      >
+        <SelectTrigger aria-label="Show a strategy's trades" className="h-9 w-44">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NO_STRATEGY}>No strategy's trades</SelectItem>
+          {(strategies.data ?? []).map((one) => (
+            <SelectItem key={one.strategy_id} value={String(one.strategy_id)}>
+              {one.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       {traded !== null && traded.trades.length === 0 && (
-        <p className="text-xs text-muted-foreground">
+        <p className="basis-full text-xs text-muted-foreground">
           {traded.backtest_id === null
             ? `${traded.name} has not been backtested yet.`
             : `${traded.name} never traded ${symbol} in its latest backtest.`}
         </p>
       )}
+    </>
+  );
+
+  return (
+    <section aria-label={`${symbol}, charted`} className="space-y-3">
       {chart.error !== null ? (
-        <Failed message={chart.error} />
+        <>
+          <div className="flex flex-wrap items-center gap-2">{lead}</div>
+          <Failed message={chart.error} />
+        </>
       ) : (
         <PriceChart
           // A fresh chart per instrument, so one company's zoom is not
@@ -226,6 +222,16 @@ export function WorkspaceChart({
           extra={extra}
           markers={markers}
           drawingsOf={instrumentKey}
+          lead={lead}
+          trail={controls}
+          range={
+            <RangeSelector
+              ranges={PRICE_RANGES}
+              sessions={sessions}
+              onChange={setSessions}
+              label="History"
+            />
+          }
           {...(sync === undefined ? {} : { sync })}
           {...(height === undefined ? {} : { height })}
         />

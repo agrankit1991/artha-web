@@ -244,6 +244,26 @@ describe("Chart", () => {
     expect(widths).toEqual([4, 1, 3, 2]);
   });
 
+  it("frames the plot as a trading screen does: its legend over it, a bar under it", () => {
+    draw([LINE], { framed: { start: <span>Ranges</span>, end: <span>Axis</span> } });
+
+    // Over the plot: the legend shares the canvas's box rather than a row above it.
+    const legend = screen.getByRole("list", { name: "Series drawn" });
+    expect(legend.closest(".relative")).toContainElement(screen.getByTestId("chart"));
+    expect(screen.getByText("Ranges")).toBeVisible();
+    expect(screen.getByText("Axis")).toBeVisible();
+    expect(screen.getByRole("button", { name: /Save image/ })).toBeVisible();
+  });
+
+  it("keeps its bar while there is nothing to draw, so the span can still be changed", () => {
+    draw([], { loading: true, framed: { start: <span>Ranges</span> } });
+
+    expect(screen.getByRole("img", { name: "Chart loading" })).toBeInTheDocument();
+    expect(screen.getByText("Ranges")).toBeVisible();
+    // Nothing drawn, nothing to save.
+    expect(screen.queryByRole("button", { name: /Save image/ })).toBeNull();
+  });
+
   it("gives a new height to its panes without building the chart again", () => {
     const series: Series[] = [
       LINE,

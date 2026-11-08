@@ -3,6 +3,17 @@ import { beforeEach } from "vitest";
 /** Global test setup: jest-dom matchers, and the browser APIs jsdom lacks. */
 
 import "@testing-library/jest-dom/vitest";
+import { configure } from "@testing-library/react";
+
+/*
+ * How long `findBy` and `waitFor` wait before failing: three seconds, not
+ * the library's one. With some fifteen hundred tests in parallel a busy
+ * machine sometimes took a little over a second to render a chart's
+ * answer, and two tests that pass alone (a drawing picked, a breadth table)
+ * failed in turn for it (2026-11-08). A passing test waits no longer; only
+ * a failing one takes longer to say so.
+ */
+configure({ asyncUtilTimeout: 3000 });
 
 /*
  * Radix's popovers -- select, dropdown menu -- use pointer capture and

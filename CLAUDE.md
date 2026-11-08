@@ -239,6 +239,21 @@ legend entry: the forecast's range and record (`ForecastNote`) sit there,
 beside its middle line, since 2026-11-08 (the owner chose it over two to
 six lines under every chart).
 
+**A price chart is laid out as a trading screen lays one out** (the owner,
+2026-11-08: "the scale and other tools should be visible on the chart
+something like how trading view does"). `PriceChart` is one bar over the
+chart (its caller's `lead`, then the shape, indicators, forecast and the
+line styles' icon, and its caller's `trail` at the far end), the drawing
+tools down its left (`DrawingToolbar`, a vertical toolbar; a drawing's
+notes and its style editor float over the plot above the time axis, so they
+never move it), and `Chart`'s `framed` layout: the legend over the plot's
+top-left corner (only its marks take the pointer) and one bar under the
+plot, its `start` at the left (the watchlist's range) and at the right the
+chart's own actions then its `end`, the price axis as `ScaleChooser` (Price,
+Log, %, Indexed and Invert, in view rather than in a menu). The bar stays
+while the chart loads or is empty, so a range can still be changed. Every
+other chart keeps its legend and actions in a row above the plot.
+
 **The reader may restyle the lines, and that overrides all of the above
 for them** (the owner, 2026-11-08: "I should be able to choose colors and
 thickness of lines, including indicators"; their choices: a style applies

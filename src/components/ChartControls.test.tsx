@@ -1,10 +1,10 @@
 /** Tests for the chart's own controls. */
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { ChartControls, type Overlay } from "./ChartControls";
+import { ChartControls, type Overlay, ScaleChooser } from "./ChartControls";
 
 function show(props: Partial<Parameters<typeof ChartControls>[0]> = {}): {
   style: ReturnType<typeof vi.fn>;
@@ -18,7 +18,6 @@ function show(props: Partial<Parameters<typeof ChartControls>[0]> = {}): {
       overlays={["sma_50"]}
       onStyle={style}
       onOverlays={overlays}
-      scale={{ chosen: "linear", inverted: false, onScale: vi.fn(), onInvert: vi.fn() }}
       {...props}
     />,
   );
@@ -144,28 +143,7 @@ describe("ChartControls", () => {
   });
 });
 
-describe("ChartControls, the price scale", () => {
-  it("offers every scale and the flip, and says which is chosen", async () => {
-    const onScale = vi.fn();
-    const onInvert = vi.fn();
-    show({ scale: { chosen: "log", inverted: true, onScale, onInvert } });
-
-    const trigger = screen.getByRole("button", { name: "Price scale" });
-    expect(trigger).toHaveTextContent("Logarithmic");
-    expect(trigger).toHaveTextContent("(inverted)");
-    await userEvent.click(trigger);
-    expect(screen.getByRole("menuitem", { name: /Logarithmic/ })).toHaveAttribute(
-      "aria-current",
-      "true",
-    );
-    await userEvent.click(screen.getByRole("menuitem", { name: /Indexed to 100/ }));
-    expect(onScale).toHaveBeenCalledWith("indexed");
-
-    await userEvent.click(screen.getByRole("button", { name: "Price scale" }));
-    await userEvent.click(screen.getByRole("menuitem", { name: /Invert the scale/ }));
-    expect(onInvert).toHaveBeenCalledWith(false);
-  });
-
+describe("ChartControls, the new shapes", () => {
   it("offers the new shapes", async () => {
     const { style } = show();
     await userEvent.click(screen.getByRole("button", { name: "Chart style" }));
@@ -174,5 +152,26 @@ describe("ChartControls, the price scale", () => {
     }
     await userEvent.click(screen.getByRole("menuitem", { name: /Baseline/ }));
     expect(style).toHaveBeenCalledWith("baseline");
+  });
+});
+
+describe("ScaleChooser", () => {
+  it("offers every layout of the price axis and the flip in view, the chosen marked", async () => {
+    const onScale = vi.fn();
+    const onInvert = vi.fn();
+    render(<ScaleChooser chosen="log" inverted onScale={onScale} onInvert={onInvert} />);
+
+    const axis = screen.getByRole("group", { name: "Price axis" });
+    expect(within(axis).getByRole("button", { name: "Log" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await userEvent.click(within(axis).getByRole("button", { name: "Indexed" }));
+    expect(onScale).toHaveBeenCalledWith("indexed");
+
+    const invert = screen.getByRole("button", { name: "Invert" });
+    expect(invert).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(invert);
+    expect(onInvert).toHaveBeenCalledWith(false);
   });
 });

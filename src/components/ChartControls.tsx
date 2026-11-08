@@ -13,7 +13,6 @@
  */
 
 import {
-  ArrowUpDown,
   CandlestickChart,
   ChartCandlestick,
   ChartColumn,
@@ -26,6 +25,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 
+import { Chooser } from "@/components/Chooser";
 import { Menu, MenuItem, MenuLabel, MenuSeparator } from "@/components/Menu";
 import { cn } from "@/lib/utils";
 
@@ -40,11 +40,21 @@ export type ChartStyle = "candles" | "hollow" | "ohlc" | "line" | "area" | "base
 export type ChartScale = "linear" | "log" | "percent" | "indexed";
 
 /** Every scale, in the order they are offered, with what each is called. */
-export const SCALES: { key: ChartScale; label: string; hint: string }[] = [
-  { key: "linear", label: "Price", hint: "The price itself" },
-  { key: "log", label: "Logarithmic", hint: "Equal moves in per cent look equal" },
-  { key: "percent", label: "Per cent", hint: "Change from the first session shown" },
-  { key: "indexed", label: "Indexed to 100", hint: "Rebased to a hundred where shown" },
+export const SCALES: { key: ChartScale; label: string; short: string; hint: string }[] = [
+  { key: "linear", label: "Price", short: "Price", hint: "The price itself" },
+  { key: "log", label: "Logarithmic", short: "Log", hint: "Equal moves in per cent look equal" },
+  {
+    key: "percent",
+    label: "Per cent",
+    short: "%",
+    hint: "Change from the first session shown",
+  },
+  {
+    key: "indexed",
+    label: "Indexed to 100",
+    short: "Indexed",
+    hint: "Rebased to a hundred where shown",
+  },
 ];
 
 /** Something that can be laid over or under the price. */
@@ -89,13 +99,6 @@ interface ChartControlsProps {
    * Absent where the instrument has no forecast, and then not offered.
    */
   forecast?: { shown: boolean; onToggle: (shown: boolean) => void };
-  /** How the price axis is laid out, flipped or not, and what to call to change it. */
-  scale: {
-    chosen: ChartScale;
-    inverted: boolean;
-    onScale: (scale: ChartScale) => void;
-    onInvert: (inverted: boolean) => void;
-  };
   /** Open the reader's line styles; absent where lines cannot be styled. */
   onStyles?: () => void;
   className?: string;
@@ -115,13 +118,11 @@ export function ChartControls({
   onStyle,
   onOverlays,
   forecast,
-  scale,
   onStyles,
   className,
 }: ChartControlsProps): React.JSX.Element {
   const showing = new Set(overlays);
   const chosen = STYLES[style];
-  const scaled = SCALES.find((one) => one.key === scale.chosen) ?? SCALES[0];
 
   const toggle = (overlay: Overlay): void => {
     const next = new Set(showing);
@@ -230,61 +231,6 @@ export function ChartControls({
         )}
       </Menu>
 
-      <Menu
-        label="Price scale"
-        triggerClassName={TRIGGER}
-        trigger={
-          <>
-            <ArrowUpDown className="h-4 w-4" />
-            <span>
-              {scaled?.label}
-              {scale.inverted && <span className="ml-1 text-muted-foreground">(inverted)</span>}
-            </span>
-            <ChevronDown className="h-3 w-3" />
-          </>
-        }
-      >
-        {(close) => (
-          <>
-            <MenuLabel>Lay the price axis out by</MenuLabel>
-            {SCALES.map((one) => (
-              <MenuItem
-                key={one.key}
-                selected={one.key === scale.chosen}
-                onSelect={() => {
-                  scale.onScale(one.key);
-                  close();
-                }}
-              >
-                <span className="flex-1">
-                  <span className="block">{one.label}</span>
-                  <span className="block text-xs text-muted-foreground">{one.hint}</span>
-                </span>
-                <Check
-                  className={cn(
-                    "h-4 w-4 shrink-0",
-                    one.key === scale.chosen ? "opacity-100" : "opacity-0",
-                  )}
-                />
-              </MenuItem>
-            ))}
-            <MenuSeparator />
-            <MenuItem
-              selected={scale.inverted}
-              onSelect={() => {
-                scale.onInvert(!scale.inverted);
-                close();
-              }}
-            >
-              <span className="flex-1">Invert the scale</span>
-              <Check
-                className={cn("h-4 w-4 shrink-0", scale.inverted ? "opacity-100" : "opacity-0")}
-              />
-            </MenuItem>
-          </>
-        )}
-      </Menu>
-
       {forecast && (
         <button
           type="button"
@@ -300,15 +246,69 @@ export function ChartControls({
       )}
 
       {onStyles && (
+        // An icon, as a trading screen's settings are: in words it pushed a
+        // narrow chart's bar onto a second line.
         <button
           type="button"
-          className={cn(TRIGGER, "inline-flex items-center")}
+          aria-label="Line styles"
+          title="Line styles: each line's colour and thickness"
+          className={cn(TRIGGER, "inline-flex items-center px-2.5")}
           onClick={onStyles}
         >
-          <Palette className="h-4 w-4" />
-          <span>Line styles</span>
+          <Palette aria-hidden="true" className="h-4 w-4" />
         </button>
       )}
+    </div>
+  );
+}
+
+interface ScaleChooserProps {
+  chosen: ChartScale;
+  inverted: boolean;
+  onScale: (scale: ChartScale) => void;
+  onInvert: (inverted: boolean) => void;
+}
+
+/**
+ * Lay the price axis out: by price, logarithmic, per cent from the first
+ * session shown or indexed to a hundred, and flipped or not.
+ *
+ * In view under the chart rather than in a menu, as TradingView keeps its %
+ * and log there (the owner, 2026-11-08: "the scale and other tools should be
+ * visible on the chart").
+ *
+ * @param props - What is chosen, and what to call to change it.
+ * @returns The chooser and the flip.
+ */
+export function ScaleChooser({
+  chosen,
+  inverted,
+  onScale,
+  onInvert,
+}: ScaleChooserProps): React.JSX.Element {
+  return (
+    <div className="flex items-center gap-2">
+      <Chooser
+        options={SCALES.map((one) => ({ key: one.key, label: one.short }))}
+        chosen={chosen}
+        onChange={onScale}
+        label="Price axis"
+        hint={SCALES.map((one) => `${one.label}: ${one.hint.toLowerCase()}.`).join(" ")}
+      />
+      <button
+        type="button"
+        aria-pressed={inverted}
+        title="Turn the price axis upside down"
+        onClick={() => {
+          onInvert(!inverted);
+        }}
+        className={cn(
+          "rounded-md border px-2 py-1 text-xs hover:bg-accent",
+          inverted && "bg-accent font-medium",
+        )}
+      >
+        Invert
+      </button>
     </div>
   );
 }
