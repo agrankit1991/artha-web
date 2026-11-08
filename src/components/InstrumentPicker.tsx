@@ -180,7 +180,9 @@ export function InstrumentPicker({
             "overflow-auto rounded-md border bg-popover p-1 text-popover-foreground",
             inline
               ? "mt-2 max-h-72"
-              : "absolute left-0 right-0 top-full z-50 mt-1 max-h-96 shadow-lg motion-safe:animate-surface-in",
+              : // At least 24rem whatever the box: a narrow one (Compare, over a
+                // chart) left the names no room and the figures overprinted.
+                "absolute left-0 top-full z-50 mt-1 max-h-96 w-[max(100%,24rem)] max-w-[calc(100vw-2rem)] shadow-lg motion-safe:animate-surface-in",
           )}
         >
           {!searching && suggestions !== undefined && hits.length > 0 && (
