@@ -18,8 +18,9 @@ import { ListPlus, Plus, Upload } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
-import type { BatchAdded, WatchlistSummary } from "@/api/client";
+import type { BatchAdded, KeptSource, WatchlistSummary } from "@/api/client";
 import { addWatchlistItems, createWatchlist, fetchWatchlists } from "@/api/client";
+import { Chooser, type Option } from "@/components/Chooser";
 import { Dialog } from "@/components/Dialog";
 import { Menu, MenuItem, MenuSeparator } from "@/components/Menu";
 import { TradingViewExportDialog } from "@/components/TradingViewExportDialog";
@@ -49,6 +50,11 @@ interface ListActionsProps {
   keys: KeySource;
   /** What the list is, as a reader would name it: "Top gainers, Nifty 500". */
   label: string;
+  /**
+   * The kept list these rows are, where they are one: saving then offers to
+   * keep the new list updated from it rather than copy today's rows.
+   */
+  source?: KeptSource;
   className?: string;
 }
 
@@ -61,6 +67,7 @@ interface ListActionsProps {
 export function ListActions({
   keys,
   label,
+  source,
   className,
 }: ListActionsProps): React.JSX.Element | null {
   const [action, setAction] = useState<Action | null>(null);
@@ -146,7 +153,13 @@ export function ListActions({
           </>
         )}
       </Menu>
-      <SaveDialog open={action === "save"} onClose={close} label={label} collection={collection} />
+      <SaveDialog
+        open={action === "save"}
+        onClose={close}
+        label={label}
+        collection={collection}
+        {...(source === undefined ? {} : { source })}
+      />
       <AddDialog open={action === "add"} onClose={close} label={label} collection={collection} />
       <TradingViewExportDialog
         open={action === "export"}
@@ -195,34 +208,66 @@ function readyKeys(collection: KeyCollection): string[] | null {
     : null;
 }
 
+/** A saved list is today's rows, or kept updated from the list they come from. */
+type Saving = "copy" | "follow";
+
+const SAVINGS: readonly Option<Saving>[] = [
+  { key: "copy", label: "A copy" },
+  { key: "follow", label: "Keep it updated" },
+];
+
+/** What each way of saving means for the list made. */
+const SAVING_MEANS: Record<Saving, string> = {
+  copy: "Today's companies, yours to annotate: it stays as saved.",
+  follow:
+    "Read from this list each time it is opened, so it changes with every session. It takes no notes or levels; save a copy to annotate.",
+};
+
+interface SaveDialogProps extends ActionDialogProps {
+  /** The kept list the rows are, to keep the new list updated from. */
+  source?: KeptSource;
+}
+
 /** Make a watchlist of the list, named after it to begin with. */
-function SaveDialog({ open, onClose, label, collection }: ActionDialogProps): React.JSX.Element {
+function SaveDialog({
+  open,
+  onClose,
+  label,
+  collection,
+  source,
+}: SaveDialogProps): React.JSX.Element {
   const { refresh } = useWatchlistMembership();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [saving, setSaving] = useState<Saving>("copy");
   const [saved, setSaved] = useState<WatchlistSummary | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const keys = readyKeys(collection);
+  const following = saving === "follow" && source !== undefined;
+  // A list kept updated reads its source itself, so it need not wait for the rows.
+  const ready = following || keys !== null;
 
   useEffect(() => {
     if (open) {
       setName(label.slice(0, NAME_LENGTH));
       setDescription("");
+      setSaving("copy");
       setSaved(null);
       setProblem(null);
     }
   }, [open, label]);
 
-  const save = async (chosen: string[]): Promise<void> => {
+  const save = async (): Promise<void> => {
     setBusy(true);
     setProblem(null);
+    const purpose = description.trim() === "" ? null : description;
     try {
-      const made = await createWatchlist({
-        name,
-        description: description.trim() === "" ? null : description,
-        instrument_keys: chosen,
-      });
+      const made = await createWatchlist(
+        following
+          ? { name, description: purpose, source }
+          : { name, description: purpose, instrument_keys: keys ?? [] },
+      );
       setSaved(made);
       refresh();
     } catch (error) {
@@ -239,8 +284,8 @@ function SaveDialog({ open, onClose, label, collection }: ActionDialogProps): Re
           className="space-y-3"
           onSubmit={(event) => {
             event.preventDefault();
-            if (!busy && keys !== null && name.trim() !== "") {
-              void save(keys);
+            if (!busy && ready && name.trim() !== "") {
+              void save();
             }
           }}
         >
@@ -267,17 +312,34 @@ function SaveDialog({ open, onClose, label, collection }: ActionDialogProps): Re
               className="mt-1"
             />
           </label>
+          {source !== undefined && (
+            <div className="space-y-1">
+              <Chooser
+                label="What to save"
+                showLabel
+                options={SAVINGS}
+                chosen={saving}
+                onChange={setSaving}
+              />
+              <p className="text-xs text-muted-foreground">{SAVING_MEANS[saving]}</p>
+            </div>
+          )}
           <CollectionNote collection={collection} />
           {problem !== null && <p className="text-sm text-destructive">{sentence(problem)}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={busy || keys === null || name.trim() === ""}>
+            <Button type="submit" disabled={busy || !ready || name.trim() === ""}>
               Save list
             </Button>
           </div>
         </form>
+      ) : saved.source != null ? (
+        <Done list={saved} onClose={onClose}>
+          Saved &ldquo;{saved.name}&rdquo;, kept updated: {formatWhole(saved.items)}{" "}
+          {saved.items === 1 ? "company" : "companies"} today.
+        </Done>
       ) : (
         <Done list={saved} onClose={onClose}>
           Saved &ldquo;{saved.name}&rdquo; with {formatWhole(saved.items)}{" "}

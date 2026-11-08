@@ -1817,11 +1817,26 @@ export interface WatchlistSummary {
   watchlist_id: number;
   name: string;
   description: string | null;
-  /** How many instruments are on it. */
+  /** How many instruments are on it; for a list kept updated, how many its source holds today. */
   items: number;
   created_at: string;
   /** The folder it sits in, or null at the top level. */
   folder_id: number | null;
+  /**
+   * The kept list it is kept updated from, whose rows it shows; null (or
+   * absent) for a list of its own items.
+   */
+  source?: FollowedSource | null;
+}
+
+/** The kept list a reader's list is kept updated from, as the platform holds it. */
+export interface FollowedSource {
+  kind: KeptKind;
+  key: string;
+  scope_kind: string;
+  scope_key: string | null;
+  universe: MoverUniverse;
+  depth: number;
 }
 
 /** A folder the reader groups watchlists in, one level up. */
@@ -1902,6 +1917,11 @@ export interface KeptSource {
   kind: KeptKind;
   key: string;
   universe?: MoverUniverse;
+  /** For a ranking within an index or a sector, the population ranked. */
+  scope_kind?: string;
+  scope_key?: string | null;
+  /** For a ranking, how many of its top places. */
+  depth?: number;
 }
 
 /** One instrument on a kept list, with its latest figures. */
@@ -1937,6 +1957,15 @@ export function fetchKeptList(source: KeptSource): Promise<KeptListPage> {
   const parameters = new URLSearchParams({ kind: source.kind, key: source.key });
   if (source.universe !== undefined) {
     parameters.set("universe", source.universe);
+  }
+  if (source.scope_kind !== undefined) {
+    parameters.set("scope_kind", source.scope_kind);
+  }
+  if (source.scope_key != null) {
+    parameters.set("scope_key", source.scope_key);
+  }
+  if (source.depth !== undefined) {
+    parameters.set("depth", String(source.depth));
   }
   return request<KeptListPage>(`/api/kept-lists/rows?${parameters.toString()}`);
 }
@@ -2019,7 +2048,9 @@ export interface WatchlistPage {
   name: string;
   description: string | null;
   created_at: string;
+  /** None for a list kept updated, whose rows are its source's (`fetchKeptList`). */
   items: WatchedInstrument[];
+  source?: FollowedSource | null;
 }
 
 /** Fetch the account's watchlists, oldest first. */
@@ -2035,7 +2066,8 @@ export function fetchWatchlist(watchlistId: number): Promise<WatchlistPage> {
 /** One watchlist's hold on an instrument: enough to show a star and to undo it. */
 export interface HeldBy {
   watchlist_id: number;
-  item_id: number;
+  /** Null for a list kept updated, which holds it through its source and takes nothing off. */
+  item_id: number | null;
 }
 
 /** Which of the account's watchlists hold an instrument, with each item's id. */
@@ -2063,6 +2095,8 @@ export function fetchWatchlistMembership(): Promise<WatchlistMembership> {
 export interface NewWatchlist extends WatchlistDraft {
   /** In the order they should appear; any the platform does not list are left off. */
   instrument_keys?: readonly string[];
+  /** A kept list to keep it updated from instead; such a list takes no instruments. */
+  source?: KeptSource;
 }
 
 /**

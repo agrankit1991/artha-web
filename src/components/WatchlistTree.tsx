@@ -24,6 +24,7 @@ import type {
 import { keptTitle } from "@/components/KeptListView";
 import { Menu, MenuItem } from "@/components/Menu";
 import { Input } from "@/components/ui/input";
+import { MARKS } from "@/lib/entities";
 import { formatCount } from "@/lib/format";
 import { categoryLabel } from "@/lib/indices";
 import { sameKept } from "@/lib/keptLists";
@@ -265,7 +266,12 @@ function ListButton({
           <span className="block truncate text-xs text-muted-foreground">{list.description}</span>
         )}
       </span>
-      <span className="ml-2 shrink-0 text-xs tabular text-muted-foreground">{list.items}</span>
+      <span className="ml-2 flex shrink-0 items-center gap-1 text-xs tabular text-muted-foreground">
+        {list.source != null && (
+          <MARKS.followed aria-label="kept updated" role="img" className="h-3 w-3" />
+        )}
+        {list.items}
+      </span>
     </button>
   );
 }

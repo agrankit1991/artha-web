@@ -129,6 +129,8 @@ interface MenuItemProps {
   onSelect: () => void;
   /** Whether this is the choice currently in force. */
   selected?: boolean;
+  /** Shown but not chosen: a list kept updated, whose source decides what it holds. */
+  disabled?: boolean;
   className?: string;
 }
 
@@ -142,6 +144,7 @@ export function MenuItem({
   children,
   onSelect,
   selected = false,
+  disabled = false,
   className,
 }: MenuItemProps): React.JSX.Element {
   return (
@@ -152,10 +155,12 @@ export function MenuItem({
       // invisible to a screen reader, and a menu that cannot say which
       // choice is in force is a menu that has to be guessed at.
       aria-current={selected ? "true" : undefined}
+      disabled={disabled}
       onClick={onSelect}
       className={cn(
         "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors",
         "hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none",
+        "disabled:cursor-default disabled:opacity-70 disabled:hover:bg-transparent disabled:hover:text-inherit",
         selected && "bg-accent/60 font-medium",
         className,
       )}

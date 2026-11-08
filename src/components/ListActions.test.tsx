@@ -278,6 +278,60 @@ describe("ListActions", () => {
   });
 });
 
+describe("ListActions, keeping a list updated", () => {
+  const SOURCE = { kind: "movers", key: "top-gainers", universe: "liquid" } as const;
+
+  it("offers to keep a new list updated from the kept list it is, sending its source and no companies", async () => {
+    const platform = stubPlatform({
+      "/api/watchlists/membership": { body: {} },
+      "/api/watchlists": {
+        bodyFor: (_path, method) =>
+          method === "POST"
+            ? watchlistSummary({
+                watchlist_id: 9,
+                name: "Top gainers",
+                items: 1,
+                source: {
+                  ...SOURCE,
+                  scope_kind: "companies",
+                  scope_key: null,
+                  depth: 25,
+                },
+              })
+            : [],
+      },
+    });
+    renderPage(
+      <WatchlistMembershipProvider>
+        <ListActions keys={["NSE_EQ|A"]} label="Top gainers" source={SOURCE} />
+      </WatchlistMembershipProvider>,
+    );
+
+    const dialog = await choose(/Save as a new watchlist/);
+    expect(within(dialog).getByText(/yours to annotate/)).toBeVisible();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Keep it updated" }));
+    expect(within(dialog).getByText(/changes with every session/)).toBeVisible();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Save list" }));
+
+    expect(
+      await within(dialog).findByText(/Saved “Top gainers”, kept updated: 1 company today\./),
+    ).toBeVisible();
+    expect(sent(platform, "/api/watchlists", "POST")).toEqual({
+      name: "Top gainers",
+      description: null,
+      source: SOURCE,
+    });
+  });
+
+  it("offers no keeping updated for rows that are not a kept list", async () => {
+    stubPlatform({ "/api/watchlists": { body: [] } });
+    renderPage(<ListActions keys={["NSE_EQ|A"]} label="Peers" />);
+
+    const dialog = await choose(/Save as a new watchlist/);
+    expect(within(dialog).queryByRole("button", { name: "Keep it updated" })).toBeNull();
+  });
+});
+
 describe("addedSentence", () => {
   it("speaks of one in the singular and leaves out what did not happen", () => {
     expect(addedSentence("Swing", { added: 1, already: 0, unknown: 0 })).toBe(

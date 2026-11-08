@@ -162,3 +162,33 @@ describe("WatchlistTree", () => {
     expect(screen.queryByRole("button", { name: /Indices/ })).toBeNull();
   });
 });
+
+describe("WatchlistTree, a list kept updated", () => {
+  it("marks a list kept updated from a kept list among the reader's own", () => {
+    draw({
+      lists: [
+        watchlistSummary(),
+        watchlistSummary({
+          watchlist_id: 4,
+          name: "Gainers, kept",
+          description: null,
+          items: 25,
+          source: {
+            kind: "movers",
+            key: "top-gainers",
+            scope_kind: "companies",
+            scope_key: null,
+            universe: "liquid",
+            depth: 25,
+          },
+        }),
+      ],
+    });
+    const nav = screen.getByRole("navigation", { name: "Watchlists" });
+
+    const kept = within(nav).getByRole("button", { name: /Gainers, kept/ });
+    expect(within(kept).getByRole("img", { name: "kept updated" })).toBeInTheDocument();
+    const own = within(nav).getByRole("button", { name: /Long term/ });
+    expect(within(own).queryByRole("img", { name: "kept updated" })).toBeNull();
+  });
+});

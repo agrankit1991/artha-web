@@ -59,7 +59,15 @@ export function WatchButton({
 
   const membership = useWatchlistMembership();
 
-  const held = new Map((holding.data ?? []).map((one) => [one.watchlist_id, one.item_id]));
+  const holds = holding.data ?? [];
+  // Every list holding it counts, those kept updated too; only a list's own
+  // items can be taken off, so only those are toggled.
+  const held = new Set(holds.map((one) => one.watchlist_id));
+  const items = new Map(
+    holds.flatMap((one) =>
+      one.item_id === null ? [] : [[one.watchlist_id, one.item_id] as const],
+    ),
+  );
   const watched = held.size > 0;
   const onLists = `${String(held.size)} ${held.size === 1 ? "list" : "lists"}`;
 
@@ -71,7 +79,7 @@ export function WatchButton({
   };
 
   const toggle = async (watchlistId: number): Promise<void> => {
-    const itemId = held.get(watchlistId);
+    const itemId = items.get(watchlistId);
     setBusy(true);
     setProblem(null);
     try {
@@ -137,11 +145,15 @@ export function WatchButton({
                 <MenuItem
                   key={list.watchlist_id}
                   selected={held.has(list.watchlist_id)}
+                  disabled={list.source != null}
                   onSelect={() => {
                     void toggle(list.watchlist_id);
                   }}
                 >
                   <span className="flex-1 truncate">{list.name}</span>
+                  {list.source != null && (
+                    <span className="text-xs text-muted-foreground">kept updated</span>
+                  )}
                   <span className="ml-2 text-xs text-muted-foreground">{list.items}</span>
                 </MenuItem>
               ))

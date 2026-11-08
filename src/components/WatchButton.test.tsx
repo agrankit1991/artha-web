@@ -168,3 +168,40 @@ describe("WatchButton", () => {
     expect(await screen.findByText(/Holding broke/)).toBeInTheDocument();
   });
 });
+
+describe("WatchButton, a list kept updated", () => {
+  it("counts a list kept updated that holds it, ticked but not changed from here", async () => {
+    const fetched = stubPlatform({
+      "/api/watchlists/holding": { body: [heldBy(), { watchlist_id: 5, item_id: null }] },
+      "/api/watchlists": {
+        body: [
+          ...LISTS,
+          watchlistSummary({
+            watchlist_id: 5,
+            name: "Nifty 50, kept",
+            items: 50,
+            source: {
+              kind: "index",
+              key: "NSE_INDEX|Nifty 50",
+              scope_kind: "companies",
+              scope_key: null,
+              universe: "liquid",
+              depth: 25,
+            },
+          }),
+        ],
+      },
+    });
+    renderPage(<WatchButton instrumentKey="NSE_EQ|INE002A01018" symbol="RELIANCE" />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "RELIANCE is on 2 lists of yours" }),
+    );
+    const kept = screen.getByRole("menuitem", { name: /Nifty 50, kept/ });
+    expect(kept).toHaveAttribute("aria-current", "true");
+    expect(kept).toBeDisabled();
+    expect(kept).toHaveTextContent("kept updated");
+    await userEvent.click(kept);
+    expect(made(fetched).filter((one) => !one.startsWith("GET"))).toEqual([]);
+  });
+});

@@ -14,7 +14,7 @@
 import { ArrowLeft, FolderOpen } from "lucide-react";
 import { useCallback, useMemo } from "react";
 
-import type { KeptSource, ListedInstrument, MoverListName } from "@/api/client";
+import type { KeptListPage, KeptSource, ListedInstrument, MoverListName } from "@/api/client";
 import { fetchKeptList } from "@/api/client";
 import { type Column, DataTable } from "@/components/DataTable";
 import { Delta } from "@/components/Delta";
@@ -25,7 +25,7 @@ import { MoverUniverseSwitch } from "@/components/MoverUniverseSwitch";
 import { nameColumn, symbolColumn } from "@/components/identityColumns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useResource } from "@/hooks/useResource";
+import { type Resource, useResource } from "@/hooks/useResource";
 import { formatCount, formatDay, formatPrice, formatVolume, toNumber } from "@/lib/format";
 import { categoryLabel } from "@/lib/indices";
 import type { KeptChoice } from "@/lib/keptLists";
@@ -86,10 +86,8 @@ export function KeptListView({ choice, onOpen, onBack }: KeptListViewProps): Rea
     [source, universe],
   );
   const page = useResource(load);
-  const rows = useMemo(() => page.data?.rows ?? [], [page.data]);
+  const rows = page.data?.rows ?? [];
   const title = keptTitle(source, page.data?.name ?? null);
-  const ranked = rows.some((one) => one.rank !== null);
-  const columns = useMemo(() => columnsFor(source, ranked, onOpen), [source, ranked, onOpen]);
   const asOf = rows.find((one) => one.as_of !== null)?.as_of ?? null;
 
   return (
@@ -123,28 +121,62 @@ export function KeptListView({ choice, onOpen, onBack }: KeptListViewProps): Rea
               }}
             />
           )}
-          <ListActions keys={rows.map((one) => one.instrument_key)} label={title} />
+          <ListActions
+            keys={rows.map((one) => one.instrument_key)}
+            label={title}
+            source={source.kind === "movers" ? { ...source, universe } : source}
+          />
         </div>
       </div>
-      {page.error !== null ? (
-        <Failed message={page.error} />
-      ) : (
-        <DataTable
-          columns={columns}
-          rows={rows}
-          loading={page.loading && page.data === null}
-          empty={source.kind === "strategy" ? "It picks nothing today." : "Nothing on this list"}
-          placeholderRows={6}
-          label={title}
-          full
-          linkTo={(row) =>
-            row.is_index
-              ? populationPath("index", row.instrument_key)
-              : companyPath(row.instrument_key, row.symbol)
-          }
-        />
-      )}
+      <KeptListTable source={source} page={page} label={title} onOpen={onOpen} />
     </div>
+  );
+}
+
+interface KeptListTableProps {
+  source: KeptSource;
+  /** Its rows, read by the caller, which also needs them for its own controls. */
+  page: Resource<KeptListPage | null>;
+  /** What the table is called, for a reader who cannot see the heading. */
+  label: string;
+  /** Show another kept list, opened from this one. */
+  onOpen: (source: KeptSource, from: KeptSource) => void;
+}
+
+/**
+ * A kept list's rows: the table under a kept list's own heading, and under a
+ * reader's list kept updated from one, which is the same list under their name.
+ *
+ * @param props - The list, its rows, and the way into an index on it.
+ * @returns The table, or why it could not be read.
+ */
+export function KeptListTable({
+  source,
+  page,
+  label,
+  onOpen,
+}: KeptListTableProps): React.JSX.Element {
+  const rows = useMemo(() => page.data?.rows ?? [], [page.data]);
+  const ranked = rows.some((one) => one.rank !== null);
+  const columns = useMemo(() => columnsFor(source, ranked, onOpen), [source, ranked, onOpen]);
+  if (page.error !== null) {
+    return <Failed message={page.error} />;
+  }
+  return (
+    <DataTable
+      columns={columns}
+      rows={rows}
+      loading={page.loading && page.data === null}
+      empty={source.kind === "strategy" ? "It picks nothing today." : "Nothing on this list"}
+      placeholderRows={6}
+      label={label}
+      full
+      linkTo={(row) =>
+        row.is_index
+          ? populationPath("index", row.instrument_key)
+          : companyPath(row.instrument_key, row.symbol)
+      }
+    />
   );
 }
 

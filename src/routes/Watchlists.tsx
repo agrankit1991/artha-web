@@ -40,7 +40,7 @@ import { Chooser } from "@/components/Chooser";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { DivergingBars } from "@/components/DivergingBars";
 import { Empty } from "@/components/Empty";
-import { KeptListView, keptTitle } from "@/components/KeptListView";
+import { KeptListTable, KeptListView, keptTitle } from "@/components/KeptListView";
 import { ListActions } from "@/components/ListActions";
 import { Failed } from "@/components/Failed";
 import { Menu, MenuItem } from "@/components/Menu";
@@ -84,6 +84,14 @@ export function Watchlists(): React.JSX.Element {
     return found.find((one) => one.watchlist_id === asked) ?? found[0] ?? null;
   }, [lists.data, asked, kept]);
   const chosenId = chosen?.watchlist_id ?? null;
+  // A list kept updated shows its source's rows, read as it was saved rather
+  // than in whichever universe the reader has the kept lists in now.
+  const followed = chosen?.source ?? null;
+  const loadFollowed = useCallback(
+    () => (followed === null ? Promise.resolve(null) : fetchKeptList(followed)),
+    [followed],
+  );
+  const followedRows = useResource(loadFollowed);
   const [moveProblem, setMoveProblem] = useState<string | null>(null);
 
   // Table or Chart: the address's, else the one the reader chose last.
@@ -115,8 +123,9 @@ export function Watchlists(): React.JSX.Element {
   };
 
   const loadPage = useCallback(
-    () => (chosenId === null ? Promise.resolve(null) : fetchWatchlist(chosenId)),
-    [chosenId],
+    () =>
+      chosenId === null || followed !== null ? Promise.resolve(null) : fetchWatchlist(chosenId),
+    [chosenId, followed],
   );
   const page = useResource(loadPage);
 
@@ -241,9 +250,20 @@ export function Watchlists(): React.JSX.Element {
                 ? (chosen?.name ?? "")
                 : keptTitle(kept.source, keptRows.data?.name ?? null)
             }
-            rows={kept === null ? items.map(panelRow) : (keptRows.data?.rows ?? []).map(panelRow)}
+            rows={(kept === null
+              ? followed === null
+                ? items
+                : (followedRows.data?.rows ?? [])
+              : (keptRows.data?.rows ?? [])
+            ).map(panelRow)}
             asked={params.getAll("chart")}
-            loading={kept === null ? page.loading : keptRows.loading}
+            loading={
+              kept === null
+                ? followed === null
+                  ? page.loading
+                  : followedRows.loading
+                : keptRows.loading
+            }
             onChoose={chartOf}
           />
         ) : kept !== null ? (
@@ -275,7 +295,12 @@ export function Watchlists(): React.JSX.Element {
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <ListActions keys={items.map((one) => one.instrument_key)} label={chosen.name} />
+                  <ListActions
+                    keys={(followed === null ? items : (followedRows.data?.rows ?? [])).map(
+                      (one) => one.instrument_key,
+                    )}
+                    label={chosen.name}
+                  />
                   {(folders.data ?? []).length > 0 && (
                     <Menu
                       label={`Move ${chosen.name} to a folder`}
@@ -315,15 +340,17 @@ export function Watchlists(): React.JSX.Element {
                       )}
                     </Menu>
                   )}
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setDialog({ kind: "add" });
-                    }}
-                  >
-                    <Plus aria-hidden="true" className="mr-1 h-4 w-4" />
-                    Add company
-                  </Button>
+                  {followed === null && (
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setDialog({ kind: "add" });
+                      }}
+                    >
+                      <Plus aria-hidden="true" className="mr-1 h-4 w-4" />
+                      Add company
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"
@@ -346,6 +373,15 @@ export function Watchlists(): React.JSX.Element {
                   </Button>
                 </div>
               </div>
+            )}
+
+            {followed !== null && (
+              <p className="text-xs text-muted-foreground">
+                Kept updated from {keptTitle(followed, followedRows.data?.name ?? null)}
+                {followed.kind === "movers" &&
+                  (followed.universe === "liquid" ? " (liquid companies)" : " (every company)")}
+                , read afresh each time. It takes no notes or levels; save a copy to annotate.
+              </p>
             )}
 
             {moveProblem !== null && (
@@ -388,7 +424,16 @@ export function Watchlists(): React.JSX.Element {
               />
             )}
 
-            {page.error !== null ? (
+            {followed !== null && chosen !== null ? (
+              <KeptListTable
+                source={followed}
+                page={followedRows}
+                label={chosen.name}
+                onOpen={(source, from) => {
+                  chooseKept(source, from);
+                }}
+              />
+            ) : page.error !== null ? (
               <Failed message={page.error} />
             ) : (
               <WatchlistTable

@@ -37,6 +37,7 @@ import {
   Percent,
   PiggyBank,
   ReceiptIndianRupee,
+  RefreshCw,
   Rocket,
   Scaling,
   ScanSearch,
@@ -92,6 +93,8 @@ export const MARKS = {
   // A table of figures side by side.
   figures: Table2,
   flows: Landmark,
+  // A reader's list kept updated from a list the platform keeps.
+  followed: RefreshCw,
   // A population's companies as tiles by size and move.
   heatmap: LayoutGrid,
   // Who owns it: shareholding.
