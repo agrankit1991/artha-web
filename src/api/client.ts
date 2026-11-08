@@ -1741,15 +1741,23 @@ export function fetchScreenCounts(
   screens: Record<string, readonly ScreenCondition[]>,
 ): Promise<Record<string, number>> {
   const asked = Object.fromEntries(
-    Object.entries(screens).map(([name, conditions]) => [
-      name,
-      conditions.map((one) => `${one.field}:${one.operator}:${one.value}`),
-    ]),
+    Object.entries(screens).map(([name, conditions]) => [name, conditions.map(conditionText)]),
   );
   return request<{ counts: Record<string, number> }>("/api/screen/counts", {
     method: "POST",
     body: JSON.stringify({ screens: asked }),
   }).then((reply) => reply.counts);
+}
+
+/**
+ * A condition as the platform reads one, `field:operator:value`: what a
+ * screen sends and what a screen kept as a list stores.
+ *
+ * @param one - The condition.
+ * @returns Its words.
+ */
+export function conditionText(one: ScreenCondition): string {
+  return `${one.field}:${one.operator}:${one.value}`;
 }
 
 /**
@@ -1772,7 +1780,7 @@ export function fetchScreen(query: ScreenQuery): Promise<ScreenPage> {
     parameters.set("sort", query.sort);
   }
   for (const one of query.conditions) {
-    parameters.append("where", `${one.field}:${one.operator}:${one.value}`);
+    parameters.append("where", conditionText(one));
   }
   return request<ScreenPage>(`/api/screen?${parameters.toString()}`);
 }
@@ -1837,6 +1845,9 @@ export interface FollowedSource {
   scope_key: string | null;
   universe: MoverUniverse;
   depth: number;
+  where?: readonly string[];
+  sort?: string | null;
+  order?: "asc" | "desc";
 }
 
 /** A folder the reader groups watchlists in, one level up. */
@@ -1887,7 +1898,7 @@ export function moveWatchlist(
  * What kind of list the platform keeps: an index's companies, a sector's,
  * the indices of one category, a mover ranking, a strategy's picks today.
  */
-export type KeptKind = "index" | "sector" | "indices" | "movers" | "strategy";
+export type KeptKind = "index" | "sector" | "indices" | "movers" | "strategy" | "screen";
 
 /** One kept list, as the watchlist page's tree names it. */
 export interface KeptListSummary {
@@ -1920,9 +1931,20 @@ export interface KeptSource {
   /** For a ranking within an index or a sector, the population ranked. */
   scope_kind?: string;
   scope_key?: string | null;
-  /** For a ranking, how many of its top places. */
+  /** For a ranking, how many of its top places; for a screen, how many of its matches. */
   depth?: number;
+  /** For a screen, its conditions as `conditionText` writes them. */
+  where?: readonly string[];
+  /** For a screen, the figure it orders by; by symbol when null. */
+  sort?: string | null;
+  order?: "asc" | "desc";
 }
+
+/**
+ * How deep a screen kept updated is read: the platform's `MOST_SCREENED`, so
+ * a screen of more matches keeps its first five hundred in its order.
+ */
+export const MOST_SCREENED = 500;
 
 /** One instrument on a kept list, with its latest figures. */
 export interface ListedInstrument {
@@ -1966,6 +1988,15 @@ export function fetchKeptList(source: KeptSource): Promise<KeptListPage> {
   }
   if (source.depth !== undefined) {
     parameters.set("depth", String(source.depth));
+  }
+  for (const one of source.where ?? []) {
+    parameters.append("where", one);
+  }
+  if (source.sort != null) {
+    parameters.set("sort", source.sort);
+  }
+  if (source.order !== undefined) {
+    parameters.set("order", source.order);
   }
   return request<KeptListPage>(`/api/kept-lists/rows?${parameters.toString()}`);
 }

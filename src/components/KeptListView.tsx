@@ -50,6 +50,9 @@ export function keptTitle(source: KeptSource, name: string | null): string {
   if (source.kind === "indices") {
     return `${categoryLabel(source.key)} indices`;
   }
+  if (source.kind === "screen") {
+    return "Screener matches";
+  }
   const mover = MOVER_NAMES.find((one) => one === source.key);
   return mover === undefined ? source.key : MOVER_LISTS[mover].title;
 }
@@ -62,6 +65,7 @@ const DESCRIPTIONS: Record<KeptSource["kind"], string> = {
   movers:
     "The whole market's top twenty-five on the latest session. The Movers page ranks within any index or sector.",
   strategy: "Its picks on its latest backtest, by rank: Held is what it holds today.",
+  screen: "The screener's matches today, in its order.",
 };
 
 interface KeptListViewProps {

@@ -96,3 +96,43 @@ describe("Watchlists, a list kept updated", () => {
     });
   });
 });
+
+describe("Watchlists, a screen kept updated", () => {
+  it("reads the screen in its own words, and names it as the screener's matches", async () => {
+    const fetched = stubPlatform({
+      "/api/watchlists/membership": { body: {} },
+      "/api/watchlists": {
+        body: [
+          watchlistSummary({
+            watchlist_id: 5,
+            name: "Oversold",
+            description: null,
+            source: {
+              kind: "screen",
+              key: "",
+              scope_kind: "companies",
+              scope_key: null,
+              universe: "liquid",
+              depth: 500,
+              where: ["rsi:lt:30", "market_cap:gte:1000"],
+              sort: "rsi",
+              order: "asc",
+            },
+          }),
+        ],
+      },
+      "/api/watchlist-folders": { body: [] },
+      "/api/kept-lists/rows": { body: { kind: "screen", key: "", name: null, rows: [] } },
+    });
+    renderPage(<Watchlists />, { at: "/watchlists?list=5" });
+
+    expect(
+      await screen.findByText(/Kept updated from Screener matches, read afresh each time\./),
+    ).toBeVisible();
+    await waitFor(() => {
+      expect(asked(fetched)).toContain(
+        "/api/kept-lists/rows?kind=screen&key=&universe=liquid&scope_kind=companies&depth=500&where=rsi:lt:30&where=market_cap:gte:1000&sort=rsi&order=asc",
+      );
+    });
+  });
+});

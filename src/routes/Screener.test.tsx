@@ -19,6 +19,7 @@ import {
   screenPage,
   strategyFields,
   stubPlatform,
+  watchlistSummary,
 } from "@/test/support";
 
 afterEach(() => {
@@ -640,5 +641,50 @@ describe("Screener, saving a screen as a watchlist", () => {
       });
     expect(pages).toContain("0+200");
     expect(pages).toContain("200+50");
+  });
+
+  it("keeps a screen updated as a list, in the screener's own words", async () => {
+    const fetched = stubPlatform({
+      "/api/screen/fields": { body: screenFields() },
+      "/api/movers/scopes": { body: scopeOptions() },
+      "/api/screen?": { body: screenPage({ total: 1, items: [screenHit()] }) },
+      "/api/watchlists/membership": { body: {} },
+      "/api/watchlists": {
+        bodyFor: (_path, method) =>
+          method === "POST"
+            ? watchlistSummary({ watchlist_id: 4, name: "Oversold", items: 1 })
+            : [],
+      },
+    });
+    renderPage(<Screener />, { at: "/screen?where=rsi:lt:30&sort=rsi&order=asc" });
+    await screen.findByRole("table", { name: "Screen results" });
+
+    await userEvent.click(screen.getByRole("button", { name: "Save or export Screener results" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /Save as a new watchlist/ }));
+    const dialog = screen.getByRole("dialog");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Keep it updated" }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Save list" }));
+
+    await waitFor(() => {
+      expect(
+        fetched.mock.calls.some(
+          ([at, init]) => at === "/api/watchlists" && init?.method === "POST",
+        ),
+      ).toBe(true);
+    });
+    const call = fetched.mock.calls.find(
+      ([at, init]) => at === "/api/watchlists" && init?.method === "POST",
+    );
+    expect(JSON.parse(call?.[1]?.body as string)).toMatchObject({
+      source: {
+        kind: "screen",
+        key: "",
+        scope_kind: "companies",
+        depth: 500,
+        where: ["rsi:lt:30"],
+        sort: "rsi",
+        order: "asc",
+      },
+    });
   });
 });

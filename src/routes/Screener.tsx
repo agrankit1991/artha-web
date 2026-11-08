@@ -36,7 +36,15 @@ import type {
   TrailingReturns,
   ScreenOperator,
 } from "@/api/client";
-import { fetchScopes, fetchScreen, fetchScreenFields, fetchScreenKeys } from "@/api/client";
+import {
+  type KeptSource,
+  MOST_SCREENED,
+  conditionText,
+  fetchScopes,
+  fetchScreen,
+  fetchScreenFields,
+  fetchScreenKeys,
+} from "@/api/client";
 import { Callout } from "@/components/Callout";
 import { ListActions } from "@/components/ListActions";
 import { type Column, DataTable } from "@/components/DataTable";
@@ -154,6 +162,21 @@ export function Screener(): React.JSX.Element {
     (most: number) => fetchScreenKeys(screenOf(asked).query, most),
     [asked],
   );
+  // The same screen kept as a list: the platform reads it afresh in the
+  // screener's own words, so the list holds what this page would show.
+  const source = useMemo<KeptSource>(() => {
+    const { query } = screenOf(asked);
+    return {
+      kind: "screen",
+      key: "",
+      scope_kind: query.scope_kind,
+      ...(query.scope_kind === "companies" ? {} : { scope_key: query.scope_key }),
+      depth: MOST_SCREENED,
+      where: query.conditions.map(conditionText),
+      sort: query.sort,
+      order: query.order,
+    };
+  }, [asked]);
 
   const update = (change: (next: URLSearchParams) => void): void => {
     const next = new URLSearchParams(params);
@@ -320,7 +343,7 @@ export function Screener(): React.JSX.Element {
           }
           actions={
             hits.data !== null && hits.data.total > 0 ? (
-              <ListActions keys={allHits} label="Screener results" />
+              <ListActions keys={allHits} label="Screener results" source={source} />
             ) : undefined
           }
           description={
