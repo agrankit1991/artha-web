@@ -17,7 +17,7 @@
 import type { IChartApi, ISeriesApi, MouseEventParams, SeriesType } from "lightweight-charts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import type { ChartDrawing, DrawingChange, LineStyleChange } from "@/api/client";
+import type { ChartDrawing, DrawingChange, DrawingKind, LineStyleChange } from "@/api/client";
 import {
   createDrawing,
   deleteDrawing,
@@ -47,6 +47,13 @@ import { tokenColour } from "@/lib/tokenColour";
  * of the bars.
  */
 const MAGNET_REACH = 12;
+
+/**
+ * The charts the pointer is over now, each by its hook's own token: of
+ * several charts the one under the pointer takes a drawing's keys, and the
+ * one being worked on only when the pointer is over none.
+ */
+const POINTED = new Set<object>();
 
 /**
  * The chart's sessions in order, from the series drawn on.
@@ -192,6 +199,11 @@ export function useChartDrawings(
     look,
   });
   const layer = useRef<DrawingLayer | null>(null);
+  // Where the pointer is on this chart, or null off it: a one-point tool's
+  // key draws there (the owner, 2026-11-08: "plot directly in the chart at
+  // the current cursor position", as TradingView's Alt+H does).
+  const cursor = useRef<Placed | null>(null);
+  const token = useRef({});
   const reload = stored.reload;
 
   const fail = useCallback((error: unknown) => {
@@ -227,6 +239,26 @@ export function useChartDrawings(
     layer.current?.sketch(null);
   }, []);
 
+  // Keep a drawing whose points are all placed, and pick it.
+  const keep = useCallback(
+    (using: DrawingKind, key: string, points: readonly Placed[]) => {
+      layer.current?.sketch(null);
+      createDrawing(key, using, {
+        points: points.map((one) => ({ day: one.day, price: String(one.price) })),
+        label: null,
+        colour: null,
+        width: null,
+        locked: false,
+      })
+        .then((made) => {
+          setChosenId(made.drawing_id);
+          reload();
+        })
+        .catch(fail);
+    },
+    [fail, reload],
+  );
+
   const place = useCallback(
     (using: DrawingTool, key: string, point: Placed) => {
       const points = [...now.current.placed, point];
@@ -247,21 +279,9 @@ export function useChartDrawings(
         }
         return;
       }
-      layer.current?.sketch(null);
-      createDrawing(key, using, {
-        points: points.map((one) => ({ day: one.day, price: String(one.price) })),
-        label: null,
-        colour: null,
-        width: null,
-        locked: false,
-      })
-        .then((made) => {
-          setChosenId(made.drawing_id);
-          reload();
-        })
-        .catch(fail);
+      keep(using, key, points);
     },
-    [fail, reload],
+    [keep],
   );
 
   const decorate = useCallback(
@@ -331,9 +351,15 @@ export function useChartDrawings(
       // After a tool's first point, what it would draw follows the pointer
       // (the owner, 2026-11-08: "can I see in realtime the trendline").
       const followed = (event: MouseEventParams): void => {
+        const point = placedFrom(event);
+        cursor.current = point;
+        if (point === null) {
+          POINTED.delete(token.current);
+        } else {
+          POINTED.add(token.current);
+        }
         const using = now.current.tool;
         const first = now.current.placed[0];
-        const point = using === null || first === undefined ? null : placedFrom(event);
         if (using !== null && first !== undefined && point !== null) {
           made.sketch(sketchOf(using, first, point, now.current.look));
         }
@@ -427,6 +453,8 @@ export function useChartDrawings(
       return () => {
         chart.unsubscribeClick(clicked);
         chart.unsubscribeCrosshairMove(followed);
+        cursor.current = null;
+        POINTED.delete(token.current);
         element.removeEventListener("pointerdown", press);
         element.removeEventListener("pointermove", drag);
         element.removeEventListener("pointerup", release);
@@ -459,14 +487,24 @@ export function useChartDrawings(
       if (target !== null && (TYPING.has(target.tagName) || target.isContentEditable)) {
         return;
       }
-      const shortcut = takesKeys && instrumentKey !== null ? toolForKeys(event) : null;
+      // A tool's key reaches the chart the pointer is over; with the pointer
+      // over none, the one being worked on.
+      const at = cursor.current;
+      const reached = at !== null || (takesKeys && POINTED.size === 0);
+      const shortcut = reached && instrumentKey !== null ? toolForKeys(event) : null;
       if (event.key === "Escape") {
         chooseTool(null);
         setChosenId(null);
-      } else if (shortcut !== null) {
+      } else if (shortcut !== null && instrumentKey !== null) {
         // Not the browser's: Alt with a letter opens a menu there.
         event.preventDefault();
-        chooseTool(now.current.tool === shortcut ? null : shortcut);
+        if (at !== null && shortcut !== "measure" && POINTS[shortcut] === 1) {
+          // Drawn where the pointer is, as TradingView's Alt+H draws.
+          chooseTool(null);
+          keep(shortcut, instrumentKey, [at]);
+        } else {
+          chooseTool(now.current.tool === shortcut ? null : shortcut);
+        }
       } else if (
         takesKeys &&
         (event.key === "Delete" || event.key === "Backspace") &&
@@ -480,7 +518,7 @@ export function useChartDrawings(
     return () => {
       window.removeEventListener("keydown", pressed);
     };
-  }, [chooseTool, chosen, remove, takesKeys, instrumentKey]);
+  }, [chooseTool, chosen, remove, takesKeys, instrumentKey, keep]);
 
   return {
     enabled: instrumentKey !== null,

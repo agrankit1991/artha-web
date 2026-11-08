@@ -961,8 +961,12 @@ the working plan with the reasoning is `docs/REDESIGN-PLAN.md`
   a chart, TradingView's drawing keys take a tool up (Alt+H horizontal line,
   Alt+J horizontal ray, Alt+V vertical, Alt+T trend line, Alt+Shift+R
   rectangle; again puts it down), matched by `code` so a Mac's Option works,
-  named once in `src/lib/drawingTools.ts` with every tool's name; of several
-  charts only the active one takes them, and Delete (`takesKeys`).
+  named once in `src/lib/drawingTools.ts` with every tool's name. With the
+  pointer over a chart a one-point tool's key draws it there at once, as
+  TradingView's Alt+H does (the hook keeps the pointer's place from the
+  crosshair); a two-point tool's key takes it up. Of several charts the one
+  under the pointer takes the keys, the active one only when the pointer is
+  over none (`POINTED`), and Delete only the active one (`takesKeys`).
 - **Search rows:** name, then an outline Mono badge per exchange a company
   or index trades on (our BSE listings carry alphabetic symbols, so there
   is no numeric scrip code to show), an index's category, the kind unless

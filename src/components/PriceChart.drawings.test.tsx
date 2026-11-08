@@ -605,4 +605,74 @@ describe("PriceChart, the drawing tools' edges", () => {
     fireEvent.keyDown(window, { key: "Delete" });
     expect(made(fetched).some((request) => request.startsWith("DELETE"))).toBe(false);
   });
+
+  it("draws a one-point tool where the pointer is by its key, and takes up a two-point one", async () => {
+    const fetched = stub();
+    draw();
+    await waitFor(() => {
+      expect(chartCalls.attachPrimitive).toHaveBeenCalled();
+    });
+
+    hover(60, 130, "2026-09-06", 6);
+    fireEvent.keyDown(window, { code: "KeyH", altKey: true });
+    await waitFor(() => {
+      expect(made(fetched)).toContain("POST /api/drawings");
+    });
+    expect(sent(fetched, "POST")).toMatchObject({
+      kind: "horizontal",
+      points: [{ day: "2026-09-06", price: "130" }],
+    });
+    expect(screen.getByRole("button", { name: "Horizontal line" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+
+    // A trend line needs two points: its key takes it up, to be clicked.
+    fireEvent.keyDown(window, { code: "KeyT", altKey: true });
+    expect(screen.getByRole("button", { name: "Trend line" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("gives a key to the chart the pointer is over, not the one being worked on", async () => {
+    const fetched = stub();
+    renderPage(
+      <>
+        <PriceChart points={chartPoints(10)} drawingsOf={KEY} initialOverlays={[]} />
+        <PriceChart
+          points={chartPoints(10)}
+          drawingsOf="NSE_EQ|INE467B01029"
+          initialOverlays={[]}
+          takesKeys={false}
+        />
+      </>,
+    );
+    await waitFor(() => {
+      expect(chartCalls.attachPrimitive).toHaveBeenCalledTimes(2);
+    });
+
+    // The pointer over the second chart only: the last to listen for it.
+    const handlers = chartCalls.subscribeCrosshairMove.mock.calls.map(
+      ([handler]) => handler as (event: unknown) => void,
+    );
+    act(() => {
+      handlers.at(-1)?.({
+        point: { x: 60, y: 130 },
+        time: "2026-09-06",
+        logical: 6,
+        seriesData: new Map(),
+      });
+    });
+    fireEvent.keyDown(window, { code: "KeyH", altKey: true });
+
+    await waitFor(() => {
+      expect(made(fetched)).toContain("POST /api/drawings");
+    });
+    expect(sent(fetched, "POST")).toMatchObject({ instrument_key: "NSE_EQ|INE467B01029" });
+    expect(made(fetched).filter((one) => one === "POST /api/drawings")).toHaveLength(1);
+    for (const button of screen.getAllByRole("button", { name: "Horizontal line" })) {
+      expect(button).toHaveAttribute("aria-pressed", "false");
+    }
+  });
 });

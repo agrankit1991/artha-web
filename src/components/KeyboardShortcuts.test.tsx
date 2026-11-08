@@ -62,7 +62,7 @@ describe("KeyboardShortcuts", () => {
     // And the drawing tools', held together.
     const dialog = screen.getByRole("dialog", { name: "Keyboard shortcuts" });
     expect(dialog).toHaveTextContent("Drawing on a chart");
-    expect(dialog).toHaveTextContent("Alt+HHorizontal line");
+    expect(dialog).toHaveTextContent("Alt+HHorizontal line, at the pointer");
     expect(dialog).toHaveTextContent("Alt+Shift+RRectangle");
   });
 

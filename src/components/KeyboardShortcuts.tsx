@@ -12,6 +12,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Dialog } from "@/components/Dialog";
+import { POINTS } from "@/lib/drawingGeometry";
 import { TOOL_KEYS, TOOL_NAMES, keysOf } from "@/lib/drawingTools";
 import { PATHS } from "@/lib/paths";
 
@@ -106,7 +107,10 @@ export function KeyboardShortcuts(): React.JSX.Element {
         {TOOL_KEYS.map((one) => (
           <Fragment key={one.tool}>
             <Keys keys={keysOf(one.tool) ?? []} together />
-            <dd>{TOOL_NAMES[one.tool]}</dd>
+            <dd>
+              {TOOL_NAMES[one.tool]}
+              {one.tool !== "measure" && POINTS[one.tool] === 1 && ", at the pointer"}
+            </dd>
           </Fragment>
         ))}
         <Keys keys={["Esc"]} />
