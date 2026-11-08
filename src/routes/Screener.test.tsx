@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Screener } from "./Screener";
-import type { ScreenField } from "@/api/client";
+import { MOST_SCREENED, type ScreenField } from "@/api/client";
 import { figureAt } from "@/lib/figures";
 import { type Scan, SCANS, scanPath } from "@/lib/scans";
 import {
@@ -680,7 +680,7 @@ describe("Screener, saving a screen as a watchlist", () => {
         kind: "screen",
         key: "",
         scope_kind: "companies",
-        depth: 500,
+        depth: MOST_SCREENED,
         where: ["rsi:lt:30"],
         sort: "rsi",
         order: "asc",
