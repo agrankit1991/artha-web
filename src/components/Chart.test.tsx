@@ -229,6 +229,21 @@ describe("Chart", () => {
     ]);
   });
 
+  it("draws a line one to four pixels thick, rounded, whatever it is asked for", () => {
+    draw([
+      { ...LINE, width: 7 },
+      { ...LINE, label: "Thin", width: 0.4 },
+      { kind: "area", label: "Area", colour: LINE.colour, points: LINE.points, width: 3 },
+      { kind: "baseline", label: "Base", points: LINE.points },
+    ]);
+
+    const widths = chartCalls.addSeries.mock.calls.map(
+      (call) => ((call as unknown[])[1] as { lineWidth?: number }).lineWidth,
+    );
+    // The baseline asked for nothing, and is drawn the price's own two.
+    expect(widths).toEqual([4, 1, 3, 2]);
+  });
+
   it("gives a new height to its panes without building the chart again", () => {
     const series: Series[] = [
       LINE,

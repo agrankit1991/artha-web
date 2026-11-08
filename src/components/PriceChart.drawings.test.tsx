@@ -25,6 +25,7 @@ const SUPPORT = {
   points: [{ day: "2026-09-05", price: "120" }],
   label: null,
   colour: null,
+  width: null,
   locked: false,
   drawn_on: "2026-11-08",
 };
@@ -191,6 +192,35 @@ describe("PriceChart, drawing", () => {
     await waitFor(() => {
       expect(made(fetched).filter((one) => one === "DELETE /api/drawings/7")).toHaveLength(2);
     });
+  });
+
+  it("styles a drawing picked: a colour of its own, its width and the rest kept", async () => {
+    const fetched = stub([{ ...SUPPORT, colour: "#0d9488", width: 3 }]);
+    draw();
+    await screen.findByRole("button", { name: "Delete every drawing" });
+    click(200, 120, "2026-09-05");
+    await screen.findByText("Horizontal line picked:");
+
+    await userEvent.click(screen.getByRole("button", { name: "Style the drawing" }));
+    const colours = screen.getByRole("group", { name: "The drawing colour" });
+    expect(within(colours).getByRole("button", { name: "Teal" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await userEvent.click(within(colours).getByRole("button", { name: "Red" }));
+
+    await waitFor(() => {
+      expect(made(fetched)).toContain("PATCH /api/drawings/7");
+    });
+    expect(sent(fetched, "PATCH")).toMatchObject({
+      colour: "#dc2626",
+      width: 3,
+      locked: false,
+      points: SUPPORT.points,
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "Style the drawing" }));
+    expect(screen.queryByRole("group", { name: "The drawing colour" })).toBeNull();
   });
 
   it("drags a drawing picked, keeping it where it is let go, the chart held still meanwhile", async () => {

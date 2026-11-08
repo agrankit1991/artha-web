@@ -25,6 +25,7 @@ import {
   type IChartApi,
   type IRange,
   type ISeriesApi,
+  type LineWidth,
   LineSeries,
   LineStyle,
   type MouseEventParams,
@@ -119,16 +120,25 @@ export type Series =
       points: Point[];
       /** Above it is drawn as a rise, below as a fall; the first point when absent. */
       base?: number;
+      /** Pixels, one to four; the price's own when absent. */
+      width?: number;
     })
   | (Common & {
       kind: "line";
       colour: string;
       points: Point[];
+      /** Pixels, one to four; an average's hairline when absent. */
       width?: number;
       /** Drawn in dashes: a line that is not a record, such as a forecast. */
       dashed?: boolean;
     })
-  | (Common & { kind: "area"; colour: string; points: Point[] })
+  | (Common & {
+      kind: "area";
+      colour: string;
+      points: Point[];
+      /** Pixels, one to four; the price's own when absent. */
+      width?: number;
+    })
   | (Common & { kind: "bars"; points: Point[] });
 
 /**
@@ -725,6 +735,20 @@ function stretchPanes(chart: IChartApi, height: number, paneHeight: number): voi
 }
 
 /**
+ * A width as the library takes it: a whole number of pixels, one to four.
+ *
+ * @param width - Asked for, which may be the reader's own choice.
+ * @param fallback - The series' own width, when none is asked for.
+ * @returns The width, rounded and held within one to four.
+ */
+function lineWidthOf(width: number | undefined, fallback: LineWidth): LineWidth {
+  if (width === undefined) {
+    return fallback;
+  }
+  return Math.min(4, Math.max(1, Math.round(width))) as LineWidth;
+}
+
+/**
  * Add one series to a chart.
  *
  * @param chart - The chart to add it to.
@@ -838,7 +862,7 @@ function add(
         bottomLineColor: down,
         bottomFillColor1: translucent(down, 0.02),
         bottomFillColor2: translucent(down, 0.28),
-        lineWidth: PRICE_WIDTH,
+        lineWidth: lineWidthOf(series.width, PRICE_WIDTH),
         ...priceFormat(scale),
       },
       pane,
@@ -881,7 +905,7 @@ function add(
         lineColor: colour,
         topColor: translucent(colour, 0.33),
         bottomColor: translucent(colour, 0.02),
-        lineWidth: PRICE_WIDTH,
+        lineWidth: lineWidthOf(series.width, PRICE_WIDTH),
         ...priceFormat(scale),
       },
       pane,
@@ -894,7 +918,7 @@ function add(
     LineSeries,
     {
       color: tokenColour(series.colour),
-      lineWidth: series.width === PRICE_WIDTH ? PRICE_WIDTH : AVERAGE_WIDTH,
+      lineWidth: lineWidthOf(series.width, AVERAGE_WIDTH),
       ...(series.dashed === true ? { lineStyle: DASHED } : {}),
       lastValueVisible: false,
       priceLineVisible: false,

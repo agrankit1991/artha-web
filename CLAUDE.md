@@ -236,6 +236,28 @@ thin -- three of them at two pixels each is a chart of moving averages
 with a price somewhere behind it. A forecast is dashed in the price's own
 teal.
 
+**The reader may restyle the lines, and that overrides all of the above
+for them** (the owner, 2026-11-08: "I should be able to choose colors and
+thickness of lines, including indicators"; their choices: a style applies
+everywhere, is kept on the account, and is picked from swatches or a colour
+of one's own). The lines a reader may style are one catalogue,
+`CHART_LINES` in `src/lib/chartLines.ts` (price, SMA 20/50/200, RSI, the
+forecast's edges and middle, and every drawing's default), each with the
+chart's own colour and width; its keys are what the platform keeps a style
+under (`/api/line-styles/{key}`, `ops.line_style`), so renaming one forgets
+every reader's style for it. Candles, volume and compare lines are not
+styled. `LineStylesProvider` (`src/lib/lineStyles.tsx`, mounted beside the
+membership provider) reads them once, shows a change at once and undoes one
+the platform refuses; outside it every line is the chart's own. The choices
+are `SWATCHES` in `chartPalette.ts`, eighteen written out as `#rrggbb`
+(one colour in both modes, so `palette.test.ts` holds each at 3:1 against
+the page and a card in light and dark; amber, yellow and lime cannot, so
+they are offered deepened as ochre, mustard and olive), a colour of one's
+own, and 1 to 4 pixels (`Chart`'s `lineWidthOf` clamps any width there).
+`LineStyleEditor` is the one editor, in `LineStylesDialog` (a price chart's
+"Line styles") and for a drawing picked (its own colour and width, else
+every drawing's). A change rebuilds the chart, so the zoom is reset.
+
 The crosshair carries a reading: the session, and what every line was
 worth on it, over the plot rather than beside it so the eye does not leave
 the line it is following. Volume is left out -- it is context for the

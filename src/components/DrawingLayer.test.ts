@@ -51,6 +51,7 @@ const SUPPORT: LaidDrawing = {
   kind: "horizontal",
   points: [{ day: "2026-09-05", price: 120 }],
   colour: "#2563eb",
+  width: 1.5,
   label: "Support",
 };
 const ZONE: LaidDrawing = {
@@ -61,6 +62,7 @@ const ZONE: LaidDrawing = {
     { day: "2026-09-08", price: 90 },
   ],
   colour: "#22c55e",
+  width: 3,
   label: null,
 };
 
@@ -79,8 +81,18 @@ describe("DrawingLayer", () => {
     expect(drawn.fillText).toHaveBeenCalledWith("Support", 4, 116);
     expect(drawn.fillRect).toHaveBeenCalledWith(20, 40, 60, 50);
     expect(drawn.strokeRect).toHaveBeenCalledWith(20, 40, 60, 50);
-    // The chosen drawing is drawn thicker.
-    expect(drawn.lineWidth).toBe(1.5);
+    // The last painted, the zone, at its own width.
+    expect(drawn.lineWidth).toBe(3);
+  });
+
+  it("paints a drawing at its own width, a pixel thicker while it is picked", () => {
+    const layer = new DrawingLayer();
+    attach(layer);
+
+    layer.show([SUPPORT], 1);
+    expect(paint(layer).lineWidth).toBe(2.5);
+    layer.show([SUPPORT], null);
+    expect(paint(layer).lineWidth).toBe(1.5);
   });
 
   it("says which drawing the pointer is on, the latest drawn first", () => {

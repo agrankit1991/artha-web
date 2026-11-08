@@ -17,7 +17,7 @@
 import type { IChartApi, ISeriesApi, MouseEventParams, SeriesType } from "lightweight-charts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import type { ChartDrawing, DrawingKind } from "@/api/client";
+import type { ChartDrawing, DrawingChange, DrawingKind, LineStyleChange } from "@/api/client";
 import {
   createDrawing,
   deleteDrawing,
@@ -27,8 +27,8 @@ import {
 } from "@/api/client";
 import { DrawingLayer, type LaidDrawing } from "@/components/DrawingLayer";
 import { useResource } from "@/hooks/useResource";
-import { DRAWING } from "@/lib/chartPalette";
 import { type Measure, POINTS, type Pixel, measure, snapped } from "@/lib/drawingGeometry";
+import { useLineStyles } from "@/lib/lineStyles";
 import { tokenColour } from "@/lib/tokenColour";
 
 /** A tool: a kind of drawing to place, or a measure that is read and not kept. */
@@ -61,6 +61,8 @@ export interface ChartDrawings {
   problem: string | null;
   /** Lock a drawing against dragging, or unlock it. */
   lock: (drawing: ChartDrawing, locked: boolean) => void;
+  /** Give a drawing a colour or width of its own, or (null) every drawing's again. */
+  restyle: (drawing: ChartDrawing, change: LineStyleChange) => void;
   /** Delete one drawing. */
   remove: (drawing: ChartDrawing) => void;
   deleteAll: () => Promise<void>;
@@ -69,6 +71,23 @@ export interface ChartDrawings {
     chart: IChartApi,
     price: ISeriesApi<SeriesType> | undefined,
   ) => (() => void) | undefined;
+}
+
+/**
+ * A drawing as it is, to change one part of: every part is sent with a
+ * change, and one left out (its width, say) would be reset.
+ *
+ * @param drawing - The drawing.
+ * @returns Its points, label, colour, width and lock.
+ */
+function kept(drawing: ChartDrawing): DrawingChange {
+  return {
+    points: drawing.points,
+    label: drawing.label,
+    colour: drawing.colour,
+    width: drawing.width,
+    locked: drawing.locked,
+  };
 }
 
 /** The pointer's spot on the plot, as the browser reports it. */
@@ -96,6 +115,7 @@ export function useChartDrawings(instrumentKey: string | null): ChartDrawings {
   const [placed, setPlaced] = useState<Placed[]>([]);
   const [magnet, setMagnet] = useState(true);
   const [hidden, setHidden] = useState(false);
+  const look = useLineStyles().drawn("drawing");
   const [chosenId, setChosenId] = useState<number | null>(null);
   const [reading, setReading] = useState<Measure | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -126,10 +146,13 @@ export function useChartDrawings(instrumentKey: string | null): ChartDrawings {
             id: one.drawing_id,
             kind: one.kind,
             points: one.points.map((point) => ({ day: point.day, price: Number(point.price) })),
-            colour: one.colour ?? tokenColour(DRAWING),
+            // Its own colour and width, else every drawing's: the reader's
+            // "Drawings" style where set, the chart's own where not.
+            colour: tokenColour(one.colour ?? look.colour),
+            width: one.width ?? look.width,
             label: one.label,
           })),
-    [drawings, hidden],
+    [drawings, hidden, look.colour, look.width],
   );
   now.current = { instrumentKey, tool, placed, magnet, drawings, chosenId, laid };
   useEffect(() => {
@@ -165,6 +188,7 @@ export function useChartDrawings(instrumentKey: string | null): ChartDrawings {
         points: points.map((one) => ({ day: one.day, price: String(one.price) })),
         label: null,
         colour: null,
+        width: null,
         locked: false,
       })
         .then((made) => {
@@ -235,7 +259,9 @@ export function useChartDrawings(instrumentKey: string | null): ChartDrawings {
           id: drawing.drawing_id,
           kind: drawing.kind,
           points: drawing.points.map((one) => ({ day: one.day, price: Number(one.price) })),
+          // Only its place is wanted, not how it is painted.
           colour: "",
+          width: 0,
           label: null,
         });
         if (pixels === null) {
@@ -287,12 +313,7 @@ export function useChartDrawings(instrumentKey: string | null): ChartDrawings {
         if (was === null || points === null) {
           return;
         }
-        updateDrawing(was.drawing.drawing_id, {
-          points,
-          label: was.drawing.label,
-          colour: was.drawing.colour,
-          locked: was.drawing.locked,
-        })
+        updateDrawing(was.drawing.drawing_id, { ...kept(was.drawing), points })
           .then(reload)
           .catch(fail);
       };
@@ -360,12 +381,12 @@ export function useChartDrawings(instrumentKey: string | null): ChartDrawings {
     count: drawings.length,
     problem,
     lock: (drawing, locked) => {
-      updateDrawing(drawing.drawing_id, {
-        points: drawing.points,
-        label: drawing.label,
-        colour: drawing.colour,
-        locked,
-      })
+      updateDrawing(drawing.drawing_id, { ...kept(drawing), locked })
+        .then(reload)
+        .catch(fail);
+    },
+    restyle: (drawing, change) => {
+      updateDrawing(drawing.drawing_id, { ...kept(drawing), ...change })
         .then(reload)
         .catch(fail);
     },

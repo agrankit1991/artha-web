@@ -3008,8 +3008,10 @@ export interface ChartDrawing {
   kind: DrawingKind;
   points: DrawingPoint[];
   label: string | null;
-  /** `#rrggbb`, or null for the chart's own colour. */
+  /** `#rrggbb`, or null for the colour every drawing is given. */
   colour: string | null;
+  /** Pixels, one to four, or null for the width every drawing is given. */
+  width: number | null;
   /** Fixed against being dragged. */
   locked: boolean;
   drawn_on: string;
@@ -3020,6 +3022,7 @@ export interface DrawingChange {
   points: DrawingPoint[];
   label: string | null;
   colour: string | null;
+  width: number | null;
   locked: boolean;
 }
 
@@ -3058,6 +3061,38 @@ export async function deleteDrawing(drawingId: number): Promise<void> {
 export async function deleteDrawings(instrumentKey: string): Promise<void> {
   const parameters = new URLSearchParams({ instrument_key: instrumentKey });
   await request<unknown>(`/api/drawings?${parameters.toString()}`, { method: "DELETE" });
+}
+
+/** How a kind of line is drawn: each part null for the chart's own. */
+export interface LineStyleChange {
+  /** `#rrggbb`. */
+  colour: string | null;
+  /** Pixels, one to four. */
+  width: number | null;
+}
+
+/** One kind of line as the reader has it drawn, kept on their account. */
+export interface LineStyle extends LineStyleChange {
+  /** Which kind of line, as `src/lib/chartLines.ts` names it (`sma_50`). */
+  line: string;
+}
+
+/** Fetch every line the reader has styled. */
+export function fetchLineStyles(): Promise<LineStyle[]> {
+  return request<LineStyle[]>("/api/line-styles");
+}
+
+/** Set how one kind of line is drawn; neither part set is the chart's own again. */
+export function saveLineStyle(line: string, change: LineStyleChange): Promise<LineStyle> {
+  return request<LineStyle>(`/api/line-styles/${encodeURIComponent(line)}`, {
+    method: "PUT",
+    body: JSON.stringify(change),
+  });
+}
+
+/** Draw every line the chart's own way again. */
+export async function forgetLineStyles(): Promise<void> {
+  await request<unknown>("/api/line-styles", { method: "DELETE" });
 }
 
 /** A saved strategy's sales of one instrument on its latest kept backtest. */

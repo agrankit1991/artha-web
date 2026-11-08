@@ -12,6 +12,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { SWATCHES } from "@/lib/chartPalette";
 import { CARD_COLOURS } from "@/lib/shareCard";
 
 // Read from disk rather than imported: Vite's Tailwind plugin owns `.css`
@@ -145,6 +146,27 @@ describe("the brand palette", () => {
   it("offers no switchable accent palettes any more", () => {
     // Retired for the one brand palette on 2026-09-30.
     expect(STYLESHEET).not.toContain("data-accent");
+  });
+});
+
+describe("the swatches a reader colours a line from", () => {
+  it("each reads at 3:1 against the page and a card, in light and in dark", () => {
+    // A reader's colour is one colour in both modes, so it must read on all four.
+    for (const [mode, declared] of Object.entries(MODES)) {
+      for (const surface of ["--background", "--card"]) {
+        for (const swatch of SWATCHES) {
+          expect(
+            contrast(swatch.colour, declared.get(surface) ?? ""),
+            `${swatch.name} on ${mode} ${surface}`,
+          ).toBeGreaterThanOrEqual(3);
+        }
+      }
+    }
+  });
+
+  it("are each named once and coloured once", () => {
+    expect(new Set(SWATCHES.map((one) => one.name)).size).toBe(SWATCHES.length);
+    expect(new Set(SWATCHES.map((one) => one.colour)).size).toBe(SWATCHES.length);
   });
 });
 

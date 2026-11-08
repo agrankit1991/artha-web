@@ -105,6 +105,9 @@ export const AVERAGE_COLOURS = {
 export const AVERAGE_WIDTH = 1;
 export const PRICE_WIDTH = 2;
 
+/** A drawn line or zone's edge, between an average's hairline and the price. */
+export const DRAWING_WIDTH = 1.5;
+
 /**
  * Hand out the series colours in order, and refuse to start again.
  *
@@ -171,3 +174,37 @@ export const EVENT_COLOURS = {
   india: token("chart-2"),
   global: token("chart-7"),
 } as const;
+
+/**
+ * The colours a reader may give a line of their own choosing (the owner,
+ * 2026-11-08: swatches, plus a colour of their own).
+ *
+ * Written out, not tokens: a reader's choice is one colour in both modes,
+ * so every swatch reads at 3:1 or better (WCAG's bar for a line) against
+ * the page and a card in light and in dark alike, which `palette.test.ts`
+ * checks against the stylesheet. Amber, yellow and lime cannot clear it in
+ * both modes at their usual brightness, so they are offered deepened, and
+ * named for what they are: ochre, mustard and olive. Unlike the series
+ * colours, rise, fall and caution are among them: the reader chose to
+ * override the meanings, and may.
+ */
+export const SWATCHES = [
+  { name: "Red", colour: "#dc2626" },
+  { name: "Orange", colour: "#ea580c" },
+  { name: "Ochre", colour: "#a96d08" },
+  { name: "Mustard", colour: "#987405" },
+  { name: "Olive", colour: "#57870f" },
+  { name: "Green", colour: "#16a34a" },
+  { name: "Emerald", colour: "#059669" },
+  { name: "Teal", colour: "#0d9488" },
+  { name: "Cyan", colour: "#0891b2" },
+  { name: "Sky", colour: "#0284c7" },
+  { name: "Blue", colour: "#3b82f6" },
+  { name: "Indigo", colour: "#6366f1" },
+  { name: "Violet", colour: "#8b5cf6" },
+  { name: "Purple", colour: "#a855f7" },
+  { name: "Fuchsia", colour: "#c026d3" },
+  { name: "Pink", colour: "#db2777" },
+  { name: "Rose", colour: "#e11d48" },
+  { name: "Grey", colour: "#64748b" },
+] as const;

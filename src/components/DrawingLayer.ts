@@ -30,12 +30,13 @@ export interface LaidDrawing {
   kind: DrawingKind;
   points: { day: string; price: number }[];
   colour: string;
+  /** Pixels: the drawing's own width, or every drawing's. */
+  width: number;
   label: string | null;
 }
 
-/** How thick a drawing's line is, and how much thicker when chosen. */
-const LINE = 1.5;
-const CHOSEN = 2.5;
+/** How much thicker a drawing picked is drawn, so it reads as picked. */
+const CHOSEN_EXTRA = 1;
 
 /**
  * The layer itself. One per chart build: `Chart` rebuilds the chart when what
@@ -166,7 +167,7 @@ export class DrawingLayer implements ISeriesPrimitive {
       }
       context.save();
       context.strokeStyle = drawing.colour;
-      context.lineWidth = drawing.id === this.chosen ? CHOSEN : LINE;
+      context.lineWidth = drawing.width + (drawing.id === this.chosen ? CHOSEN_EXTRA : 0);
       if (shape.kind === "box") {
         // A zone is filled faintly, so the prices inside it still read.
         context.globalAlpha = 0.12;

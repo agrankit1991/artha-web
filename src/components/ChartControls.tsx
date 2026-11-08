@@ -22,6 +22,7 @@ import {
   ChevronDown,
   Layers,
   LineChart,
+  Palette,
   TrendingUp,
 } from "lucide-react";
 
@@ -95,6 +96,8 @@ interface ChartControlsProps {
     onScale: (scale: ChartScale) => void;
     onInvert: (inverted: boolean) => void;
   };
+  /** Open the reader's line styles; absent where lines cannot be styled. */
+  onStyles?: () => void;
   className?: string;
 }
 
@@ -113,6 +116,7 @@ export function ChartControls({
   onOverlays,
   forecast,
   scale,
+  onStyles,
   className,
 }: ChartControlsProps): React.JSX.Element {
   const showing = new Set(overlays);
@@ -292,6 +296,17 @@ export function ChartControls({
         >
           <TrendingUp className="h-4 w-4" />
           <span>Forecast</span>
+        </button>
+      )}
+
+      {onStyles && (
+        <button
+          type="button"
+          className={cn(TRIGGER, "inline-flex items-center")}
+          onClick={onStyles}
+        >
+          <Palette className="h-4 w-4" />
+          <span>Line styles</span>
         </button>
       )}
     </div>

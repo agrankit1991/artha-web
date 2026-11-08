@@ -24,22 +24,16 @@ import {
 } from "@/components/ChartControls";
 import { DrawingToolbar } from "@/components/DrawingToolbar";
 import { ForecastNote } from "@/components/ForecastNote";
+import { LineStylesDialog } from "@/components/LineStylesDialog";
 import { useChartDrawings } from "@/hooks/useChartDrawings";
 import { drawnBand } from "@/lib/forecastBands";
 import { readPreferences, writePreferences } from "@/lib/preferences";
-import {
-  AVERAGE_COLOURS,
-  FALL,
-  FORECAST_EDGE,
-  FORECAST_MIDDLE,
-  OSCILLATOR,
-  PRICE_LINE,
-  PRICE_WIDTH,
-  RISE,
-} from "@/lib/chartPalette";
+import { CHART_LINES, type LineLook } from "@/lib/chartLines";
+import { FALL, RISE } from "@/lib/chartPalette";
 import type { ChartMarker } from "@/lib/chartMarkers";
 import type { ChartSync } from "@/lib/chartSync";
 import { toNumber } from "@/lib/format";
+import { useLineStyles } from "@/lib/lineStyles";
 
 /** No extra lines, as one value so the series are not rebuilt each render. */
 const NO_EXTRA: Series[] = [];
@@ -71,13 +65,10 @@ interface PriceChartProps {
 }
 
 /** The averages, and which figure each reads. */
-const AVERAGES: Record<
-  "sma_20" | "sma_50" | "sma_200",
-  { of: (point: ChartPoint) => string | null; label: string; colour: string }
-> = {
-  sma_20: { of: (point) => point.sma_20, label: "SMA 20", colour: AVERAGE_COLOURS.sma_20 },
-  sma_50: { of: (point) => point.sma_50, label: "SMA 50", colour: AVERAGE_COLOURS.sma_50 },
-  sma_200: { of: (point) => point.sma_200, label: "SMA 200", colour: AVERAGE_COLOURS.sma_200 },
+const AVERAGES: Record<"sma_20" | "sma_50" | "sma_200", (point: ChartPoint) => string | null> = {
+  sma_20: (point) => point.sma_20,
+  sma_50: (point) => point.sma_50,
+  sma_200: (point) => point.sma_200,
 };
 
 /** What an RSI is read against: oversold below thirty, overbought above seventy. */
@@ -122,6 +113,8 @@ export function PriceChart({
   drawingsOf,
 }: PriceChartProps): React.JSX.Element {
   const drawings = useChartDrawings(drawingsOf ?? null);
+  const lines = useLineStyles();
+  const [styling, setStyling] = useState(false);
   const own = drawings.decorate;
   // The drawings and whatever the caller adds, both on each build, both undone.
   const decorated = useCallback(
@@ -174,7 +167,7 @@ export function PriceChart({
       return [];
     }
     const showing = new Set(overlays);
-    const drawn: Series[] = [priceOf(sessions, style)];
+    const drawn: Series[] = [priceOf(sessions, style, lines.drawn("price"))];
 
     if (showing.has("volume")) {
       drawn.push({
@@ -192,9 +185,9 @@ export function PriceChart({
       if (showing.has(key)) {
         drawn.push({
           kind: "line",
-          label: AVERAGES[key].label,
-          colour: AVERAGES[key].colour,
-          points: valuesOf(sessions, AVERAGES[key].of),
+          label: CHART_LINES[key].label,
+          ...lines.drawn(key),
+          points: valuesOf(sessions, AVERAGES[key]),
         });
       }
     }
@@ -203,7 +196,7 @@ export function PriceChart({
       drawn.push({
         kind: "line",
         label: "RSI",
-        colour: OSCILLATOR,
+        ...lines.drawn("rsi"),
         // A band of its own: an oscillator on a nought to a hundred scale
         // drawn over a price is a flat line along the bottom.
         pane: 1,
@@ -213,35 +206,24 @@ export function PriceChart({
     }
 
     if (band !== null) {
-      const lines = drawnBand(band);
+      const bands = drawnBand(band);
+      const edges = lines.drawn("forecast_edges");
       drawn.push(
-        {
-          kind: "line",
-          label: "Forecast 90%",
-          colour: FORECAST_EDGE,
-          dashed: true,
-          points: lines.high,
-        },
+        { kind: "line", label: "Forecast 90%", ...edges, dashed: true, points: bands.high },
         {
           kind: "line",
           label: "Forecast middle",
-          colour: FORECAST_MIDDLE,
+          ...lines.drawn("forecast_middle"),
           dashed: true,
-          points: lines.median,
+          points: bands.median,
         },
-        {
-          kind: "line",
-          label: "Forecast 10%",
-          colour: FORECAST_EDGE,
-          dashed: true,
-          points: lines.low,
-        },
+        { kind: "line", label: "Forecast 10%", ...edges, dashed: true, points: bands.low },
       );
     }
 
     drawn.push(...extra);
     return drawn;
-  }, [sessions, style, overlays, band, extra]);
+  }, [sessions, style, overlays, band, extra, lines]);
 
   return (
     <div className="space-y-3">
@@ -251,6 +233,9 @@ export function PriceChart({
         onStyle={chooseStyle}
         onOverlays={chooseOverlays}
         scale={{ chosen: shownScale, inverted, onScale: chooseScale, onInvert: setInverted }}
+        onStyles={() => {
+          setStyling(true);
+        }}
         {...(forecast === null
           ? {}
           : { forecast: { shown: showForecast, onToggle: chooseForecast } })}
@@ -270,6 +255,12 @@ export function PriceChart({
         {...(height === undefined ? {} : { height })}
       />
       {band !== null && <ForecastNote bands={band} />}
+      <LineStylesDialog
+        open={styling}
+        onClose={() => {
+          setStyling(false);
+        }}
+      />
     </div>
   );
 }
@@ -279,9 +270,11 @@ export function PriceChart({
  *
  * @param sessions - The sessions.
  * @param style - The shape.
+ * @param look - The price line's colour and width, the reader's where set; a
+ *   baseline takes only the width, its colours being a rise's and a fall's.
  * @returns The series.
  */
-function priceOf(sessions: ChartPoint[], style: ChartStyle): Series {
+function priceOf(sessions: ChartPoint[], style: ChartStyle, look: LineLook): Series {
   if (style === "candles" || style === "hollow") {
     return {
       kind: "candles",
@@ -296,11 +289,9 @@ function priceOf(sessions: ChartPoint[], style: ChartStyle): Series {
   const closes = valuesOf(sessions, (point) => point.close);
   if (style === "baseline") {
     // Above the first session shown is a rise, below it a fall.
-    return { kind: "baseline", label: "Price", points: closes };
+    return { kind: "baseline", label: "Price", width: look.width, points: closes };
   }
-  return style === "area"
-    ? { kind: "area", label: "Price", colour: PRICE_LINE, points: closes }
-    : { kind: "line", label: "Price", colour: PRICE_LINE, width: PRICE_WIDTH, points: closes };
+  return { kind: style === "area" ? "area" : "line", label: "Price", ...look, points: closes };
 }
 
 /**

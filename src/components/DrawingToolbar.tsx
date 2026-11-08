@@ -20,6 +20,7 @@ import {
   Minus,
   MoveDiagonal2,
   MoveRight,
+  Palette,
   Ruler,
   SeparatorVertical,
   Square,
@@ -29,7 +30,9 @@ import {
 import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { LineStyleEditor } from "@/components/LineStyleEditor";
 import type { ChartDrawings, DrawingTool } from "@/hooks/useChartDrawings";
+import { useLineStyles } from "@/lib/lineStyles";
 import { cn } from "@/lib/utils";
 
 /** Every tool, in the order offered, with what it is called. */
@@ -61,6 +64,8 @@ export function DrawingToolbar({
   drawings: ChartDrawings;
 }): React.JSX.Element | null {
   const [clearing, setClearing] = useState(false);
+  const [styling, setStyling] = useState(false);
+  const every = useLineStyles().drawn("drawing");
   if (!drawings.enabled) {
     return null;
   }
@@ -147,6 +152,18 @@ export function DrawingToolbar({
             </button>
             <button
               type="button"
+              aria-label="Style the drawing"
+              title="Its colour and thickness"
+              aria-pressed={styling}
+              onClick={() => {
+                setStyling(!styling);
+              }}
+              className={cn(BUTTON, styling && "bg-accent text-foreground")}
+            >
+              <Palette aria-hidden="true" className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
               aria-label="Delete the drawing"
               title="Delete (or press Delete)"
               onClick={() => {
@@ -159,6 +176,17 @@ export function DrawingToolbar({
           </span>
         )}
       </div>
+      {chosen !== null && styling && (
+        <LineStyleEditor
+          label="The drawing"
+          own={{ colour: chosen.colour, width: chosen.width }}
+          fallbackColour={every.colour}
+          fallbackName="Like every drawing"
+          onChange={(change) => {
+            drawings.restyle(chosen, change);
+          }}
+        />
+      )}
       {tool !== null && (
         <p className="text-xs text-muted-foreground">
           Click {drawings.remaining} more {drawings.remaining === 1 ? "point" : "points"} on the
