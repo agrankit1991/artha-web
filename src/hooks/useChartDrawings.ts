@@ -15,7 +15,7 @@
  */
 
 import type { IChartApi, ISeriesApi, MouseEventParams, SeriesType } from "lightweight-charts";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type { ChartDrawing, DrawingChange, DrawingKind, LineStyleChange } from "@/api/client";
 import {
@@ -227,7 +227,10 @@ export function useChartDrawings(
     [drawings, hidden, look.colour, look.width],
   );
   now.current = { instrumentKey, tool, placed, magnet, drawings, chosenId, laid, look };
-  useEffect(() => {
+  // In the same commit as the screen that shows them, not after it: handed
+  // over in a passive effect, a click landing just after the drawings
+  // arrived could find the layer still without them and pick nothing.
+  useLayoutEffect(() => {
     layer.current?.show(laid, chosenId);
   }, [laid, chosenId]);
 

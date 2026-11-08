@@ -21,6 +21,7 @@ import { ArrowDown, ArrowDownUp, ArrowUp, ChevronDown } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 
 import { Delta } from "@/components/Delta";
+import { ScrollRail } from "@/components/ScrollRail";
 import { WatchlistsContextMenu } from "@/components/WatchlistMenu";
 import { WatchCount } from "@/components/WatchCount";
 import { toNumber, formatPrice } from "@/lib/format";
@@ -104,6 +105,7 @@ export function ChartListPanel({
   // title, which shuts them with no effect to watch for it.
   const [openedOver, setOpenedOver] = useState<string | null>(null);
   const choosing = lists !== undefined && openedOver === title;
+  const [scroller, setScroller] = useState<HTMLUListElement | null>(null);
   // A company right-clicked, and where: its lists open there (the owner,
   // 2026-11-08: "right click on a company in company list and add it to a
   // existing list").
@@ -224,47 +226,53 @@ export function ChartListPanel({
               <OrderMark aria-hidden="true" className="h-3 w-3" />
             </button>
           </div>
-          <ul
-            className="max-h-[70vh] min-h-0 divide-y overflow-auto xl:max-h-none"
-            aria-label={title}
-          >
-            {rows.map((row) => {
-              const chosen = row.instrument_key === active;
-              return (
-                <li key={row.instrument_key}>
-                  <button
-                    type="button"
-                    aria-current={chosen ? "true" : undefined}
-                    title={row.name}
-                    onClick={() => {
-                      onChoose(row.instrument_key);
-                    }}
-                    onContextMenu={(event) => {
-                      event.preventDefault();
-                      // From the keyboard (Shift+F10) there is no pointer: by the row.
-                      const box = event.currentTarget.getBoundingClientRect();
-                      const at =
-                        event.clientX === 0 && event.clientY === 0
-                          ? { x: box.left + 16, y: box.bottom }
-                          : { x: event.clientX, y: event.clientY };
-                      setMenuFor({ row, at });
-                    }}
-                    className={cn(
-                      "flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-accent",
-                      chosen && "bg-primary/10 font-medium",
-                    )}
-                  >
-                    <span className="flex min-w-0 flex-1 items-center gap-1.5">
-                      <span className="truncate text-primary">{row.symbol}</span>
-                      <WatchCount instrumentKey={row.instrument_key} symbol={row.symbol} />
-                    </span>
-                    <span className="tabular text-xs">{formatPrice(row.close)}</span>
-                    <Delta value={row.change_percent} className="w-16 justify-end text-xs" />
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+          <div className="relative flex min-h-0 flex-col">
+            <ul
+              ref={setScroller}
+              // The browser's own scrollbar hidden for the rail beside it,
+              // which stays in view where an overlay scrollbar hides.
+              className="max-h-[70vh] min-h-0 divide-y overflow-auto [scrollbar-width:none] xl:max-h-none [&::-webkit-scrollbar]:hidden"
+              aria-label={title}
+            >
+              {rows.map((row) => {
+                const chosen = row.instrument_key === active;
+                return (
+                  <li key={row.instrument_key}>
+                    <button
+                      type="button"
+                      aria-current={chosen ? "true" : undefined}
+                      title={row.name}
+                      onClick={() => {
+                        onChoose(row.instrument_key);
+                      }}
+                      onContextMenu={(event) => {
+                        event.preventDefault();
+                        // From the keyboard (Shift+F10) there is no pointer: by the row.
+                        const box = event.currentTarget.getBoundingClientRect();
+                        const at =
+                          event.clientX === 0 && event.clientY === 0
+                            ? { x: box.left + 16, y: box.bottom }
+                            : { x: event.clientX, y: event.clientY };
+                        setMenuFor({ row, at });
+                      }}
+                      className={cn(
+                        "flex w-full items-center gap-2 py-1.5 pr-4 pl-3 text-left text-sm hover:bg-accent",
+                        chosen && "bg-primary/10 font-medium",
+                      )}
+                    >
+                      <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                        <span className="truncate text-primary">{row.symbol}</span>
+                        <WatchCount instrumentKey={row.instrument_key} symbol={row.symbol} />
+                      </span>
+                      <span className="tabular text-xs">{formatPrice(row.close)}</span>
+                      <Delta value={row.change_percent} className="w-16 justify-end text-xs" />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+            <ScrollRail target={scroller} items={rows.length} />
+          </div>
         </div>
       )}
       {menuFor !== null && (
