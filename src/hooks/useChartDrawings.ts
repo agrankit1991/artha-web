@@ -25,11 +25,67 @@ import {
   fetchDrawings,
   updateDrawing,
 } from "@/api/client";
-import { DrawingLayer, type LaidDrawing } from "@/components/DrawingLayer";
+import { DrawingLayer, type LaidDrawing, type Sketch } from "@/components/DrawingLayer";
 import { useResource } from "@/hooks/useResource";
-import { type Measure, POINTS, type Pixel, measure, snapped } from "@/lib/drawingGeometry";
+import { FALL, RISE } from "@/lib/chartPalette";
+import type { LineLook } from "@/lib/chartLines";
+import {
+  type Measure,
+  POINTS,
+  type Pixel,
+  dayAtLogical,
+  measure,
+  snapped,
+} from "@/lib/drawingGeometry";
 import { useLineStyles } from "@/lib/lineStyles";
 import { tokenColour } from "@/lib/tokenColour";
+
+/**
+ * How near a price must be, in pixels, for the magnet to take a point to it:
+ * a weak magnet, as TradingView's is, so a point can be put in the room clear
+ * of the bars.
+ */
+const MAGNET_REACH = 12;
+
+/**
+ * The chart's sessions in order, from the series drawn on.
+ *
+ * @param price - The price series.
+ * @returns Each session's day, as an ISO date.
+ */
+function sessionsOf(price: ISeriesApi<SeriesType>): string[] {
+  return price.data().flatMap((one) => (typeof one.time === "string" ? [one.time] : []));
+}
+
+/**
+ * What a tool draws from its first point to where the pointer is: the line or
+ * zone itself, or a measure with its reading, green for a rise and red for a fall.
+ *
+ * @param using - The tool.
+ * @param from - Its first point.
+ * @param to - Where the pointer is, or its second point.
+ * @param look - How every drawing is drawn, for a line or zone.
+ * @returns The sketch for the layer to paint.
+ */
+function sketchOf(using: DrawingTool, from: Placed, to: Placed, look: LineLook): Sketch {
+  if (using !== "measure") {
+    const colour = tokenColour(look.colour);
+    return { kind: using, points: [from, to], colour, width: look.width, label: null };
+  }
+  const reading = measure(from, to);
+  const sign = reading.change >= 0 ? "+" : "";
+  const sessions = `${String(reading.sessions)} ${reading.sessions === 1 ? "session" : "sessions"}`;
+  return {
+    kind: "measure",
+    points: [from, to],
+    colour: tokenColour(reading.change >= 0 ? RISE : FALL),
+    width: 1,
+    label: {
+      text: `${sign}${reading.percent.toFixed(2)}% · ${sign}${reading.change.toFixed(2)} · ${sessions}`,
+      card: tokenColour("var(--popover)"),
+    },
+  };
+}
 
 /** A tool: a kind of drawing to place, or a measure that is read and not kept. */
 export type DrawingTool = DrawingKind | "measure";
@@ -130,6 +186,7 @@ export function useChartDrawings(instrumentKey: string | null): ChartDrawings {
     drawings,
     chosenId,
     laid: [] as LaidDrawing[],
+    look,
   });
   const layer = useRef<DrawingLayer | null>(null);
   const reload = stored.reload;
@@ -154,7 +211,7 @@ export function useChartDrawings(instrumentKey: string | null): ChartDrawings {
           })),
     [drawings, hidden, look.colour, look.width],
   );
-  now.current = { instrumentKey, tool, placed, magnet, drawings, chosenId, laid };
+  now.current = { instrumentKey, tool, placed, magnet, drawings, chosenId, laid, look };
   useEffect(() => {
     layer.current?.show(laid, chosenId);
   }, [laid, chosenId]);
@@ -164,6 +221,7 @@ export function useChartDrawings(instrumentKey: string | null): ChartDrawings {
     setPlaced([]);
     setReading(null);
     setProblem(null);
+    layer.current?.sketch(null);
   }, []);
 
   const place = useCallback(
@@ -181,9 +239,12 @@ export function useChartDrawings(instrumentKey: string | null): ChartDrawings {
         // Unreachable otherwise: a measure is taken at its second point.
         if (from !== undefined && to !== undefined) {
           setReading(measure(from, to));
+          // Left on the chart until the next click, a tool, or Escape.
+          layer.current?.sketch(sketchOf(using, from, to, now.current.look));
         }
         return;
       }
+      layer.current?.sketch(null);
       createDrawing(key, using, {
         points: points.map((one) => ({ day: one.day, price: String(one.price) })),
         label: null,
@@ -210,18 +271,23 @@ export function useChartDrawings(instrumentKey: string | null): ChartDrawings {
       layer.current = made;
       made.show(now.current.laid, now.current.chosenId);
 
-      const clicked = (event: MouseEventParams): void => {
-        if (event.point === undefined || typeof event.time !== "string") {
-          return;
+      // A click or the pointer as a point: its session (past the last one,
+      // in the empty room, counted on in weekdays) and its price, taken to a
+      // bar's open, high, low or close by the magnet only when near one.
+      const placedFrom = (event: MouseEventParams): Placed | null => {
+        if (event.point === undefined) {
+          return null;
         }
-        const using = now.current.tool;
-        if (using === null) {
-          setChosenId(made.drawingAt(event.point));
-          return;
-        }
+        const index = event.logical === undefined ? null : Math.round(event.logical);
+        const day =
+          typeof event.time === "string"
+            ? event.time
+            : index === null
+              ? null
+              : dayAtLogical(sessionsOf(price), index);
         const raw = price.coordinateToPrice(event.point.y);
-        if (raw === null) {
-          return;
+        if (day === null || raw === null) {
+          return null;
         }
         const bar = event.seriesData.get(price) as
           { open?: number; high?: number; low?: number; close?: number } | undefined;
@@ -233,13 +299,44 @@ export function useChartDrawings(instrumentKey: string | null): ChartDrawings {
           bar.close !== undefined
             ? { open: bar.open, high: bar.high, low: bar.low, close: bar.close }
             : null;
-        place(using, instrumentKey, {
-          day: event.time,
-          price: snapped(raw, session),
-          index: event.logical ?? 0,
-        });
+        const y = event.point.y;
+        return {
+          day,
+          price: snapped(raw, session, (candidate) => {
+            const at = price.priceToCoordinate(candidate);
+            return at !== null && Math.abs(at - y) <= MAGNET_REACH;
+          }),
+          index: index ?? 0,
+        };
+      };
+      const clicked = (event: MouseEventParams): void => {
+        if (event.point === undefined) {
+          return;
+        }
+        const using = now.current.tool;
+        if (using === null) {
+          // A click away puts a measure down, as it picks or lets go a drawing.
+          made.sketch(null);
+          setChosenId(made.drawingAt(event.point));
+          return;
+        }
+        const point = placedFrom(event);
+        if (point !== null) {
+          place(using, instrumentKey, point);
+        }
+      };
+      // After a tool's first point, what it would draw follows the pointer
+      // (the owner, 2026-11-08: "can I see in realtime the trendline").
+      const followed = (event: MouseEventParams): void => {
+        const using = now.current.tool;
+        const first = now.current.placed[0];
+        const point = using === null || first === undefined ? null : placedFrom(event);
+        if (using !== null && first !== undefined && point !== null) {
+          made.sketch(sketchOf(using, first, point, now.current.look));
+        }
       };
       chart.subscribeClick(clicked);
+      chart.subscribeCrosshairMove(followed);
 
       // Dragging the drawing picked: its points move with the pointer, and
       // are kept where they are let go.
@@ -256,13 +353,7 @@ export function useChartDrawings(instrumentKey: string | null): ChartDrawings {
           return;
         }
         const pixels = made.pixelsOf({
-          id: drawing.drawing_id,
-          kind: drawing.kind,
           points: drawing.points.map((one) => ({ day: one.day, price: Number(one.price) })),
-          // Only its place is wanted, not how it is painted.
-          colour: "",
-          width: 0,
-          label: null,
         });
         if (pixels === null) {
           return;
@@ -277,10 +368,19 @@ export function useChartDrawings(instrumentKey: string | null): ChartDrawings {
         const dx = spot.x - held.start.x;
         const dy = spot.y - held.start.y;
         const moved: ChartDrawing["points"] = [];
+        const time = chart.timeScale();
         for (const pixel of held.pixels) {
-          const day = chart.timeScale().coordinateToTime(pixel.x + dx);
+          // A bar's day, or past the last session a day counted on to it.
+          const at = time.coordinateToTime(pixel.x + dx);
+          const logical = typeof at === "string" ? null : time.coordinateToLogical(pixel.x + dx);
+          const day =
+            typeof at === "string"
+              ? at
+              : logical === null
+                ? null
+                : dayAtLogical(sessionsOf(price), logical);
           const figure = price.coordinateToPrice(pixel.y + dy);
-          if (typeof day !== "string" || figure === null) {
+          if (day === null || figure === null) {
             return null;
           }
           moved.push({ day, price: String(figure) });
@@ -323,6 +423,7 @@ export function useChartDrawings(instrumentKey: string | null): ChartDrawings {
 
       return () => {
         chart.unsubscribeClick(clicked);
+        chart.unsubscribeCrosshairMove(followed);
         element.removeEventListener("pointerdown", press);
         element.removeEventListener("pointermove", drag);
         element.removeEventListener("pointerup", release);

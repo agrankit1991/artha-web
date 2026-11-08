@@ -170,6 +170,9 @@ export function chartModule(): Record<string, unknown> {
             const day = Math.round(x / 10);
             return day < 1 || day > 30 ? null : `2026-09-${String(day).padStart(2, "0")}`;
           },
+          // A bar's place across the plot, in the same tens, past the last bar too.
+          logicalToCoordinate: (logical: number): number => logical * 10,
+          coordinateToLogical: (x: number): number => Math.round(x / 10),
           subscribeVisibleTimeRangeChange: chartCalls.subscribeVisibleTimeRangeChange,
           unsubscribeVisibleTimeRangeChange: chartCalls.unsubscribeVisibleTimeRangeChange,
         }),

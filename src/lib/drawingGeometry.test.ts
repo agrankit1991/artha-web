@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { distanceToSegment, isOn, measure, shapeOf, snapped } from "@/lib/drawingGeometry";
+import {
+  dayAtLogical,
+  distanceToSegment,
+  isOn,
+  logicalOfDay,
+  measure,
+  shapeOf,
+  snapped,
+} from "@/lib/drawingGeometry";
 
 const W = 400;
 const H = 200;
@@ -138,6 +146,45 @@ describe("snapped", () => {
     expect(snapped(96, session)).toBe(95);
     expect(snapped(103, session)).toBe(105);
     expect(snapped(103, null)).toBe(103);
+  });
+
+  it("goes only as far as the caller allows, so a point can stay clear of the bars", () => {
+    const session = { open: 100, high: 110, low: 95, close: 105 };
+    expect(snapped(150, session, () => false)).toBe(150);
+    expect(snapped(108, session, (candidate) => candidate === 110)).toBe(110);
+  });
+});
+
+describe("dayAtLogical and logicalOfDay", () => {
+  // Tuesday 1 to Friday 4 September 2026.
+  const DAYS = ["2026-09-01", "2026-09-02", "2026-09-03", "2026-09-04"];
+
+  it("names a bar's day, and past either end a weekday counted on from it", () => {
+    expect(dayAtLogical(DAYS, 2)).toBe("2026-09-03");
+    expect(dayAtLogical(DAYS, 2.4)).toBe("2026-09-03");
+    // The weekend skipped: Monday, then Tuesday.
+    expect(dayAtLogical(DAYS, 4)).toBe("2026-09-07");
+    expect(dayAtLogical(DAYS, 5)).toBe("2026-09-08");
+    expect(dayAtLogical(DAYS, -1)).toBe("2026-08-31");
+    expect(dayAtLogical(DAYS, -2)).toBe("2026-08-28");
+    expect(dayAtLogical([], 3)).toBeNull();
+  });
+
+  it("places a day at its bar, the next bar after a hole, and past either end by weekdays", () => {
+    expect(logicalOfDay(DAYS, "2026-09-03")).toBe(2);
+    expect(logicalOfDay(["2026-09-01", "2026-09-03"], "2026-09-02")).toBe(1);
+    expect(logicalOfDay(DAYS, "2026-09-08")).toBe(5);
+    expect(logicalOfDay(DAYS, "2026-08-28")).toBe(-2);
+    // A Sunday past the last bar is no weekday further on.
+    expect(logicalOfDay(DAYS, "2026-09-06")).toBe(3);
+    expect(logicalOfDay([], "2026-09-03")).toBeNull();
+  });
+
+  it("turns round: a day named past the end is placed where it was named", () => {
+    for (const logical of [-3, 0, 3, 7, 12]) {
+      const day = dayAtLogical(DAYS, logical);
+      expect(day === null ? null : logicalOfDay(DAYS, day)).toBe(logical);
+    }
   });
 });
 

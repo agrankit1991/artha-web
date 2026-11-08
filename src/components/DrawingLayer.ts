@@ -16,13 +16,14 @@ import type {
   ISeriesPrimitive,
   IPrimitivePaneRenderer,
   IPrimitivePaneView,
+  Logical,
   PrimitiveHoveredItem,
   SeriesAttachedParameter,
   SeriesType,
 } from "lightweight-charts";
 
 import type { DrawingKind } from "@/api/client";
-import { type Pixel, type Shape, isOn, shapeOf } from "@/lib/drawingGeometry";
+import { type Pixel, type Shape, isOn, logicalOfDay, shapeOf } from "@/lib/drawingGeometry";
 
 /** A drawing as the layer paints it: in sessions and numbers, not the API's strings. */
 export interface LaidDrawing {
@@ -33,6 +34,23 @@ export interface LaidDrawing {
   /** Pixels: the drawing's own width, or every drawing's. */
   width: number;
   label: string | null;
+}
+
+/**
+ * Something being drawn and not yet kept: a line or zone following the
+ * pointer after its first point, or a measure (the owner, 2026-11-08: "can I
+ * see in realtime the trendline or other tools as I am drawing it").
+ */
+export interface Sketch {
+  kind: DrawingKind | "measure";
+  points: { day: string; price: number }[];
+  colour: string;
+  width: number;
+  /**
+   * Written by it, on a card: a measure's reading. The card is the theme's
+   * popover, resolved, and the words are in the sketch's own colour.
+   */
+  label: { text: string; card: string } | null;
 }
 
 /** How much thicker a drawing picked is drawn, so it reads as picked. */
@@ -48,6 +66,7 @@ export class DrawingLayer implements ISeriesPrimitive {
   private requestUpdate: (() => void) | null = null;
   private drawings: LaidDrawing[] = [];
   private chosen: number | null = null;
+  private sketched: Sketch | null = null;
   private readonly view: IPrimitivePaneView;
 
   /** Build the layer, with nothing to paint yet. */
@@ -92,6 +111,16 @@ export class DrawingLayer implements ISeriesPrimitive {
     this.requestUpdate?.();
   }
 
+  /**
+   * Paint something being drawn over the drawings, or nothing.
+   *
+   * @param sketch - What, or null to take it away.
+   */
+  sketch(sketch: Sketch | null): void {
+    this.sketched = sketch;
+    this.requestUpdate?.();
+  }
+
   /** What the library paints from. */
   paneViews(): readonly IPrimitivePaneView[] {
     return [this.view];
@@ -133,13 +162,24 @@ export class DrawingLayer implements ISeriesPrimitive {
    * @returns Its points in pixels, or null when the chart cannot place one --
    *   a session outside every bar the chart holds, before it is attached.
    */
-  pixelsOf(drawing: LaidDrawing): Pixel[] | null {
+  pixelsOf(drawing: Pick<LaidDrawing, "points">): Pixel[] | null {
     if (this.chart === null || this.series === null) {
       return null;
     }
+    const time = this.chart.timeScale();
+    // A day with no bar -- past the last session, where a zone may be drawn
+    // into the empty room, or a holiday -- is placed by its place in bars.
+    let days: string[] | null = null;
     const pixels: Pixel[] = [];
     for (const point of drawing.points) {
-      const x = this.chart.timeScale().timeToCoordinate(point.day);
+      let x = time.timeToCoordinate(point.day);
+      if (x === null) {
+        days ??= this.series
+          .data()
+          .flatMap((one) => (typeof one.time === "string" ? [one.time] : []));
+        const logical = logicalOfDay(days, point.day);
+        x = logical === null ? null : time.logicalToCoordinate(logical as Logical);
+      }
       const y = this.series.priceToCoordinate(point.price);
       if (x === null || y === null) {
         return null;
@@ -198,5 +238,67 @@ export class DrawingLayer implements ISeriesPrimitive {
       }
       context.restore();
     }
+    this.paintSketch(context, width, height);
+  }
+
+  private paintSketch(context: CanvasRenderingContext2D, width: number, height: number): void {
+    const sketch = this.sketched;
+    const pixels = sketch === null ? null : this.pixelsOf(sketch);
+    if (sketch === null || pixels === null) {
+      return;
+    }
+    const shape = shapeOf(
+      sketch.kind === "measure" ? "rectangle" : sketch.kind,
+      pixels,
+      width,
+      height,
+    );
+    if (shape === null) {
+      return;
+    }
+    context.save();
+    context.strokeStyle = sketch.colour;
+    context.fillStyle = sketch.colour;
+    context.lineWidth = sketch.width;
+    // Dashed until it is kept, so it reads as not drawn yet; a measure is
+    // never kept, and is drawn whole.
+    if (sketch.kind !== "measure") {
+      context.setLineDash([5, 4]);
+    }
+    if (shape.kind === "box") {
+      context.globalAlpha = sketch.kind === "measure" ? 0.18 : 0.12;
+      context.fillRect(
+        shape.from.x,
+        shape.from.y,
+        shape.to.x - shape.from.x,
+        shape.to.y - shape.from.y,
+      );
+      context.globalAlpha = 1;
+      context.strokeRect(
+        shape.from.x,
+        shape.from.y,
+        shape.to.x - shape.from.x,
+        shape.to.y - shape.from.y,
+      );
+    } else {
+      context.beginPath();
+      context.moveTo(shape.from.x, shape.from.y);
+      context.lineTo(shape.to.x, shape.to.y);
+      context.stroke();
+    }
+    if (sketch.label !== null) {
+      // On a card by the pointer's end, so it reads over whatever lines it
+      // lands on, held inside the plot.
+      context.setLineDash([]);
+      context.font = "600 12px sans-serif";
+      const textWidth = context.measureText(sketch.label.text).width;
+      const at = { x: Math.min(shape.to.x + 8, width - textWidth - 12), y: shape.to.y };
+      context.fillStyle = sketch.label.card;
+      context.fillRect(at.x, at.y - 10, textWidth + 10, 20);
+      context.strokeRect(at.x, at.y - 10, textWidth + 10, 20);
+      context.fillStyle = sketch.colour;
+      context.fillText(sketch.label.text, at.x + 5, at.y + 4);
+    }
+    context.restore();
   }
 }

@@ -153,20 +153,137 @@ export interface Session {
 }
 
 /**
- * Snap a price to the nearest of a session's open, high, low and close.
+ * Snap a price to the nearest of a session's open, high, low and close, when
+ * it is near enough to it.
+ *
+ * Near enough is the caller's to say, in the chart's pixels: a magnet that
+ * pulled every point onto a price left no way to draw in the room above or
+ * below one -- a zone's corner, a level clear of the bars (the owner,
+ * 2026-11-08). As TradingView's weak magnet does, it pulls only what is close.
  *
  * @param price - Where the pointer is.
  * @param session - The session it is over, or null where there is none.
- * @returns The nearest of the four, or the price itself with no session.
+ * @param within - Whether a session's price is near enough to the pointer to
+ *   snap to; any is, unless said.
+ * @returns The nearest of the four where it is within reach, else the price itself.
  */
-export function snapped(price: number, session: Session | null): number {
+export function snapped(
+  price: number,
+  session: Session | null,
+  within: (candidate: number) => boolean = () => true,
+): number {
   if (session === null) {
     return price;
   }
   const prices = [session.open, session.high, session.low, session.close];
-  return prices.reduce((best, one) =>
+  const nearest = prices.reduce((best, one) =>
     Math.abs(one - price) < Math.abs(best - price) ? one : best,
   );
+  return within(nearest) ? nearest : price;
+}
+
+/** A day in milliseconds, for stepping through the calendar in UTC. */
+const DAY = 86_400_000;
+
+/**
+ * Step through the calendar a number of weekdays from a day, Saturdays and
+ * Sundays skipped.
+ *
+ * @param day - Where to start, as an ISO date.
+ * @param count - How many weekdays on; backwards when negative.
+ * @returns The day reached, as an ISO date.
+ */
+function weekdaysFrom(day: string, count: number): string {
+  let at = Date.parse(`${day}T00:00:00Z`);
+  const step = count < 0 ? -DAY : DAY;
+  for (let left = Math.abs(count); left > 0;) {
+    at += step;
+    const weekday = new Date(at).getUTCDay();
+    if (weekday !== 0 && weekday !== 6) {
+      left -= 1;
+    }
+  }
+  return new Date(at).toISOString().slice(0, 10);
+}
+
+/**
+ * Count the weekdays after one day up to and including a later one.
+ *
+ * @param from - The earlier day.
+ * @param to - The later day.
+ * @returns How many weekdays on `to` is from `from`.
+ */
+function weekdaysBetween(from: string, to: string): number {
+  let count = 0;
+  const end = Date.parse(`${to}T00:00:00Z`);
+  for (let at = Date.parse(`${from}T00:00:00Z`) + DAY; at <= end; at += DAY) {
+    const weekday = new Date(at).getUTCDay();
+    if (weekday !== 0 && weekday !== 6) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+/**
+ * The session a place on the time scale stands for: its bar's day where there
+ * is a bar, and past either end a weekday counted on from the nearest one.
+ *
+ * Past the last session the chart has no dates of its own -- the room to its
+ * right is empty -- so a point drawn there is dated as the sessions to come
+ * would be. Holidays ahead are not known, and count as sessions.
+ *
+ * @param days - The chart's sessions in order, as ISO dates.
+ * @param logical - The place, in bars from the first (the library's logical index).
+ * @returns The day, or null on a chart with no sessions.
+ */
+export function dayAtLogical(days: readonly string[], logical: number): string | null {
+  const first = days[0];
+  const last = days.at(-1);
+  if (first === undefined || last === undefined) {
+    return null;
+  }
+  const at = Math.round(logical);
+  if (at < 0) {
+    return weekdaysFrom(first, at);
+  }
+  return days[at] ?? weekdaysFrom(last, at - (days.length - 1));
+}
+
+/**
+ * Where a day sits on the time scale: its bar's place, the next bar's where
+ * it fell between two (a holiday), and past either end as many places on as
+ * weekdays -- `dayAtLogical` turned round.
+ *
+ * @param days - The chart's sessions in order, as ISO dates.
+ * @param day - The day, as an ISO date.
+ * @returns The place in bars from the first, or null on a chart with no sessions.
+ */
+export function logicalOfDay(days: readonly string[], day: string): number | null {
+  const first = days[0];
+  const last = days.at(-1);
+  if (first === undefined || last === undefined) {
+    return null;
+  }
+  if (day > last) {
+    return days.length - 1 + weekdaysBetween(last, day);
+  }
+  if (day < first) {
+    return -weekdaysBetween(day, first);
+  }
+  // The first bar on or after the day, found by halving.
+  let low = 0;
+  let high = days.length - 1;
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2);
+    // `?? last` is unreachable: `middle` is always within the days.
+    if ((days[middle] ?? last) < day) {
+      low = middle + 1;
+    } else {
+      high = middle;
+    }
+  }
+  return low;
 }
 
 /** What a measure between two points reads. */

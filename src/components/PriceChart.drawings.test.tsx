@@ -4,6 +4,7 @@ import { act, fireEvent, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { DrawingLayer } from "./DrawingLayer";
 import { PriceChart } from "./PriceChart";
 import { chartCalls, chartElement } from "@/test/chartStub";
 import { chartPoints, renderPage, stubPlatform } from "@/test/support";
@@ -69,6 +70,30 @@ function click(x: number, y: number, day: string, bar?: object): void {
       logical: Number(day.slice(8, 10)),
       seriesData: new Map(bar === undefined ? [] : [[series, bar]]),
     });
+  });
+}
+
+/** Move the pointer over the plot: on a session, or past the last with none. */
+function hover(x: number, y: number, day: string | undefined, logical: number): void {
+  act(() => {
+    for (const [handler] of chartCalls.subscribeCrosshairMove.mock.calls) {
+      (handler as (event: unknown) => void)({
+        point: { x, y },
+        time: day,
+        logical,
+        seriesData: new Map(),
+      });
+    }
+  });
+}
+
+/** Click in the empty room past the last session, where the chart has no day. */
+function clickPast(x: number, y: number, logical: number): void {
+  const handlers = chartCalls.subscribeClick.mock.calls.map(
+    ([handler]) => handler as (event: unknown) => void,
+  );
+  act(() => {
+    handlers.at(-1)?.({ point: { x, y }, time: undefined, logical, seriesData: new Map() });
   });
 }
 
@@ -363,7 +388,7 @@ describe("PriceChart, the drawing tools' edges", () => {
     expect(screen.queryByText(/more points? on the chart/)).toBeNull();
   });
 
-  it("leaves a drawing where it was when pressed away from it or let go past the last session", async () => {
+  it("leaves a drawing where it was when pressed away from it, and keeps one let go past the last session", async () => {
     const fetched = stub([
       SUPPORT,
       { ...SUPPORT, drawing_id: 9, points: [{ day: "2026-09-05", price: "150" }] },
@@ -381,7 +406,8 @@ describe("PriceChart, the drawing tools' edges", () => {
     });
     pointer("pointerup", 50, 160);
 
-    // Held and moved beside the other drawing, then let go off the sessions.
+    // Held and moved beside the other drawing, then let go past the last
+    // session: kept there, in the empty room, as a zone may be drawn there.
     pointer("pointerdown", 50, 120);
     pointer("pointermove", 70, 100);
     pointer("pointerup", 400, 100);
@@ -389,7 +415,13 @@ describe("PriceChart, the drawing tools' edges", () => {
       handleScroll: true,
       handleScale: true,
     });
-    expect(made(fetched).some((request) => request.startsWith("PATCH"))).toBe(false);
+    await waitFor(() => {
+      expect(made(fetched)).toContain("PATCH /api/drawings/7");
+    });
+    // Bar 40, thirty-one weekdays past Thursday 10 September.
+    expect(sent(fetched, "PATCH")).toMatchObject({
+      points: [{ day: "2026-10-23", price: "100" }],
+    });
   });
 
   it("deletes the drawing picked with Backspace, and nothing on another key", async () => {
@@ -404,6 +436,115 @@ describe("PriceChart, the drawing tools' edges", () => {
     await userEvent.keyboard("{Backspace}");
     await waitFor(() => {
       expect(made(fetched)).toContain("DELETE /api/drawings/7");
+    });
+  });
+
+  it("shows what a tool would draw following the pointer after its first point", async () => {
+    const sketched = vi.spyOn(DrawingLayer.prototype, "sketch");
+    const fetched = stub();
+    draw();
+    await waitFor(() => {
+      expect(chartCalls.attachPrimitive).toHaveBeenCalled();
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Trend line" }));
+
+    // Nothing to follow before the first point.
+    hover(60, 70, "2026-09-06", 6);
+    expect(sketched).not.toHaveBeenCalledWith(expect.objectContaining({ kind: "trend" }));
+
+    click(20, 108, "2026-09-02");
+    hover(60, 70, "2026-09-06", 6);
+    expect(sketched).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        kind: "trend",
+        points: [
+          expect.objectContaining({ day: "2026-09-02", price: 108 }),
+          expect.objectContaining({ day: "2026-09-06", price: 70 }),
+        ],
+      }),
+    );
+
+    click(80, 60, "2026-09-08");
+    expect(sketched).toHaveBeenLastCalledWith(null);
+    await waitFor(() => {
+      expect(made(fetched)).toContain("POST /api/drawings");
+    });
+    sketched.mockRestore();
+  });
+
+  it("measures on the chart, its reading on it, left there until the next click", async () => {
+    const sketched = vi.spyOn(DrawingLayer.prototype, "sketch");
+    stub();
+    draw();
+    await waitFor(() => {
+      expect(chartCalls.attachPrimitive).toHaveBeenCalled();
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Measure" }));
+
+    click(20, 100, "2026-09-02");
+    hover(60, 110, "2026-09-05", 5);
+    expect(sketched).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        kind: "measure",
+        label: expect.objectContaining({ text: "+10.00% · +10.00 · 3 sessions" }) as unknown,
+      }),
+    );
+
+    click(80, 115, "2026-09-08");
+    expect(sketched).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        kind: "measure",
+        label: expect.objectContaining({ text: "+15.00% · +15.00 · 6 sessions" }) as unknown,
+      }),
+    );
+    // Still said for a screen reader.
+    expect(screen.getByRole("status")).toHaveTextContent("Measured: +15.00%");
+
+    click(200, 10, "2026-09-05");
+    expect(sketched).toHaveBeenLastCalledWith(null);
+    sketched.mockRestore();
+  });
+
+  it("draws a zone into the empty room past the last session", async () => {
+    const fetched = stub();
+    draw();
+    await waitFor(() => {
+      expect(chartCalls.attachPrimitive).toHaveBeenCalled();
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Rectangle" }));
+
+    click(20, 100, "2026-09-02");
+    // Four bars past Thursday 10 September, the last session: the weekend skipped.
+    clickPast(150, 60, 13);
+
+    await waitFor(() => {
+      expect(made(fetched)).toContain("POST /api/drawings");
+    });
+    expect(sent(fetched, "POST")).toMatchObject({
+      kind: "rectangle",
+      points: [
+        { day: "2026-09-02", price: "100" },
+        { day: "2026-09-16", price: "60" },
+      ],
+    });
+  });
+
+  it("leaves a point clear of the bars where the magnet's price is far off", async () => {
+    const fetched = stub();
+    draw();
+    await waitFor(() => {
+      expect(chartCalls.attachPrimitive).toHaveBeenCalled();
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Horizontal line" }));
+
+    // The session's high is 110, forty pixels off: too far for the magnet.
+    click(50, 150, "2026-09-05", { open: 100, high: 110, low: 95, close: 105 });
+
+    await waitFor(() => {
+      expect(made(fetched)).toContain("POST /api/drawings");
+    });
+    expect(sent(fetched, "POST")).toMatchObject({
+      points: [{ day: "2026-09-05", price: "150" }],
     });
   });
 });

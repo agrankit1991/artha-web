@@ -217,7 +217,9 @@ export function DrawingToolbar({
             </p>
           )}
           {reading !== null && (
-            <p className={cn(NOTE_CLASS, "tabular")}>
+            // Drawn on the chart as a band with its reading; said here too,
+            // for a reader the canvas says nothing to.
+            <p role="status" className="sr-only">
               Measured: {reading.change >= 0 ? "+" : ""}
               {reading.percent.toFixed(2)}% ({reading.change >= 0 ? "+" : ""}
               {reading.change.toFixed(2)}) over {reading.sessions}{" "}
