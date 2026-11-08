@@ -547,4 +547,62 @@ describe("PriceChart, the drawing tools' edges", () => {
       points: [{ day: "2026-09-05", price: "150" }],
     });
   });
+
+  it("takes a tool up and puts it down by its keys, TradingView's, never while typing", async () => {
+    stub();
+    renderPage(
+      <>
+        <input aria-label="Somewhere to type" />
+        <PriceChart points={chartPoints(10)} drawingsOf={KEY} initialOverlays={[]} />
+      </>,
+    );
+    const horizontal = await screen.findByRole("button", { name: "Horizontal line" });
+    expect(horizontal).toHaveAttribute("aria-keyshortcuts", "Alt+H");
+    expect(screen.getByRole("button", { name: "Rectangle" })).toHaveAttribute(
+      "title",
+      "Rectangle (Alt+Shift+R)",
+    );
+
+    fireEvent.keyDown(window, { code: "KeyH", altKey: true });
+    expect(horizontal).toHaveAttribute("aria-pressed", "true");
+    fireEvent.keyDown(window, { code: "KeyR", altKey: true, shiftKey: true });
+    expect(screen.getByRole("button", { name: "Rectangle" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    fireEvent.keyDown(window, { code: "KeyR", altKey: true, shiftKey: true });
+    expect(screen.getByRole("button", { name: "Rectangle" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "Somewhere to type" }), {
+      code: "KeyH",
+      altKey: true,
+    });
+    expect(horizontal).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("leaves the keys to the chart being worked on, where there are several", async () => {
+    const fetched = stub([SUPPORT]);
+    renderPage(
+      <PriceChart
+        points={chartPoints(10)}
+        drawingsOf={KEY}
+        initialOverlays={[]}
+        takesKeys={false}
+      />,
+    );
+    await screen.findByRole("button", { name: "Delete every drawing" });
+    click(200, 120, "2026-09-05");
+    await screen.findByText("Horizontal line picked:");
+
+    fireEvent.keyDown(window, { code: "KeyH", altKey: true });
+    expect(screen.getByRole("button", { name: "Horizontal line" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    fireEvent.keyDown(window, { key: "Delete" });
+    expect(made(fetched).some((request) => request.startsWith("DELETE"))).toBe(false);
+  });
 });

@@ -45,6 +45,8 @@ interface WorkspaceChartProps {
   height?: number;
   /** Something for the chart's own header, such as making it fill the view. */
   controls?: React.ReactNode;
+  /** Whether the keyboard's drawing shortcuts reach it: of several, the active one. */
+  takesKeys?: boolean;
 }
 
 /**
@@ -60,6 +62,7 @@ export function WorkspaceChart({
   sync,
   height,
   controls,
+  takesKeys = true,
 }: WorkspaceChartProps): React.JSX.Element {
   const [sessions, setSessions] = useChartRange();
   const loadChart = useCallback(
@@ -166,6 +169,7 @@ export function WorkspaceChart({
           extra={extra}
           markers={markers}
           drawingsOf={instrumentKey}
+          takesKeys={takesKeys}
           lead={lead}
           trail={controls}
           range={

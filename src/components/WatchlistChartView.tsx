@@ -302,6 +302,8 @@ export function WatchlistChartView({
                   }}
                   initial={maximised === null ? layout.height : LAYOUTS["1"].height}
                   target={share}
+                  // The keys reach the chart being worked on, not every one.
+                  takesKeys={cells.length === 1 || at === current}
                   instrumentKey={key}
                   // An instrument the address asks for but the list lacks (a
                   // link from its own page) is named by its key until it is.

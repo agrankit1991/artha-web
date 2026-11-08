@@ -17,7 +17,7 @@
 import type { IChartApi, ISeriesApi, MouseEventParams, SeriesType } from "lightweight-charts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import type { ChartDrawing, DrawingChange, DrawingKind, LineStyleChange } from "@/api/client";
+import type { ChartDrawing, DrawingChange, LineStyleChange } from "@/api/client";
 import {
   createDrawing,
   deleteDrawing,
@@ -37,6 +37,7 @@ import {
   measure,
   snapped,
 } from "@/lib/drawingGeometry";
+import { type DrawingTool, toolForKeys } from "@/lib/drawingTools";
 import { useLineStyles } from "@/lib/lineStyles";
 import { tokenColour } from "@/lib/tokenColour";
 
@@ -87,8 +88,7 @@ function sketchOf(using: DrawingTool, from: Placed, to: Placed, look: LineLook):
   };
 }
 
-/** A tool: a kind of drawing to place, or a measure that is read and not kept. */
-export type DrawingTool = DrawingKind | "measure";
+export type { DrawingTool } from "@/lib/drawingTools";
 
 /** A point placed so far: its session, its price, and its place among the sessions. */
 interface Placed {
@@ -160,7 +160,10 @@ const TYPING = new Set(["INPUT", "TEXTAREA", "SELECT"]);
  * @param instrumentKey - The instrument, or null for a chart nothing is drawn on.
  * @returns The state and the actions a toolbar needs, and the chart's decoration.
  */
-export function useChartDrawings(instrumentKey: string | null): ChartDrawings {
+export function useChartDrawings(
+  instrumentKey: string | null,
+  { takesKeys = true }: { takesKeys?: boolean } = {},
+): ChartDrawings {
   const load = useCallback(
     () => (instrumentKey === null ? Promise.resolve([]) : fetchDrawings(instrumentKey)),
     [instrumentKey],
@@ -447,17 +450,28 @@ export function useChartDrawings(instrumentKey: string | null): ChartDrawings {
     [reload, fail],
   );
 
-  // Delete removes the drawing picked, Escape puts a tool down; never while typing.
+  // Escape puts a tool down; Delete removes the drawing picked and a tool's
+  // shortcut takes it up (again, puts it down), on the chart the keys reach
+  // -- of several, the one being worked on -- and never while typing.
   useEffect(() => {
     const pressed = (event: KeyboardEvent): void => {
       const target = event.target as HTMLElement | null;
       if (target !== null && (TYPING.has(target.tagName) || target.isContentEditable)) {
         return;
       }
+      const shortcut = takesKeys && instrumentKey !== null ? toolForKeys(event) : null;
       if (event.key === "Escape") {
         chooseTool(null);
         setChosenId(null);
-      } else if ((event.key === "Delete" || event.key === "Backspace") && chosen !== null) {
+      } else if (shortcut !== null) {
+        // Not the browser's: Alt with a letter opens a menu there.
+        event.preventDefault();
+        chooseTool(now.current.tool === shortcut ? null : shortcut);
+      } else if (
+        takesKeys &&
+        (event.key === "Delete" || event.key === "Backspace") &&
+        chosen !== null
+      ) {
         event.preventDefault();
         remove(chosen);
       }
@@ -466,7 +480,7 @@ export function useChartDrawings(instrumentKey: string | null): ChartDrawings {
     return () => {
       window.removeEventListener("keydown", pressed);
     };
-  }, [chooseTool, chosen, remove]);
+  }, [chooseTool, chosen, remove, takesKeys, instrumentKey]);
 
   return {
     enabled: instrumentKey !== null,

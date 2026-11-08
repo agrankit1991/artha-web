@@ -69,6 +69,11 @@ interface PriceChartProps {
   trail?: React.ReactNode;
   /** The span shown, chosen under the plot at its left as a trading screen has it. */
   range?: React.ReactNode;
+  /**
+   * Whether the keyboard's drawing shortcuts and Delete reach this chart: of
+   * several on a page, only the one being worked on. Unless said, it does.
+   */
+  takesKeys?: boolean;
 }
 
 /** The averages, and which figure each reads. */
@@ -121,8 +126,9 @@ export function PriceChart({
   lead,
   trail,
   range,
+  takesKeys = true,
 }: PriceChartProps): React.JSX.Element {
-  const drawings = useChartDrawings(drawingsOf ?? null);
+  const drawings = useChartDrawings(drawingsOf ?? null, { takesKeys });
   const lines = useLineStyles();
   const [styling, setStyling] = useState(false);
   const own = drawings.decorate;

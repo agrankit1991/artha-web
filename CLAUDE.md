@@ -957,7 +957,12 @@ the working plan with the reasoning is `docs/REDESIGN-PLAN.md`
   market capitalisation, which the platform holds, not the free float an
   exchange uses, and every screen showing it says so.
 - **Keyboard:** `/` or Ctrl+K searches, `?` lists shortcuts, `g` then a letter
-  jumps (`KeyboardShortcuts`, `JUMPS`); none fire while typing in a field.
+  jumps (`KeyboardShortcuts`, `JUMPS`); none fire while typing in a field. On
+  a chart, TradingView's drawing keys take a tool up (Alt+H horizontal line,
+  Alt+J horizontal ray, Alt+V vertical, Alt+T trend line, Alt+Shift+R
+  rectangle; again puts it down), matched by `code` so a Mac's Option works,
+  named once in `src/lib/drawingTools.ts` with every tool's name; of several
+  charts only the active one takes them, and Delete (`takesKeys`).
 - **Search rows:** name, then an outline Mono badge per exchange a company
   or index trades on (our BSE listings carry alphabetic symbols, so there
   is no numeric scrip code to show), an index's category, the kind unless

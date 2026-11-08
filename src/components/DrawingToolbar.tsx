@@ -31,24 +31,22 @@ import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { LineStyleEditor } from "@/components/LineStyleEditor";
-import type { ChartDrawings, DrawingTool } from "@/hooks/useChartDrawings";
+import type { ChartDrawings } from "@/hooks/useChartDrawings";
+import { type DrawingTool, TOOL_NAMES, keysOf } from "@/lib/drawingTools";
 import { useLineStyles } from "@/lib/lineStyles";
 import { cn } from "@/lib/utils";
 
-/** Every tool, in the order offered, with what it is called. */
-const TOOLS: { tool: DrawingTool; label: string; icon: typeof Minus }[] = [
-  { tool: "horizontal", label: "Horizontal line", icon: Minus },
-  { tool: "horizontal-ray", label: "Horizontal ray", icon: MoveRight },
-  { tool: "trend", label: "Trend line", icon: TrendingUp },
-  { tool: "ray", label: "Ray", icon: ArrowUpRight },
-  { tool: "extended", label: "Extended line", icon: MoveDiagonal2 },
-  { tool: "vertical", label: "Vertical line", icon: SeparatorVertical },
-  { tool: "rectangle", label: "Rectangle", icon: Square },
-  { tool: "measure", label: "Measure", icon: Ruler },
+/** Every tool, in the order offered, with its icon; names and keys are `drawingTools`'. */
+const TOOLS: { tool: DrawingTool; icon: typeof Minus }[] = [
+  { tool: "horizontal", icon: Minus },
+  { tool: "horizontal-ray", icon: MoveRight },
+  { tool: "trend", icon: TrendingUp },
+  { tool: "ray", icon: ArrowUpRight },
+  { tool: "extended", icon: MoveDiagonal2 },
+  { tool: "vertical", icon: SeparatorVertical },
+  { tool: "rectangle", icon: Square },
+  { tool: "measure", icon: Ruler },
 ];
-
-/** A drawing's kind in words, for saying which one is picked. */
-const NAMES = new Map(TOOLS.map((one) => [one.tool, one.label]));
 
 const BUTTON = "rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground";
 
@@ -84,21 +82,27 @@ export function DrawingToolbar({
         aria-orientation="vertical"
         className="flex shrink-0 flex-col items-center gap-0.5 self-start rounded-md border bg-card p-0.5"
       >
-        {TOOLS.map((one) => (
-          <button
-            key={one.tool}
-            type="button"
-            aria-pressed={tool === one.tool}
-            aria-label={one.label}
-            title={one.label}
-            onClick={() => {
-              drawings.chooseTool(tool === one.tool ? null : one.tool);
-            }}
-            className={cn(BUTTON, tool === one.tool && "bg-accent text-foreground")}
-          >
-            <one.icon aria-hidden="true" className="h-4 w-4" />
-          </button>
-        ))}
+        {TOOLS.map((one) => {
+          const keys = keysOf(one.tool);
+          return (
+            <button
+              key={one.tool}
+              type="button"
+              aria-pressed={tool === one.tool}
+              aria-label={TOOL_NAMES[one.tool]}
+              {...(keys === null ? {} : { "aria-keyshortcuts": keys.join("+") })}
+              title={
+                keys === null ? TOOL_NAMES[one.tool] : `${TOOL_NAMES[one.tool]} (${keys.join("+")})`
+              }
+              onClick={() => {
+                drawings.chooseTool(tool === one.tool ? null : one.tool);
+              }}
+              className={cn(BUTTON, tool === one.tool && "bg-accent text-foreground")}
+            >
+              <one.icon aria-hidden="true" className="h-4 w-4" />
+            </button>
+          );
+        })}
         <span aria-hidden="true" className="my-1 h-px w-5 bg-border" />
         <button
           type="button"
@@ -191,7 +195,7 @@ export function DrawingToolbar({
         <div className="pointer-events-none absolute bottom-20 left-12 z-20 max-w-md space-y-1.5 text-xs">
           {chosen !== null && (
             <p className={NOTE_CLASS}>
-              <span className="font-medium">{NAMES.get(chosen.kind) ?? chosen.kind} picked:</span>{" "}
+              <span className="font-medium">{TOOL_NAMES[chosen.kind]} picked:</span>{" "}
               <span className="text-muted-foreground">
                 lock, style or delete it from the tools.
               </span>

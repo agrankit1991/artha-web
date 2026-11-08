@@ -8,10 +8,11 @@
  * are characters.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Dialog } from "@/components/Dialog";
+import { TOOL_KEYS, TOOL_NAMES, keysOf } from "@/lib/drawingTools";
 import { PATHS } from "@/lib/paths";
 
 /** The pages `g` then a letter jumps to. */
@@ -100,6 +101,19 @@ export function KeyboardShortcuts(): React.JSX.Element {
           <Jump key={one.key} letter={one.key} label={one.label} />
         ))}
       </dl>
+      <h3 className="mt-4 mb-2 text-sm font-semibold">Drawing on a chart</h3>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+        {TOOL_KEYS.map((one) => (
+          <Fragment key={one.tool}>
+            <Keys keys={keysOf(one.tool) ?? []} together />
+            <dd>{TOOL_NAMES[one.tool]}</dd>
+          </Fragment>
+        ))}
+        <Keys keys={["Esc"]} />
+        <dd>Put the tool down</dd>
+        <Keys keys={["Delete"]} />
+        <dd>Delete the drawing picked</dd>
+      </dl>
     </Dialog>
   );
 }
@@ -114,14 +128,26 @@ function Jump({ letter, label }: { letter: string; label: string }): React.JSX.E
   );
 }
 
-/** Keys pressed one after another, as key caps. */
-function Keys({ keys }: { keys: string[] }): React.JSX.Element {
+/**
+ * Keys as key caps: pressed one after another, or held together (Alt + H).
+ *
+ * @param props - The keys, and whether they are held together.
+ * @returns The caps.
+ */
+function Keys({
+  keys,
+  together = false,
+}: {
+  keys: string[];
+  together?: boolean;
+}): React.JSX.Element {
   return (
-    <dt className="flex gap-1">
-      {keys.map((key) => (
-        <kbd key={key} className="rounded border bg-muted px-1.5 font-mono text-xs">
-          {key}
-        </kbd>
+    <dt className="flex items-center gap-1">
+      {keys.map((key, at) => (
+        <Fragment key={key}>
+          {together && at > 0 && <span className="text-xs text-muted-foreground">+</span>}
+          <kbd className="rounded border bg-muted px-1.5 font-mono text-xs">{key}</kbd>
+        </Fragment>
       ))}
     </dt>
   );
