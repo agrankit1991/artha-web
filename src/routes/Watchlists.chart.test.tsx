@@ -213,6 +213,11 @@ describe("Watchlists, several charts", () => {
     expect(screen.queryByRole("group", { name: "Chart 2" })).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Show every chart" }));
     expect(screen.getByRole("group", { name: "Chart 2" })).toBeVisible();
+
+    // Another layout chosen in the header shows every chart again.
+    await userEvent.click(screen.getByRole("button", { name: "Fill the view with chart 1" }));
+    await userEvent.click(screen.getByRole("button", { name: "2 stacked" }));
+    expect(await screen.findByRole("group", { name: "Chart 2" })).toBeVisible();
   });
 
   it("keeps the charts in step unless told not to", async () => {

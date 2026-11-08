@@ -227,20 +227,27 @@ export function PriceChart({
 
   return (
     <div className="space-y-3">
-      <ChartControls
-        style={style}
-        overlays={overlays}
-        onStyle={chooseStyle}
-        onOverlays={chooseOverlays}
-        scale={{ chosen: shownScale, inverted, onScale: chooseScale, onInvert: setInverted }}
-        onStyles={() => {
-          setStyling(true);
-        }}
-        {...(forecast === null
-          ? {}
-          : { forecast: { shown: showForecast, onToggle: chooseForecast } })}
-      />
-      <DrawingToolbar drawings={drawings} />
+      {/* One row: the chart's shape and overlays, then the drawing tools
+          (each laid out in it through `contents`). Two rows took the chart's
+          room (the owner, 2026-11-08); the tools' notes still take rows of
+          their own below. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <ChartControls
+          className="contents"
+          style={style}
+          overlays={overlays}
+          onStyle={chooseStyle}
+          onOverlays={chooseOverlays}
+          scale={{ chosen: shownScale, inverted, onScale: chooseScale, onInvert: setInverted }}
+          onStyles={() => {
+            setStyling(true);
+          }}
+          {...(forecast === null
+            ? {}
+            : { forecast: { shown: showForecast, onToggle: chooseForecast } })}
+        />
+        <DrawingToolbar drawings={drawings} />
+      </div>
       <Chart
         series={series}
         instruments={instrument ? [instrument] : []}

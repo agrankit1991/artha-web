@@ -142,24 +142,16 @@ export function WorkspaceChart({
 
   return (
     <section aria-label={`${symbol}, charted`} className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      {/* One row: the instrument, what is laid over it and whose trades, and
+          its span at the far end. Two rows took the chart's room (the owner,
+          2026-11-08); a narrow chart wraps them. */}
+      <div className="flex flex-wrap items-center gap-2">
         <Link
           to={isIndex ? populationPath("index", instrumentKey) : companyPath(instrumentKey, symbol)}
-          className="text-lg font-semibold text-primary hover:underline"
+          className="mr-2 text-lg font-semibold text-primary hover:underline"
         >
           {symbol}
         </Link>
-        <div className="flex flex-wrap items-center gap-2">
-          <RangeSelector
-            ranges={PRICE_RANGES}
-            sessions={sessions}
-            onChange={setSessions}
-            label="History"
-          />
-          {controls}
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
         <div className="w-56">
           <InstrumentPicker
             label="Compare with"
@@ -203,6 +195,15 @@ export function WorkspaceChart({
             ))}
           </SelectContent>
         </Select>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <RangeSelector
+            ranges={PRICE_RANGES}
+            sessions={sessions}
+            onChange={setSessions}
+            label="History"
+          />
+          {controls}
+        </div>
       </div>
       {traded !== null && traded.trades.length === 0 && (
         <p className="text-xs text-muted-foreground">

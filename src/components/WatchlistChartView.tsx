@@ -18,7 +18,9 @@
  * chart taking what its toolbars leave (`useFittedHeight`). On a narrower
  * screen the charts keep their own heights and the page scrolls. The
  * reader's lists open from the list's name above the companies rather than
- * standing in a column of their own beside the charts.
+ * standing in a column of their own beside the charts, and the layout and
+ * keeping in step are chosen in the page's header (`ChartLayoutControls`),
+ * not in a row of their own above the charts.
  */
 
 import { Maximize2, Minimize2 } from "lucide-react";
@@ -76,6 +78,67 @@ const LEAST_LIST = 320;
 /** Room kept under the view, the frame's own padding, so it ends at the window's edge. */
 const MARGIN_BELOW = 16;
 
+/** Whether the charts follow one another's crosshair, and their span. */
+export interface InStep {
+  crosshair: boolean;
+  span: boolean;
+}
+
+interface ChartLayoutControlsProps {
+  inStep: InStep;
+  onInStep: (inStep: InStep) => void;
+}
+
+/**
+ * Choose how many charts the view lays out, and whether they keep in step.
+ *
+ * Drawn in the page's header rather than above the charts, where it took a
+ * row of the screen to itself (the owner, 2026-11-08: "changing the position
+ * of settings"). The layout is a preference, so the view follows it.
+ *
+ * @param props - Whether the charts keep in step, and how to change that.
+ * @returns The controls.
+ */
+export function ChartLayoutControls({
+  inStep,
+  onInStep,
+}: ChartLayoutControlsProps): React.JSX.Element {
+  const { chartLayout } = usePreferences();
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <Chooser
+        options={LAYOUT_KEYS.map((key) => ({ key, label: LAYOUTS[key].label }))}
+        chosen={chartLayout}
+        onChange={(next) => {
+          writePreferences({ chartLayout: next });
+        }}
+        label="Charts"
+      />
+      {LAYOUTS[chartLayout].cells > 1 && (
+        <div className="flex items-center gap-2 text-xs" role="group" aria-label="Kept in step">
+          <span className="text-muted-foreground">In step:</span>
+          {(["crosshair", "span"] as const).map((what) => (
+            <button
+              key={what}
+              type="button"
+              aria-pressed={inStep[what]}
+              onClick={() => {
+                onInStep({ ...inStep, [what]: !inStep[what] });
+              }}
+              className={cn(
+                "rounded-md border px-2 py-1 hover:bg-accent",
+                inStep[what] && "bg-accent font-medium",
+              )}
+            >
+              {what === "crosshair" ? "Crosshair" : "Range"}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface WatchlistChartViewProps {
   title: string;
   rows: PanelRow[];
@@ -87,6 +150,8 @@ interface WatchlistChartViewProps {
   onChoose: (instrumentKeys: string[]) => void;
   /** The reader's lists, opened from the list's name to chart another. */
   lists: ReactNode;
+  /** Whether the charts keep in step, chosen in the page's header. */
+  inStep: InStep;
 }
 
 /**
@@ -102,12 +167,15 @@ export function WatchlistChartView({
   loading,
   onChoose,
   lists,
+  inStep,
 }: WatchlistChartViewProps): React.JSX.Element {
   const { chartLayout } = usePreferences();
   const layout = LAYOUTS[chartLayout];
   const [active, setActive] = useState(0);
-  const [maximised, setMaximised] = useState<number | null>(null);
-  const [inStep, setInStep] = useState({ crosshair: true, span: true });
+  // The chart filling the view, and the layout it was filled in: another
+  // layout chosen shows every chart again, with no effect to watch for it.
+  const [filled, setFilled] = useState<{ at: number; layout: ChartLayout } | null>(null);
+  const maximised = filled !== null && filled.layout === chartLayout ? filled.at : null;
   // One group for the view's life: charts join and leave it as they are built.
   const sync = useMemo(() => new ChartSync(), []);
   useEffect(() => {
@@ -134,10 +202,6 @@ export function WatchlistChartView({
   }, [asked, rows, layout.cells]);
   const current = Math.min(active, Math.max(shown.length - 1, 0));
 
-  const chooseLayout = (next: ChartLayout): void => {
-    writePreferences({ chartLayout: next });
-    setMaximised(null);
-  };
   const chartInActive = (instrumentKey: string): void => {
     const keys = [...shown];
     keys[current] = instrumentKey;
@@ -167,36 +231,7 @@ export function WatchlistChartView({
       }
       className="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-[minmax(0,1fr)_16rem]"
     >
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <Chooser
-            options={LAYOUT_KEYS.map((key) => ({ key, label: LAYOUTS[key].label }))}
-            chosen={chartLayout}
-            onChange={chooseLayout}
-            label="Charts"
-          />
-          {layout.cells > 1 && (
-            <div className="flex items-center gap-2 text-xs" role="group" aria-label="Kept in step">
-              <span className="text-muted-foreground">In step:</span>
-              {(["crosshair", "span"] as const).map((what) => (
-                <button
-                  key={what}
-                  type="button"
-                  aria-pressed={inStep[what]}
-                  onClick={() => {
-                    setInStep((now) => ({ ...now, [what]: !now[what] }));
-                  }}
-                  className={cn(
-                    "rounded-md border px-2 py-1 hover:bg-accent",
-                    inStep[what] && "bg-accent font-medium",
-                  )}
-                >
-                  {what === "crosshair" ? "Crosshair" : "Range"}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+      <div>
         {shown.length === 0 ? (
           <p className="rounded-lg border p-6 text-center text-sm text-muted-foreground">
             {loading ? "Loading the list…" : "Nothing on this list to chart yet."}
@@ -236,7 +271,7 @@ export function WatchlistChartView({
                             }
                             title={maximised === null ? "Fill the view" : "Show every chart"}
                             onClick={() => {
-                              setMaximised(maximised === null ? at : null);
+                              setFilled(maximised === null ? { at, layout: chartLayout } : null);
                             }}
                             className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
                           >

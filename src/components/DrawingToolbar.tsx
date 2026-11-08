@@ -71,8 +71,11 @@ export function DrawingToolbar({
   }
   const { tool, chosen, reading } = drawings;
   return (
-    <div className="space-y-1">
+    // Its parts are laid into the row it sits in (`contents`): the tools
+    // follow the chart's controls on one line, each note a line of its own.
+    <div className="contents">
       <div className="flex flex-wrap items-center gap-1" role="toolbar" aria-label="Drawing tools">
+        <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
         {TOOLS.map((one) => (
           <button
             key={one.tool}
@@ -177,31 +180,35 @@ export function DrawingToolbar({
         )}
       </div>
       {chosen !== null && styling && (
-        <LineStyleEditor
-          label="The drawing"
-          own={{ colour: chosen.colour, width: chosen.width }}
-          fallbackColour={every.colour}
-          fallbackName="Like every drawing"
-          onChange={(change) => {
-            drawings.restyle(chosen, change);
-          }}
-        />
+        <div className="basis-full">
+          <LineStyleEditor
+            label="The drawing"
+            own={{ colour: chosen.colour, width: chosen.width }}
+            fallbackColour={every.colour}
+            fallbackName="Like every drawing"
+            onChange={(change) => {
+              drawings.restyle(chosen, change);
+            }}
+          />
+        </div>
       )}
       {tool !== null && (
-        <p className="text-xs text-muted-foreground">
+        <p className="basis-full text-xs text-muted-foreground">
           Click {drawings.remaining} more {drawings.remaining === 1 ? "point" : "points"} on the
           chart. Escape puts the tool down.
         </p>
       )}
       {reading !== null && (
-        <p className="text-xs tabular">
+        <p className="basis-full text-xs tabular">
           Measured: {reading.change >= 0 ? "+" : ""}
           {reading.percent.toFixed(2)}% ({reading.change >= 0 ? "+" : ""}
           {reading.change.toFixed(2)}) over {reading.sessions}{" "}
           {reading.sessions === 1 ? "session" : "sessions"}.
         </p>
       )}
-      {drawings.problem !== null && <p className="text-xs text-destructive">{drawings.problem}</p>}
+      {drawings.problem !== null && (
+        <p className="basis-full text-xs text-destructive">{drawings.problem}</p>
+      )}
       <ConfirmDialog
         open={clearing}
         title="Delete every drawing on this chart?"

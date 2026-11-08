@@ -44,9 +44,14 @@ import { KeptListTable, KeptListView, keptTitle } from "@/components/KeptListVie
 import { ListActions } from "@/components/ListActions";
 import { Failed } from "@/components/Failed";
 import { Menu, MenuItem } from "@/components/Menu";
+import { Hint } from "@/components/Hint";
 import { PageHeader } from "@/components/PageHeader";
 import { AddDialog, FolderDialog, ItemDialog, ListDialog } from "@/components/WatchlistDialogs";
-import { WatchlistChartView } from "@/components/WatchlistChartView";
+import {
+  ChartLayoutControls,
+  type InStep,
+  WatchlistChartView,
+} from "@/components/WatchlistChartView";
 import { WatchlistTable } from "@/components/WatchlistTable";
 import { WatchlistTree } from "@/components/WatchlistTree";
 import { Button } from "@/components/ui/button";
@@ -153,6 +158,8 @@ export function Watchlists(): React.JSX.Element {
     | null
   >(null);
   const [tag, setTag] = useState<string | null>(null);
+  // Chosen in the header, followed by the charts: kept here, above both.
+  const [inStep, setInStep] = useState<InStep>({ crosshair: true, span: true });
   const closeDialog = useCallback(() => {
     setDialog(null);
   }, []);
@@ -220,9 +227,17 @@ export function Watchlists(): React.JSX.Element {
     <div className="space-y-6">
       <PageHeader
         title="Watchlists"
-        description="What you are keeping an eye on, and why: each company with its price beside your own stop and target, and how it has done since you added it."
+        // Behind a mark rather than a paragraph under the title: two lines
+        // of the screen the charts were short of (the owner, 2026-11-08).
+        badges={
+          <Hint
+            term="About watchlists"
+            text="What you are keeping an eye on, and why: each company with its price beside your own stop and target, and how it has done since you added it."
+          />
+        }
         actions={
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            {charting && <ChartLayoutControls inStep={inStep} onInStep={setInStep} />}
             <Chooser
               options={[
                 { key: "table", label: "Table" },
@@ -268,6 +283,7 @@ export function Watchlists(): React.JSX.Element {
           }
           onChoose={chartOf}
           lists={tree}
+          inStep={inStep}
         />
       ) : (
         <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
