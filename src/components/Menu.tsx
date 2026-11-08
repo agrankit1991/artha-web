@@ -12,9 +12,14 @@
  * open, and every choice is a real button.
  */
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/utils";
+
+/** A menu's panel, under its button or at the pointer. */
+const PANEL =
+  "z-50 max-h-[60vh] min-w-56 overflow-y-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-lg motion-safe:animate-surface-in";
 
 interface MenuProps {
   /** What the trigger shows. */
@@ -96,9 +101,9 @@ export function Menu({
           // Scrolls within the screen: a company's indices or the strategies
           // picking it can run to fifty or a hundred and more.
           className={cn(
-            "absolute z-50 mt-2 max-h-[60vh] min-w-56 overflow-y-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-lg",
+            "absolute mt-2",
+            PANEL,
             align === "end" ? "right-0 origin-top-right" : "left-0 origin-top-left",
-            "motion-safe:animate-surface-in",
           )}
         >
           {children(() => {
@@ -107,6 +112,102 @@ export function Menu({
         </div>
       )}
     </div>
+  );
+}
+
+/** Room kept between a menu at the pointer and the window's edge, in pixels. */
+const EDGE = 8;
+
+interface ContextMenuProps {
+  /** Where it opens: the pointer's place on the screen, or null while shut. */
+  at: { x: number; y: number } | null;
+  /** What to call the menu, for a reader who cannot see it. */
+  label: string;
+  /** Asked to shut: Escape, a click or a scroll elsewhere, the window resized. */
+  onClose: () => void;
+  /** The choices. `close` shuts it once one has been acted on. */
+  children: (close: () => void) => React.ReactNode;
+}
+
+/**
+ * A menu opened where the reader right-clicked, rather than under a button.
+ *
+ * Over everything (a portal into the body, so no chart or scrolling box
+ * clips it), held inside the window and turned above the pointer near its
+ * foot. It shuts as a menu does, on Escape or a click elsewhere, and on a
+ * scroll elsewhere, which would leave it beside nothing; scrolling its own
+ * choices keeps it. Its first choice takes the keyboard.
+ *
+ * @param props - Where it opens, what it is called, and the choices.
+ * @returns The menu, or nothing while shut.
+ */
+export function ContextMenu({
+  at,
+  label,
+  onClose,
+  children,
+}: ContextMenuProps): React.JSX.Element | null {
+  const panel = useRef<HTMLDivElement>(null);
+
+  // Held inside the window, measured before it is painted.
+  useLayoutEffect(() => {
+    const element = panel.current;
+    if (at === null || element === null) {
+      return;
+    }
+    const { width, height } = element.getBoundingClientRect();
+    element.style.left = `${String(Math.max(EDGE, Math.min(at.x, window.innerWidth - width - EDGE)))}px`;
+    element.style.top = `${String(at.y + height + EDGE > window.innerHeight ? Math.max(EDGE, at.y - height) : at.y)}px`;
+  }, [at]);
+
+  useEffect(() => {
+    if (at !== null) {
+      panel.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    }
+  }, [at]);
+
+  useEffect(() => {
+    if (at === null) {
+      return undefined;
+    }
+    const elsewhere = (event: Event): void => {
+      // A page's scroll is the window's or the document's, never inside it.
+      const target = event.target;
+      if (!(target instanceof Node && panel.current?.contains(target) === true)) {
+        onClose();
+      }
+    };
+    const escape = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", elsewhere);
+    document.addEventListener("keydown", escape);
+    window.addEventListener("scroll", elsewhere, true);
+    window.addEventListener("resize", onClose);
+    return () => {
+      document.removeEventListener("mousedown", elsewhere);
+      document.removeEventListener("keydown", escape);
+      window.removeEventListener("scroll", elsewhere, true);
+      window.removeEventListener("resize", onClose);
+    };
+  }, [at, onClose]);
+
+  if (at === null) {
+    return null;
+  }
+  return createPortal(
+    <div
+      ref={panel}
+      role="menu"
+      aria-label={label}
+      style={{ position: "fixed", left: at.x, top: at.y }}
+      className={PANEL}
+    >
+      {children(onClose)}
+    </div>,
+    document.body,
   );
 }
 

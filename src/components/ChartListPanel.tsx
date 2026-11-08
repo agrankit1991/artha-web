@@ -21,6 +21,7 @@ import { ArrowDown, ArrowDownUp, ArrowUp, ChevronDown } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 
 import { Delta } from "@/components/Delta";
+import { WatchlistsContextMenu } from "@/components/WatchlistMenu";
 import { WatchCount } from "@/components/WatchCount";
 import { toNumber, formatPrice } from "@/lib/format";
 import { type ChartListOrder, usePreferences, writePreferences } from "@/lib/preferences";
@@ -103,6 +104,12 @@ export function ChartListPanel({
   // title, which shuts them with no effect to watch for it.
   const [openedOver, setOpenedOver] = useState<string | null>(null);
   const choosing = lists !== undefined && openedOver === title;
+  // A company right-clicked, and where: its lists open there (the owner,
+  // 2026-11-08: "right click on a company in company list and add it to a
+  // existing list").
+  const [menuFor, setMenuFor] = useState<{ row: PanelRow; at: { x: number; y: number } } | null>(
+    null,
+  );
   const { chartListOrder: order } = usePreferences();
   const OrderMark = order === "rising" ? ArrowDown : order === "falling" ? ArrowUp : ArrowDownUp;
 
@@ -113,6 +120,10 @@ export function ChartListPanel({
         if (event.key === "Escape") {
           setOpenedOver(null);
         }
+        return;
+      }
+      // A company's lists open over the panel: the keys are the menu's.
+      if (menuFor !== null) {
         return;
       }
       if (
@@ -146,7 +157,7 @@ export function ChartListPanel({
     return () => {
       window.removeEventListener("keydown", step);
     };
-  }, [rows, active, onChoose, choosing]);
+  }, [rows, active, onChoose, choosing, menuFor]);
 
   return (
     // A column: given a most room (`className`), the list scrolls inside it
@@ -228,6 +239,16 @@ export function ChartListPanel({
                     onClick={() => {
                       onChoose(row.instrument_key);
                     }}
+                    onContextMenu={(event) => {
+                      event.preventDefault();
+                      // From the keyboard (Shift+F10) there is no pointer: by the row.
+                      const box = event.currentTarget.getBoundingClientRect();
+                      const at =
+                        event.clientX === 0 && event.clientY === 0
+                          ? { x: box.left + 16, y: box.bottom }
+                          : { x: event.clientX, y: event.clientY };
+                      setMenuFor({ row, at });
+                    }}
                     className={cn(
                       "flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-accent",
                       chosen && "bg-primary/10 font-medium",
@@ -245,6 +266,16 @@ export function ChartListPanel({
             })}
           </ul>
         </div>
+      )}
+      {menuFor !== null && (
+        <WatchlistsContextMenu
+          instrumentKey={menuFor.row.instrument_key}
+          symbol={menuFor.row.symbol}
+          at={menuFor.at}
+          onClose={() => {
+            setMenuFor(null);
+          }}
+        />
       )}
     </section>
   );

@@ -198,6 +198,7 @@ export function WorkspaceChart({
           markers={markers}
           drawingsOf={instrumentKey}
           takesKeys={takesKeys}
+          listsOf={{ instrumentKey, symbol }}
           lead={lead}
           trail={controls}
           range={

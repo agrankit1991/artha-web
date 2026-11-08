@@ -1,10 +1,10 @@
 /** Tests for the menu primitive. */
 
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { Menu, MenuItem, MenuLabel, MenuSeparator } from "./Menu";
+import { ContextMenu, Menu, MenuItem, MenuLabel, MenuSeparator } from "./Menu";
 
 function open(onSelect = vi.fn()): { chosen: typeof onSelect } {
   render(
@@ -115,5 +115,70 @@ describe("Menu", () => {
     await userEvent.click(screen.getByText("Accent"));
 
     expect(screen.getByRole("menu")).toBeInTheDocument();
+  });
+});
+
+describe("ContextMenu", () => {
+  function openAt(at: { x: number; y: number } | null): { closed: ReturnType<typeof vi.fn> } {
+    const closed = vi.fn();
+    render(
+      <div>
+        <button type="button">Outside</button>
+        <ContextMenu at={at} label="RELIANCE, on your watchlists" onClose={closed}>
+          {(close) => (
+            <>
+              <MenuItem onSelect={close}>Long term</MenuItem>
+              <MenuItem onSelect={vi.fn()}>Swing</MenuItem>
+            </>
+          )}
+        </ContextMenu>
+      </div>,
+    );
+    return { closed };
+  }
+
+  it("opens where it is asked, over everything, its first choice taking the keyboard", () => {
+    openAt({ x: 120, y: 80 });
+    const menu = screen.getByRole("menu", { name: "RELIANCE, on your watchlists" });
+    expect(menu).toHaveStyle({ position: "fixed", left: "120px", top: "80px" });
+    expect(menu.parentElement).toBe(document.body);
+    expect(screen.getByRole("menuitem", { name: "Long term" })).toHaveFocus();
+  });
+
+  it("is nothing while shut", () => {
+    openAt(null);
+    expect(screen.queryByRole("menu")).toBeNull();
+  });
+
+  it("stays inside the window, turned above the pointer near its foot", () => {
+    const measured = vi
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockReturnValue({ width: 200, height: 150 } as DOMRect);
+    openAt({ x: window.innerWidth - 50, y: window.innerHeight - 20 });
+    const menu = screen.getByRole("menu");
+    expect(menu).toHaveStyle({
+      left: `${String(window.innerWidth - 200 - 8)}px`,
+      top: `${String(window.innerHeight - 20 - 150)}px`,
+    });
+    measured.mockRestore();
+  });
+
+  it("closes on a choice, Escape, a click or a scroll elsewhere, and a resize", async () => {
+    const { closed } = openAt({ x: 10, y: 10 });
+
+    await userEvent.click(screen.getByRole("menuitem", { name: "Long term" }));
+    expect(closed).toHaveBeenCalledTimes(1);
+    await userEvent.keyboard("{Escape}");
+    expect(closed).toHaveBeenCalledTimes(2);
+    await userEvent.click(screen.getByRole("button", { name: "Outside" }));
+    expect(closed).toHaveBeenCalledTimes(3);
+    fireEvent.scroll(window);
+    expect(closed).toHaveBeenCalledTimes(4);
+    fireEvent(window, new Event("resize"));
+    expect(closed).toHaveBeenCalledTimes(5);
+
+    // Scrolling its own choices keeps it.
+    fireEvent.scroll(screen.getByRole("menu"));
+    expect(closed).toHaveBeenCalledTimes(5);
   });
 });

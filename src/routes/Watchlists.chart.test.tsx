@@ -214,6 +214,51 @@ describe("Watchlists, the Chart view", () => {
     expect(readPreferences().chartListWidth).toBe(372);
   });
 
+  it("puts a company on a list from a right-click on it, in the list or on its chart", async () => {
+    window.localStorage.setItem("artha.preferences", JSON.stringify({ watchlistView: "chart" }));
+    const fetched = stubPlatform({
+      "/api/watchlists/holding": { body: [{ watchlist_id: 1, item_id: 11 }] },
+      "/api/watchlists/2/items": { body: {} },
+      "/api/watchlists/1": { body: watchlistPage() },
+      "/api/watchlists": {
+        body: [watchlistSummary(), watchlistSummary({ watchlist_id: 2, name: "Swing", items: 0 })],
+      },
+      "/api/figures": { body: { points: chartPoints(10) } },
+      "/api/price-bands": { status: 404 },
+    });
+    renderPage(<Watchlists />, { at: "/watchlists?list=1&view=chart" });
+    const list = await screen.findByRole("list", { name: "Long term" });
+    expect(await screen.findByRole("link", { name: "RELIANCE" })).toBeVisible();
+
+    fireEvent.contextMenu(within(list).getByRole("button", { name: /TCS/ }), {
+      clientX: 300,
+      clientY: 200,
+    });
+    const menu = await screen.findByRole("menu", { name: "TCS, on your watchlists" });
+    expect(await within(menu).findByRole("menuitem", { name: /Long term/ })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+    // The keys are the menu's meanwhile: the chart stays on RELIANCE.
+    fireEvent.keyDown(window, { key: "ArrowDown" });
+    expect(screen.getByRole("link", { name: "RELIANCE" })).toBeVisible();
+
+    await userEvent.click(within(menu).getByRole("menuitem", { name: /Swing/ }));
+    await waitFor(() => {
+      expect(
+        fetched.mock.calls.some(
+          ([path, init]) => init?.method === "POST" && path === "/api/watchlists/2/items",
+        ),
+      ).toBe(true);
+    });
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("menu")).toBeNull();
+
+    // Anywhere on the chart: the company charted.
+    fireEvent.contextMenu(screen.getByTestId("chart"), { clientX: 500, clientY: 300 });
+    expect(await screen.findByRole("menu", { name: "RELIANCE, on your watchlists" })).toBeVisible();
+  });
+
   it("charts a kept list's companies too", async () => {
     stub();
     renderPage(<Watchlists />, { at: "/watchlists?kept=sector&key=IT&view=chart" });

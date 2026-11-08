@@ -360,6 +360,7 @@ export function Company({ instrumentKey }: CompanyProps): React.JSX.Element {
                         forecast={forecast.data ?? null}
                         loading={chart.loading}
                         drawingsOf={key}
+                        listsOf={{ instrumentKey: key, symbol: found.symbol }}
                         instrument={{
                           label: found.symbol,
                           symbol: symbols.data?.[key]?.symbol,

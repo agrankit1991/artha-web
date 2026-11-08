@@ -11,24 +11,13 @@
  * is built without leaving the pages being read.
  */
 
-import { Plus, Star } from "lucide-react";
-import { useCallback, useState } from "react";
+import { Star } from "lucide-react";
+import { useState } from "react";
 
-import {
-  addWatchlistItem,
-  createWatchlist,
-  fetchWatchlists,
-  fetchWatchlistsHolding,
-  removeWatchlistItem,
-} from "@/api/client";
-import { Dialog } from "@/components/Dialog";
-import { Menu, MenuItem, MenuLabel, MenuSeparator } from "@/components/Menu";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useResource } from "@/hooks/useResource";
+import { Menu } from "@/components/Menu";
+import { NewListDialog, WatchlistMenuItems } from "@/components/WatchlistMenu";
+import { useWatchlistsOf } from "@/hooks/useWatchlistsOf";
 import { cn } from "@/lib/utils";
-import { sentence } from "@/lib/format";
-import { useWatchlistMembership } from "@/lib/watchlistMembership";
 
 interface WatchButtonProps {
   instrumentKey: string;
@@ -48,69 +37,10 @@ export function WatchButton({
   symbol,
   className,
 }: WatchButtonProps): React.JSX.Element {
-  const loadLists = useCallback(() => fetchWatchlists(), []);
-  const loadHolding = useCallback(() => fetchWatchlistsHolding(instrumentKey), [instrumentKey]);
-  const lists = useResource(loadLists);
-  const holding = useResource(loadHolding);
+  const of = useWatchlistsOf(instrumentKey);
   const [naming, setNaming] = useState(false);
-  const [name, setName] = useState("");
-  const [problem, setProblem] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const membership = useWatchlistMembership();
-
-  const holds = holding.data ?? [];
-  // Every list holding it counts, those kept updated too; only a list's own
-  // items can be taken off, so only those are toggled.
-  const held = new Set(holds.map((one) => one.watchlist_id));
-  const items = new Map(
-    holds.flatMap((one) =>
-      one.item_id === null ? [] : [[one.watchlist_id, one.item_id] as const],
-    ),
-  );
-  const watched = held.size > 0;
-  const onLists = `${String(held.size)} ${held.size === 1 ? "list" : "lists"}`;
-
-  const refresh = (): void => {
-    holding.reload();
-    lists.reload();
-    // The count beside this company in every table on screen follows.
-    membership.refresh();
-  };
-
-  const toggle = async (watchlistId: number): Promise<void> => {
-    const itemId = items.get(watchlistId);
-    setBusy(true);
-    setProblem(null);
-    try {
-      if (itemId === undefined) {
-        await addWatchlistItem(watchlistId, { instrument_key: instrumentKey });
-      } else {
-        await removeWatchlistItem(watchlistId, itemId);
-      }
-      refresh();
-    } catch (error) {
-      setProblem(error instanceof Error ? error.message : "Could not change the list");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const makeAndAdd = async (): Promise<void> => {
-    setBusy(true);
-    setProblem(null);
-    try {
-      // One request, so a refused add cannot leave an empty list behind.
-      await createWatchlist({ name, instrument_keys: [instrumentKey] });
-      setNaming(false);
-      setName("");
-      refresh();
-    } catch (error) {
-      setProblem(error instanceof Error ? error.message : "Could not make the list");
-    } finally {
-      setBusy(false);
-    }
-  };
+  const watched = of.held.size > 0;
+  const onLists = `${String(of.held.size)} ${of.held.size === 1 ? "list" : "lists"}`;
 
   return (
     <>
@@ -130,100 +60,23 @@ export function WatchButton({
         }
       >
         {(close) => (
-          <>
-            <MenuLabel>Watchlists</MenuLabel>
-            {lists.error !== null || holding.error !== null ? (
-              <div className="px-2 py-1.5 text-xs text-destructive">
-                {sentence(lists.error ?? holding.error ?? "")}
-              </div>
-            ) : (lists.data ?? []).length === 0 ? (
-              <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                {lists.data === null ? "Loading…" : "No lists yet."}
-              </div>
-            ) : (
-              (lists.data ?? []).map((list) => (
-                <MenuItem
-                  key={list.watchlist_id}
-                  selected={held.has(list.watchlist_id)}
-                  disabled={list.source != null}
-                  onSelect={() => {
-                    void toggle(list.watchlist_id);
-                  }}
-                >
-                  <span className="flex-1 truncate">{list.name}</span>
-                  {list.source != null && (
-                    <span className="text-xs text-muted-foreground">kept updated</span>
-                  )}
-                  <span className="ml-2 text-xs text-muted-foreground">{list.items}</span>
-                </MenuItem>
-              ))
-            )}
-            {problem !== null && (
-              <div className="px-2 py-1 text-xs text-destructive">{sentence(problem)}</div>
-            )}
-            <MenuSeparator />
-            <MenuItem
-              onSelect={() => {
-                close();
-                setNaming(true);
-              }}
-            >
-              <Plus aria-hidden="true" className="mr-2 h-4 w-4" />
-              New list…
-            </MenuItem>
-          </>
+          <WatchlistMenuItems
+            of={of}
+            onNewList={() => {
+              close();
+              setNaming(true);
+            }}
+          />
         )}
       </Menu>
-
-      <Dialog
+      <NewListDialog
         open={naming}
+        symbol={symbol}
+        of={of}
         onClose={() => {
           setNaming(false);
-          setProblem(null);
         }}
-        title="New watchlist"
-        description={`${symbol} goes on it as soon as it is made.`}
-      >
-        <form
-          className="space-y-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!busy && name.trim() !== "") {
-              void makeAndAdd();
-            }
-          }}
-        >
-          <label className="block text-sm">
-            <span className="text-muted-foreground">Name</span>
-            <Input
-              value={name}
-              onChange={(event) => {
-                setName(event.target.value);
-              }}
-              placeholder="Long term"
-              maxLength={60}
-              aria-label="Name"
-              className="mt-1"
-            />
-          </label>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setNaming(false);
-                setProblem(null);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={busy || name.trim() === ""}>
-              Make and add
-            </Button>
-          </div>
-          {problem !== null && <p className="text-sm text-destructive">{sentence(problem)}</p>}
-        </form>
-      </Dialog>
+      />
     </>
   );
 }

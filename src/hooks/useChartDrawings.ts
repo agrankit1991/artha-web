@@ -372,6 +372,10 @@ export function useChartDrawings(
       const element = chart.chartElement();
       let held: { drawing: ChartDrawing; start: Pixel; pixels: Pixel[] } | null = null;
       const press = (event: PointerEvent): void => {
+        // The left button only: a right-click opens a menu, and moves nothing.
+        if (event.button !== 0) {
+          return;
+        }
         const { tool: using, chosenId: chosen, drawings: all } = now.current;
         const drawing = all.find((one) => one.drawing_id === chosen);
         if (using !== null || drawing === undefined || drawing.locked) {

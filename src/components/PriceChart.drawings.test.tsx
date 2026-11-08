@@ -675,4 +675,23 @@ describe("PriceChart, the drawing tools' edges", () => {
       expect(button).toHaveAttribute("aria-pressed", "false");
     }
   });
+
+  it("starts no drag from a right-button press on the drawing picked", async () => {
+    stub([SUPPORT]);
+    draw();
+    await screen.findByRole("button", { name: "Delete every drawing" });
+    click(200, 120, "2026-09-05");
+    await screen.findByText("Horizontal line picked:");
+
+    const press = new MouseEvent("pointerdown", { bubbles: true, button: 2 });
+    Object.defineProperty(press, "offsetX", { value: 50 });
+    Object.defineProperty(press, "offsetY", { value: 120 });
+    act(() => {
+      chartElement.dispatchEvent(press);
+    });
+    expect(chartCalls.applyChartOptions).not.toHaveBeenCalledWith({
+      handleScroll: false,
+      handleScale: false,
+    });
+  });
 });

@@ -26,6 +26,7 @@ import {
 import { DrawingToolbar } from "@/components/DrawingToolbar";
 import { ForecastNote } from "@/components/ForecastNote";
 import { LineStylesDialog } from "@/components/LineStylesDialog";
+import { WatchlistsContextMenu } from "@/components/WatchlistMenu";
 import { useChartDrawings } from "@/hooks/useChartDrawings";
 import { drawnBand } from "@/lib/forecastBands";
 import { readPreferences, writePreferences } from "@/lib/preferences";
@@ -74,6 +75,12 @@ interface PriceChartProps {
    * several on a page, only the one being worked on. Unless said, it does.
    */
   takesKeys?: boolean;
+  /**
+   * The instrument a right-click on the chart puts on the reader's lists
+   * (the owner, 2026-11-08: "right click anywhere in the chart and get option
+   * to add to a list"); absent, the browser's own menu.
+   */
+  listsOf?: { instrumentKey: string; symbol: string };
 }
 
 /** The averages, and which figure each reads. */
@@ -127,10 +134,12 @@ export function PriceChart({
   trail,
   range,
   takesKeys = true,
+  listsOf,
 }: PriceChartProps): React.JSX.Element {
   const drawings = useChartDrawings(drawingsOf ?? null, { takesKeys });
   const lines = useLineStyles();
   const [styling, setStyling] = useState(false);
+  const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
   const own = drawings.decorate;
   // The drawings and whatever the caller adds, both on each build, both undone.
   const decorated = useCallback(
@@ -281,7 +290,17 @@ export function PriceChart({
         />
         {trail !== undefined && <div className="ml-auto flex items-center gap-2">{trail}</div>}
       </div>
-      <div className="relative flex gap-2">
+      <div
+        className="relative flex gap-2"
+        {...(listsOf === undefined
+          ? {}
+          : {
+              onContextMenu: (event: React.MouseEvent) => {
+                event.preventDefault();
+                setMenuAt({ x: event.clientX, y: event.clientY });
+              },
+            })}
+      >
         <DrawingToolbar drawings={drawings} />
         <Chart
           className="min-w-0 flex-1"
@@ -309,6 +328,16 @@ export function PriceChart({
           {...(height === undefined ? {} : { height })}
         />
       </div>
+      {listsOf !== undefined && menuAt !== null && (
+        <WatchlistsContextMenu
+          instrumentKey={listsOf.instrumentKey}
+          symbol={listsOf.symbol}
+          at={menuAt}
+          onClose={() => {
+            setMenuAt(null);
+          }}
+        />
+      )}
       <LineStylesDialog
         open={styling}
         onClose={() => {
