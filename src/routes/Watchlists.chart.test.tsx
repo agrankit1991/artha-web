@@ -241,7 +241,11 @@ describe("Watchlists, several charts", () => {
     renderPage(<Watchlists />);
     await screen.findByRole("list", { name: "Long term" });
 
-    await userEvent.click(screen.getByRole("button", { name: "2 side by side" }));
+    // Drawn as pictures of the layout, each still named by it.
+    const sideBySide = screen.getByRole("button", { name: "2 side by side" });
+    expect(sideBySide).toHaveAttribute("title", "2 side by side");
+    expect(sideBySide).not.toHaveTextContent("2 side by side");
+    await userEvent.click(sideBySide);
     expect(readPreferences().chartLayout).toBe("2");
     const first = await screen.findByRole("group", { name: "Chart 1" });
     const second = screen.getByRole("group", { name: "Chart 2" });

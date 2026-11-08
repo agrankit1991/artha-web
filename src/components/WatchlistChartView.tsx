@@ -23,7 +23,7 @@
  * not in a row of their own above the charts.
  */
 
-import { Maximize2, Minimize2 } from "lucide-react";
+import { Columns2, Columns3, Grid2x2, Maximize2, Minimize2, Rows2, Square } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import { ChartListPanel, type PanelRow, orderRows } from "@/components/ChartListPanel";
@@ -49,19 +49,49 @@ import { cn } from "@/lib/utils";
  */
 const LAYOUTS: Record<
   ChartLayout,
-  { label: string; cells: number; grid: string; rows: 1 | 2; height: number }
+  {
+    label: string;
+    /** Drawn in place of the label: a layout is seen faster than read (the owner, 2026-11-08). */
+    icon: typeof Square;
+    cells: number;
+    grid: string;
+    rows: 1 | 2;
+    height: number;
+  }
 > = {
-  "1": { label: "1", cells: 1, grid: "grid-cols-1", rows: 1, height: 360 },
+  "1": { label: "1", icon: Square, cells: 1, grid: "grid-cols-1", rows: 1, height: 360 },
   "2": {
     label: "2 side by side",
+    icon: Columns2,
     cells: 2,
     grid: "grid-cols-1 lg:grid-cols-2",
     rows: 1,
     height: 300,
   },
-  "2v": { label: "2 stacked", cells: 2, grid: "grid-cols-1", rows: 2, height: 240 },
-  "3": { label: "3", cells: 3, grid: "grid-cols-1 lg:grid-cols-3", rows: 1, height: 260 },
-  "4": { label: "4", cells: 4, grid: "grid-cols-1 lg:grid-cols-2", rows: 2, height: 240 },
+  "2v": {
+    label: "2 stacked",
+    icon: Rows2,
+    cells: 2,
+    grid: "grid-cols-1",
+    rows: 2,
+    height: 240,
+  },
+  "3": {
+    label: "3",
+    icon: Columns3,
+    cells: 3,
+    grid: "grid-cols-1 lg:grid-cols-3",
+    rows: 1,
+    height: 260,
+  },
+  "4": {
+    label: "4",
+    icon: Grid2x2,
+    cells: 4,
+    grid: "grid-cols-1 lg:grid-cols-2",
+    rows: 2,
+    height: 240,
+  },
 };
 
 const LAYOUT_KEYS = Object.keys(LAYOUTS) as ChartLayout[];
@@ -113,7 +143,12 @@ export function ChartLayoutControls({
   return (
     <div className="flex flex-wrap items-center gap-3">
       <Chooser
-        options={LAYOUT_KEYS.map((key) => ({ key, label: LAYOUTS[key].label }))}
+        options={LAYOUT_KEYS.map((key) => ({
+          key,
+          label: LAYOUTS[key].label,
+          icon: LAYOUTS[key].icon,
+        }))}
+        iconsOnly
         chosen={chartLayout}
         onChange={(next) => {
           writePreferences({ chartLayout: next });

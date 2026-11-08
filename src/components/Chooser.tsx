@@ -34,6 +34,12 @@ interface ChooserProps<Key extends string> {
   showLabel?: boolean;
   /** What the choice and its options mean, behind a mark after the buttons. */
   hint?: string;
+  /**
+   * Draw each option as its icon alone, its label its name and tooltip: for
+   * options a picture says faster than words (the owner, 2026-11-08, of the
+   * chart layouts). An option with no icon keeps its words.
+   */
+  iconsOnly?: boolean;
 }
 
 /**
@@ -54,6 +60,7 @@ export function Chooser<Key extends string>({
   className,
   showLabel = false,
   hint,
+  iconsOnly = false,
 }: ChooserProps<Key>): React.JSX.Element {
   const track = useRef<HTMLDivElement>(null);
   const indicator = useSlidingIndicator(track, '[aria-pressed="true"]', chosen);
@@ -86,6 +93,9 @@ export function Chooser<Key extends string>({
             key={option.key}
             type="button"
             aria-pressed={isChosen}
+            {...(iconsOnly && option.icon !== undefined
+              ? { "aria-label": option.label, title: option.label }
+              : {})}
             onClick={() => {
               onChange(option.key);
             }}
@@ -100,7 +110,7 @@ export function Chooser<Key extends string>({
             )}
           >
             {option.icon !== undefined && <option.icon aria-hidden="true" className="h-4 w-4" />}
-            {option.label}
+            {(!iconsOnly || option.icon === undefined) && option.label}
           </button>
         );
       })}
