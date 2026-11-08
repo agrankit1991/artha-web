@@ -10,29 +10,71 @@
  * remembered. The charts follow one another's crosshair and span unless the
  * reader turns that off (`ChartSync`), and any one can fill the view a
  * while.
+ *
+ * Where the list stands beside the charts (Tailwind's `xl`), the view fills
+ * the window (the owner, 2026-11-08: "I want chart to be full size"): its
+ * whole width, the frame's reading width lifted (`data-page-width`), and
+ * down to the window's bottom, each cell aiming at its row's share and each
+ * chart taking what its toolbars leave (`useFittedHeight`). On a narrower
+ * screen the charts keep their own heights and the page scrolls. The
+ * reader's lists open from the list's name above the companies rather than
+ * standing in a column of their own beside the charts.
  */
 
 import { Maximize2, Minimize2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import { ChartListPanel, type PanelRow } from "@/components/ChartListPanel";
 import { Chooser } from "@/components/Chooser";
 import { WorkspaceChart } from "@/components/WorkspaceChart";
+import { useFittedHeight } from "@/hooks/useFittedHeight";
+import { useHeightToViewportBottom } from "@/hooks/useHeightToViewportBottom";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { ChartSync } from "@/lib/chartSync";
 import { type ChartLayout, usePreferences, writePreferences } from "@/lib/preferences";
 import { cn } from "@/lib/utils";
 
-/** How each layout lays its charts out, how many it holds and how tall each is. */
-const LAYOUTS: Record<ChartLayout, { label: string; cells: number; grid: string; height: number }> =
-  {
-    "1": { label: "1", cells: 1, grid: "grid-cols-1", height: 360 },
-    "2": { label: "2 side by side", cells: 2, grid: "grid-cols-1 lg:grid-cols-2", height: 300 },
-    "2v": { label: "2 stacked", cells: 2, grid: "grid-cols-1", height: 240 },
-    "3": { label: "3", cells: 3, grid: "grid-cols-1 lg:grid-cols-3", height: 260 },
-    "4": { label: "4", cells: 4, grid: "grid-cols-1 lg:grid-cols-2", height: 240 },
-  };
+/**
+ * How each layout lays its charts out: how many it holds, in how many rows
+ * where the view fills the window, and how tall each chart is drawn where
+ * it does not (and before it is fitted).
+ */
+const LAYOUTS: Record<
+  ChartLayout,
+  { label: string; cells: number; grid: string; rows: 1 | 2; height: number }
+> = {
+  "1": { label: "1", cells: 1, grid: "grid-cols-1", rows: 1, height: 360 },
+  "2": {
+    label: "2 side by side",
+    cells: 2,
+    grid: "grid-cols-1 lg:grid-cols-2",
+    rows: 1,
+    height: 300,
+  },
+  "2v": { label: "2 stacked", cells: 2, grid: "grid-cols-1", rows: 2, height: 240 },
+  "3": { label: "3", cells: 3, grid: "grid-cols-1 lg:grid-cols-3", rows: 1, height: 260 },
+  "4": { label: "4", cells: 4, grid: "grid-cols-1 lg:grid-cols-2", rows: 2, height: 240 },
+};
 
 const LAYOUT_KEYS = Object.keys(LAYOUTS) as ChartLayout[];
+
+/** Where the list stands beside the charts, and the view fills the window: Tailwind's `xl`. */
+const FILLS = "(min-width: 1280px)";
+
+/** The room between two rows of charts: the grid's `gap-4`. */
+const ROW_GAP = 16;
+
+/**
+ * The least a chart itself is drawn at: under it the toolbars of four
+ * narrow charts leave too little to read, and the page scrolls instead.
+ */
+const LEAST_CHART = 200;
+
+/** The least the list beside the charts is given, however short the window. */
+const LEAST_LIST = 320;
+
+/** Room kept under the view, the frame's own padding, so it ends at the window's edge. */
+const MARGIN_BELOW = 16;
 
 interface WatchlistChartViewProps {
   title: string;
@@ -43,6 +85,8 @@ interface WatchlistChartViewProps {
   loading: boolean;
   /** Chart these instruments, one per chart, in order. */
   onChoose: (instrumentKeys: string[]) => void;
+  /** The reader's lists, opened from the list's name to chart another. */
+  lists: ReactNode;
 }
 
 /**
@@ -57,6 +101,7 @@ export function WatchlistChartView({
   asked,
   loading,
   onChoose,
+  lists,
 }: WatchlistChartViewProps): React.JSX.Element {
   const { chartLayout } = usePreferences();
   const layout = LAYOUTS[chartLayout];
@@ -68,6 +113,11 @@ export function WatchlistChartView({
   useEffect(() => {
     sync.configure(inStep);
   }, [sync, inStep]);
+  const fills = useMediaQuery(FILLS);
+  const [view, setView] = useState<HTMLDivElement | null>(null);
+  const [grid, setGrid] = useState<HTMLDivElement | null>(null);
+  const roomForView = useHeightToViewportBottom(view, MARGIN_BELOW);
+  const roomForCharts = useHeightToViewportBottom(grid, MARGIN_BELOW);
 
   // Each chart's instrument: the address's, else the list's next not yet shown.
   const shown = useMemo(() => {
@@ -98,9 +148,25 @@ export function WatchlistChartView({
     maximised === null
       ? shown.map((key, at) => ({ key, at }))
       : [{ key: shown[maximised] ?? "", at: maximised }];
+  const rowCount = maximised === null ? layout.rows : 1;
+  // Each row's share of the window, the gaps between rows taken out.
+  const share = fills ? Math.floor((roomForCharts - (rowCount - 1) * ROW_GAP) / rowCount) : null;
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-[minmax(0,1fr)_16rem]">
+    <div
+      ref={setView}
+      // Lifts the frame's reading width (`AppShell`): a chart is read
+      // across the whole screen, and the margins either side were empty.
+      data-page-width="full"
+      // Read by the list's `xl:max-h-(--view-height)`, so a long list
+      // scrolls beside the charts rather than running the page on.
+      style={
+        {
+          "--view-height": `${String(Math.max(roomForView, LEAST_LIST))}px`,
+        } as React.CSSProperties
+      }
+      className="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-[minmax(0,1fr)_16rem]"
+    >
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-3">
           <Chooser
@@ -136,58 +202,54 @@ export function WatchlistChartView({
             {loading ? "Loading the list…" : "Nothing on this list to chart yet."}
           </p>
         ) : (
-          <div className={cn("grid gap-4", maximised === null ? layout.grid : "grid-cols-1")}>
+          <div
+            ref={setGrid}
+            className={cn("grid gap-4", maximised === null ? layout.grid : "grid-cols-1")}
+          >
             {cells.map(({ key, at }) => {
               const row = rows.find((one) => one.instrument_key === key);
               return (
-                <div
+                <ChartCell
                   key={`${String(at)}:${key}`}
-                  role="group"
-                  aria-label={`Chart ${String(at + 1)}`}
-                  aria-current={layout.cells > 1 && at === current ? "true" : undefined}
-                  onClickCapture={() => {
+                  at={at}
+                  marked={layout.cells > 1 && at === current}
+                  onPress={() => {
                     setActive(at);
                   }}
-                  className={cn(
-                    "rounded-lg border p-3",
-                    layout.cells > 1 && at === current && "border-primary ring-1 ring-primary/40",
-                  )}
-                >
-                  <WorkspaceChart
-                    instrumentKey={key}
-                    // An instrument the address asks for but the list lacks (a
-                    // link from its own page) is named by its key until it is.
-                    symbol={row?.symbol ?? key.slice(key.lastIndexOf("|") + 1)}
-                    isIndex={key.includes("_INDEX|")}
-                    height={maximised === null ? layout.height : LAYOUTS["1"].height}
-                    {...(layout.cells > 1 ? { sync } : {})}
-                    {...(layout.cells > 1
-                      ? {
-                          controls: (
-                            <button
-                              type="button"
-                              aria-label={
-                                maximised === null
-                                  ? `Fill the view with chart ${String(at + 1)}`
-                                  : "Show every chart"
-                              }
-                              title={maximised === null ? "Fill the view" : "Show every chart"}
-                              onClick={() => {
-                                setMaximised(maximised === null ? at : null);
-                              }}
-                              className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-                            >
-                              {maximised === null ? (
-                                <Maximize2 aria-hidden="true" className="h-4 w-4" />
-                              ) : (
-                                <Minimize2 aria-hidden="true" className="h-4 w-4" />
-                              )}
-                            </button>
-                          ),
-                        }
-                      : {})}
-                  />
-                </div>
+                  initial={maximised === null ? layout.height : LAYOUTS["1"].height}
+                  target={share}
+                  instrumentKey={key}
+                  // An instrument the address asks for but the list lacks (a
+                  // link from its own page) is named by its key until it is.
+                  symbol={row?.symbol ?? key.slice(key.lastIndexOf("|") + 1)}
+                  isIndex={key.includes("_INDEX|")}
+                  {...(layout.cells > 1 ? { sync } : {})}
+                  {...(layout.cells > 1
+                    ? {
+                        controls: (
+                          <button
+                            type="button"
+                            aria-label={
+                              maximised === null
+                                ? `Fill the view with chart ${String(at + 1)}`
+                                : "Show every chart"
+                            }
+                            title={maximised === null ? "Fill the view" : "Show every chart"}
+                            onClick={() => {
+                              setMaximised(maximised === null ? at : null);
+                            }}
+                            className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                          >
+                            {maximised === null ? (
+                              <Maximize2 aria-hidden="true" className="h-4 w-4" />
+                            ) : (
+                              <Minimize2 aria-hidden="true" className="h-4 w-4" />
+                            )}
+                          </button>
+                        ),
+                      }
+                    : {})}
+                />
               );
             })}
           </div>
@@ -198,7 +260,58 @@ export function WatchlistChartView({
         rows={rows}
         active={shown[current] ?? null}
         onChoose={chartInActive}
+        lists={lists}
+        className="xl:max-h-(--view-height)"
       />
+    </div>
+  );
+}
+
+type ChartCellProps = Omit<React.ComponentProps<typeof WorkspaceChart>, "height"> & {
+  /** Its place among the charts, from nought. */
+  at: number;
+  /** Whether it is the chart the list feeds, outlined when there are several. */
+  marked: boolean;
+  /** Make it the chart the list feeds. */
+  onPress: () => void;
+  /** The chart's height until it is fitted, and where the view does not fill. */
+  initial: number;
+  /** The height the whole cell should come to, or null to keep `initial`. */
+  target: number | null;
+};
+
+/**
+ * One chart in its cell, drawn as tall as brings the cell to its target
+ * once its toolbars are laid out.
+ *
+ * @param props - The chart, its place, and the height its cell aims at.
+ * @returns The cell.
+ */
+function ChartCell({
+  at,
+  marked,
+  onPress,
+  initial,
+  target,
+  ...chart
+}: ChartCellProps): React.JSX.Element {
+  const [cell, setCell] = useState<HTMLDivElement | null>(null);
+  const height = useFittedHeight(cell, target, initial, LEAST_CHART);
+  return (
+    <div
+      ref={setCell}
+      role="group"
+      aria-label={`Chart ${String(at + 1)}`}
+      aria-current={marked ? "true" : undefined}
+      onClickCapture={onPress}
+      // As tall as what it holds, not stretched to its row: stretched, a cell
+      // beside a taller one measured no slack, and its chart never grew.
+      className={cn(
+        "self-start rounded-lg border p-3",
+        marked && "border-primary ring-1 ring-primary/40",
+      )}
+    >
+      <WorkspaceChart {...chart} height={height} />
     </div>
   );
 }

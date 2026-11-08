@@ -282,6 +282,9 @@ export function Chart({
   // The frame the chart opens in, so "reset" has something exact to
   // return to rather than re-fitting whatever happens to be drawn.
   const opening = useRef<{ from: number; to: number } | null>(null);
+  // The heights the panes were last stretched for, so building a chart and
+  // a change of height each stretch them once and not twice.
+  const stretchedFor = useRef<{ height: number; paneHeight: number } | null>(null);
   const [moved, setMoved] = useState(false);
   // What the crosshair is over: the session, and each series' figure on
   // it. A chart of four lines is unreadable without this -- the axis says
@@ -365,15 +368,8 @@ export function Chart({
       invertScale: inverted,
     });
 
-    // Panes past the first are given a fixed band rather than an equal
-    // share: an oscillator is read for its shape against its thresholds,
-    // and half the chart is far more room than that needs. Set as stretch
-    // factors in proportion to the height they were added to, which the
-    // library honours for every pane at once; `setHeight` on the second of
-    // two bands took its room back from the first.
-    created.panes().forEach((pane, index) => {
-      pane.setStretchFactor(index === 0 ? height : paneHeight);
-    });
+    stretchPanes(created, height, paneHeight);
+    stretchedFor.current = { height, paneHeight };
 
     if (hasBars) {
       created.priceScale(BAR_SCALE).applyOptions({
@@ -475,21 +471,23 @@ export function Chart({
       setHovered(null);
     };
     // `drawable` is rebuilt on every render; `series` is what a caller
-    // actually changes, and is what this should redraw for.
+    // actually changes, and is what this should redraw for. Not `total` or
+    // `paneHeight`: a new height is a new proportion between the panes (the
+    // effect below), not a new chart. The canvas follows its holder by itself
+    // (`autoSize`), and a rebuild threw away the reader's zoom each time a
+    // chart was given more room.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    series,
-    total,
-    appearance,
-    scale,
-    hasBars,
-    paneHeight,
-    priceScale,
-    inverted,
-    decorate,
-    markers,
-    sync,
-  ]);
+  }, [series, appearance, scale, hasBars, priceScale, inverted, decorate, markers, sync]);
+
+  useEffect(() => {
+    const drawn = chart.current;
+    const was = stretchedFor.current;
+    if (drawn === null || (was?.height === height && was.paneHeight === paneHeight)) {
+      return;
+    }
+    stretchPanes(drawn, height, paneHeight);
+    stretchedFor.current = { height, paneHeight };
+  }, [height, paneHeight]);
 
   const reset = useCallback(() => {
     const frame = opening.current;
@@ -704,6 +702,26 @@ function joinSync(sync: ChartSync, chart: IChartApi, price: ISeriesApi<SeriesTyp
     chart.unsubscribeCrosshairMove(moved);
     chart.timeScale().unsubscribeVisibleTimeRangeChange(spanned);
   };
+}
+
+/**
+ * Share a chart's height between its panes: the main plot its own height,
+ * every pane under it a fixed band.
+ *
+ * A band, not an equal share: an oscillator is read for its shape against
+ * its thresholds, and half the chart is far more room than that needs. Set
+ * as stretch factors in proportion to those heights, which the library
+ * honours for every pane at once; `setHeight` on the second of two bands
+ * took its room back from the first.
+ *
+ * @param chart - The chart, with its panes built.
+ * @param height - The main plot's height.
+ * @param paneHeight - Each lower pane's band.
+ */
+function stretchPanes(chart: IChartApi, height: number, paneHeight: number): void {
+  chart.panes().forEach((pane, index) => {
+    pane.setStretchFactor(index === 0 ? height : paneHeight);
+  });
 }
 
 /**

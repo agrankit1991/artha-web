@@ -190,6 +190,32 @@ export function Watchlists(): React.JSX.Element {
     })
     .sort((a, b) => b.value - a.value);
 
+  const tree = (
+    <WatchlistTree
+      lists={lists.data ?? []}
+      folders={folders.data ?? []}
+      kept={keptLists.data}
+      chosenList={chosenId}
+      chosenKept={kept}
+      onChooseList={choose}
+      onChooseKept={(source) => {
+        chooseKept(source);
+      }}
+      onNewFolder={() => {
+        setDialog({ kind: "folder-create" });
+      }}
+      onRenameFolder={(folder) => {
+        setDialog({ kind: "folder-rename", folder });
+      }}
+      onDeleteFolder={(folder) => {
+        setDialog({ kind: "folder-delete", folder });
+      }}
+    />
+  );
+  // Charting, the lists open from the list's name beside the chart, and the
+  // charts take the column they stood in.
+  const charting = view === "chart" && (kept !== null || chosen !== null);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -219,251 +245,235 @@ export function Watchlists(): React.JSX.Element {
         }
       />
 
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
-        {/* One column that may shrink on a phone: an implicit column is as
-            wide as the widest table in it, and the page scrolled sideways. */}
-        <WatchlistTree
-          lists={lists.data ?? []}
-          folders={folders.data ?? []}
-          kept={keptLists.data}
-          chosenList={chosenId}
-          chosenKept={kept}
-          onChooseList={choose}
-          onChooseKept={(source) => {
-            chooseKept(source);
-          }}
-          onNewFolder={() => {
-            setDialog({ kind: "folder-create" });
-          }}
-          onRenameFolder={(folder) => {
-            setDialog({ kind: "folder-rename", folder });
-          }}
-          onDeleteFolder={(folder) => {
-            setDialog({ kind: "folder-delete", folder });
-          }}
-        />
-
-        {view === "chart" && (kept !== null || chosen !== null) ? (
-          <WatchlistChartView
-            title={
-              kept === null
-                ? (chosen?.name ?? "")
-                : keptTitle(kept.source, keptRows.data?.name ?? null)
-            }
-            rows={(kept === null
+      {charting ? (
+        <WatchlistChartView
+          title={
+            kept === null
+              ? (chosen?.name ?? "")
+              : keptTitle(kept.source, keptRows.data?.name ?? null)
+          }
+          rows={(kept === null
+            ? followed === null
+              ? items
+              : (followedRows.data?.rows ?? [])
+            : (keptRows.data?.rows ?? [])
+          ).map(panelRow)}
+          asked={params.getAll("chart")}
+          loading={
+            kept === null
               ? followed === null
-                ? items
-                : (followedRows.data?.rows ?? [])
-              : (keptRows.data?.rows ?? [])
-            ).map(panelRow)}
-            asked={params.getAll("chart")}
-            loading={
-              kept === null
-                ? followed === null
-                  ? page.loading
-                  : followedRows.loading
-                : keptRows.loading
-            }
-            onChoose={chartOf}
-          />
-        ) : kept !== null ? (
-          <section aria-label="Kept list">
-            <KeptListView
-              choice={kept}
-              onOpen={(source, from) => {
-                chooseKept(source, from);
-              }}
-              onBack={(source) => {
-                chooseKept(source);
-              }}
-            />
-          </section>
-        ) : lists.data !== null && lists.data.length === 0 ? (
-          <Empty
-            title="No watchlists of your own yet"
-            reason="Save any list on the site as one, press Watch on a company's page, or open one the platform keeps on the left."
-          />
-        ) : (
-          <section className="space-y-3" aria-label="Companies">
-            {chosen !== null && (
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <MARKS.watchlist aria-hidden="true" className="h-4 w-4 text-primary" />
-                  <h2 className="text-lg font-semibold">{chosen.name}</h2>
-                  <span className="text-xs text-muted-foreground">
-                    since {formatDay(chosen.created_at)}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <ListActions
-                    keys={(followed === null ? items : (followedRows.data?.rows ?? [])).map(
-                      (one) => one.instrument_key,
-                    )}
-                    label={chosen.name}
-                  />
-                  {(folders.data ?? []).length > 0 && (
-                    <Menu
-                      label={`Move ${chosen.name} to a folder`}
-                      align="end"
-                      triggerClassName="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-sm font-medium hover:bg-accent"
-                      trigger={
-                        <>
-                          <FolderInput aria-hidden="true" className="h-4 w-4" />
-                          Move
-                        </>
-                      }
-                    >
-                      {(close) => (
-                        <>
-                          <MenuItem
-                            selected={chosen.folder_id === null}
-                            onSelect={() => {
-                              close();
-                              move(chosen, null);
-                            }}
-                          >
-                            Top level
-                          </MenuItem>
-                          {(folders.data ?? []).map((folder) => (
-                            <MenuItem
-                              key={folder.folder_id}
-                              selected={chosen.folder_id === folder.folder_id}
-                              onSelect={() => {
-                                close();
-                                move(chosen, folder.folder_id);
-                              }}
-                            >
-                              {folder.name}
-                            </MenuItem>
-                          ))}
-                        </>
-                      )}
-                    </Menu>
-                  )}
-                  {followed === null && (
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setDialog({ kind: "add" });
-                      }}
-                    >
-                      <Plus aria-hidden="true" className="mr-1 h-4 w-4" />
-                      Add company
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setDialog({ kind: "rename", list: chosen });
-                    }}
-                  >
-                    <Pencil aria-hidden="true" className="mr-1 h-4 w-4" />
-                    Rename
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setDialog({ kind: "delete", list: chosen });
-                    }}
-                  >
-                    <Trash2 aria-hidden="true" className="mr-1 h-4 w-4" />
-                    Delete list
-                  </Button>
-                </div>
-              </div>
-            )}
+                ? page.loading
+                : followedRows.loading
+              : keptRows.loading
+          }
+          onChoose={chartOf}
+          lists={tree}
+        />
+      ) : (
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
+          {/* One column that may shrink on a phone: an implicit column is as
+            wide as the widest table in it, and the page scrolled sideways. */}
+          {tree}
 
-            {followed !== null && (
-              <p className="text-xs text-muted-foreground">
-                Kept updated from {keptTitle(followed, followedRows.data?.name ?? null)}
-                {followed.kind === "movers" &&
-                  (followed.universe === "liquid" ? " (liquid companies)" : " (every company)")}
-                , read afresh each time. It takes no notes or levels; save a copy to annotate.
-              </p>
-            )}
-
-            {moveProblem !== null && (
-              <p className="text-sm text-destructive">{sentence(moveProblem)}</p>
-            )}
-
-            {tags.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Tags">
-                <Button
-                  size="sm"
-                  variant={tag === null ? "secondary" : "ghost"}
-                  aria-pressed={tag === null}
-                  onClick={() => {
-                    setTag(null);
-                  }}
-                >
-                  All
-                </Button>
-                {tags.map((one) => (
-                  <Button
-                    key={one}
-                    size="sm"
-                    variant={tag === one ? "secondary" : "ghost"}
-                    aria-pressed={tag === one}
-                    onClick={() => {
-                      setTag(one === tag ? null : one);
-                    }}
-                  >
-                    {one}
-                  </Button>
-                ))}
-              </div>
-            )}
-
-            {ranked.length > 1 && (
-              <DivergingBars
-                label="Each company since it was added"
-                rows={ranked}
-                className="rounded-lg border bg-card p-4"
-              />
-            )}
-
-            {followed !== null && chosen !== null ? (
-              <KeptListTable
-                source={followed}
-                page={followedRows}
-                label={chosen.name}
+          {kept !== null ? (
+            <section aria-label="Kept list">
+              <KeptListView
+                choice={kept}
                 onOpen={(source, from) => {
                   chooseKept(source, from);
                 }}
-              />
-            ) : page.error !== null ? (
-              <Failed message={page.error} />
-            ) : (
-              <WatchlistTable
-                items={shown}
-                // Until the lists arrive there is no list to read, which is
-                // not the same as an empty one.
-                loading={lists.loading || (page.loading && page.data === null)}
-                onEdit={(item) => {
-                  setDialog({ kind: "edit", item });
-                }}
-                onRemove={(item) => {
-                  setDialog({ kind: "remove", item });
-                }}
-                onStar={(item) => {
-                  if (chosenId === null) {
-                    return; // Unreachable: items are drawn only for a chosen list.
-                  }
-                  void updateWatchlistItem(chosenId, item.item_id, {
-                    notes: item.notes,
-                    target_price: item.target_price,
-                    stop_loss: item.stop_loss,
-                    tags: item.tags,
-                    featured: !item.featured,
-                  }).then(refresh);
+                onBack={(source) => {
+                  chooseKept(source);
                 }}
               />
-            )}
-          </section>
-        )}
-      </div>
+            </section>
+          ) : lists.data !== null && lists.data.length === 0 ? (
+            <Empty
+              title="No watchlists of your own yet"
+              reason="Save any list on the site as one, press Watch on a company's page, or open one the platform keeps on the left."
+            />
+          ) : (
+            <section className="space-y-3" aria-label="Companies">
+              {chosen !== null && (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <MARKS.watchlist aria-hidden="true" className="h-4 w-4 text-primary" />
+                    <h2 className="text-lg font-semibold">{chosen.name}</h2>
+                    <span className="text-xs text-muted-foreground">
+                      since {formatDay(chosen.created_at)}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <ListActions
+                      keys={(followed === null ? items : (followedRows.data?.rows ?? [])).map(
+                        (one) => one.instrument_key,
+                      )}
+                      label={chosen.name}
+                    />
+                    {(folders.data ?? []).length > 0 && (
+                      <Menu
+                        label={`Move ${chosen.name} to a folder`}
+                        align="end"
+                        triggerClassName="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-sm font-medium hover:bg-accent"
+                        trigger={
+                          <>
+                            <FolderInput aria-hidden="true" className="h-4 w-4" />
+                            Move
+                          </>
+                        }
+                      >
+                        {(close) => (
+                          <>
+                            <MenuItem
+                              selected={chosen.folder_id === null}
+                              onSelect={() => {
+                                close();
+                                move(chosen, null);
+                              }}
+                            >
+                              Top level
+                            </MenuItem>
+                            {(folders.data ?? []).map((folder) => (
+                              <MenuItem
+                                key={folder.folder_id}
+                                selected={chosen.folder_id === folder.folder_id}
+                                onSelect={() => {
+                                  close();
+                                  move(chosen, folder.folder_id);
+                                }}
+                              >
+                                {folder.name}
+                              </MenuItem>
+                            ))}
+                          </>
+                        )}
+                      </Menu>
+                    )}
+                    {followed === null && (
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setDialog({ kind: "add" });
+                        }}
+                      >
+                        <Plus aria-hidden="true" className="mr-1 h-4 w-4" />
+                        Add company
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setDialog({ kind: "rename", list: chosen });
+                      }}
+                    >
+                      <Pencil aria-hidden="true" className="mr-1 h-4 w-4" />
+                      Rename
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setDialog({ kind: "delete", list: chosen });
+                      }}
+                    >
+                      <Trash2 aria-hidden="true" className="mr-1 h-4 w-4" />
+                      Delete list
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {followed !== null && (
+                <p className="text-xs text-muted-foreground">
+                  Kept updated from {keptTitle(followed, followedRows.data?.name ?? null)}
+                  {followed.kind === "movers" &&
+                    (followed.universe === "liquid" ? " (liquid companies)" : " (every company)")}
+                  , read afresh each time. It takes no notes or levels; save a copy to annotate.
+                </p>
+              )}
+
+              {moveProblem !== null && (
+                <p className="text-sm text-destructive">{sentence(moveProblem)}</p>
+              )}
+
+              {tags.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Tags">
+                  <Button
+                    size="sm"
+                    variant={tag === null ? "secondary" : "ghost"}
+                    aria-pressed={tag === null}
+                    onClick={() => {
+                      setTag(null);
+                    }}
+                  >
+                    All
+                  </Button>
+                  {tags.map((one) => (
+                    <Button
+                      key={one}
+                      size="sm"
+                      variant={tag === one ? "secondary" : "ghost"}
+                      aria-pressed={tag === one}
+                      onClick={() => {
+                        setTag(one === tag ? null : one);
+                      }}
+                    >
+                      {one}
+                    </Button>
+                  ))}
+                </div>
+              )}
+
+              {ranked.length > 1 && (
+                <DivergingBars
+                  label="Each company since it was added"
+                  rows={ranked}
+                  className="rounded-lg border bg-card p-4"
+                />
+              )}
+
+              {followed !== null && chosen !== null ? (
+                <KeptListTable
+                  source={followed}
+                  page={followedRows}
+                  label={chosen.name}
+                  onOpen={(source, from) => {
+                    chooseKept(source, from);
+                  }}
+                />
+              ) : page.error !== null ? (
+                <Failed message={page.error} />
+              ) : (
+                <WatchlistTable
+                  items={shown}
+                  // Until the lists arrive there is no list to read, which is
+                  // not the same as an empty one.
+                  loading={lists.loading || (page.loading && page.data === null)}
+                  onEdit={(item) => {
+                    setDialog({ kind: "edit", item });
+                  }}
+                  onRemove={(item) => {
+                    setDialog({ kind: "remove", item });
+                  }}
+                  onStar={(item) => {
+                    if (chosenId === null) {
+                      return; // Unreachable: items are drawn only for a chosen list.
+                    }
+                    void updateWatchlistItem(chosenId, item.item_id, {
+                      notes: item.notes,
+                      target_price: item.target_price,
+                      stop_loss: item.stop_loss,
+                      tags: item.tags,
+                      featured: !item.featured,
+                    }).then(refresh);
+                  }}
+                />
+              )}
+            </section>
+          )}
+        </div>
+      )}
 
       <FolderDialog
         state={

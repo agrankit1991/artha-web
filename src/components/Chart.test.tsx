@@ -229,6 +229,36 @@ describe("Chart", () => {
     ]);
   });
 
+  it("gives a new height to its panes without building the chart again", () => {
+    const series: Series[] = [
+      LINE,
+      { ...LINE, label: "Growth", pane: 1 },
+      { ...LINE, label: "Share", pane: 2 },
+    ];
+    const { rerender } = render(
+      <ThemeProvider>
+        <Chart series={series} height={360} />
+      </ThemeProvider>,
+    );
+    rerender(
+      <ThemeProvider>
+        <Chart series={series} height={500} />
+      </ThemeProvider>,
+    );
+
+    // Built again, it would lose the reader's zoom each time it had more room.
+    expect(chartCalls.createChart).toHaveBeenCalledTimes(1);
+    expect(chartCalls.setStretchFactor.mock.calls).toEqual([
+      [0, 360],
+      [1, 110],
+      [2, 110],
+      [0, 500],
+      [1, 110],
+      [2, 110],
+    ]);
+    expect(screen.getByTestId("chart")).toHaveStyle({ height: "720px" });
+  });
+
   it("frames to the longest series when they differ in length", () => {
     // One instrument listed later than another is ordinary; the frame has
     // to hold whichever of them has more sessions.

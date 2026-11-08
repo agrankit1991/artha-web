@@ -170,8 +170,10 @@ export function AppShell({
         </header>
 
         {/* Named for the page transition: only this moves between pages, so
-            the frame around it reads as fixed. */}
-        <main className="mx-auto w-full max-w-[1600px] flex-1 p-4 [view-transition-name:page]">
+            the frame around it reads as fixed. A reading width, lifted for a
+            page holding something marked `data-page-width="full"` (the
+            watchlist's charts), which is read across the whole screen. */}
+        <main className="mx-auto w-full max-w-[1600px] flex-1 p-4 [view-transition-name:page] has-[[data-page-width=full]]:max-w-none">
           {children}
         </main>
 

@@ -2,6 +2,7 @@
 
 import { fireEvent, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { ChartListPanel, type PanelRow } from "./ChartListPanel";
@@ -91,5 +92,57 @@ describe("ChartListPanel", () => {
     const onChoose = show(null);
     fireEvent.keyDown(window, { key: "ArrowDown" });
     expect(onChoose).toHaveBeenCalledWith("NSE_EQ|AAA");
+  });
+
+  it("opens the reader's lists in the companies' place, the keys standing down meanwhile", async () => {
+    const onChoose = vi.fn<Choose>();
+    // Choosing a list renames the panel, as the page does.
+    function Choosing(): React.JSX.Element {
+      const [title, setTitle] = useState("Swing");
+      return (
+        <ChartListPanel
+          title={title}
+          rows={ROWS}
+          active="NSE_EQ|BBB"
+          onChoose={onChoose}
+          lists={
+            <button
+              type="button"
+              onClick={() => {
+                setTitle("Long term");
+              }}
+            >
+              Long term
+            </button>
+          }
+        />
+      );
+    }
+    renderPage(<Choosing />);
+    const opener = screen.getByRole("button", { name: "Swing, choose another list" });
+    expect(opener).toHaveAttribute("aria-expanded", "false");
+
+    await userEvent.click(opener);
+    expect(opener).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("region", { name: "Your lists" })).toBeVisible();
+    expect(screen.queryByRole("list", { name: "Swing" })).toBeNull();
+    expect(screen.queryByText("Up / Down to move")).toBeNull();
+    fireEvent.keyDown(window, { key: "ArrowDown" });
+    expect(onChoose).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.getByRole("list", { name: "Swing" })).toBeVisible();
+
+    await userEvent.click(opener);
+    await userEvent.click(opener);
+    expect(screen.queryByRole("region", { name: "Your lists" })).toBeNull();
+
+    await userEvent.click(opener);
+    await userEvent.click(screen.getByRole("button", { name: "Long term" }));
+    expect(screen.queryByRole("region", { name: "Your lists" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Long term, choose another list" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
   });
 });

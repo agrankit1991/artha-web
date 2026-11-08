@@ -97,6 +97,68 @@ describe("Watchlists, the Chart view", () => {
     });
   });
 
+  it("takes the page's width, the lists opening from the list's name to chart another", async () => {
+    stubPlatform({
+      "/api/watchlists/2": {
+        body: watchlistPage({
+          watchlist_id: 2,
+          name: "Swing",
+          items: [
+            watchedInstrument({
+              item_id: 21,
+              instrument_key: "NSE_EQ|INE467B01029",
+              symbol: "TCS",
+            }),
+          ],
+        }),
+      },
+      "/api/watchlists/1": { body: watchlistPage() },
+      "/api/watchlists": {
+        body: [watchlistSummary(), watchlistSummary({ watchlist_id: 2, name: "Swing", items: 1 })],
+      },
+      "/api/figures": { body: { points: chartPoints(10) } },
+      "/api/price-bands": { status: 404 },
+    });
+    renderPage(<Watchlists />, { at: "/watchlists?list=1&view=chart" });
+
+    const opener = await screen.findByRole("button", { name: "Long term, choose another list" });
+    // No column of lists beside the charts, and the frame's width lifted.
+    expect(screen.queryByRole("navigation", { name: "Watchlists" })).toBeNull();
+    expect(document.querySelector("[data-page-width='full']")).not.toBeNull();
+
+    await userEvent.click(opener);
+    const lists = screen.getByRole("region", { name: "Your lists" });
+    await userEvent.click(within(lists).getByRole("button", { name: /Swing/ }));
+
+    expect(
+      await screen.findByRole("button", { name: "Swing, choose another list" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    expect(await screen.findByRole("link", { name: "TCS" })).toBeVisible();
+  });
+
+  it("fills the window with the chart where the list stands beside it", async () => {
+    vi.stubGlobal(
+      "matchMedia",
+      (query: string) =>
+        ({
+          matches: query === "(min-width: 1280px)",
+          media: query,
+          addEventListener: () => undefined,
+          removeEventListener: () => undefined,
+        }) as unknown as MediaQueryList,
+    );
+    stub();
+    renderPage(<Watchlists />, { at: "/watchlists?list=1&view=chart" });
+
+    const chart = await screen.findByTestId("chart");
+    // Nothing is laid out under test, so the cell measures nought tall and
+    // its whole share of the window goes to the chart: more than the 360
+    // it is drawn at where the view does not fill.
+    await waitFor(() => {
+      expect(Number.parseInt(chart.style.height, 10)).toBeGreaterThan(360);
+    });
+  });
+
   it("charts a kept list's companies too", async () => {
     stub();
     renderPage(<Watchlists />, { at: "/watchlists?kept=sector&key=IT&view=chart" });

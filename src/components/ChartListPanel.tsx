@@ -8,9 +8,17 @@
  * before -- which is how a list is read on a chart: one company after
  * another without the hand leaving the keys. Keys typed into a field are
  * left alone, so searching never moves the chart.
+ *
+ * Given the reader's lists, the list's name opens them in the companies'
+ * place, in the same column (the owner, 2026-11-08: the lists "could also
+ * move to some settings near the company list", freeing the column they
+ * stood in for the chart). Choosing one, the name again or Escape shuts them;
+ * the keys stand down while they are open, so moving through the lists
+ * never moves the chart.
  */
 
-import { useEffect } from "react";
+import { ChevronDown } from "lucide-react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { Delta } from "@/components/Delta";
 import { WatchCount } from "@/components/WatchCount";
@@ -33,6 +41,10 @@ interface ChartListPanelProps {
   /** The instrument charted. */
   active: string | null;
   onChoose: (instrumentKey: string) => void;
+  /** The reader's lists, to choose another from; given, the name opens them. */
+  lists?: ReactNode;
+  /** Classes for the panel, such as the most room it may take. */
+  className?: string;
 }
 
 /** Fields whose keys are the reader's typing, not a request to move. */
@@ -49,10 +61,23 @@ export function ChartListPanel({
   rows,
   active,
   onChoose,
+  lists,
+  className,
 }: ChartListPanelProps): React.JSX.Element {
+  // Which list the lists were opened over: choosing another changes the
+  // title, which shuts them with no effect to watch for it.
+  const [openedOver, setOpenedOver] = useState<string | null>(null);
+  const choosing = lists !== undefined && openedOver === title;
+
   useEffect(() => {
     const step = (event: KeyboardEvent): void => {
       const target = event.target as HTMLElement | null;
+      if (choosing) {
+        if (event.key === "Escape") {
+          setOpenedOver(null);
+        }
+        return;
+      }
       if (
         rows.length === 0 ||
         event.ctrlKey ||
@@ -84,18 +109,54 @@ export function ChartListPanel({
     return () => {
       window.removeEventListener("keydown", step);
     };
-  }, [rows, active, onChoose]);
+  }, [rows, active, onChoose, choosing]);
 
   return (
-    <section aria-label={`${title}, beside the chart`} className="space-y-2">
+    // A column: given a most room (`className`), the list scrolls inside it
+    // rather than running the page on past the chart.
+    <section
+      aria-label={`${title}, beside the chart`}
+      className={cn("flex min-h-0 flex-col gap-2", className)}
+    >
       <div className="flex items-baseline justify-between gap-2 px-1">
-        <h2 className="truncate text-sm font-semibold">{title}</h2>
-        <span className="shrink-0 text-xs text-muted-foreground">Up / Down to move</span>
+        {lists === undefined ? (
+          <h2 className="truncate text-sm font-semibold">{title}</h2>
+        ) : (
+          <h2 className="min-w-0 text-sm font-semibold">
+            <button
+              type="button"
+              // The visible name first, so a reader saying what they see finds it.
+              aria-label={`${title}, choose another list`}
+              aria-expanded={choosing}
+              title="Choose another list"
+              onClick={() => {
+                setOpenedOver(choosing ? null : title);
+              }}
+              className="flex max-w-full items-center gap-1 rounded hover:text-primary"
+            >
+              <span className="truncate">{title}</span>
+              <ChevronDown
+                aria-hidden="true"
+                className={cn("h-4 w-4 shrink-0 transition-transform", choosing && "rotate-180")}
+              />
+            </button>
+          </h2>
+        )}
+        {!choosing && (
+          <span className="shrink-0 text-xs text-muted-foreground">Up / Down to move</span>
+        )}
       </div>
-      {rows.length === 0 ? (
+      {choosing ? (
+        <div role="region" aria-label="Your lists" className="min-h-0 overflow-auto">
+          {lists}
+        </div>
+      ) : rows.length === 0 ? (
         <p className="px-1 text-xs text-muted-foreground">Nothing on this list yet.</p>
       ) : (
-        <ul className="max-h-[70vh] divide-y overflow-auto rounded-md border" aria-label={title}>
+        <ul
+          className="max-h-[70vh] min-h-0 divide-y overflow-auto rounded-md border xl:max-h-none"
+          aria-label={title}
+        >
           {rows.map((row) => {
             const chosen = row.instrument_key === active;
             return (
