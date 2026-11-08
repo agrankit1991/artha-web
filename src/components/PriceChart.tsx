@@ -216,6 +216,8 @@ export function PriceChart({
           ...lines.drawn("forecast_middle"),
           dashed: true,
           points: bands.median,
+          // The band's range and record, behind a mark in the legend.
+          about: <ForecastNote bands={band} />,
         },
         { kind: "line", label: "Forecast 10%", ...edges, dashed: true, points: bands.low },
       );
@@ -261,7 +263,6 @@ export function PriceChart({
         {...(sync === undefined ? {} : { sync })}
         {...(height === undefined ? {} : { height })}
       />
-      {band !== null && <ForecastNote bands={band} />}
       <LineStylesDialog
         open={styling}
         onClose={() => {

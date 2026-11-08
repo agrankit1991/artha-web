@@ -19,8 +19,8 @@ import { Floating } from "@/components/Floating";
 import { cn } from "@/lib/utils";
 
 interface HintProps {
-  /** The explanation. */
-  text: string;
+  /** The explanation: words, or a few short paragraphs. */
+  text: React.ReactNode;
   /** What is being explained; the mark follows it. Optional, for a bare mark. */
   children?: React.ReactNode;
   /**

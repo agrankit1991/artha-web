@@ -258,7 +258,7 @@ describe("PriceChart", () => {
     forgetForTests();
   });
 
-  it("draws the forecast band as three dashed lines from the last close, and explains it", () => {
+  it("draws the forecast band as three dashed lines from the last close, and explains it", async () => {
     draw({ forecast: priceBands() });
 
     const names = within(legend())
@@ -272,6 +272,11 @@ describe("PriceChart", () => {
       .filter((options) => options.lineStyle === 2);
     expect(dashed).toHaveLength(3);
     expect(dashed[1]?.color).toBe(FORECAST_MIDDLE);
+    // Behind a mark beside the middle line, not under the chart.
+    expect(screen.queryByTestId("forecast-note")).not.toBeInTheDocument();
+    await userEvent.hover(
+      within(legend()).getByRole("button", { name: "What Forecast middle means" }),
+    );
     expect(screen.getByTestId("forecast-note")).toHaveTextContent("80% range");
   });
 

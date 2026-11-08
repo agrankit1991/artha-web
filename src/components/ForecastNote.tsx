@@ -5,6 +5,9 @@
  * range in rupees, the model that drew it, how often in years it never saw
  * the price really ended inside it, and whether its middle line has shown
  * any skill -- so a reader can weigh it rather than follow it.
+ *
+ * Shown behind a mark beside the band's middle line in the legend (the
+ * owner, 2026-11-08): under every chart it took two to six lines.
  */
 
 import type { PriceBands } from "@/api/client";

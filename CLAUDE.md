@@ -234,7 +234,10 @@ rather than cycle. The averages are one violet hue, light to heavy as they
 lengthen (they were green, orange and red until 2026-09-30), and are drawn
 thin -- three of them at two pixels each is a chart of moving averages
 with a price somewhere behind it. A forecast is dashed in the price's own
-teal.
+teal. A series may carry `about`, shown behind an info mark beside its
+legend entry: the forecast's range and record (`ForecastNote`) sit there,
+beside its middle line, since 2026-11-08 (the owner chose it over two to
+six lines under every chart).
 
 **The reader may restyle the lines, and that overrides all of the above
 for them** (the owner, 2026-11-08: "I should be able to choose colors and

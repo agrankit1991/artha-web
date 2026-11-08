@@ -45,6 +45,7 @@ import type { ChartScale } from "@/components/ChartControls";
 import type { ChartMarker } from "@/lib/chartMarkers";
 import type { ChartSync, SyncedChart } from "@/lib/chartSync";
 
+import { Hint } from "@/components/Hint";
 import { TradingViewLink } from "@/components/TradingViewLink";
 import { AVERAGE_WIDTH, FALL, NEUTRAL, PRICE_WIDTH, RISE, THRESHOLD } from "@/lib/chartPalette";
 import { tokenColour, translucent } from "@/lib/tokenColour";
@@ -88,6 +89,12 @@ export interface Threshold {
 /** What every series carries, whatever its shape. */
 interface Common {
   label: string;
+  /**
+   * What the series is and how far to trust it, behind a mark beside its
+   * legend entry: a forecast's range and record, which under every chart
+   * took lines the chart was short of (the owner, 2026-11-08).
+   */
+  about?: React.ReactNode;
   /**
    * Which pane to draw in. Nought is the main one; anything else gets a
    * band of its own underneath, which is what an oscillator on a nought
@@ -555,6 +562,7 @@ export function Chart({
                   }
                 />
                 <span className="text-muted-foreground">{one.label}</span>
+                {one.about !== undefined && <Hint text={one.about} term={one.label} />}
                 {readings
                   .filter((reading) => reading.label === one.label)
                   .map((reading) => (
