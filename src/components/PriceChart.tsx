@@ -171,11 +171,15 @@ export function PriceChart({
     setShowForecast(next);
     writePreferences({ forecast: next });
   };
-  const band = forecast !== null && showForecast ? forecast : null;
   // With other instruments laid over the price, a price axis flattens the
   // cheaper ones into the floor; per cent from the first session shown puts
   // them on one footing. Indexed to a hundred does too, so it is kept.
   const shownScale: ChartScale = extra.length > 0 && scale !== "indexed" ? "percent" : scale;
+  // The band is in rupees: on an axis in per cent or indexed to a hundred
+  // each line is measured from its own first point, and the band's first is
+  // the last close, so it was drawn from nought beside a price far from it.
+  const onPrices = shownScale === "linear" || shownScale === "log";
+  const band = forecast !== null && showForecast && onPrices ? forecast : null;
   const sessions = useMemo(() => points ?? [], [points]);
 
   const series = useMemo<Series[]>(() => {
@@ -262,7 +266,18 @@ export function PriceChart({
           }}
           {...(forecast === null
             ? {}
-            : { forecast: { shown: showForecast, onToggle: chooseForecast } })}
+            : {
+                forecast: {
+                  shown: showForecast,
+                  onToggle: chooseForecast,
+                  ...(onPrices
+                    ? {}
+                    : {
+                        unshown:
+                          "Drawn on a Price or Log axis only: in per cent each line starts from its own first point, and the forecast's is the last close.",
+                      }),
+                },
+              })}
         />
         {trail !== undefined && <div className="ml-auto flex items-center gap-2">{trail}</div>}
       </div>

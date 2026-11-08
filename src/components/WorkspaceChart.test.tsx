@@ -165,3 +165,56 @@ describe("WorkspaceChart, a comparison with a gap", () => {
     });
   });
 });
+
+describe("WorkspaceChart, a comparison with less history", () => {
+  /** The platform: the Nifty's figures from a day on, the company's from 1 September. */
+  function stubFrom(niftyFrom: string, niftyCount: number): void {
+    stubPlatform({
+      "/api/figures": {
+        bodyFor: (path) =>
+          decodeURIComponent(path).includes("Nifty")
+            ? { points: chartPoints(niftyCount, niftyFrom) }
+            : { points: chartPoints(10) },
+      },
+      "/api/price-bands": { status: 404 },
+      "/api/search": { body: [NIFTY] },
+    });
+  }
+
+  async function compareWithNifty(): Promise<void> {
+    await userEvent.type(screen.getByRole("combobox", { name: "Compare with" }), "nif");
+    await userEvent.click(await screen.findByRole("option", { name: /NIFTY 50/ }));
+  }
+
+  it("starts every line at the first session they all have, and says so", async () => {
+    stubFrom("2026-09-07", 4);
+    renderPage(
+      <WorkspaceChart instrumentKey="NSE_EQ|INE002A01018" symbol="RELIANCE" isIndex={false} />,
+    );
+    await compareWithNifty();
+
+    // Node writes September "Sept" in en-IN.
+    expect(await screen.findByText(/from 7 Sept? 2026, the first every line has/)).toBeVisible();
+    await waitFor(() => {
+      const firsts = chartCalls.setData.mock.calls.map(
+        ([points]) => (points as { time: string }[])[0]?.time,
+      );
+      // The price and the compared line, both from 7 September.
+      expect(firsts.filter((day) => day === "2026-09-07").length).toBeGreaterThanOrEqual(2);
+    });
+    expect(
+      chartCalls.setData.mock.calls.at(-1)?.[0] as { time: string }[] | undefined,
+    ).not.toContainEqual(expect.objectContaining({ time: "2026-09-01" }));
+  });
+
+  it("keeps the whole history where the compared line has as much", async () => {
+    stubFrom("2026-09-01", 10);
+    renderPage(
+      <WorkspaceChart instrumentKey="NSE_EQ|INE002A01018" symbol="RELIANCE" isIndex={false} />,
+    );
+    await compareWithNifty();
+
+    expect(await screen.findByText(/Read in per cent from the first session shown/)).toBeVisible();
+    expect(screen.queryByText(/the first every line has/)).toBeNull();
+  });
+});

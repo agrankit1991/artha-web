@@ -27,7 +27,7 @@ import { useResource } from "@/hooks/useResource";
 import { MOST_SERIES, PRICE_LINE, SERIES_COLOURS } from "@/lib/chartPalette";
 import { actionMarkers } from "@/lib/chartMarkers";
 import type { ChartSync } from "@/lib/chartSync";
-import { toNumber } from "@/lib/format";
+import { formatDay, toNumber } from "@/lib/format";
 import { companyPath, populationPath } from "@/lib/paths";
 import { PRICE_RANGES } from "@/lib/priceRanges";
 
@@ -81,7 +81,7 @@ export function WorkspaceChart({
     [compared, sessions],
   );
   const comparedFigures = useResource(loadCompared);
-  const extra = useMemo<Series[]>(
+  const extra = useMemo<Extract<Series, { kind: "line" }>[]>(
     () =>
       compared.map((one, at) => ({
         kind: "line",
@@ -95,6 +95,33 @@ export function WorkspaceChart({
       })),
     [compared, comparedFigures.data],
   );
+
+  // While comparing, every line from the first session all of them have.
+  // Each is read in per cent from the first session shown, and a line that
+  // began later started at nought beside a price already far from it (the
+  // owner, 2026-11-08: an instrument with less history was "hard to
+  // compare"). The whole history is back once the comparison is.
+  const shared = useMemo(() => {
+    const points = chart.data?.points ?? [];
+    const mainFirst = points[0]?.day;
+    const firsts = extra.flatMap((line) =>
+      line.points[0] === undefined ? [] : [line.points[0].time],
+    );
+    if (mainFirst === undefined || firsts.length === 0) {
+      return null;
+    }
+    const start = firsts.reduce((latest, day) => (day > latest ? day : latest), mainFirst);
+    return {
+      start,
+      // Whether the price lost sessions to it, which the reader is told.
+      cut: start > mainFirst,
+      points: points.filter((point) => point.day >= start),
+      extra: extra.map((line) => ({
+        ...line,
+        points: line.points.filter((point) => point.time >= start),
+      })),
+    };
+  }, [chart.data, extra]);
 
   // An index has no corporate actions; a company's bonuses and splits are marked.
   const loadActions = useCallback(
@@ -144,7 +171,8 @@ export function WorkspaceChart({
       ))}
       {compared.length > 0 && (
         <span className="text-xs text-muted-foreground">
-          Read in per cent from the first session shown.
+          Read in per cent from the first session shown
+          {shared?.cut === true && `, from ${formatDay(shared.start)}, the first every line has`}.
         </span>
       )}
     </>
@@ -162,11 +190,11 @@ export function WorkspaceChart({
           // A fresh chart per instrument, so one company's zoom is not
           // carried over to the next.
           key={instrumentKey}
-          points={chart.data?.points ?? null}
+          points={shared?.points ?? chart.data?.points ?? null}
           forecast={forecast.data ?? null}
           loading={chart.loading}
           instrument={{ label: symbol }}
-          extra={extra}
+          extra={shared?.extra ?? extra}
           markers={markers}
           drawingsOf={instrumentKey}
           takesKeys={takesKeys}

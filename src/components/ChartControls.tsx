@@ -98,7 +98,12 @@ interface ChartControlsProps {
    * Whether the forecast band is drawn, and what to call to change that.
    * Absent where the instrument has no forecast, and then not offered.
    */
-  forecast?: { shown: boolean; onToggle: (shown: boolean) => void };
+  forecast?: {
+    shown: boolean;
+    onToggle: (shown: boolean) => void;
+    /** Why the band is not drawn on this axis though asked for; said on the button. */
+    unshown?: string;
+  };
   /** Open the reader's line styles; absent where lines cannot be styled. */
   onStyles?: () => void;
   className?: string;
@@ -235,7 +240,13 @@ export function ChartControls({
         <button
           type="button"
           aria-pressed={forecast.shown}
-          className={cn(TRIGGER, "inline-flex items-center", forecast.shown && "bg-accent")}
+          {...(forecast.unshown === undefined ? {} : { title: forecast.unshown })}
+          className={cn(
+            TRIGGER,
+            "inline-flex items-center",
+            forecast.shown && "bg-accent",
+            forecast.unshown !== undefined && "opacity-60",
+          )}
           onClick={() => {
             forecast.onToggle(!forecast.shown);
           }}

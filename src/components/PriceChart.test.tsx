@@ -280,6 +280,21 @@ describe("PriceChart", () => {
     expect(screen.getByTestId("forecast-note")).toHaveTextContent("80% range");
   });
 
+  it("draws no band on an axis in per cent, and says why on its button", () => {
+    // Compared with another instrument, the axis reads in per cent.
+    draw({
+      forecast: priceBands(),
+      extra: [
+        { kind: "line", label: "TCS", colour: "#000", points: [{ time: "2026-09-01", value: 1 }] },
+      ],
+    });
+
+    expect(within(legend()).queryByText("Forecast middle")).not.toBeInTheDocument();
+    const toggle = screen.getByRole("button", { name: "Forecast" });
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+    expect(toggle).toHaveAttribute("title", expect.stringContaining("Price or Log axis") as string);
+  });
+
   it("puts the band away when asked, and remembers that", async () => {
     draw({ forecast: priceBands() });
     const toggle = screen.getByRole("button", { name: "Forecast" });
