@@ -5,7 +5,8 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import { ChartListPanel, type PanelRow } from "./ChartListPanel";
+import { ChartListPanel, type PanelRow, orderRows } from "./ChartListPanel";
+import { forgetForTests, readPreferences } from "@/lib/preferences";
 import { renderPage } from "@/test/support";
 
 function row(symbol: string): PanelRow {
@@ -144,5 +145,47 @@ describe("ChartListPanel", () => {
       "aria-expanded",
       "false",
     );
+  });
+
+  it("orders the list by today's move from the move's column, and remembers it", async () => {
+    window.localStorage.clear();
+    forgetForTests();
+    show();
+
+    await userEvent.click(screen.getByRole("button", { name: "Order by today's move: as kept" }));
+    expect(readPreferences().chartListOrder).toBe("rising");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Order by today's move: rising first" }),
+    );
+    expect(readPreferences().chartListOrder).toBe("falling");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Order by today's move: falling first" }),
+    );
+    expect(readPreferences().chartListOrder).toBe("kept");
+  });
+});
+
+describe("orderRows", () => {
+  const moved = (symbol: string, change: string | null): PanelRow => ({
+    ...row(symbol),
+    change_percent: change,
+  });
+  const list = [moved("AAA", "1.2"), moved("BBB", null), moved("CCC", "-3"), moved("DDD", "4")];
+
+  it("keeps the list as it is, or orders it by the move, the unmoved last either way", () => {
+    expect(orderRows(list, "kept")).toBe(list);
+    expect(orderRows(list, "rising").map((one) => one.symbol)).toEqual([
+      "DDD",
+      "AAA",
+      "CCC",
+      "BBB",
+    ]);
+    expect(orderRows(list, "falling").map((one) => one.symbol)).toEqual([
+      "CCC",
+      "AAA",
+      "DDD",
+      "BBB",
+    ]);
+    expect(orderRows([moved("X", null), moved("Y", null)], "rising")).toHaveLength(2);
   });
 });

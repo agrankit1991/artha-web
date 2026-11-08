@@ -83,6 +83,21 @@ describe("preferences", () => {
     expect(parse({ movers: "everything" }).movers).toBe("liquid");
   });
 
+  it("orders the list beside the charts only in an order that exists", () => {
+    expect(parse({}).chartListOrder).toBe("kept");
+    expect(parse({ chartListOrder: "falling" }).chartListOrder).toBe("falling");
+    expect(parse({ chartListOrder: "alphabetical" }).chartListOrder).toBe("kept");
+  });
+
+  it("keeps the list's width within its bounds, whole", () => {
+    expect(parse({}).chartListWidth).toBe(256);
+    expect(parse({ chartListWidth: 400.6 }).chartListWidth).toBe(401);
+    expect(parse({ chartListWidth: 9000 }).chartListWidth).toBe(640);
+    expect(parse({ chartListWidth: 10 }).chartListWidth).toBe(224);
+    expect(parse({ chartListWidth: "wide" }).chartListWidth).toBe(256);
+    expect(parse({ chartListWidth: Number.NaN }).chartListWidth).toBe(256);
+  });
+
   it("keeps each page's layout, and only layouts that exist", () => {
     const read = parse({ views: { indices: "grouped", movers: "table", watchlists: 3 } });
 

@@ -17,12 +17,13 @@
  * never moves the chart.
  */
 
-import { ChevronDown } from "lucide-react";
+import { ArrowDown, ArrowDownUp, ArrowUp, ChevronDown } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 
 import { Delta } from "@/components/Delta";
 import { WatchCount } from "@/components/WatchCount";
-import { formatPrice } from "@/lib/format";
+import { toNumber, formatPrice } from "@/lib/format";
+import { type ChartListOrder, usePreferences, writePreferences } from "@/lib/preferences";
 import { cn } from "@/lib/utils";
 
 /** One company on the list, as the panel shows it. */
@@ -47,6 +48,40 @@ interface ChartListPanelProps {
   className?: string;
 }
 
+/** What each order is called, and the one a click on the column moves to. */
+const ORDERS: Record<ChartListOrder, { name: string; next: ChartListOrder }> = {
+  kept: { name: "as kept", next: "rising" },
+  rising: { name: "rising first", next: "falling" },
+  falling: { name: "falling first", next: "kept" },
+};
+
+/**
+ * Put a list in an order: as kept, or by today's move.
+ *
+ * A company with no move today goes last either way, rather than counting as
+ * nought and sitting in the middle of the falls.
+ *
+ * @param rows - The list as kept.
+ * @param order - Which order.
+ * @returns The rows in it; the same array when kept.
+ */
+export function orderRows<Row extends { change_percent: string | null }>(
+  rows: Row[],
+  order: ChartListOrder,
+): Row[] {
+  if (order === "kept") {
+    return rows;
+  }
+  const sign = order === "rising" ? -1 : 1;
+  return [...rows].sort((one, other) => {
+    const [a, b] = [toNumber(one.change_percent), toNumber(other.change_percent)];
+    if (a === null || b === null) {
+      return a === b ? 0 : a === null ? 1 : -1;
+    }
+    return sign * (a - b);
+  });
+}
+
 /** Fields whose keys are the reader's typing, not a request to move. */
 const TYPING = new Set(["INPUT", "TEXTAREA", "SELECT"]);
 
@@ -68,6 +103,8 @@ export function ChartListPanel({
   // title, which shuts them with no effect to watch for it.
   const [openedOver, setOpenedOver] = useState<string | null>(null);
   const choosing = lists !== undefined && openedOver === title;
+  const { chartListOrder: order } = usePreferences();
+  const OrderMark = order === "rising" ? ArrowDown : order === "falling" ? ArrowUp : ArrowDownUp;
 
   useEffect(() => {
     const step = (event: KeyboardEvent): void => {
@@ -153,37 +190,61 @@ export function ChartListPanel({
       ) : rows.length === 0 ? (
         <p className="px-1 text-xs text-muted-foreground">Nothing on this list yet.</p>
       ) : (
-        <ul
-          className="max-h-[70vh] min-h-0 divide-y overflow-auto rounded-md border xl:max-h-none"
-          aria-label={title}
-        >
-          {rows.map((row) => {
-            const chosen = row.instrument_key === active;
-            return (
-              <li key={row.instrument_key}>
-                <button
-                  type="button"
-                  aria-current={chosen ? "true" : undefined}
-                  title={row.name}
-                  onClick={() => {
-                    onChoose(row.instrument_key);
-                  }}
-                  className={cn(
-                    "flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-accent",
-                    chosen && "bg-primary/10 font-medium",
-                  )}
-                >
-                  <span className="flex min-w-0 flex-1 items-center gap-1.5">
-                    <span className="truncate text-primary">{row.symbol}</span>
-                    <WatchCount instrumentKey={row.instrument_key} symbol={row.symbol} />
-                  </span>
-                  <span className="tabular text-xs">{formatPrice(row.close)}</span>
-                  <Delta value={row.change_percent} className="w-16 justify-end text-xs" />
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="flex min-h-0 flex-col overflow-hidden rounded-md border">
+          {/* Columns as TradingView's watchlist heads them: the move's head
+              orders the list by it (the owner, 2026-11-08: "reorder based
+              on the price up/down move"). */}
+          <div className="flex items-center gap-2 border-b bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
+            <span className="flex-1">Symbol</span>
+            <span>Last</span>
+            <button
+              type="button"
+              aria-label={`Order by today's move: ${ORDERS[order].name}`}
+              title={`Ordered ${ORDERS[order].name}; click for ${ORDERS[ORDERS[order].next].name}`}
+              onClick={() => {
+                writePreferences({ chartListOrder: ORDERS[order].next });
+              }}
+              className={cn(
+                "flex w-16 items-center justify-end gap-0.5 rounded hover:text-foreground",
+                order !== "kept" && "font-medium text-foreground",
+              )}
+            >
+              Chg%
+              <OrderMark aria-hidden="true" className="h-3 w-3" />
+            </button>
+          </div>
+          <ul
+            className="max-h-[70vh] min-h-0 divide-y overflow-auto xl:max-h-none"
+            aria-label={title}
+          >
+            {rows.map((row) => {
+              const chosen = row.instrument_key === active;
+              return (
+                <li key={row.instrument_key}>
+                  <button
+                    type="button"
+                    aria-current={chosen ? "true" : undefined}
+                    title={row.name}
+                    onClick={() => {
+                      onChoose(row.instrument_key);
+                    }}
+                    className={cn(
+                      "flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-accent",
+                      chosen && "bg-primary/10 font-medium",
+                    )}
+                  >
+                    <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                      <span className="truncate text-primary">{row.symbol}</span>
+                      <WatchCount instrumentKey={row.instrument_key} symbol={row.symbol} />
+                    </span>
+                    <span className="tabular text-xs">{formatPrice(row.close)}</span>
+                    <Delta value={row.change_percent} className="w-16 justify-end text-xs" />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       )}
     </section>
   );

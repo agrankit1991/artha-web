@@ -26,14 +26,20 @@
 import { Maximize2, Minimize2 } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
-import { ChartListPanel, type PanelRow } from "@/components/ChartListPanel";
+import { ChartListPanel, type PanelRow, orderRows } from "@/components/ChartListPanel";
 import { Chooser } from "@/components/Chooser";
+import { WidthHandle } from "@/components/WidthHandle";
 import { WorkspaceChart } from "@/components/WorkspaceChart";
 import { useFittedHeight } from "@/hooks/useFittedHeight";
 import { useHeightToViewportBottom } from "@/hooks/useHeightToViewportBottom";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { ChartSync } from "@/lib/chartSync";
-import { type ChartLayout, usePreferences, writePreferences } from "@/lib/preferences";
+import {
+  CHART_LIST_WIDTH,
+  type ChartLayout,
+  usePreferences,
+  writePreferences,
+} from "@/lib/preferences";
 import { cn } from "@/lib/utils";
 
 /**
@@ -169,7 +175,13 @@ export function WatchlistChartView({
   lists,
   inStep,
 }: WatchlistChartViewProps): React.JSX.Element {
-  const { chartLayout } = usePreferences();
+  const { chartLayout, chartListOrder, chartListWidth } = usePreferences();
+  // The list's width while its handle is dragged; kept only when let go.
+  const [dragged, setDragged] = useState<number | null>(null);
+  const listWidth = dragged ?? chartListWidth;
+  // One order for the list and the charts it fills, so what is next on
+  // screen is what the keys and an empty chart take next.
+  const ordered = useMemo(() => orderRows(rows, chartListOrder), [rows, chartListOrder]);
   const layout = LAYOUTS[chartLayout];
   const [active, setActive] = useState(0);
   // The chart filling the view, and the layout it was filled in: another
@@ -190,7 +202,7 @@ export function WatchlistChartView({
   // Each chart's instrument: the address's, else the list's next not yet shown.
   const shown = useMemo(() => {
     const keys = asked.slice(0, layout.cells);
-    for (const row of rows) {
+    for (const row of ordered) {
       if (keys.length >= layout.cells) {
         break;
       }
@@ -199,7 +211,7 @@ export function WatchlistChartView({
       }
     }
     return keys;
-  }, [asked, rows, layout.cells]);
+  }, [asked, ordered, layout.cells]);
   const current = Math.min(active, Math.max(shown.length - 1, 0));
 
   const chartInActive = (instrumentKey: string): void => {
@@ -223,13 +235,15 @@ export function WatchlistChartView({
       // across the whole screen, and the margins either side were empty.
       data-page-width="full"
       // Read by the list's `xl:max-h-(--view-height)`, so a long list
-      // scrolls beside the charts rather than running the page on.
+      // scrolls beside the charts rather than running the page on; and by
+      // the grid, for the list's column as wide as the reader dragged it.
       style={
         {
           "--view-height": `${String(Math.max(roomForView, LEAST_LIST))}px`,
+          "--list-width": `${String(listWidth)}px`,
         } as React.CSSProperties
       }
-      className="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-[minmax(0,1fr)_16rem]"
+      className="grid grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-[minmax(0,1fr)_var(--list-width)]"
     >
       <div>
         {shown.length === 0 ? (
@@ -290,14 +304,31 @@ export function WatchlistChartView({
           </div>
         )}
       </div>
-      <ChartListPanel
-        title={title}
-        rows={rows}
-        active={shown[current] ?? null}
-        onChoose={chartInActive}
-        lists={lists}
-        className="xl:max-h-(--view-height)"
-      />
+      <div className="relative flex min-h-0 min-w-0 flex-col xl:max-h-(--view-height)">
+        {/* In the gap beside the list, where it stands beside the charts. */}
+        <WidthHandle
+          label="Width of the list"
+          width={listWidth}
+          least={CHART_LIST_WIDTH.least}
+          most={CHART_LIST_WIDTH.most}
+          onResize={(width, done) => {
+            if (done) {
+              writePreferences({ chartListWidth: width });
+              setDragged(null);
+            } else {
+              setDragged(width);
+            }
+          }}
+          className="absolute top-0 -left-3 hidden h-full xl:flex"
+        />
+        <ChartListPanel
+          title={title}
+          rows={ordered}
+          active={shown[current] ?? null}
+          onChoose={chartInActive}
+          lists={lists}
+        />
+      </div>
     </div>
   );
 }

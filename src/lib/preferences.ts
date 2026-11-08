@@ -82,7 +82,22 @@ export interface Preferences {
   watchlistView: "table" | "chart";
   /** How many charts the Chart view lays out, and how. */
   chartLayout: ChartLayout;
+  /**
+   * How the list beside the charts is ordered: as kept, or by today's move,
+   * rising or falling first (the owner, 2026-11-08).
+   */
+  chartListOrder: ChartListOrder;
+  /** How wide the list beside the charts is drawn, in pixels, as the reader dragged it. */
+  chartListWidth: number;
 }
+
+/** How wide the list beside the charts may be dragged, and how wide it starts. */
+export const CHART_LIST_WIDTH = { least: 224, most: 640, first: 256 } as const;
+
+/** The orders the list beside the charts may take. */
+export type ChartListOrder = "kept" | "rising" | "falling";
+
+const CHART_LIST_ORDERS: readonly string[] = ["kept", "rising", "falling"];
 
 /** How the watchlist's Chart view lays its charts out: one, two either way, three or four. */
 export type ChartLayout = "1" | "2" | "2v" | "3" | "4";
@@ -106,6 +121,9 @@ export const DEFAULT_PREFERENCES: Preferences = {
   // The table the page has always opened on, until the reader chooses the chart.
   watchlistView: "table",
   chartLayout: "1",
+  chartListOrder: "kept",
+  // 16rem, the width it had before it could be dragged.
+  chartListWidth: CHART_LIST_WIDTH.first,
 };
 
 const STORAGE_KEY = "artha.preferences";
@@ -250,6 +268,18 @@ export function parse(stored: unknown): Preferences {
       typeof record["chartLayout"] === "string" && CHART_LAYOUTS.includes(record["chartLayout"])
         ? (record["chartLayout"] as ChartLayout)
         : DEFAULT_PREFERENCES.chartLayout,
+    chartListOrder:
+      typeof record["chartListOrder"] === "string" &&
+      CHART_LIST_ORDERS.includes(record["chartListOrder"])
+        ? (record["chartListOrder"] as ChartListOrder)
+        : DEFAULT_PREFERENCES.chartListOrder,
+    chartListWidth:
+      typeof record["chartListWidth"] === "number" && Number.isFinite(record["chartListWidth"])
+        ? Math.min(
+            CHART_LIST_WIDTH.most,
+            Math.max(CHART_LIST_WIDTH.least, Math.round(record["chartListWidth"])),
+          )
+        : DEFAULT_PREFERENCES.chartListWidth,
   };
 }
 

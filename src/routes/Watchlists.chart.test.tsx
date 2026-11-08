@@ -1,6 +1,6 @@
 /** Tests for the watchlist page's Chart view. */
 
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -157,6 +157,61 @@ describe("Watchlists, the Chart view", () => {
     await waitFor(() => {
       expect(Number.parseInt(chart.style.height, 10)).toBeGreaterThan(360);
     });
+  });
+
+  it("orders the list and the charts it fills by today's move when asked", async () => {
+    window.localStorage.setItem(
+      "artha.preferences",
+      JSON.stringify({ watchlistView: "chart", chartListOrder: "falling" }),
+    );
+    stubPlatform({
+      "/api/watchlists/1": {
+        body: watchlistPage({
+          items: [
+            watchedInstrument({ change_percent: "2.00" }),
+            watchedInstrument({
+              item_id: 12,
+              instrument_key: "NSE_EQ|INE467B01029",
+              symbol: "TCS",
+              change_percent: "-4.00",
+            }),
+          ],
+        }),
+      },
+      "/api/watchlists": { body: [watchlistSummary()] },
+      "/api/figures": { body: { points: chartPoints(10) } },
+      "/api/price-bands": { status: 404 },
+    });
+    renderPage(<Watchlists />);
+
+    const list = await screen.findByRole("list", { name: "Long term" });
+    expect(within(list).getAllByRole("button")[0]).toHaveTextContent("TCS");
+    // The chart takes the list's first: the biggest fall today.
+    expect(await screen.findByRole("link", { name: "TCS" })).toBeVisible();
+  });
+
+  it("widens the list beside the charts from its handle, and remembers how wide", async () => {
+    window.localStorage.setItem("artha.preferences", JSON.stringify({ watchlistView: "chart" }));
+    stub();
+    renderPage(<Watchlists />);
+    const separator = await screen.findByRole("separator", { name: "Width of the list" });
+    expect(separator).toHaveAttribute("aria-valuenow", "256");
+
+    fireEvent.keyDown(separator, { key: "ArrowLeft" });
+    expect(readPreferences().chartListWidth).toBe(272);
+    expect(separator).toHaveAttribute("aria-valuenow", "272");
+
+    // Dragged, it follows the pointer and is kept only when let go.
+    fireEvent(separator, new MouseEvent("pointerdown", { bubbles: true, clientX: 1000 }));
+    act(() => {
+      window.dispatchEvent(new MouseEvent("pointermove", { clientX: 900 }));
+    });
+    expect(separator).toHaveAttribute("aria-valuenow", "372");
+    expect(readPreferences().chartListWidth).toBe(272);
+    act(() => {
+      window.dispatchEvent(new MouseEvent("pointerup", { clientX: 900 }));
+    });
+    expect(readPreferences().chartListWidth).toBe(372);
   });
 
   it("charts a kept list's companies too", async () => {
