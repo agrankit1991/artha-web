@@ -28,6 +28,7 @@ import {
   GitCompareArrows,
   Globe,
   Handshake,
+  IndianRupee,
   Landmark,
   Layers,
   LayoutDashboard,
@@ -92,6 +93,8 @@ export const MARKS = {
   financials: ChartColumn,
   // A table of figures side by side.
   figures: Table2,
+  /** India's economic indicators: reserves, prices, output, growth and jobs. */
+  economy: IndianRupee,
   flows: Landmark,
   // A reader's list kept updated from a list the platform keeps.
   followed: RefreshCw,

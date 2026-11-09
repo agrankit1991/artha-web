@@ -34,6 +34,7 @@ import { Company } from "@/routes/Company";
 import { Compare } from "@/routes/Compare";
 import { Deals } from "@/routes/Deals";
 import { EarningsPage } from "@/routes/Earnings";
+import { Economy } from "@/routes/Economy";
 import { Flows } from "@/routes/Flows";
 import { Indices } from "@/routes/Indices";
 import { Scans } from "@/routes/Scans";
@@ -66,6 +67,7 @@ const SCREENS: Screen[] = [
   { path: PATHS.breadth, label: "Breadth", icon: MARKS.breadth, group: "Markets" },
   { path: PATHS.marketPhase, label: "Market phase", icon: MARKS.phases, group: "Markets" },
   { path: PATHS.calendar, label: "Calendar", icon: MARKS.calendar, group: "Markets" },
+  { path: PATHS.economy, label: "Economy", icon: MARKS.economy, group: "Markets" },
   { path: PATHS.flows, label: "FII / DII", icon: MARKS.flows, group: "Markets" },
   { path: PATHS.deals, label: "Deals", icon: MARKS.deals, group: "Markets" },
   {
@@ -259,6 +261,7 @@ function SignedIn({
             <Route path={PATHS.breadth} element={<Breadth />} />
             <Route path={PATHS.marketPhase} element={<MarketPhases />} />
             <Route path={PATHS.calendar} element={<MarketCalendar />} />
+            <Route path={PATHS.economy} element={<Economy />} />
             <Route path={PATHS.flows} element={<Flows />} />
             <Route path={PATHS.deals} element={<Deals />} />
             <Route path={PATHS.news} element={<News />} />

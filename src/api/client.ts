@@ -2346,6 +2346,43 @@ export interface InstitutionalFlow {
   short_contracts: number | null;
 }
 
+/** What an economic indicator's value counts. */
+export type EconomicUnit = "usd_million" | "index" | "percent";
+
+/** One period's value of an economic indicator. */
+export interface EconomicPoint {
+  /** The period's last day: the Friday a week's reserves are as on, or a month's or quarter's last day. */
+  period_end: string;
+  /** The value, a decimal string in the series' unit. */
+  value: string;
+}
+
+/** One of India's economic indicators, described, with every period stored. */
+export interface EconomicSeries {
+  /** The indicator's stored code, such as `reserves_total` or `cpi_inflation`. */
+  code: string;
+  name: string;
+  unit: EconomicUnit;
+  frequency: "weekly" | "monthly" | "quarterly";
+  /** The official body that publishes it. */
+  publisher: "rbi" | "mospi";
+  /** Exactly what is measured, the publisher's choices included. */
+  measure: string;
+  /** True when worked out by the platform from a published series (wholesale inflation). */
+  derived: boolean;
+  /** Every period stored, at its latest revision, oldest first. */
+  points: EconomicPoint[];
+}
+
+/**
+ * Fetch India's economic indicators: the RBI's weekly forex reserves and MoSPI's prices, output, growth and jobs.
+ *
+ * @returns Every indicator, described, in the platform's order; one with nothing stored yet has no points.
+ */
+export function fetchEconomy(): Promise<EconomicSeries[]> {
+  return request<EconomicSeries[]>("/api/economy");
+}
+
 /**
  * Fetch institutional flows, newest first.
  *

@@ -19,6 +19,7 @@ export const PATHS = {
   breadth: "/breadth",
   marketPhase: "/phase",
   calendar: "/calendar",
+  economy: "/economy",
   news: "/news",
   earnings: "/earnings",
   flows: "/flows",
