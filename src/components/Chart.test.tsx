@@ -459,6 +459,36 @@ describe("Chart", () => {
     expect(screen.getByText("56,292.45")).toBeInTheDocument();
   });
 
+  it("writes the candle's open, high, low, close and change in the legend, as a trading screen does", () => {
+    draw([
+      {
+        kind: "candles",
+        label: "Reliance",
+        points: [
+          { time: "2026-09-01", open: 1500, high: 1520, low: 1490, close: 1510 },
+          { time: "2026-09-02", open: 1510, high: 1530, low: 1495, close: 1495 },
+        ],
+      },
+    ]);
+
+    // Off the plot: the latest candle, against the close before it.
+    const latest = screen.getByLabelText("Open, high, low, close");
+    expect(latest).toHaveTextContent("O 1,510.00");
+    expect(latest).toHaveTextContent("H 1,530.00");
+    expect(latest).toHaveTextContent("L 1,495.00");
+    expect(latest).toHaveTextContent("C 1,495.00");
+    expect(latest).toHaveTextContent("-15.00 (-0.99%)");
+
+    // Over the first session: its own figures, and no session before it to change from.
+    act(() => {
+      moveCrosshair("2026-09-01", [{ close: 1510 }]);
+    });
+    const first = screen.getByLabelText("Open, high, low, close");
+    expect(first).toHaveTextContent("O 1,500.00");
+    expect(first).toHaveTextContent("C 1,510.00");
+    expect(first).not.toHaveTextContent("%");
+  });
+
   it("says nothing about a series with no point on that session", () => {
     // One instrument listed later than another is ordinary, and the
     // earlier sessions are simply not its.

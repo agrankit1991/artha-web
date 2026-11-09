@@ -37,7 +37,7 @@ import {
   createChart,
   createSeriesMarkers,
 } from "lightweight-charts";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ImageDown, RotateCcw } from "lucide-react";
 
@@ -47,6 +47,7 @@ import type { ChartSync, SyncedChart } from "@/lib/chartSync";
 
 import { Hint } from "@/components/Hint";
 import { TradingViewLink } from "@/components/TradingViewLink";
+import { type CandleReading, candleReadings, writtenChange } from "@/lib/candleReading";
 import { AVERAGE_WIDTH, FALL, NEUTRAL, PRICE_WIDTH, RISE, THRESHOLD } from "@/lib/chartPalette";
 import { tokenColour, translucent } from "@/lib/tokenColour";
 import { formatCount, formatDay, formatPrice, formatWhole } from "@/lib/format";
@@ -320,6 +321,20 @@ export function Chart({
   const [hovered, setHovered] = useState<Hovered | null>(null);
   const { appearance } = useTheme();
   const drawable = series.filter((one) => one.points.length > 0);
+  // Each candle series' readings by session, for the legend's open, high,
+  // low and close (the owner, 2026-11-09: "similar to trading view"):
+  // worked out once per drawing, not on every pointer move.
+  const candleFigures = useMemo(
+    () =>
+      new Map(
+        series.flatMap((one) =>
+          one.kind === "candles" || one.kind === "ohlc"
+            ? [[one.label, candleReadings(one.points)] as const]
+            : [],
+        ),
+      ),
+    [series],
+  );
   const hasBars = drawable.some((one) => one.kind === "bars");
   // The main plot keeps its height and each pane under it adds its own
   // band, rather than every pane carving room out of one fixed height:
@@ -572,6 +587,12 @@ export function Chart({
             />
             <span className="text-muted-foreground">{one.label}</span>
             {one.about !== undefined && <Hint text={one.about} term={one.label} />}
+            {(one.kind === "candles" || one.kind === "ohlc") && (
+              <CandleFigures
+                reading={readingAt(candleFigures.get(one.label), one.points, hovered?.day)}
+                scale={one.scale ?? scale}
+              />
+            )}
             {readings
               .filter((reading) => reading.label === one.label)
               .map((reading) => (
@@ -841,6 +862,73 @@ function draw(chart: IChartApi, series: Series, scale: Scale): ISeriesApi<Series
  * @returns Its figure -- a candle's close, anything else's value -- or
  *   null on a session the series has no point for.
  */
+/**
+ * The candle the legend reads: the one under the crosshair, else the latest.
+ *
+ * @param readings - The series' readings by session.
+ * @param points - Its candles, oldest first.
+ * @param day - The session under the crosshair; undefined off the plot.
+ * @returns The reading, or undefined for a session the series has no candle on.
+ */
+function readingAt(
+  readings: Map<string, CandleReading> | undefined,
+  points: readonly { time: string }[],
+  day: string | undefined,
+): CandleReading | undefined {
+  const session = day ?? points.at(-1)?.time;
+  return session === undefined ? undefined : readings?.get(session);
+}
+
+/**
+ * A candle's open, high, low and close and its change, as a trading screen
+ * writes them over its chart's corner. The change carries its sign as well
+ * as its colour, so it reads the same without the colour.
+ */
+function CandleFigures({
+  reading,
+  scale,
+}: {
+  reading: CandleReading | undefined;
+  scale: Scale;
+}): React.JSX.Element | null {
+  if (reading === undefined) {
+    return null;
+  }
+  // A change is a plain amount whatever the axis: the percent scale's own
+  // writer signs its figures, and the sign is added once.
+  const amount = (value: number): string => written(value, scale === "percent" ? "price" : scale);
+  const prices: [string, number][] = [
+    ["O", reading.open],
+    ["H", reading.high],
+    ["L", reading.low],
+    ["C", reading.close],
+  ];
+  return (
+    <span
+      className="tabular flex flex-wrap items-baseline gap-x-2"
+      aria-label="Open, high, low, close"
+    >
+      {prices.map(([letter, value]) => (
+        <span key={letter}>
+          <span className="text-muted-foreground">{letter}</span>{" "}
+          <span className="font-medium">{written(value, scale)}</span>
+        </span>
+      ))}
+      {reading.change !== null && (
+        <span
+          className={cn(
+            "font-medium",
+            reading.change > 0 && "text-gain",
+            reading.change < 0 && "text-loss",
+          )}
+        >
+          {writtenChange(reading.change, reading.percent, amount)}
+        </span>
+      )}
+    </span>
+  );
+}
+
 function figureOf(point: unknown): number | null {
   const found = point as { close?: number; value?: number };
   return found.close ?? found.value ?? null;
