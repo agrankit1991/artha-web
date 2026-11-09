@@ -35,7 +35,7 @@ export function MoverUniverseSwitch({
       <Chooser options={OPTIONS} chosen={universe} onChange={onChange} label="Companies ranked" />
       <Hint
         term="liquid"
-        text="Worth at least ₹1,000 crore, with at least ₹10 crore traded a session on average over the last twenty: big and busy enough to buy and sell without moving the price. The same bar the scans call liquid."
+        text="Worth at least ₹500 crore, with at least ₹2 crore traded a session on average over the last twenty: busy enough to buy and sell an ordinary order without moving the price. The scans keep the stricter ₹1,000 crore and ₹10 crore their strategies were tested with."
       />
     </span>
   );

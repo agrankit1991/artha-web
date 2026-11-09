@@ -1942,10 +1942,11 @@ export interface KeptSource {
 
 /**
  * How deep a screen kept updated is read: the platform's `MOST_SCREENED`, so
- * a screen of more matches keeps its first thousand in its order (five hundred
- * until 2026-11-08, when every liquid company, 921 that day, would not fit).
+ * a screen of more matches keeps its first two thousand in its order. Two
+ * thousand since 2026-11-09, when the liquid rule was widened to 1,444
+ * companies; a thousand from 2026-11-08 (921 then), five hundred before.
  */
-export const MOST_SCREENED = 1000;
+export const MOST_SCREENED = 2000;
 
 /** One instrument on a kept list, with its latest figures. */
 export interface ListedInstrument {

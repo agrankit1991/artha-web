@@ -129,6 +129,10 @@ export function switchPosition(fromAverage: number): SwitchPosition {
  * traded averaged ₹10 Cr over the 20 sessions before today. The average
  * leaves today out, as the lab's did, so one day's spike cannot make a
  * thin stock look liquid.
+ *
+ * Deliberately not the movers' "liquid" (₹500 Cr and ₹2 Cr since
+ * 2026-11-09, the platform's `LIQUID_CONDITIONS`): these scans are the
+ * lab's strategies, and their results were measured with these filters.
  */
 const LIQUID_COMPANIES: readonly ScreenCondition[] = [
   { field: "market_cap", operator: "gte", value: "1000" },
