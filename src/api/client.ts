@@ -1837,6 +1837,31 @@ export interface WatchlistSummary {
   source?: FollowedSource | null;
 }
 
+/**
+ * One of the reader's lists as offered when choosing where to put a company.
+ * Read from `/api/watchlists/choices`, which screens no source: a list kept
+ * updated has no count there, where `/api/watchlists` works out what each one
+ * holds today (about a second on production, 2026-11-10).
+ */
+export interface WatchlistChoice {
+  watchlist_id: number;
+  name: string;
+  folder_id: number | null;
+  /** Kept updated from a source, so it takes no adds. */
+  followed: boolean;
+  /** How many instruments are on it; null for a list kept updated. */
+  items: number | null;
+}
+
+/**
+ * Fetch the reader's lists as a menu offers them, oldest first.
+ *
+ * @returns The lists, named, with their own counts.
+ */
+export function fetchWatchlistChoices(): Promise<WatchlistChoice[]> {
+  return request<WatchlistChoice[]>("/api/watchlists/choices");
+}
+
 /** The kept list a reader's list is kept updated from, as the platform holds it. */
 export interface FollowedSource {
   kind: KeptKind;

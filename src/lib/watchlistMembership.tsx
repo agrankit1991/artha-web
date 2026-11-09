@@ -10,7 +10,7 @@
  * a screen that does not care about counts needs nothing set up.
  */
 
-import { createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
 
 import { fetchWatchlistMembership } from "@/api/client";
 import { useResource } from "@/hooks/useResource";
@@ -23,14 +23,35 @@ export interface WatchlistMembership {
    * smaller mistake than a page that fails over one.
    */
   listsHolding: (instrumentKey: string) => number;
+  /**
+   * Which of the reader's lists hold an instrument, those kept updated too,
+   * with any change `mark`ed since; null outside the provider or before the
+   * first answer, when only the instrument's own reading can say.
+   */
+  heldBy: (instrumentKey: string) => ReadonlySet<number> | null;
+  /**
+   * Show a change at once, before the membership is read again: a menu's
+   * tick turns the moment the platform takes the change, rather than a
+   * second later, when every list kept updated has been worked out afresh
+   * (the owner found adding to a list slow, 2026-11-10).
+   */
+  mark: (instrumentKey: string, watchlistId: number, held: boolean) => void;
   /** Read the membership again, after a list has changed. */
   refresh: () => void;
 }
 
 const NONE: WatchlistMembership = {
   listsHolding: () => 0,
+  heldBy: () => null,
+  mark: () => undefined,
   refresh: () => undefined,
 };
+
+/** Changes marked on one reading, by instrument then list; a fresh reading supersedes them. */
+interface Marks {
+  reading: unknown;
+  changes: ReadonlyMap<string, ReadonlyMap<number, boolean>>;
+}
 
 const MembershipContext = createContext<WatchlistMembership>(NONE);
 
@@ -48,13 +69,46 @@ export function WatchlistMembershipProvider({
   const load = useCallback(() => fetchWatchlistMembership(), []);
   const membership = useResource(load);
   const { data, reload } = membership;
-  const value = useMemo<WatchlistMembership>(
-    () => ({
-      listsHolding: (instrumentKey) => data?.[instrumentKey]?.length ?? 0,
+  const [marks, setMarks] = useState<Marks>({ reading: null, changes: new Map() });
+  const value = useMemo<WatchlistMembership>(() => {
+    // Marks belong to the reading they were made on: once the platform has
+    // been asked again, its answer already holds them.
+    const changes =
+      marks.reading === data ? marks.changes : new Map<string, ReadonlyMap<number, boolean>>();
+    const heldBy = (instrumentKey: string): ReadonlySet<number> | null => {
+      if (data === null) {
+        return null;
+      }
+      const held = new Set(data[instrumentKey] ?? []);
+      for (const [watchlistId, holds] of changes.get(instrumentKey) ?? []) {
+        if (holds) {
+          held.add(watchlistId);
+        } else {
+          held.delete(watchlistId);
+        }
+      }
+      return held;
+    };
+    return {
+      listsHolding: (instrumentKey) => heldBy(instrumentKey)?.size ?? 0,
+      heldBy,
+      mark: (instrumentKey, watchlistId, held) => {
+        setMarks((before) => {
+          const kept =
+            before.reading === data
+              ? before.changes
+              : new Map<string, ReadonlyMap<number, boolean>>();
+          const next = new Map(kept);
+          next.set(
+            instrumentKey,
+            new Map([...(kept.get(instrumentKey) ?? []), [watchlistId, held]]),
+          );
+          return { reading: data, changes: next };
+        });
+      },
       refresh: reload,
-    }),
-    [data, reload],
-  );
+    };
+  }, [data, marks, reload]);
   return <MembershipContext.Provider value={value}>{children}</MembershipContext.Provider>;
 }
 

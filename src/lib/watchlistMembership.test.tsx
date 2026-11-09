@@ -12,6 +12,24 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** A button marking A as put on list 3, as a menu does the moment the platform takes it. */
+function MarkA(): React.JSX.Element {
+  const { mark, heldBy } = useWatchlistMembership();
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          mark("NSE_EQ|A", 3, true);
+        }}
+      >
+        Mark
+      </button>
+      <output aria-label="A's lists">{[...(heldBy("NSE_EQ|A") ?? [])].join(",")}</output>
+    </>
+  );
+}
+
 /** A button that refreshes the membership, as anything changing a list does. */
 function Refresh(): React.JSX.Element {
   const { refresh } = useWatchlistMembership();
@@ -48,6 +66,30 @@ describe("watchlist membership", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Refresh" }));
     expect(platform).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows a change at once, and lets the next reading supersede it", async () => {
+    let reading = { "NSE_EQ|A": [1] };
+    stubPlatform({ "/api/watchlists/membership": { bodyFor: () => reading } });
+    renderPage(
+      <WatchlistMembershipProvider>
+        <WatchCount instrumentKey="NSE_EQ|A" symbol="AAA" />
+        <MarkA />
+        <Refresh />
+      </WatchlistMembershipProvider>,
+    );
+    expect(
+      await screen.findByRole("img", { name: "AAA is on one of your watchlists" }),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Mark" }));
+    expect(screen.getByRole("img", { name: "AAA is on 2 of your watchlists" })).toBeInTheDocument();
+    expect(screen.getByLabelText("A's lists")).toHaveTextContent("1,3");
+
+    // The platform's own answer, read again, is what stands from then on.
+    reading = { "NSE_EQ|A": [1, 4] };
+    await userEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    expect(await screen.findByLabelText("A's lists")).toHaveTextContent(/^1,4$/);
   });
 
   it("counts nothing outside the provider, or when the membership cannot be read", async () => {

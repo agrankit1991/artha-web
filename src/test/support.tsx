@@ -87,6 +87,7 @@ import type {
   ValuationSession,
   WatchedInstrument,
   WatchlistPage,
+  WatchlistChoice,
   WatchlistSummary,
   YearReview,
 } from "@/api/client";
@@ -1417,6 +1418,24 @@ export function watchlistSummary(overrides: Partial<WatchlistSummary> = {}): Wat
     items: 2,
     created_at: "2026-09-01",
     folder_id: null,
+    ...overrides,
+  };
+}
+
+/**
+ * A watchlist as a menu offers it (`/api/watchlists/choices`): the same list
+ * as `watchlistSummary`, with a list kept updated marked and uncounted.
+ *
+ * @param overrides - Fields to change.
+ * @returns The choice.
+ */
+export function watchlistChoice(overrides: Partial<WatchlistChoice> = {}): WatchlistChoice {
+  return {
+    watchlist_id: 1,
+    name: "Long term",
+    folder_id: null,
+    followed: false,
+    items: 2,
     ...overrides,
   };
 }

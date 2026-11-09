@@ -26,6 +26,7 @@ import {
 import { DrawingToolbar } from "@/components/DrawingToolbar";
 import { ForecastNote } from "@/components/ForecastNote";
 import { LineStylesDialog } from "@/components/LineStylesDialog";
+import { ListShortcut } from "@/components/ListShortcut";
 import { WatchlistsContextMenu } from "@/components/WatchlistMenu";
 import { useChartDrawings } from "@/hooks/useChartDrawings";
 import { drawnBand } from "@/lib/forecastBands";
@@ -288,7 +289,15 @@ export function PriceChart({
                 },
               })}
         />
-        {trail !== undefined && <div className="ml-auto flex items-center gap-2">{trail}</div>}
+        {(listsOf !== undefined || trail !== undefined) && (
+          <div className="ml-auto flex items-center gap-2">
+            {/* At the chart's top right, as the owner asked (2026-11-10). */}
+            {listsOf !== undefined && (
+              <ListShortcut instrumentKey={listsOf.instrumentKey} symbol={listsOf.symbol} />
+            )}
+            {trail}
+          </div>
+        )}
       </div>
       <div
         className="relative flex gap-2"

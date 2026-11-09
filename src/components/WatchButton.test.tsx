@@ -5,7 +5,14 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { WatchButton } from "./WatchButton";
-import { heldBy, renderPage, stubPlatform, watchlistSummary } from "@/test/support";
+import type { WatchlistChoice, WatchlistSummary } from "@/api/client";
+import {
+  heldBy,
+  renderPage,
+  stubPlatform,
+  watchlistChoice,
+  watchlistSummary,
+} from "@/test/support";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -16,11 +23,17 @@ const LISTS = [
   watchlistSummary({ watchlist_id: 2, name: "Dividends", items: 0 }),
 ];
 
+/** A summary as the menu's choices give it. */
+function choiceOf(list: WatchlistSummary): WatchlistChoice {
+  return watchlistChoice({ watchlist_id: list.watchlist_id, name: list.name, items: list.items });
+}
+
 function stubEverything(holding = [heldBy()]): ReturnType<typeof stubPlatform> {
   return stubPlatform({
     "/api/watchlists/holding": { body: holding },
     "/api/watchlists/1/items": { body: {} },
     "/api/watchlists/2/items": { body: {} },
+    "/api/watchlists/choices": { body: LISTS.map(choiceOf) },
     "/api/watchlists": {
       bodyFor: (_path, method) =>
         method === "POST" ? watchlistSummary({ watchlist_id: 3, name: "Fresh", items: 0 }) : LISTS,
@@ -173,6 +186,12 @@ describe("WatchButton, a list kept updated", () => {
   it("counts a list kept updated that holds it, ticked but not changed from here", async () => {
     const fetched = stubPlatform({
       "/api/watchlists/holding": { body: [heldBy(), { watchlist_id: 5, item_id: null }] },
+      "/api/watchlists/choices": {
+        body: [
+          ...LISTS.map(choiceOf),
+          watchlistChoice({ watchlist_id: 5, name: "Nifty 50, kept", followed: true, items: null }),
+        ],
+      },
       "/api/watchlists": {
         body: [
           ...LISTS,

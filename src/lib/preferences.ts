@@ -80,6 +80,11 @@ export interface Preferences {
   chartScale: ChartScale;
   /** Whether the watchlist page opens on its table or its chart. */
   watchlistView: "table" | "chart";
+  /**
+   * The list a company was last put on, offered first in a chart's corner
+   * (the owner, 2026-11-10); null until one has been.
+   */
+  lastWatchlist: number | null;
   /** How many charts the Chart view lays out, and how. */
   chartLayout: ChartLayout;
   /**
@@ -120,6 +125,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   chartScale: "linear",
   // The table the page has always opened on, until the reader chooses the chart.
   watchlistView: "table",
+  lastWatchlist: null,
   chartLayout: "1",
   chartListOrder: "kept",
   // 16rem, the width it had before it could be dragged.
@@ -264,6 +270,9 @@ export function parse(stored: unknown): Preferences {
         ? (chartScale as ChartScale)
         : DEFAULT_PREFERENCES.chartScale,
     watchlistView: record["watchlistView"] === "chart" ? "chart" : "table",
+    lastWatchlist: Number.isInteger(record["lastWatchlist"])
+      ? (record["lastWatchlist"] as number)
+      : null,
     chartLayout:
       typeof record["chartLayout"] === "string" && CHART_LAYOUTS.includes(record["chartLayout"])
         ? (record["chartLayout"] as ChartLayout)

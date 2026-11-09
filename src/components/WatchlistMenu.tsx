@@ -48,7 +48,7 @@ export function WatchlistMenuItems({ of, onNewList }: WatchlistMenuItemsProps): 
           <MenuItem
             key={list.watchlist_id}
             selected={of.held.has(list.watchlist_id)}
-            disabled={list.source != null}
+            disabled={list.followed}
             onSelect={() => {
               void of.toggle(list.watchlist_id);
             }}
@@ -63,10 +63,10 @@ export function WatchlistMenuItems({ of, onNewList }: WatchlistMenuItemsProps): 
               )}
             />
             <span className="flex-1 truncate">{list.name}</span>
-            {list.source != null && (
-              <span className="text-xs text-muted-foreground">kept updated</span>
+            {list.followed && <span className="text-xs text-muted-foreground">kept updated</span>}
+            {list.items !== null && (
+              <span className="ml-2 text-xs text-muted-foreground">{list.items}</span>
             )}
-            <span className="ml-2 text-xs text-muted-foreground">{list.items}</span>
           </MenuItem>
         ))
       )}

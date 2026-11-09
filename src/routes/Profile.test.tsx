@@ -122,6 +122,7 @@ describe("Profile", () => {
       exportSize: "200",
       chartScale: "linear",
       watchlistView: "table",
+      lastWatchlist: null,
       chartLayout: "1",
       chartListOrder: "kept",
       chartListWidth: 256,
