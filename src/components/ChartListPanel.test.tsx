@@ -1,6 +1,6 @@
 /** Tests for the list beside the chart, and moving through it from the keyboard. */
 
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -187,5 +187,67 @@ describe("orderRows", () => {
       "BBB",
     ]);
     expect(orderRows([moved("X", null), moved("Y", null)], "rising")).toHaveLength(2);
+  });
+});
+
+describe("ChartListPanel, removing and keeping the chosen row in view", () => {
+  function showRemovable(): ReturnType<typeof vi.fn<Choose>> {
+    const onRemove = vi.fn<Choose>();
+    renderPage(
+      <ChartListPanel
+        title="Swing"
+        rows={ROWS}
+        active="NSE_EQ|BBB"
+        onChoose={vi.fn()}
+        onRemove={onRemove}
+      />,
+    );
+    return onRemove;
+  }
+
+  it("asks to take the charted company off with Delete, or Backspace, a Mac's delete key", async () => {
+    const onRemove = showRemovable();
+
+    fireEvent.keyDown(window, { key: "Delete" });
+    await waitFor(() => {
+      expect(onRemove).toHaveBeenCalledWith("NSE_EQ|BBB");
+    });
+    fireEvent.keyDown(window, { key: "Backspace" });
+    await waitFor(() => {
+      expect(onRemove).toHaveBeenCalledTimes(2);
+    });
+    expect(screen.getByText("Up / Down to move, Delete to remove")).toBeInTheDocument();
+  });
+
+  it("leaves Delete to a chosen drawing, whichever listener runs first", async () => {
+    const drawing = (event: KeyboardEvent): void => {
+      event.preventDefault();
+    };
+    window.addEventListener("keydown", drawing);
+    const onRemove = showRemovable();
+
+    fireEvent.keyDown(window, { key: "Delete" });
+    await new Promise((resolve) => setTimeout(resolve, 5));
+
+    expect(onRemove).not.toHaveBeenCalled();
+    window.removeEventListener("keydown", drawing);
+  });
+
+  it("takes nothing off a list that takes no removals", async () => {
+    show();
+
+    fireEvent.keyDown(window, { key: "Delete" });
+    await new Promise((resolve) => setTimeout(resolve, 5));
+
+    expect(screen.getByText("Up / Down to move")).toBeInTheDocument();
+  });
+
+  it("scrolls the chosen row into view by the least it can", () => {
+    const scrolled = vi.spyOn(Element.prototype, "scrollIntoView");
+    renderPage(<ChartListPanel title="Swing" rows={ROWS} active="NSE_EQ|CCC" onChoose={vi.fn()} />);
+
+    expect(scrolled).toHaveBeenCalledWith({ block: "nearest" });
+    expect(scrolled.mock.contexts.at(-1)).toHaveTextContent("CCC");
+    scrolled.mockRestore();
   });
 });

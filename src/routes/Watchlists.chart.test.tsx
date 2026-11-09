@@ -82,6 +82,30 @@ describe("Watchlists, the Chart view", () => {
     expect(readPreferences().watchlistView).toBe("chart");
   });
 
+  it("takes the charted company off with Delete then Enter, and charts the next", async () => {
+    window.localStorage.setItem("artha.preferences", JSON.stringify({ watchlistView: "chart" }));
+    const fetched = stub();
+    renderPage(<Watchlists />);
+    expect(await screen.findByRole("link", { name: "RELIANCE" })).toBeVisible();
+
+    fireEvent.keyDown(window, { key: "Delete" });
+
+    const dialog = await screen.findByRole("dialog", { name: "Remove RELIANCE?" });
+    const remove = within(dialog).getByRole("button", { name: "Remove" });
+    expect(remove).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
+
+    await waitFor(() => {
+      expect(
+        fetched.mock.calls.some(
+          ([path, init]) =>
+            path.startsWith("/api/watchlists/1/items/") && init?.method === "DELETE",
+        ),
+      ).toBe(true);
+    });
+    expect(await screen.findByRole("link", { name: "TCS" })).toBeVisible();
+  });
+
   it("charts the company chosen in the list, and opens on the chart the reader left", async () => {
     window.localStorage.setItem("artha.preferences", JSON.stringify({ watchlistView: "chart" }));
     const fetched = stub();

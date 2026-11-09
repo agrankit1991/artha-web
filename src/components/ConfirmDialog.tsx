@@ -24,6 +24,7 @@ export function ConfirmDialog({
   action,
   onClose,
   onConfirm,
+  focusAction = false,
 }: {
   open: boolean;
   title: string;
@@ -31,6 +32,11 @@ export function ConfirmDialog({
   action: string;
   onClose: () => void;
   onConfirm: () => Promise<void>;
+  /**
+   * Focus the action rather than Cancel, so Enter does it: for a removal
+   * asked for by a key, where the key already said what was meant.
+   */
+  focusAction?: boolean;
 }): React.JSX.Element {
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -48,6 +54,7 @@ export function ConfirmDialog({
           <Button
             variant="destructive"
             disabled={busy}
+            {...(focusAction ? { "data-autofocus": "" } : {})}
             onClick={() => {
               setBusy(true);
               setProblem(null);

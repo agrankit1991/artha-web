@@ -59,9 +59,13 @@ export function Dialog({
       return;
     }
     opener.current = document.activeElement;
-    const first = panel.current?.querySelector<HTMLElement>(
-      "input, textarea, select, button:not([data-dialog-close])",
-    );
+    // A dialog may name what takes the focus (`data-autofocus`): a removal
+    // asked for by the Delete key focuses Remove, so Enter does it.
+    const first =
+      panel.current?.querySelector<HTMLElement>("[data-autofocus]") ??
+      panel.current?.querySelector<HTMLElement>(
+        "input, textarea, select, button:not([data-dialog-close])",
+      );
     (first ?? panel.current)?.focus();
     const onKey = (event: KeyboardEvent): void => {
       if (event.key === "Escape") {

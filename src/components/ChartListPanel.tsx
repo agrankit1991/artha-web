@@ -48,6 +48,11 @@ interface ChartListPanelProps {
   lists?: ReactNode;
   /** Classes for the panel, such as the most room it may take. */
   className?: string;
+  /**
+   * Ask to take the chosen company off the list, by the Delete key (the
+   * owner, 2026-11-10); absent for a list that takes no removals.
+   */
+  onRemove?: (instrumentKey: string) => void;
 }
 
 /** What each order is called, and the one a click on the column moves to. */
@@ -100,6 +105,7 @@ export function ChartListPanel({
   onChoose,
   lists,
   className,
+  onRemove,
 }: ChartListPanelProps): React.JSX.Element {
   // Which list the lists were opened over: choosing another changes the
   // title, which shuts them with no effect to watch for it.
@@ -137,6 +143,21 @@ export function ChartListPanel({
       ) {
         return;
       }
+      if ((event.key === "Delete" || event.key === "Backspace") && onRemove !== undefined) {
+        const chosen = active;
+        if (chosen === null) {
+          return;
+        }
+        // A chosen drawing takes Delete first (`useChartDrawings`), whichever
+        // listener the window calls first: asked once the key has been
+        // handled, the company goes only when no drawing took it.
+        window.setTimeout(() => {
+          if (!event.defaultPrevented) {
+            onRemove(chosen);
+          }
+        }, 0);
+        return;
+      }
       const forward =
         event.key === "ArrowDown" || (event.key === " " && !event.shiftKey)
           ? 1
@@ -159,7 +180,17 @@ export function ChartListPanel({
     return () => {
       window.removeEventListener("keydown", step);
     };
-  }, [rows, active, onChoose, choosing, menuFor]);
+  }, [rows, active, onChoose, choosing, menuFor, onRemove]);
+
+  // The chosen row kept in view as the keys move through a list longer than
+  // its column (the owner, 2026-11-10), by the least scroll that shows it.
+  useEffect(() => {
+    if (scroller === null || active === null) {
+      return;
+    }
+    const row = scroller.querySelector<HTMLElement>('[aria-current="true"]');
+    row?.scrollIntoView({ block: "nearest" });
+  }, [scroller, active]);
 
   return (
     // A column: given a most room (`className`), the list scrolls inside it
@@ -193,7 +224,9 @@ export function ChartListPanel({
           </h2>
         )}
         {!choosing && (
-          <span className="shrink-0 text-xs text-muted-foreground">Up / Down to move</span>
+          <span className="shrink-0 text-xs text-muted-foreground">
+            {onRemove === undefined ? "Up / Down to move" : "Up / Down to move, Delete to remove"}
+          </span>
         )}
       </div>
       {choosing ? (

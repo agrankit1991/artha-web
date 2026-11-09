@@ -151,7 +151,14 @@ export function Watchlists(): React.JSX.Element {
     | { kind: "delete"; list: WatchlistSummary }
     | { kind: "add" }
     | { kind: "edit"; item: WatchedInstrument }
-    | { kind: "remove"; item: WatchedInstrument }
+    | {
+        kind: "remove";
+        item: WatchedInstrument;
+        /** Asked for by the Delete key, beside the charts: Remove takes the focus. */
+        byKey?: boolean;
+        /** What to do once it is gone: chart the company after it. */
+        then?: () => void;
+      }
     | { kind: "folder-create" }
     | { kind: "folder-rename"; folder: WatchlistFolder }
     | { kind: "folder-delete"; folder: WatchlistFolder }
@@ -284,6 +291,18 @@ export function Watchlists(): React.JSX.Element {
           onChoose={chartOf}
           lists={tree}
           inStep={inStep}
+          // The reader's own list only: a list kept updated, or a kept one,
+          // takes no removals.
+          {...(kept === null && followed === null
+            ? {
+                onRemove: (instrumentKey: string, then: () => void) => {
+                  const item = items.find((one) => one.instrument_key === instrumentKey);
+                  if (item !== undefined) {
+                    setDialog({ kind: "remove", item, byKey: true, then });
+                  }
+                },
+              }
+            : {})}
         />
       ) : (
         <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
@@ -573,10 +592,12 @@ export function Watchlists(): React.JSX.Element {
         title={dialog?.kind === "remove" ? `Remove ${dialog.item.symbol}?` : ""}
         description="Its notes and levels go with it."
         action="Remove"
+        focusAction={dialog?.kind === "remove" && dialog.byKey === true}
         onClose={closeDialog}
         onConfirm={async () => {
           if (dialog?.kind === "remove" && chosenId !== null) {
             await removeWatchlistItem(chosenId, dialog.item.item_id);
+            dialog.then?.();
             closeDialog();
             refresh();
           }

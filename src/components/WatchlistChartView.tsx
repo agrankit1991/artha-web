@@ -193,6 +193,12 @@ interface WatchlistChartViewProps {
   lists: ReactNode;
   /** Whether the charts keep in step, chosen in the page's header. */
   inStep: InStep;
+  /**
+   * Ask to take a company off the list, the Delete key's way (the owner,
+   * 2026-11-10), and what to do once it is gone; absent for a list that
+   * takes no removals.
+   */
+  onRemove?: (instrumentKey: string, then: () => void) => void;
 }
 
 /**
@@ -209,6 +215,7 @@ export function WatchlistChartView({
   onChoose,
   lists,
   inStep,
+  onRemove,
 }: WatchlistChartViewProps): React.JSX.Element {
   const { chartLayout, chartListOrder, chartListWidth } = usePreferences();
   // The list's width while its handle is dragged; kept only when let go.
@@ -364,6 +371,21 @@ export function WatchlistChartView({
           active={shown[current] ?? null}
           onChoose={chartInActive}
           lists={lists}
+          {...(onRemove === undefined
+            ? {}
+            : {
+                onRemove: (instrumentKey: string) => {
+                  // Once it is gone the active chart moves on to the company
+                  // after it, as a list's selection does, else the one before.
+                  const at = ordered.findIndex((one) => one.instrument_key === instrumentKey);
+                  const next = ordered[at + 1] ?? ordered[at - 1];
+                  onRemove(instrumentKey, () => {
+                    if (next !== undefined) {
+                      chartInActive(next.instrument_key);
+                    }
+                  });
+                },
+              })}
         />
       </div>
     </div>
